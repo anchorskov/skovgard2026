@@ -8,7 +8,7 @@ We’re integrating secure, modern technology into our campaign—and building a
 
 Not a slogan. A commitment.
 
-A commitment that every Wyomingite can contribute to policy through a secure, open-source forum.
+A commitment that every Wyomingite can contribute to policy through a secure, open-source forum. That aggregates our voices, when we agree we will be heard.
 
 This is about you. Everyone.
 
@@ -38,7 +38,7 @@ Because the best ideas come from honest conversation and shared solutions.
 - Future generations watching how we act  
 
 This is our movement.  
-**This is Civ-Tech.**
+**This is Us.**
 
 ## Our Principles
 

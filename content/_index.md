@@ -9,39 +9,42 @@ draft: false
 ![Jimmy Skovgard](/images/jimmy.png)
 
 ### Conservative Republican for U.S. Senate  
-**Rooted in Wyoming. Powered by Us.**
+**Rooted in Wyoming. Powered by Us. Zero Experience.** 
 
 ---
 
-#### I’ve pledged to do two things in Washington
-1. **Sponsor and Fight for term-limits** for the House and Senate  
-2. **Bring Wyoming’s voice Your voice to Congress** using secure, modern tech
+#### I’ve pledged to do three things in Washington:
+1. **Sponsor and fight for term limits** for the House and Senate  
+2. **Bring Wyoming’s voice — your voice — to Congress** using secure, modern tech 
+3. **Represent you**  
 
 ---
 
-Let's face it Washington has stopped listening. 
-Nothing is being done and no-one is listening.  
-I feel it to we're not alone, you’re not wrong.
+Let’s face it — Washington has stopped listening.
+
+I feel it too. You’re not alone. You’re not wrong.
 
 ---
 
 I’m **Jimmy Skovgard**, born and raised here.  
 * Great-grandfather Simon homesteaded near Basin in 1909  
 * Greybull grade school → Basin High School → University of Wyoming  
-* Twelve-year service in the Wyoming Army National Guard,  honorably discharged as a captain  
+* Twelve years of service in the Wyoming Army National Guard, honorably discharged as a captain  
+* Zero political connections. Zero experience. Just a clean slate. My only agenda your voice.
 
 I’m running because Wyoming deserves:
 
+* Your voice  
 * Accountability over showmanship  
 * Limited government over endless growth  
 * Service over self-promotion  
 
-I’m not here to play a part. I’m here to **do the job**—listen, represent, restore trust.
+I’m not here to play a part. I’m here to **do the job** — listen, represent, restore trust.
 
 **This is your seat. This is your future.**  
 Let’s reclaim it together.
 
-**In Wyoming if we need something we build it.**  
+**In Wyoming, if we need something, we build it.** 
 
 [Explore Civ-Tech](/civ-tech/)
 

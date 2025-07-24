@@ -1,5 +1,30 @@
 baseURL       = "https://skovgard2026.org/"
 languageCode  = "en-us"
-title         = "Skovgard 2026"
+title         = "Jimmy Skovgard U.S. Senate 2026"
 theme         = "PaperMod"
 enableGitInfo = true
+[menu]
+
+  [[menu.main]]
+  identifier = "home"
+  name       = "Home"
+  url        = "/"
+  weight     = 1
+
+  [[menu.main]]
+  identifier = "about"
+  name       = "About"
+  url        = "/about/"
+  weight     = 2
+
+  [[menu.main]]
+  identifier = "civ-tech"
+  name       = "Civ-Tech"
+  url        = "/civ-tech/"
+  weight     = 3
+
+  [[menu.main]]
+  identifier = "donate"
+  name       = "Donate"
+  url        = "/donate/"
+  weight     = 4
