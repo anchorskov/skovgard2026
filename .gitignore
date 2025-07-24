@@ -1,0 +1,12 @@
+# Hugo output
+/public/
+/dist/
+
+# OS and editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Node modules
+node_modules/

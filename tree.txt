@@ -1,0 +1,26 @@
+archetypes
+└── default.md
+content
+└── posts
+    └── first-post.md
+config
+└── _default
+    └── config.toml
+layouts
+├── _default
+│   └── baseof.html
+├── index.html
+└── partials
+    ├── extend_footer.html
+    ├── extend_head.html
+    ├── footer.html
+    ├── head.html
+    └── header.html
+static
+├── css
+├── images
+│   └── jimmy.png
+└── js
+    └── env.js
+
+3 directories, 2 files

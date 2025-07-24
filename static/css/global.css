@@ -1,0 +1,4 @@
+/* Sticky-footer + basic resets */
+html, body {height: 100%; margin: 0;}
+.site-wrapper {display: flex; flex-direction: column; min-height: 100vh;}
+.site-main {flex: 1;}
