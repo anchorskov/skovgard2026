@@ -10,3 +10,32 @@ Thumbs.db
 
 # Node modules
 node_modules/
+
+# Hugo build output
+/public/
+/resources/_gen/
+/hugo_stats.json
+.hugo_build.lock
+
+# Node dependencies
+/node_modules/
+
+# OS and editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local environment files
+.env
+.env.*
+
+# Local archives and tree listings
+*.zip
+skovgard2026Tree.txt
+tree.txt
