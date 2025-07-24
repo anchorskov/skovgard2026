@@ -1,0 +1,5 @@
+baseURL       = "https://skovgard2026.org/"
+languageCode  = "en-us"
+title         = "Skovgard 2026"
+theme         = "PaperMod"
+enableGitInfo = true
