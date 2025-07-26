@@ -3,6 +3,12 @@ languageCode  = "en-us"
 title         = "Jimmy Skovgard U.S. Senate 2026"
 theme         = "PaperMod"
 enableGitInfo = true
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
 [menu]
 
   [[menu.main]]
@@ -28,3 +34,8 @@ enableGitInfo = true
   name       = "Donate"
   url        = "/donate/"
   weight     = 4
+
+  [[menu.main]]
+  name = "Volunteer"
+  url = "/volunteer/"
+  weight = 5
