@@ -24,7 +24,7 @@ draft: false
 <div id="disclaimer">
   <ol>
     <li>I’m running to secure Wyoming’s Republican nomination for the U.S. Senate—focused on our shared future.</li>
-    <li>This Is Us is my platform.</li>
+    <li>This my platform.</li>
     <li>All contributions follow FEC limits.</li>
     <li>No foreign national may contribute.</li>
     <li>Your contributions are not tax deductible.</li>

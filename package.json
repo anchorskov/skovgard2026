@@ -1,25 +1,28 @@
 {
   "name": "skovgard2026",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Hugo + UnoCSS static site for Jimmy Skovgard 2026",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "unocss": "unocss -c unocss.config.cjs -i 'layouts/**/*.html' -o 'static/css/unocss.css'"
+    "dev": "npm run unocss:watch & hugo server -D",
+    "unocss": "unocss -c unocss.config.cjs -o static/css/uno.css",
+    "unocss:watch": "npm run unocss -- --watch",
+    "build": "npm run unocss && hugo --minify"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/anchorskov/skovgard2026.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "bugs": {
     "url": "https://github.com/anchorskov/skovgard2026/issues"
   },
   "homepage": "https://github.com/anchorskov/skovgard2026#readme",
   "devDependencies": {
     "@unocss/cli": "^66.3.3",
-    "@unocss/preset-uno": "^66.3.3"
+    "@unocss/preset-uno": "^66.3.3",
+    "unocss": "^66.3.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

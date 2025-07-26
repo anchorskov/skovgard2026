@@ -4,7 +4,7 @@ description: "Conservative Republican for U.S. Senate | Rooted in Wyoming. Power
 draft: false
 ---
 
-<div align="center" class="home-hero">
+<div class="home-hero">
 
 ![Jimmy Skovgard](/images/jimmy.png)
 
@@ -27,17 +27,17 @@ I feel it too. You’re not alone. You’re not wrong.
 ---
 
 I’m **Jimmy Skovgard**, born and raised here.  
-* Great-grandfather Simon homesteaded near Basin in 1909  
-* Greybull grade school → Basin High School → University of Wyoming  
-* Twelve years of service in the Wyoming Army National Guard, honorably discharged as a captain  
+* Great-grandfather Simon homesteaded near Basin in 1909.  
+* Greybull grade school → Basin High School → University of Wyoming.  
+* Twelve years of service in the Wyoming Army National Guard, honorably discharged as a captain.  
 * Zero political connections. Zero experience. Just a clean slate. My only agenda your voice.
 
 I’m running because Wyoming deserves:
 
 * Your voice  
-* Accountability over showmanship  
-* Limited government over endless growth  
-* Service over self-promotion  
+* Accountability over showmanship.  
+* Limited government over endless growth.  
+* Service over self-promotion.  
 
 I’m not here to play a part. I’m here to **do the job** — listen, represent, restore trust.
 

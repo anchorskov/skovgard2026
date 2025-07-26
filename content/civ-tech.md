@@ -18,7 +18,6 @@ Congress listens to the loudest. We’re leveling the playing field.
 
 Imagine a civic tool that is:
 
-- **Secure** from tampering  
 - **Open-source** for anyone to inspect and improve  
 - **Accessible** to students, veterans, and seniors  
 - **Responsive** to real-time feedback  
