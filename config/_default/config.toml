@@ -39,3 +39,8 @@ enableGitInfo = true
   name = "Volunteer"
   url = "/volunteer/"
   weight = 5
+
+  [[menu.main]]
+  name = "Text Friends"
+  url = "/texting-circle/"
+  weight = 6

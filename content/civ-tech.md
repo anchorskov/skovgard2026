@@ -50,9 +50,9 @@ We believe:
 
 We reject:
 
-- Authoritarian shortcuts  
-- Surveillance disguised as safety  
-- Political theater over genuine representation  
+- Authoritarian shortcuts.  
+- Surveillance disguised as safety.  
+- Political theater over genuine representation.  
 
 ## Join Us
 
