@@ -15,8 +15,11 @@ draft: false
 
 #### I’ve pledged to do three things in Washington:
 1. **Sponsor and fight for term limits** for the House and Senate  
-2. **Bring Wyoming’s voice — your voice — to Congress** using secure, modern tech 
-3. **Represent you**  
+
+<p><strong><a href="/pledge/" style="font-size: 1.5em;">👉 View my signed Term Limits Pledge</a></strong></p>
+
+2. **Bring Wyoming’s voice — your voice — to Congress** using secure, modern tech  
+3. **Represent you**
 
 ---
 
