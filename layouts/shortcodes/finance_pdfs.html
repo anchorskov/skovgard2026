@@ -1,0 +1,18 @@
+{{/* Shortcode: finance_pdfs
+     Usage in content: {{< finance_pdfs dir="static/finance" >}}
+     Lists all PDFs in the given directory under /static and links them at /finance/<file>. */}}
+
+{{ $dir := .Get "dir" | default "static/finance" }}
+{{ $files := readDir $dir }}
+
+{{ if not $files }}
+<p>No expense PDFs posted yet.</p>
+{{ else }}
+<ul>
+  {{ range sort $files "Name" "desc" }}
+    {{- if or (strings.HasSuffix .Name ".pdf") (strings.HasSuffix .Name ".PDF") -}}
+      <li><a href="/finance/{{ .Name }}">{{ .Name }}</a></li>
+    {{- end -}}
+  {{ end }}
+</ul>
+{{ end }}

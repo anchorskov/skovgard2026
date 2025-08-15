@@ -1,0 +1,22 @@
+{{/* Shortcode: finance_contributions_pdfs
+     Usage: {{< finance_contributions_pdfs dir="static/finance/contributions" >}}
+     Lists all PDFs in the given directory under /static and links them correctly.
+*/}}
+
+{{ $dir    := .Get "dir" | default "static/finance/contributions" }}
+{{ $files  := readDir $dir }}
+{{/* Trim the "static/" prefix to form the public path */}}
+{{ $public := replace $dir "static/" "" }}
+
+{{ if not $files }}
+<p>No contribution PDFs posted yet.</p>
+{{ else }}
+<ul>
+  {{ range sort $files "Name" "desc" }}
+    {{- $name := .Name -}}
+    {{- if or (strings.HasSuffix $name ".pdf") (strings.HasSuffix $name ".PDF") -}}
+      <li><a href="/{{ $public }}/{{ $name }}">{{ replaceRE "(?i)\\.pdf$" "" $name }}</a></li>
+    {{- end -}}
+  {{ end }}
+</ul>
+{{ end }}

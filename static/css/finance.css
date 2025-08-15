@@ -1,0 +1,9 @@
+/* Keep embedded PDFs usable on mobile */
+.pdf-embed {
+  margin: 1rem 0;
+}
+@media (max-width: 640px) {
+  .pdf-embed iframe {
+    height: 520px; /* override default for smaller screens */
+  }
+}

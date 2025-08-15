@@ -36,11 +36,17 @@ enableGitInfo = true
   weight     = 4
 
   [[menu.main]]
-  name = "Volunteer"
-  url = "/volunteer/"
-  weight = 5
+  name       = "Volunteer"
+  url        = "/volunteer/"
+  weight     = 5
 
   [[menu.main]]
-  name = "Text Friends"
-  url = "/texting-circle/"
-  weight = 6
+  name       = "Text Friends"
+  url        = "/texting-circle/"
+  weight     = 6
+
+  [[menu.main]]
+  identifier = "finance"
+  name       = "Finance"
+  url        = "/finance/"
+  weight     = 7
