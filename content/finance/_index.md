@@ -16,7 +16,7 @@ Below is our monthly summary for the campaign. We update this page at the start 
 - **Cash on hand at July 31:** $595.00  
 - **Debts and obligations:** $0.00  
 
-*Notes:* Balance forward is the cumulative contributions through June (500 + 300 + 400). July outflow reflects checks written on 7/01 ($355) and 7/09 ($250). Printing expenses you covered personally are reflected when reimbursed in August, not in July’s cash flow.
+*Notes:* Balance forward is the cumulative contributions through June (500 + 300 + 400). July outflow reflects checks written on 7/01 ($355) and 7/09 ($250). Printing expenses are reflected when reimbursed in August, not in July’s cash flow.
 
 ### Year‑to‑date snapshot (through Aug 6, 2025)
 - **Total contributions received (YTD):** $2,620.75  
