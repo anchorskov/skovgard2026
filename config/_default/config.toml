@@ -50,3 +50,8 @@ enableGitInfo = true
   name       = "Finance"
   url        = "/finance/"
   weight     = 7
+
+  [[menu.main]]
+  name = "Resources"
+  url = "/resources/"
+  weight = 8
