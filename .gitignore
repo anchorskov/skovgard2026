@@ -1,18 +1,6 @@
 # Hugo output
 /public/
 /dist/
-
-# OS and editor artifacts
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# Node modules
-node_modules/
-
-# Hugo build output
-/public/
 /resources/_gen/
 /hugo_stats.json
 .hugo_build.lock
@@ -39,3 +27,9 @@ yarn-error.log*
 *.zip
 skovgard2026Tree.txt
 tree.txt
+
+# Temporary extraction folder
+.tmp/
+
+# Misc
+*.log
