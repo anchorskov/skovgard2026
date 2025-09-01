@@ -52,7 +52,6 @@ enableGitInfo = true
   weight     = 7
 
   [[menu.main]]
-  name = "Grassroots"
-  url  = "/grassroots/"
+  name = "Resources"
+  url = "/resources/"
   weight = 8
-

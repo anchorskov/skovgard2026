@@ -1,0 +1,25 @@
+{{/* Shortcode: pdf_embed
+     Purpose: Embed a PDF inside the page so the site header/menu stays usable.
+     Usage:
+       {{< pdf_embed src="/finance/Expenses July 2025.pdf" >}}
+       {{< pdf_embed src="/finance/contributions/July 2025 Contributions.pdf" height="800" >}}
+*/}}
+
+{{ $src    := .Get "src" }}
+{{ $height := .Get "height" | default "700" }}
+
+{{ if not $src }}
+  <p><em>PDF not specified.</em></p>
+{{ else }}
+  {{/* Encode spaces so PDFs with spaces in names render reliably */}}
+  {{ $href := replace $src " " "%20" }}
+  <div class="pdf-embed">
+    <iframe
+      src="{{ $href }}"
+      title="PDF viewer"
+      width="100%"
+      height="{{ $height }}"
+      style="border:1px solid #ddd">
+    </iframe>
+  </div>
+{{ end }}
