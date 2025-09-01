@@ -4,34 +4,35 @@ resources:
 - src: css/finance.css
 ---
 
-
 Below is our monthly summary for the campaign. We update this page at the start of each month.
 
 ## Current Month Summary
 
-- **Reporting month:** July 2025  
-- **Balance forward (as of July 1):** $1,200.00  
-- **Contributions received in July:** $0.00  
-- **Expenditures in July:** $605.00  
-- **Cash on hand at July 31:** $595.00  
+- **Reporting month:** August 2025  
+- **Balance forward (as of Aug 1):** $595.00  
+- **Contributions received in August:** $462.90  
+- **Expenditures in August:** $396.50  
+- **Cash on hand at Aug 31:** $661.40  
 - **Debts and obligations:** $0.00  
 
-*Notes:* Balance forward is the cumulative contributions through June (500 + 300 + 400). July outflow reflects checks written on 7/01 ($355) and 7/09 ($250). Printing expenses are reflected when reimbursed in August, not in July’s cash flow.
+*Notes:* Contributions include $200 from individual donors (Sara F. and Lisa A.) and $262.90 in candidate in-kind contributions (Zoom subscription and Campaign Verify). Expenditures include **Campaign Checks Cleared** (#1050, $125 to Wyoming SOS) and $262.90 in in-kind expenditures, plus $8.60 in Anedot credit card processing fees listed only as expenditures. Cash on hand reconciles to the Wells Fargo statement as of Aug 31.
 
-### Year‑to‑date snapshot (through Aug 6, 2025)
-- **Total contributions received (YTD):** $2,620.75  
-- **Total expenditures (YTD):** $1,930.05  
-- **Cash on hand (as of Aug 6):** $690.70  
+### Year-to-date snapshot (through Aug 31, 2025)
+- **Total contributions received (YTD):** $2,983.65  
+  - Calculation: prior YTD through Aug 6 = $2,620.75, plus new after Aug 6 = $100.00 (Lisa A.) + $262.90 (candidate in-kind) = $362.90  
+- **Total expenditures (YTD):** $2,322.25  
+  - Calculation: prior YTD through Aug 6 = $1,930.05, plus new after Aug 6 = $125.00 (check #1050) + $262.90 (in-kind) + $4.30 (Anedot fee for Lisa) = $392.20  
+- **Cash on hand (as of Aug 31):** $661.40  
 
-For detailed line‑item contributions and expenses, please see the PDFs posted below.
+For detailed line-item contributions and expenses, please see the PDFs posted below.
 
 ## Expense PDFs
 
 {{< finance_pdfs dir="static/finance" >}}
 
 <details>
-  <summary><strong>View Expenses July 2025 (inline)</strong></summary>
-  {{< pdf_embed src="/finance/Expenses July 2025.pdf" height="800" >}}
+  <summary><strong>View Expenses August 2025 (inline)</strong></summary>
+  {{< pdf_embed src="/finance/Expenses August 2025.pdf" height="800" >}}
 </details>
 
 ## Contribution PDFs
@@ -39,6 +40,6 @@ For detailed line‑item contributions and expenses, please see the PDFs posted 
 {{< finance_contributions_pdfs dir="static/finance/contributions" >}}
 
 <details>
-  <summary><strong>View July 2025 Contributions (inline)</strong></summary>
-  {{< pdf_embed src="/finance/contributions/July 2025 Contributions.pdf" height="800" >}}
+  <summary><strong>View August 2025 Contributions (inline)</strong></summary>
+  {{< pdf_embed src="/finance/contributions/August 2025 Contributions.pdf" height="800" >}}
 </details>
