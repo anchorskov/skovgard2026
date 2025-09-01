@@ -56,3 +56,9 @@ enableGitInfo = true
   url  = "/grassroots/"
   weight = 8
 
+  [[menu.main]]
+  identifier = "volunteer-resources"
+  name       = "Volunteer Resources"
+  url        = "/volunteer-resources/"
+  weight     = 9
+
