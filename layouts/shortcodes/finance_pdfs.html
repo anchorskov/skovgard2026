@@ -1,18 +1,35 @@
-{{/* Shortcode: finance_pdfs
-     Usage in content: {{< finance_pdfs dir="static/finance" >}}
-     Lists all PDFs in the given directory under /static and links them at /finance/<file>. */}}
+<!-- layouts/shortcodes/finance_pdfs.html -->
+{{/* Show only the newest expenses PDF. Filenames must be YYYY-MM-Expenses.pdf. */}}
+{{- $dir := .Get "dir" -}}
+{{- if not $dir -}} {{ errorf "finance_pdfs shortcode requires dir parameter" }} {{- end -}}
 
-{{ $dir := .Get "dir" | default "static/finance" }}
-{{ $files := readDir $dir }}
+{{- $files := readDir $dir -}}
+{{- $pdfs := slice -}}
+{{- range $files -}}
+  {{- $name := .Name -}}
+  {{- if and (not .IsDir) (or (hasSuffix $name ".pdf") (hasSuffix $name ".PDF")) (not (hasPrefix $name "latest-")) -}}
+    {{- $pdfs = $pdfs | append . -}}
+  {{- end -}}
+{{- end -}}
 
-{{ if not $files }}
-<p>No expense PDFs posted yet.</p>
-{{ else }}
-<ul>
-  {{ range sort $files "Name" "desc" }}
-    {{- if or (strings.HasSuffix .Name ".pdf") (strings.HasSuffix .Name ".PDF") -}}
-      <li><a href="/finance/{{ .Name }}">{{ .Name }}</a></li>
-    {{- end -}}
-  {{ end }}
-</ul>
-{{ end }}
+{{- if gt (len $pdfs) 0 -}}
+  {{/* Sort by Name so YYYY-MM wins naturally */}}
+  {{- $sorted := sort $pdfs "Name" "desc" -}}
+  {{- $latest := index $sorted 0 -}}
+  {{- $url := printf "/%s/%s" (replace $dir "static/" "" ) $latest.Name -}}
+
+  {{/* Derive label from filename: 2025-08-Expenses.pdf -> August 2025 */}}
+  {{- $label := "" -}}
+  {{- if ge (len $latest.Name) 7 -}}
+    {{- $ym := slicestr $latest.Name 0 7 -}}
+    {{- $when := time (print $ym "-01") -}}
+    {{- $label = time.Format "January 2006" $when -}}
+  {{- end -}}
+  {{- if eq $label "" -}}
+    {{- $label = "Current Month" -}}
+  {{- end -}}
+
+  <p><a href="{{ $url }}">{{ $label }} Expenses (PDF)</a></p>
+{{- else -}}
+  <em>No expense PDFs found in {{ $dir }}.</em>
+{{- end -}}

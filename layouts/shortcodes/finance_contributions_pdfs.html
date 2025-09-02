@@ -1,22 +1,33 @@
-{{/* Shortcode: finance_contributions_pdfs
-     Usage: {{< finance_contributions_pdfs dir="static/finance/contributions" >}}
-     Lists all PDFs in the given directory under /static and links them correctly.
-*/}}
+<!-- layouts/shortcodes/finance_contributions_pdfs.html -->
+{{/* Show only the newest contributions PDF. Filenames must be YYYY-MM-Contributions.pdf. */}}
+{{- $dir := .Get "dir" -}}
+{{- if not $dir -}} {{ errorf "finance_contributions_pdfs shortcode requires dir parameter" }} {{- end -}}
 
-{{ $dir    := .Get "dir" | default "static/finance/contributions" }}
-{{ $files  := readDir $dir }}
-{{/* Trim the "static/" prefix to form the public path */}}
-{{ $public := replace $dir "static/" "" }}
+{{- $files := readDir $dir -}}
+{{- $pdfs := slice -}}
+{{- range $files -}}
+  {{- $name := .Name -}}
+  {{- if and (not .IsDir) (or (hasSuffix $name ".pdf") (hasSuffix $name ".PDF")) (not (hasPrefix $name "latest-")) -}}
+    {{- $pdfs = $pdfs | append . -}}
+  {{- end -}}
+{{- end -}}
 
-{{ if not $files }}
-<p>No contribution PDFs posted yet.</p>
-{{ else }}
-<ul>
-  {{ range sort $files "Name" "desc" }}
-    {{- $name := .Name -}}
-    {{- if or (strings.HasSuffix $name ".pdf") (strings.HasSuffix $name ".PDF") -}}
-      <li><a href="/{{ $public }}/{{ $name }}">{{ replaceRE "(?i)\\.pdf$" "" $name }}</a></li>
-    {{- end -}}
-  {{ end }}
-</ul>
-{{ end }}
+{{- if gt (len $pdfs) 0 -}}
+  {{- $sorted := sort $pdfs "Name" "desc" -}}
+  {{- $latest := index $sorted 0 -}}
+  {{- $url := printf "/%s/%s" (replace $dir "static/" "" ) $latest.Name -}}
+
+  {{- $label := "" -}}
+  {{- if ge (len $latest.Name) 7 -}}
+    {{- $ym := slicestr $latest.Name 0 7 -}}
+    {{- $when := time (print $ym "-01") -}}
+    {{- $label = time.Format "January 2006" $when -}}
+  {{- end -}}
+  {{- if eq $label "" -}}
+    {{- $label = "Current Month" -}}
+  {{- end -}}
+
+  <p><a href="{{ $url }}">{{ $label }} Contributions (PDF)</a></p>
+{{- else -}}
+  <em>No contribution PDFs found in {{ $dir }}.</em>
+{{- end -}}
