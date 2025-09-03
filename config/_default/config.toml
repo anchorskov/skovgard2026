@@ -62,3 +62,14 @@ enableGitInfo = true
   url        = "/volunteer-resources/"
   weight     = 9
 
+  [[menu.main]]
+  identifier = "privacy"
+  name       = "Privacy Policy"
+  url        = "/privacy/"
+  weight     = 10
+
+  [[menu.main]]
+  identifier = "terms"
+  name       = "Terms of Service"
+  url        = "/terms/"
+  weight     = 11
