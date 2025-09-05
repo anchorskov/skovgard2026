@@ -1,0 +1,11 @@
+{{- /* Footer custom content start */ -}}
+<span><a href="/feedback/" class="feedback-btn">Give Feedback</a></span>
+
+{{ if .Site.Menus.footer }}
+  <nav class="footer-nav" aria-label="Footer">
+    {{ range .Site.Menus.footer }}
+      <a href="{{ .URL }}">{{ .Name }}</a>
+    {{ end }}
+  </nav>
+{{ end }}
+{{- /* Footer custom content end */ -}}

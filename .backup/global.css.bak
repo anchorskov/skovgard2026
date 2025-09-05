@@ -1,0 +1,57 @@
+/* Sticky-footer + basic resets */
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+.site-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.site-main {
+  flex: 1;
+}
+
+/* -----------------------------------------------------------
+   Feedback button fallback
+   (used until UnoCSS/Tailwind utilities are compiled) 
+----------------------------------------------------------- */
+.footer .feedback-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;          /* rounded-lg */
+  background: #2563eb;            /* blue-600 */
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 150ms;
+}
+
+.footer .feedback-btn:hover {
+  background: #1e4fcb;            /* blue-700 */
+
+}
+/* Highlight Donate as a button in header */
+.header a[href="/donate/"],
+.nav a[href="/donate/"] {
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  background: #2563eb;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.header a[href="/donate/"]:hover,
+.nav a[href="/donate/"]:hover {
+  filter: brightness(0.92);
+}
+
+.footer-nav {
+  display: inline-flex;
+  gap: 1rem;
+  margin-left: 1rem;
+}
+.footer-nav a { text-decoration: none; }
+.footer-nav a:hover { text-decoration: underline; }
