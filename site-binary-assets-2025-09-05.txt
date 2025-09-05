@@ -1,0 +1,13 @@
+static/finance/2025-07-Expenses.pdf
+static/finance/2025-08-Expenses.pdf
+static/finance/contributions/2025-07-Contributions.pdf
+static/finance/contributions/2025-08-Contributions.pdf
+static/finance/contributions/latest-Contributions.pdf
+static/finance/latest-Expenses.pdf
+static/images/Jimmy_Term_Limit_Pledge.jpg
+static/images/jimmy.png
+static/resources/Jimmy Skovgard for US Senate.pdf
+static/resources/Volunteer Flyer.pdf
+static/resources/VoterRegistrationForm.pdf
+themes/PaperMod/images/screenshot.png
+themes/PaperMod/images/tn.png
