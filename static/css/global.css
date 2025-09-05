@@ -44,7 +44,16 @@ header a[href="/donate/"]:focus-visible {
 .footer-extras .footer-nav {
   display: inline-flex;
   gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
+
+/* 💡 NEW: force each legal link to render inline in case theme sets block */
+.footer-extras .footer-nav a {
+  display: inline-block;
+}
+
+/* separator between legal links */
 .footer-extras .footer-nav a + a::before {
   content: "·";
   margin-right: 0.75rem;
