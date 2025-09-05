@@ -1,8 +1,13 @@
-{{- /* Footer custom content area start */ -}}
-<span> ·
-  <a href="/feedback/" class="feedback-btn">
-    Give Feedback
-  </a>
-</span>
-{{- /*     Insert any custom code—web analytics, extra resources, etc.—here */ -}}
-{{- /* Footer custom content area end */ -}}
+{{- /* Footer custom content start */ -}}
+<div class="footer-extras" role="navigation" aria-label="Footer">
+  <a href="/feedback/" class="feedback-btn">Give Feedback</a>
+
+  {{ if .Site.Menus.footer }}
+    <nav class="footer-nav">
+      {{ range .Site.Menus.footer }}
+        <a href="{{ .URL }}">{{ .Name }}</a>
+      {{ end }}
+    </nav>
+  {{ end }}
+</div>
+{{- /* Footer custom content end */ -}}

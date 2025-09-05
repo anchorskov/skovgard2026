@@ -1,34 +1,75 @@
-/* Sticky-footer + basic resets */
-html, body {
-  height: 100%;
-  margin: 0;
+/* ---------- Header CTA (Donate) ---------- */
+header a[href="/donate/"] {
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  background: #2563eb;
+  color: #fff !important;
+  font-weight: 700;
+}
+header a[href="/donate/"]:hover,
+header a[href="/donate/"]:focus-visible {
+  filter: brightness(0.92);
+  outline: none;
 }
 
-.site-wrapper {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+/* ---------- Footer layout ---------- */
+.footer {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.75rem;
+}
+@media (prefers-color-scheme: dark) {
+  .footer { border-top-color: #374151; }
 }
 
-.site-main {
-  flex: 1;
+.footer-extras {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem; /* tighter on small screens */
 }
 
-/* -----------------------------------------------------------
-   Feedback button fallback
-   (used until UnoCSS/Tailwind utilities are compiled) 
------------------------------------------------------------ */
+/* Footer links live inline, look like links, accessible focus */
+.footer-extras a {
+  color: inherit;
+  text-decoration: underline;
+}
+.footer-extras a:hover,
+.footer-extras a:focus-visible {
+  text-decoration: underline;
+  opacity: 0.9;
+  outline: none;
+}
+
+/* Group legal links and add separators without extra markup */
+.footer-extras .footer-nav {
+  display: inline-flex;
+  gap: 0.75rem;
+}
+.footer-extras .footer-nav a + a::before {
+  content: "·";
+  margin-right: 0.75rem;
+  color: currentColor;
+  opacity: 0.6;
+}
+
+/* ---------- Sticky footer scaffolding ---------- */
+html, body { height: 100%; margin: 0; }
+.site-wrapper { display: flex; flex-direction: column; min-height: 100vh; }
+.site-main { flex: 1; }
+
+/* ---------- Feedback button (fallback) ---------- */
 .footer .feedback-btn {
   display: inline-block;
   padding: 0.5rem 1rem;
-  border-radius: 0.5rem;          /* rounded-lg */
-  background: #2563eb;            /* blue-600 */
+  border-radius: 0.5rem;
+  background: #2563eb;  /* blue-600 */
   color: #fff;
   font-weight: 600;
   text-decoration: none;
   transition: background 150ms;
 }
-
-.footer .feedback-btn:hover {
-  background: #1e4fcb;            /* blue-700 */
+.footer .feedback-btn:hover,
+.footer .feedback-btn:focus-visible {
+  background: #1e4fcb; /* blue-700 */
+  outline: none;
 }

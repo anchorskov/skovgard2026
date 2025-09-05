@@ -9,67 +9,64 @@ enableGitInfo = true
     [markup.goldmark.renderer]
       unsafe = true
 
+# Enable JSON for client-side search (PaperMod expects this)
+[outputs]
+home = ["HTML", "RSS", "JSON"]
+
 [menu]
 
-  [[menu.main]]
-  identifier = "home"
-  name       = "Home"
-  url        = "/"
-  weight     = 1
+[[menu.main]]
+identifier = "home"
+name       = "Home"
+url        = "/"
+weight     = 1
 
-  [[menu.main]]
-  identifier = "about"
-  name       = "About"
-  url        = "/about/"
-  weight     = 2
+[[menu.main]]
+identifier = "about"
+name       = "About"
+url        = "/about/"
+weight     = 2
 
-  [[menu.main]]
-  identifier = "civ-tech"
-  name       = "Civ-Tech"
-  url        = "/civ-tech/"
-  weight     = 3
+[[menu.main]]
+identifier = "civ-tech"
+name       = "Civ-Tech"
+url        = "/civ-tech/"
+weight     = 3
 
-  [[menu.main]]
-  identifier = "donate"
-  name       = "Donate"
-  url        = "/donate/"
-  weight     = 4
+[[menu.main]]
+identifier = "volunteer"
+name       = "Volunteer"
+url        = "/volunteer/"
+weight     = 4
 
-  [[menu.main]]
-  name       = "Volunteer"
-  url        = "/volunteer/"
-  weight     = 5
+[[menu.main]]
+identifier = "texting-circle"
+name       = "Text Friends"
+url        = "/texting-circle/"
+weight     = 5
 
-  [[menu.main]]
-  name       = "Text Friends"
-  url        = "/texting-circle/"
-  weight     = 6
+[[menu.main]]
+identifier = "finance"
+name       = "Finance"
+url        = "/finance/"
+weight     = 6
 
-  [[menu.main]]
-  identifier = "finance"
-  name       = "Finance"
-  url        = "/finance/"
-  weight     = 7
+# CTA last so it stands out
+[[menu.main]]
+identifier = "donate"
+name       = "Donate"
+url        = "/donate/"
+weight     = 99
 
-  [[menu.main]]
-  name = "Grassroots"
-  url  = "/grassroots/"
-  weight = 8
+# Footer menu for legal
+[[menu.footer]]
+identifier = "privacy"
+name       = "Privacy Policy"
+url        = "/privacy/"
+weight     = 1
 
-  [[menu.main]]
-  identifier = "volunteer-resources"
-  name       = "Volunteer Resources"
-  url        = "/volunteer-resources/"
-  weight     = 9
-
-  [[menu.main]]
-  identifier = "privacy"
-  name       = "Privacy Policy"
-  url        = "/privacy/"
-  weight     = 10
-
-  [[menu.main]]
-  identifier = "terms"
-  name       = "Terms of Service"
-  url        = "/terms/"
-  weight     = 11
+[[menu.footer]]
+identifier = "terms"
+name       = "Terms of Service"
+url        = "/terms/"
+weight     = 2
