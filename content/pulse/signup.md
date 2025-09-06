@@ -1,7 +1,9 @@
 ---
 title: "Pulse Sign-Up"
-date: 2025-09-06
 draft: false
+aliases:
+  - /texting-circle/signup/
+hideMeta: true
 ---
 
 # Join Pulse
