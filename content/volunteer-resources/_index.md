@@ -10,7 +10,7 @@ We are a grassroots campaign. We build together, we share the load, we win with 
 
 ## Quick start
 1. Join the team → **[Volunteer sign-up](/volunteer/)**  
-2. Start a texting circle → **[Join a Texting Circle](/texting-circle/)**  
+2. Start with Pulse → **[Join Pulse](/pulse/)**  
 3. Download flyers → **See Downloads below**
 
 ---
@@ -49,8 +49,8 @@ We are a grassroots campaign. We build together, we share the load, we win with 
 ## Texting circles
 Start small. Keep it personal. No spam.
 
-- Join: **[Sign up here](/texting-circle/signup/)**  
-- How-to: **[Android](/texting-circle/setup-android/)** • **[iPhone](/texting-circle/setup-iphone/)**
+- Join: **[Sign up here](/pulse/signup/)**  
+- How-to: **[Android](/pulse/setup-android/)** • **[iPhone](/pulse/setup-iphone/)**
 
 ---
 

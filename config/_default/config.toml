@@ -40,9 +40,9 @@ url        = "/volunteer/"
 weight     = 4
 
 [[menu.main]]
-identifier = "texting-circle"
-name       = "Text Friends"
-url        = "/texting-circle/"
+identifier = "pulse"
+name       = "Pulse"
+url        = "/pulse/"
 weight     = 5
 
 [[menu.main]]

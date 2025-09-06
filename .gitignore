@@ -25,11 +25,20 @@ yarn-error.log*
 
 # Local archives and tree listings
 *.zip
+site-all-*.zip
+site-bundle-*.txt
+site-binary-assets-*.txt
+site-zip-manifest-*.csv
+tree-*.txt
 skovgard2026Tree.txt
-tree.txt
 
 # Temporary extraction folder
 .tmp/
 
 # Misc
 *.log
+
+# Editor/backup files
+*.bak
+*.old
+*~
