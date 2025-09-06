@@ -1,8 +1,6 @@
 ---
 aliases:
   - /texting-circle/setup-iphone/
----
----
 title: "Pulse Setup – iPhone"
 date: 2025-09-06
 draft: false

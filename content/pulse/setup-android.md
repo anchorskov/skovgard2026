@@ -1,8 +1,6 @@
 ---
 aliases:
   - /texting-circle/setup-android/
----
----
 title: "Pulse Setup – Android"
 date: 2025-09-06
 draft: false
