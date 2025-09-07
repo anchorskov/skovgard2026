@@ -30,9 +30,12 @@ If manipulation can divide a family, it can divide a nation. That is why I am ru
 This is not about party politics or career ambition. It is about principle.  
 It is about us, the people of Wyoming, being seen, heard, and respected again.
 
-We do not need a rubber stamp in Congress.  
-We need service.  
-We need accountability.  
+**We don't need a rubber stamp in Congress.**
+
+**We don’t need a career politician afraid of retribution.**
+
+We need service.
+We need accountability.
 We need tools that bring our voices to the table, not more backroom deals.
 
 That is why I have pledged to:
