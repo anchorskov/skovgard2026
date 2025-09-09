@@ -1,0 +1,12 @@
+name = "skovgard2026-api"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Bind to your existing D1 database: ballot_sources
+[[d1_databases]]
+binding = "DB"
+database_name = "ballot_sources"
+database_id   = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
+
+# Optional: when you add a custom subdomain later
+# routes = [{ pattern = "api.skovgard2026.org/*", zone_name = "skovgard2026.org" }]

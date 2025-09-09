@@ -1,0 +1,5 @@
+ALTER TABLE sms_optins ADD COLUMN email TEXT;
+ALTER TABLE sms_optins ADD COLUMN consent_email INTEGER NOT NULL DEFAULT 0; -- 0/1
+ALTER TABLE sms_optins ADD COLUMN wy_voter INTEGER NOT NULL DEFAULT 0;      -- 0/1
+ALTER TABLE sms_optins ADD COLUMN county TEXT;
+ALTER TABLE sms_optins ADD COLUMN zip TEXT;

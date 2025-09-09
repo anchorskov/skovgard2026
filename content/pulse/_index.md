@@ -1,57 +1,19 @@
 ---
-title: "Pulse"
-date: 2025-09-06
+title: "Get Campaign Text Updates"
+description: "Opt in to receive campaign updates by SMS. Open to all Wyoming voters."
 draft: false
-aliases:
-  - /texting-circle/
 ---
 
-# Pulse: Volunteer Texting Hub
+# Opt In for Campaign Updates
 
-**Pulse** is our campaign’s peer-to-peer texting network. Trusted supporters like you forward campaign updates directly to your own friends and neighbors. This is how we keep the movement personal, local, and real.
+By signing up here, you are **not volunteering**.  
+You are opting in to receive occasional campaign text messages from **Skovgard for Senate**.
 
----
+We respect and support the entire state of Wyoming, Republicans, Democrats, and undecided voters.  
+Our goal is to share updates, resources, and important election information with everyone.
 
-## How It Works
+- Message frequency varies.  
+- Reply **STOP** to opt out, **HELP** for help.  
+- Standard message and data rates may apply.
 
-1. **Sign Up** – Use the [Pulse Sign-Up Form](/pulse/signup/) to join.  
-2. **Get Updates** – You’ll receive short campaign texts with key updates.  
-3. **Share Locally** – Forward those messages to people you know and trust.  
-4. **Stay Flexible** – You decide how many texts you send each week.  
-
----
-
-## Volunteer Instructions
-
-- Send only to personal contacts, not to strangers.  
-- Do not mass-forward; keep it one-to-one.  
-- Use your own voice when sharing.  
-- Always include this line: *Reply STOP to opt out.*  
-- Respect privacy: never share your contact list with the campaign.  
-
----
-
-## 10DLC Compliance Notice
-
-By providing your phone number, you consent to receive campaign-related SMS/text messages from **Skovgard for Senate**.  
-
-- Message frequency may vary.  
-- Standard message and data rates may apply.  
-- Reply **STOP** to opt out at any time.  
-- Reply **HELP** for assistance.  
-
-Your number will only be used for campaign communication. We do not sell or share your information.
-
----
-
-## Get Started
-
-- [Sign Up for Pulse](/pulse/signup/)  
-- [Setup on iPhone](/pulse/setup-iphone/)  
-- [Setup on Android](/pulse/setup-android/)  
-
-## 🔐 Privacy & Respect
-
-We’ll never spam. Every message is optional. You choose who you contact, and when.
-
-*This is people-powered campaigning at its best. Thank you for standing with us.*
+[Opt In Now →](/pulse/signup/)

@@ -1,0 +1,103 @@
+/* static/css/forms.css */
+
+/* Scope everything to the form to beat theme CSS */
+main .optin-form { max-width: 48rem; }
+
+/* layout */
+main .optin-form .field { margin-bottom: 1rem; }
+main .optin-form .field-inline {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 640px){
+  main .optin-form .field-inline { grid-template-columns: 1fr; }
+}
+
+main .optin-form label {
+  display:block;
+  font-weight:600;
+  margin-bottom:.35rem;
+}
+main .optin-form .help {
+  font-weight:400; font-size:.92rem; color:#6b7280; margin-top:.25rem;
+}
+
+/* inputs */
+main .optin-form input[type="text"],
+main .optin-form input[type="email"],
+main .optin-form input[type="tel"],
+main .optin-form select,
+main .optin-form textarea{
+  width:100%;
+  padding:.7rem .85rem;
+  border:1px solid #d1d5db;
+  border-radius:.5rem;
+  font-size:1rem;
+  background:#fff;
+  color:#111827;
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  box-sizing:border-box;
+  margin:0;
+}
+main .optin-form input:focus,
+main .optin-form select:focus,
+main .optin-form textarea:focus{
+  outline:none;
+  border-color:#2563eb;
+  box-shadow:0 0 0 3px rgba(37,99,235,.25);
+}
+
+/* checkboxes */
+main .optin-form .checkbox-row{
+  display:flex; gap:.6rem; align-items:flex-start; margin:.75rem 0 1rem;
+}
+main .optin-form .checkbox-row input{ margin-top:.25rem; }
+
+/* submit button — force our look */
+main .optin-form button[type="submit"]{
+  display:inline-block;
+  padding:.75rem 1.25rem;
+  border:none; border-radius:.5rem;
+  background:#2563eb !important;  /* ensure theme can't override */
+  color:#fff !important; font-weight:700;
+  cursor:pointer;
+}
+main .optin-form button[disabled]{ opacity:.6; cursor:not-allowed; }
+
+/* messages */
+main .optin-form .optin-success{
+  background:#ecfdf5; border:1px solid #34d399; color:#065f46;
+  padding:.75rem 1rem; border-radius:.5rem; margin-top:1rem;
+}
+main .optin-form .optin-error{
+  background:#fef2f2; border:1px solid #fca5a5; color:#7f1d1d;
+  padding:.75rem 1rem; border-radius:.5rem; margin-top:1rem;
+}
+
+/* dark mode support */
+@media (prefers-color-scheme: dark){
+  main .optin-form input[type="text"],
+  main .optin-form input[type="email"],
+  main .optin-form input[type="tel"],
+  main .optin-form select,
+  main .optin-form textarea{
+    background:#111827; color:#f3f4f6; border-color:#374151;
+  }
+}
+
+/* modal (high z-index so it can't hide behind theme elements) */
+#optin-modal{
+  position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.45); z-index:9999;
+}
+#optin-modal.show{ display:flex; }
+#optin-modal .optin-dialog{
+  background:#fff; color:#111; padding:1.25rem 1.5rem; border-radius:0.75rem;
+  max-width:28rem; width:90%;
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
+}
+#optin-modal h2{ margin:0 0 .5rem 0; font-size:1.25rem; }
+#optin-modal p{ margin:.25rem 0 .75rem 0; }
+#optin-modal .actions{ display:flex; justify-content:flex-end; gap:.5rem; margin-top:.5rem; }
+#optin-ok{ padding:.6rem 1rem; border-radius:.5rem; border:0; cursor:pointer; }
