@@ -1,0 +1,3 @@
+baseURL      = "https://skovgard2026.pages.dev/"
+relativeURLs = false
+canonifyURLs = true

@@ -4,6 +4,9 @@ title         = "Jimmy Skovgard U.S. Senate 2026"
 theme         = "PaperMod"
 enableGitInfo = true
 
+relativeURLs = true
+canonifyURLs = false
+
 [markup]
   [markup.goldmark]
     [markup.goldmark.renderer]
