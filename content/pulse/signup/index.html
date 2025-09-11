@@ -2,6 +2,8 @@
 title: "Sign Up for Text Updates"
 slug: "signup"
 draft: false
+description: "Sign up to receive official campaign text updates (Wyoming voters only). Provide your name, county, ZIP, and mobile number."
+summary: "Opt in to SMS updates from Skovgard for Senate. WY voters only."
 ---
 
 <p>Not a volunteer form. This page is only for opting in to receive campaign text messages. Open to all Wyoming voters: Republican, Democrat, and undecided.</p>
@@ -70,19 +72,17 @@ draft: false
     <label for="consent_email">Yes, email me the campaign newsletter and updates.</label>
   </div>
 
-  <!-- Honeypot. Hidden at runtime by JS -->
+  <!-- Honeypot (hidden at runtime by JS) -->
   <div class="hp-field" aria-hidden="true">
     <label for="website">Website</label>
-    <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+    <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
   </div>
 
   <!-- Time trap -->
-  <input type="hidden" id="ts_start" name="ts_start" value="">
+  <input type="hidden" id="ts_start" name="ts_start" value="" />
 
-  <!-- Turnstile widget (STATIC). Replace with your real Site key -->
-  <div class="field">
-    <div class="cf-turnstile" data-sitekey="0x4AAAAAAB0HbT-nnpITnPNj" data-theme="auto"></div>
-  </div>
+  <!-- Turnstile explicit render slot (no static widget to avoid duplicates) -->
+  <div id="ts-slot" class="field" aria-live="polite"></div>
 
   <button type="submit" id="optin-submit">Click to Confirm Opt-In</button>
 
@@ -91,8 +91,8 @@ draft: false
   </p>
 </form>
 
-<!-- Turnstile loader -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<!-- Turnstile JS (explicit mode) -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <!-- Form logic -->
 <script type="module" src="/js/pulse-optin.js" defer></script>
 

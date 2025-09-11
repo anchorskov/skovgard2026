@@ -3,33 +3,43 @@ import { API_URL, isLocalEnv } from '/js/env.js';
 
 const form = document.getElementById('optin-form');
 if (form) {
+  /* ---------- small helpers ---------- */
   const HOME_URL = '/';
-
-  // Accepts '#id', '.class', or bare 'id'
   const $ = (sel) => form.querySelector(sel && (sel[0] === '#' || sel[0] === '.') ? sel : ('#' + sel));
 
   const msg = document.createElement('div');
-  msg.setAttribute('aria-live','polite');
+  msg.setAttribute('aria-live', 'polite');
   form.appendChild(msg);
 
-  // Hide honeypot at runtime (avoid greppable CSS)
-  const hpWrap = form.querySelector('.hp-field');
-  if (hpWrap) {
-    hpWrap.setAttribute('aria-hidden','true');
-    hpWrap.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;';
-    const hpInput = hpWrap.querySelector('input');
-    if (hpInput) hpInput.setAttribute('tabindex','-1');
+  const err = (t) => { msg.className = 'optin-error';   msg.textContent = t; };
+  const ok  = (t) => { msg.className = 'optin-success'; msg.textContent = t; };
+
+  const setBtn = (txt, { disabled = false, success = false } = {}) => {
+    const btn = $('#optin-submit'); if (!btn) return;
+    btn.textContent = txt;
+    btn.disabled = disabled;
+    btn.style.setProperty('background', success ? '#059669' : '#2563eb', 'important');
+    btn.style.setProperty('color', '#fff', 'important');
+    btn.style.setProperty('opacity', (success && disabled) ? '.9' : '', 'important');
+  };
+
+  const normalize10 = (raw) => {
+    const d = (raw || '').replace(/\D/g, '');
+    return d.length === 11 && d.startsWith('1') ? d.slice(1) : d;
+  };
+
+  /* ---------- hide honeypot at runtime ---------- */
+  {
+    const hpWrap = form.querySelector('.hp-field');
+    if (hpWrap) {
+      hpWrap.setAttribute('aria-hidden', 'true');
+      hpWrap.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;';
+      const hpInput = hpWrap.querySelector('input');
+      if (hpInput) hpInput.setAttribute('tabindex', '-1');
+    }
   }
 
-  // Swallow noisy extension errors only
-  window.addEventListener('unhandledrejection', (e) => {
-    const m = String(e?.reason && (e.reason.message || e.reason));
-    if (m.includes('Could not establish connection') && m.includes('Receiving end does not exist')) {
-      e.preventDefault();
-    }
-  });
-
-  // Success modal
+  /* ---------- success modal ---------- */
   const modal = (() => {
     const host = document.createElement('div');
     host.id = 'optin-modal';
@@ -48,41 +58,110 @@ if (form) {
       document.addEventListener('keydown', onKey, { once: true });
       okBtn.onclick = goHome;
       host.onclick = (e) => { if (e.target === host) goHome(); };
-      setTimeout(goHome, 3000);
     };
     return { show };
   })();
 
-  // If you use explicit rendering via a #ts-slot container, this will render Invisible and
-  // fall back to Managed if a token doesn’t appear quickly. If you use the static widget
-  // (<div class="cf-turnstile" ...>), this block exits early.
-  (function maybeRenderTurnstile() {
+  /* ---------- Turnstile explicit render ONCE + on-demand token ---------- */
+  const TS_SITEKEY = isLocalEnv ? '1x00000000000000000000AA' : '0x4AAAAAAB0HbT-nnpITnPNj';
+  let tsWidgetId = null;
+  let tsToken = '';
+  let tsRendered = false;
+  let tsRendering = false;
+  let tsWaiters = [];
+
+  function _flushWaiters(token) {
+    const arr = tsWaiters.slice();
+    tsWaiters = [];
+    for (const fn of arr) { try { fn(token || ''); } catch {} }
+  }
+
+  function renderTurnstileOnce() {
+    if (tsRendered || tsRendering || !window.turnstile) return;
     const slot = $('#ts-slot');
-    const hasStaticWidget = !!document.querySelector('.cf-turnstile');
-    if (!slot || hasStaticWidget) return;
+    if (!slot) return;
+    tsRendering = true;
+    try {
+      const already = slot.querySelector('iframe[src*="challenges.cloudflare.com"]');
+      if (already) {
+        tsRendered = true;
+      } else {
+        tsToken = '';
+        tsWidgetId = window.turnstile.render('#ts-slot', {
+          sitekey: TS_SITEKEY,
+          theme: 'auto',
+          action: 'optin',
+          execution: 'execute',
+          callback: (token) => {
+            tsToken = token || '';
+            _flushWaiters(tsToken);
+          },
+          'expired-callback': () => { tsToken = ''; },
+          'error-callback':   () => { tsToken = ''; }
+        });
+        tsRendered = true;
+      }
 
-    const SITE_KEY = '0x4AAAAAAB0HbT-nnpITnPNj'; // your site key
-    const fallbackToManaged = () => {
-      try { window.turnstile.reset(slot); } catch {}
-      window.turnstile?.render?.('#ts-slot', {
-        sitekey: SITE_KEY, appearance: 'interaction-only', theme: 'auto'
-      });
-    };
-    const tryInvisible = () => {
-      window.turnstile?.render?.('#ts-slot', {
-        sitekey: SITE_KEY, appearance: 'execute', theme: 'auto',
-        'error-callback': fallbackToManaged, 'timeout-callback': fallbackToManaged
-      });
-      setTimeout(() => {
-        const tok = form.querySelector('input[name="cf-turnstile-response"]');
-        if (!tok || !tok.value) fallbackToManaged();
-      }, 2000);
-    };
-    if (window.turnstile) tryInvisible();
-    else window.addEventListener('load', tryInvisible);
-  })();
+      // ---- DEV helpers (console) ----
+      if (!window._ts) {
+        window._ts = {
+          id:     () => tsWidgetId,
+          get:    () => (window.turnstile ? window.turnstile.getResponse(tsWidgetId) : ''),
+          exec:   () => (window.turnstile ? window.turnstile.execute(tsWidgetId) : undefined),
+          reset:  () => { tsToken = ''; try { window.turnstile?.reset(tsWidgetId); } catch {} }
+        };
+      }
+      // -------------------------------
+    } catch (e) {
+      console.warn('[turnstile] render error:', e);
+      tsRendered = true;
+    } finally {
+      tsRendering = false;
+    }
+  }
 
-  // Time-trap (faster locally) + optional bypass while testing
+  function ensureTurnstileReady(timeoutMs = 4000) {
+    if (window.turnstile && tsRendered) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const start = Date.now();
+      const tick = () => {
+        if (window.turnstile) {
+          renderTurnstileOnce();
+          if (tsRendered) return resolve();
+        }
+        if (Date.now() - start > timeoutMs) return reject(new Error('Turnstile not ready'));
+        setTimeout(tick, 40);
+      };
+      tick();
+    });
+  }
+
+  async function getTurnstileToken(timeoutMs = 6000) {
+    await ensureTurnstileReady();
+    if (tsToken) return tsToken;
+    const tokenPromise = new Promise((resolve, reject) => {
+      tsWaiters.push(resolve);
+      const to = setTimeout(() => {
+        const i = tsWaiters.indexOf(resolve);
+        if (i !== -1) tsWaiters.splice(i, 1);
+        reject(new Error('Turnstile timeout'));
+      }, timeoutMs);
+      const oldResolve = resolve;
+      tsWaiters[tsWaiters.length - 1] = (t) => { clearTimeout(to); oldResolve(t); };
+    });
+    window.turnstile.execute(tsWidgetId);
+    return await tokenPromise;
+  }
+
+  function resetTurnstile() {
+    tsToken = '';
+    try { window.turnstile.reset(tsWidgetId); } catch {}
+  }
+
+  if (window.turnstile) renderTurnstileOnce();
+  else window.addEventListener('load', renderTurnstileOnce);
+
+  /* ---------- time-trap ---------- */
   const disableTrap = new URLSearchParams(location.search).has('noTrap');
   const MIN_WAIT_MS = isLocalEnv ? 300 : 1200;
   const tsStartEl = $('#ts_start');
@@ -91,55 +170,33 @@ if (form) {
   window.addEventListener('load', () => { setStart(); setTimeout(setStart, 50); }, { once: true });
   setStart();
 
-  const normalize10 = (raw) => {
-    const d = (raw || '').replace(/\D/g, '');
-    return d.length === 11 && d.startsWith('1') ? d.slice(1) : d;
-  };
-
-  // Button helper that beats theme !important
-  const setBtn = (txt, { disabled = false, success = false } = {}) => {
-    const btn = $('#optin-submit'); if (!btn) return;
-    btn.textContent = txt;
-    btn.disabled = disabled;
-    const baseBg = '#2563eb', okBg = '#059669';
-    btn.style.setProperty('background', success ? okBg : baseBg, 'important');
-    btn.style.setProperty('color', '#fff', 'important');
-    btn.style.setProperty('opacity', (success && disabled) ? '.9' : '', 'important');
-  };
-
-  const err = (t) => { msg.className='optin-error'; msg.textContent=t; };
-  const ok  = (t) => { msg.className='optin-success'; msg.textContent=t; };
-
-  // Mark that JS is bound
+  /* ---------- bind + guard initial button ---------- */
   form.dataset.js = 'ready';
-
-  // Prevent instant click before widgets render
   (() => {
-    const btn = $('#optin-submit');
-    if (!btn) return;
+    const btn = $('#optin-submit'); if (!btn) return;
     btn.disabled = true;
     setTimeout(() => { btn.disabled = false; }, MIN_WAIT_MS);
   })();
 
+  /* ---------- submit ---------- */
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     msg.className = ''; msg.textContent = '';
 
-    // Honeypot: silent success (don’t tip bots)
+    // honeypot: silent success
     if ((form.querySelector('#website')?.value || '').trim() !== '') {
-      setBtn('Opt-In Confirmed', { disabled:true, success:true });
+      setBtn('Opt-In Confirmed', { disabled: true, success: true });
       ok('Thanks!'); modal.show(); return;
     }
 
-    // Time trap with local bypass + diagnostics
+    // time-trap (disabled in local with ?noTrap)
     const tsStart = parseInt(tsStartEl?.value || '0', 10);
     const elapsed = Date.now() - (Number.isFinite(tsStart) ? tsStart : 0);
     if (!disableTrap && !isLocalEnv && (!tsStart || elapsed < MIN_WAIT_MS)) {
-      console.warn('time-trap: tsStart=%s elapsed=%sms need >= %sms', tsStart, elapsed, MIN_WAIT_MS);
       return err('Please wait a moment and try again.');
     }
 
-    // Read fields
+    // fields
     const first_name    = $('#first_name')?.value.trim() || '';
     const last_name     = $('#last_name')?.value.trim() || '';
     const county        = $('#county')?.value.trim() || '';
@@ -150,33 +207,38 @@ if (form) {
     const consent_sms   = $('#consent_sms')?.checked || false;
     const consent_email = $('#consent_email')?.checked || false;
 
-    // Turnstile token (implicit widget injects a hidden input)
-    const tsToken = form.querySelector('input[name="cf-turnstile-response"]')?.value || '';
-
-    // Client validations (mirror Worker)
+    // client validation
     if (!first_name) return err('First name is required.');
     if (!last_name)  return err('Last name is required.');
     if (!county)     return err('Select your county.');
     if (!/^\d{5}$/.test(zip)) return err('Enter a 5-digit Wyoming ZIP.');
-    if (!wy_voter)  return err('This SMS list is for registered Wyoming voters only.');
+    if (!wy_voter)   return err('This SMS list is for registered Wyoming voters only.');
     if (phone10.length !== 10) return err('Enter a valid 10-digit mobile.');
     if (!consent_sms) return err('Please confirm SMS consent.');
     if (email && !consent_email) return err('Check the email opt-in to receive emails.');
-    if (!tsToken) return err('Please complete the verification.');
 
+    // token
+    let token = '';
     try {
-      setBtn('Validating…', { disabled:true });
+      token = await getTurnstileToken();
+      if (!token) return err('Please complete the verification.');
+    } catch {
+      return err('Verification failed. Please refresh and try again.');
+    }
+    console.log({ first_name, last_name, county, zip, phone10, email, consent_sms, consent_email });
+    // POST
+    try {
+      setBtn('Validating…', { disabled: true });
       const res = await fetch(`${API_URL}/api/optin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // NOTE: token included in body; Worker should verify via siteverify API
         body: JSON.stringify({
           first_name, last_name, county, zip, wy_voter: true,
           phone: phone10, email: email || null,
           consent_sms: true, consent_email: !!consent_email,
           consent_version: 'v1-2025-09-08',
-          turnstile_token: tsToken,
-          ts_client: new Date().toISOString()
+          turnstile_token: token,
+          ts_client: (tsStartEl?.value || '').trim()
         })
       });
 
@@ -184,18 +246,17 @@ if (form) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || `HTTP ${res.status}`);
       }
-
       form.reset();
-      setBtn('Opt-In Confirmed', { disabled:true, success:true });
+      resetTurnstile();
+      setBtn('Opt-In Confirmed', { disabled: true, success: true });
+      $('#optin-submit').style.display = 'none';
       ok('Thanks! You’re on the SMS list. Reply STOP anytime to opt out.');
       modal.show();
-    } catch (e2) {
-      console.error('opt-in error', e2);
-      setBtn('Click to Confirm Opt-In', { disabled:false });
-      err('Sorry—something went wrong. Please try again.');
-    } finally {
-      // Always refresh the widget so a fresh token is ready
-      try { window.turnstile?.reset(); } catch {}
+    } catch (e3) {
+      console.error('opt-in error', e3);
+      setBtn('Click to Confirm Opt-In', { disabled: false });
+      err(e3?.message || 'Sorry—something went wrong. Please try again.');
+      resetTurnstile();
     }
   });
 }
