@@ -1,8 +1,31 @@
+// --- CORS helpers ------------------------------------------------------------
 function allowOrigin(env, req) {
   const origin = req.headers.get("origin") || "";
   const allow = (env.CORS_ORIGINS || "http://localhost:1313,https://skovgard2026.org")
-    .split(",").map(s => s.trim());
-  return allow.includes(origin) ? origin : "*"; // keep permissive fallback for now
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  // Return exact Origin when allowed; otherwise return empty string (stricter CORS)
+  return allow.includes(origin) ? origin : "";
+}
+
+function corsHeaders(env, req) {
+  const originHeader = allowOrigin(env, req);
+  return originHeader
+    ? {
+        "access-control-allow-origin": originHeader,
+        "access-control-allow-methods": "GET,POST,OPTIONS",
+        "access-control-allow-headers": "content-type",
+        "access-control-max-age": "86400",
+        "vary": "Origin",
+      }
+    : {
+        "access-control-allow-methods": "GET,POST,OPTIONS",
+        "access-control-allow-headers": "content-type",
+        "access-control-max-age": "86400",
+        "vary": "Origin",
+      };
 }
 
 function json(req, env, data, status = 200, extra = {}) {
@@ -11,35 +34,49 @@ function json(req, env, data, status = 200, extra = {}) {
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
-      "access-control-allow-origin": allowOrigin(env, req),
-      "access-control-allow-methods": "GET,POST,OPTIONS",
-      "access-control-allow-headers": "content-type",
-      "access-control-max-age": "86400",
-      ...extra
-    }
+      ...corsHeaders(env, req),
+      ...extra,
+    },
   });
 }
 
+// --- Utilities ---------------------------------------------------------------
 async function sha256Hex(s) {
   const bytes = new TextEncoder().encode(s || "");
   const h = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Cloudflare Turnstile: server-side validation (returns full response)
 async function verifyTurnstile(secret, token, ip) {
-  if (!secret || !token) return false;
+  if (!secret || !token) return { success: false, "error-codes": ["missing-secret-or-token"] };
   try {
     const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ secret, response: token, remoteip: ip || "" })
+      body: new URLSearchParams({ secret, response: token, remoteip: ip || "" }),
     }).then(r => r.json());
-    return !!r.success;
+    // r: { success, challenge_ts, hostname, action?, "error-codes"? }
+    return r;
   } catch {
-    return false;
+    return { success: false, "error-codes": ["fetch-error"] };
   }
 }
 
+// Validate Turnstile-reported hostname against allow-list
+// Normalize the Turnstile-reported hostname and allow a simple list.
+// (strip any :port, compare against env list)
+function tsHostAllowed(env, h) {
+  const base = String(h || "").trim().split(":")[0];  // <-- normalize
+  if (!base) return true; // if Turnstile didn't return a host, don't fail hard
+  const list = String(env.TS_ALLOWED_HOSTNAMES || "skovgard2026.org,www.skovgard2026.org,localhost,127.0.0.1,skovgard2026.pages.dev")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+  return list.includes(base);
+}
+
+// Simple IP-based rate limiting; soft-fails open if table missing
 async function rateLimitOk(env, ipHash, windowMin = 15, maxReq = 3) {
   try {
     // table created by migration 004_rate_limit.sql
@@ -49,11 +86,11 @@ async function rateLimitOk(env, ipHash, windowMin = 15, maxReq = 3) {
     ).bind(ipHash, `-${windowMin} minutes`).first();
     return (row?.n || 0) <= maxReq;
   } catch {
-    // if table missing, do not block; just allow
     return true;
   }
 }
 
+// --- Worker ------------------------------------------------------------------
 export default {
   async fetch(req, env) {
     try {
@@ -62,7 +99,7 @@ export default {
 
       // CORS preflight
       if (req.method === "OPTIONS" && path.startsWith("/api")) {
-        return json(req, env, {});
+        return new Response(null, { status: 204, headers: corsHeaders(env, req) });
       }
 
       // Health check
@@ -88,7 +125,22 @@ export default {
         const consentVer   = String(b.consent_version || "v1-2025-09-08");
 
         const tsToken  = String(b.turnstile_token || "");
-        const tsClient = Date.parse(String(b.ts_client || "")) || 0;
+
+        // Robust parse for ts_client:
+        // - number (epoch ms)
+        // - 13-digit numeric string (epoch ms)
+        // - 10-digit numeric string (epoch s) -> convert to ms
+        // - ISO date string
+        const rawTs = b.ts_client;
+        const tsClient = (() => {
+          if (typeof rawTs === "number" && Number.isFinite(rawTs)) return rawTs;
+          if (typeof rawTs === "string") {
+            if (/^\d{13}$/.test(rawTs)) return parseInt(rawTs, 10);
+            if (/^\d{10}$/.test(rawTs)) return parseInt(rawTs, 10) * 1000;
+          }
+          const d = Date.parse(String(rawTs || ""));
+          return Number.isFinite(d) ? d : 0;
+        })();
 
         // Required fields
         if (!firstName) return json(req, env, { error: "First name is required" }, 400);
@@ -102,14 +154,46 @@ export default {
         const ip = req.headers.get("cf-connecting-ip") || "";
         const ipHash = await sha256Hex(ip);
 
-        // 1) server time trap (~1.5s since page load)
-        if (!tsClient || (Date.now() - tsClient) < 1500) {
-          return json(req, env, { error: "Please wait a moment and try again." }, 400);
+        // 1) server time trap (shorter in local/dev)
+        // Optional: enforce allowed hostnames from TS_ALLOWED_HOSTNAMES
+        // but don't block local dev (localhost/127.x).
+        const origin  = req.headers.get("origin") || "";
+        const hostHdr = req.headers.get("host") || "";
+        const isLocalHost =
+          origin.includes("localhost") || origin.includes("127.0.0.1") ||
+          hostHdr.startsWith("localhost") || hostHdr.startsWith("127.0.0.1");
+
+        // 2) Turnstile check (+ optional assertions)
+        const sv = await verifyTurnstile(env.TURNSTILE_SECRET, tsToken, ip);
+
+        // Temporary logging while stabilizing; remove later
+        console.log("turnstile", {
+          success: sv.success,
+          hostname: sv.hostname,
+          action: sv.action,
+          ts: sv.challenge_ts,
+          errors: sv["error-codes"],
+        });
+
+        // Optional: enforce allowed hostnames from TS_ALLOWED_HOSTNAMES
+        if (!isLocalHost && sv.hostname && !tsHostAllowed(env, sv.hostname)) {
+          console.log("Turnstile hostname rejected:", sv.hostname);
+          return json(req, env, { error: "Invalid origin" }, 400);
         }
 
-        // 2) Turnstile check
-        const okTs = await verifyTurnstile(env.TURNSTILE_SECRET, tsToken, ip);
-        if (!okTs) return json(req, env, { error: "Verification failed" }, 400);
+        if (!sv.success) {
+          const code = String((sv["error-codes"] || [])[0] || "");
+          const msg =
+            code.includes("timeout-or-duplicate")   ? "Verification timed out. Please try again." :
+            code.includes("invalid-input-response") ? "Verification failed. Please refresh and try again." :
+            "Verification failed";
+          return json(req, env, { error: msg }, 400);
+        }
+
+        // If you set data-action="optin" on the widget, assert it here
+        if (sv.action && sv.action !== "optin") {
+          return json(req, env, { error: "Verification mismatch" }, 400);
+        }
 
         // 3) IP rate limiting
         const okRl = await rateLimitOk(env, ipHash, 15, 3);
@@ -155,10 +239,11 @@ export default {
         return json(req, env, { ok: true });
       }
 
-      return new Response("Not found", { status: 404 });
+      // Fallback (ensure CORS on 404)
+      return new Response("Not found", { status: 404, headers: corsHeaders(env, req) });
     } catch (err) {
       console.error("Worker error:", err);
       return json(req, env, { error: "Server error" }, 500);
     }
-  }
+  },
 };
