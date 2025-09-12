@@ -142,9 +142,11 @@ function renderTurnstileOnce() {
   }
 }
 
-// Ensure widget exists when the API is available
-if (window.turnstile) renderTurnstileOnce();
-else window.addEventListener('load', renderTurnstileOnce);
+// Ensure widget exists when the API is available (prod only)
+if (!isLocalEnv) {
+  if (window.turnstile) renderTurnstileOnce();
+  else window.addEventListener('load', renderTurnstileOnce);
+}
 
 // Refresh token when page regains focus (avoid stale token on long idle)
 document.addEventListener('visibilitychange', () => {
@@ -203,8 +205,8 @@ function resetTurnstile() {
 }
 
   /* ---------- time-trap ---------- */
-  const disableTrap = new URLSearchParams(location.search).has('noTrap');
-  const MIN_WAIT_MS = isLocalEnv ? 300 : 1200;
+  const disableTrap = isLocalEnv || new URLSearchParams(location.search).has('noTrap');
+  const MIN_WAIT_MS = isLocalEnv ? 0 : 1200;
   const tsStartEl = $('#ts_start');
   const setStart = () => { if (tsStartEl) tsStartEl.value = String(Date.now()); };
   document.addEventListener('DOMContentLoaded', setStart, { once: true });
@@ -259,17 +261,21 @@ function resetTurnstile() {
     if (email && !consent_email) return err('Check the email opt-in to receive emails.');
 
     // token
-    // 1) Turnstile: execute now and require a fresh token
     let tsToken = '';
-    try {
-      tsToken = await getTurnstileToken(8000);
-    } catch {
-      resetTurnstile();
-      return err('Verification not ready. Please try again.');
-    }
-    if (!tsToken || tsToken.length < 40) {
-      resetTurnstile();
-      return err('Verification failed. Please refresh and try again.');
+    if (isLocalEnv) {
+      // Local dev: skip Turnstile entirely
+      tsToken = 'local-bypass';
+    } else {
+      try {
+        tsToken = await getTurnstileToken(8000);
+      } catch {
+        resetTurnstile();
+        return err('Verification not ready. Please try again.');
+      }
+      if (!tsToken || tsToken.length < 40) {
+        resetTurnstile();
+        return err('Verification failed. Please refresh and try again.');
+      }
     }
 
     console.log({ first_name, last_name, county, zip, phone10, email, consent_sms, consent_email });
