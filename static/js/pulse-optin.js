@@ -62,104 +62,145 @@ if (form) {
     return { show };
   })();
 
-  /* ---------- Turnstile explicit render ONCE + on-demand token ---------- */
-  const TS_SITEKEY = isLocalEnv ? '1x00000000000000000000AA' : '0x4AAAAAAB0HbT-nnpITnPNj';
-  let tsWidgetId = null;
-  let tsToken = '';
-  let tsRendered = false;
-  let tsRendering = false;
-  let tsWaiters = [];
+/* ---------- Turnstile explicit render ONCE + on-demand token ---------- */
 
-  function _flushWaiters(token) {
-    const arr = tsWaiters.slice();
-    tsWaiters = [];
-    for (const fn of arr) { try { fn(token || ''); } catch {} }
-  }
+// Sitekey resolution (HTML > window > env default)
+const slotEl = document.getElementById('ts-slot');
+const htmlKey = slotEl?.dataset?.sitekey || slotEl?.getAttribute?.('data-sitekey');
+const TS_SITEKEY = htmlKey
+  || (window.__TS_SITEKEY || (isLocalEnv ? '1x00000000000000000000AA' : '0x4AAAAAAB0HbT-nnpITnPNj'));
 
-  function renderTurnstileOnce() {
-    if (tsRendered || tsRendering || !window.turnstile) return;
-    const slot = $('#ts-slot');
-    if (!slot) return;
-    tsRendering = true;
-    try {
-      const already = slot.querySelector('iframe[src*="challenges.cloudflare.com"]');
-      if (already) {
-        tsRendered = true;
-      } else {
-        tsToken = '';
-        tsWidgetId = window.turnstile.render('#ts-slot', {
-          sitekey: TS_SITEKEY,
-          theme: 'auto',
-          action: 'optin',
-          execution: 'execute',
-          callback: (token) => {
-            tsToken = token || '';
-            _flushWaiters(tsToken);
-          },
-          'expired-callback': () => { tsToken = ''; },
-          'error-callback':   () => { tsToken = ''; }
-        });
-        tsRendered = true;
-      }
+let tsWidgetId = null;
+let tsToken = '';
+let tsRendered = false;
+let tsRendering = false;
+let tsWaiters = [];
 
-      // ---- DEV helpers (console) ----
-      if (!window._ts) {
-        window._ts = {
-          id:     () => tsWidgetId,
-          get:    () => (window.turnstile ? window.turnstile.getResponse(tsWidgetId) : ''),
-          exec:   () => (window.turnstile ? window.turnstile.execute(tsWidgetId) : undefined),
-          reset:  () => { tsToken = ''; try { window.turnstile?.reset(tsWidgetId); } catch {} }
-        };
-      }
-      // -------------------------------
-    } catch (e) {
-      console.warn('[turnstile] render error:', e);
+// Simple TTL for tokens (Turnstile tokens are short-lived)
+let tsIssuedAt = 0;
+const TOKEN_TTL_MS = 90 * 1000; // refresh after ~90s
+
+function _flushWaiters(token) {
+  const arr = tsWaiters.slice();
+  tsWaiters = [];
+  for (const fn of arr) { try { fn(token || ''); } catch {} }
+}
+
+function _tokenFresh() {
+  return tsToken && (Date.now() - tsIssuedAt) < TOKEN_TTL_MS;
+}
+
+function renderTurnstileOnce() {
+  if (tsRendered || tsRendering || !window.turnstile) return;
+  const slot = slotEl || document.querySelector('#ts-slot');
+  if (!slot) return;
+
+  tsRendering = true;
+  try {
+    const existing = slot.querySelector('iframe[src*="challenges.cloudflare.com"]');
+    if (existing && existing.id) {
+      // Widget already in DOM (SSR/rehydrate). Capture its id for execute().
+      tsWidgetId = existing.id;
       tsRendered = true;
-    } finally {
-      tsRendering = false;
+    } else {
+      tsToken = '';
+      tsIssuedAt = 0;
+
+      tsWidgetId = window.turnstile.render('#ts-slot', {
+        sitekey: TS_SITEKEY,
+        theme: 'auto',
+        action: 'optin',
+        execution: 'execute',                 // invisible, we will execute on demand
+        callback: (token) => {                // fires after execute() succeeds
+          tsToken = token || '';
+          tsIssuedAt = Date.now();
+          _flushWaiters(tsToken);
+        },
+        'expired-callback': () => { tsToken = ''; tsIssuedAt = 0; },
+        'error-callback':   () => { tsToken = ''; tsIssuedAt = 0; }
+      });
+
+      tsRendered = true;
     }
-  }
 
-  function ensureTurnstileReady(timeoutMs = 4000) {
-    if (window.turnstile && tsRendered) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      const start = Date.now();
-      const tick = () => {
-        if (window.turnstile) {
-          renderTurnstileOnce();
-          if (tsRendered) return resolve();
-        }
-        if (Date.now() - start > timeoutMs) return reject(new Error('Turnstile not ready'));
-        setTimeout(tick, 40);
+    // ---- DEV helpers (console) ----
+    if (!window._ts) {
+      window._ts = {
+        id:     () => tsWidgetId,
+        get:    () => (window.turnstile ? window.turnstile.getResponse(tsWidgetId) : ''),
+        exec:   () => (window.turnstile ? window.turnstile.execute(tsWidgetId) : undefined),
+        reset:  () => { tsToken = ''; tsIssuedAt = 0; try { window.turnstile?.reset(tsWidgetId); } catch {} }
       };
-      tick();
-    });
+    }
+    // --------------------------------
+  } catch (e) {
+    console.warn('[turnstile] render error:', e);
+    // mark rendered so we don’t loop; token fetch will retry render after next load
+    tsRendered = true;
+  } finally {
+    tsRendering = false;
   }
+}
 
-  async function getTurnstileToken(timeoutMs = 6000) {
-    await ensureTurnstileReady();
-    if (tsToken) return tsToken;
-    const tokenPromise = new Promise((resolve, reject) => {
-      tsWaiters.push(resolve);
-      const to = setTimeout(() => {
-        const i = tsWaiters.indexOf(resolve);
-        if (i !== -1) tsWaiters.splice(i, 1);
-        reject(new Error('Turnstile timeout'));
-      }, timeoutMs);
-      const oldResolve = resolve;
-      tsWaiters[tsWaiters.length - 1] = (t) => { clearTimeout(to); oldResolve(t); };
-    });
-    window.turnstile.execute(tsWidgetId);
-    return await tokenPromise;
+// Ensure widget exists when the API is available
+if (window.turnstile) renderTurnstileOnce();
+else window.addEventListener('load', renderTurnstileOnce);
+
+// Refresh token when page regains focus (avoid stale token on long idle)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !_tokenFresh()) {
+    try { window.turnstile?.reset(tsWidgetId); } catch {}
+    tsToken = ''; tsIssuedAt = 0;
   }
+});
 
-  function resetTurnstile() {
-    tsToken = '';
-    try { window.turnstile.reset(tsWidgetId); } catch {}
-  }
+// Promise-based token getter with timeout and single execution
+function ensureTurnstileReady(timeoutMs = 4000) {
+  if (window.turnstile && tsRendered) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    (function tick() {
+      if (window.turnstile) {
+        renderTurnstileOnce();
+        if (tsRendered) return resolve();
+      }
+      if (Date.now() - start > timeoutMs) return reject(new Error('Turnstile not ready'));
+      setTimeout(tick, 40);
+    })();
+  });
+}
 
-  if (window.turnstile) renderTurnstileOnce();
-  else window.addEventListener('load', renderTurnstileOnce);
+async function getTurnstileToken(timeoutMs = 8000) {
+  await ensureTurnstileReady();
+
+  // Fresh token already available
+  if (_tokenFresh()) return tsToken;
+
+  // Set up a one-shot waiter for callback()
+  const tokenPromise = new Promise((resolve, reject) => {
+    tsWaiters.push(resolve);
+    const to = setTimeout(() => {
+      const i = tsWaiters.indexOf(resolve);
+      if (i !== -1) tsWaiters.splice(i, 1);
+      reject(new Error('Turnstile timeout'));
+    }, timeoutMs);
+    const oldResolve = resolve;
+    tsWaiters[tsWaiters.length - 1] = (t) => { clearTimeout(to); oldResolve(t); };
+  });
+
+  // Execute (id must be known)
+  if (!tsWidgetId) renderTurnstileOnce();
+  try { window.turnstile.execute(tsWidgetId); } catch { /* will timeout and reject */ }
+
+  const token = await tokenPromise;
+  return token || '';
+}
+
+function resetTurnstile() {
+  tsToken = '';
+  tsIssuedAt = 0;
+  try { window.turnstile?.reset(tsWidgetId); } catch {}
+}
 
   /* ---------- time-trap ---------- */
   const disableTrap = new URLSearchParams(location.search).has('noTrap');
@@ -218,34 +259,55 @@ if (form) {
     if (email && !consent_email) return err('Check the email opt-in to receive emails.');
 
     // token
-    let token = '';
+    // 1) Turnstile: execute now and require a fresh token
+    let tsToken = '';
     try {
-      token = await getTurnstileToken();
-      if (!token) return err('Please complete the verification.');
+      tsToken = await getTurnstileToken(8000);
     } catch {
+      resetTurnstile();
+      return err('Verification not ready. Please try again.');
+    }
+    if (!tsToken || tsToken.length < 40) {
+      resetTurnstile();
       return err('Verification failed. Please refresh and try again.');
     }
+
     console.log({ first_name, last_name, county, zip, phone10, email, consent_sms, consent_email });
-    // POST
+
+    // 2) POST: send token via header (preferred) and body (compat)
+    //    also send elapsed timing fields instead of ts_client
     try {
       setBtn('Validating…', { disabled: true });
       const res = await fetch(`${API_URL}/api/optin`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'cf-turnstile-response': tsToken
+        },
         body: JSON.stringify({
-          first_name, last_name, county, zip, wy_voter: true,
-          phone: phone10, email: email || null,
-          consent_sms: true, consent_email: !!consent_email,
+          first_name,
+          last_name,
+          county,
+          zip,
+          wy_voter: !!wy_voter,
+          phone: phone10,
+          email: email || null,
+          consent_sms: !!consent_sms,
+          consent_email: !!consent_email,
           consent_version: 'v1-2025-09-08',
-          turnstile_token: token,
-          ts_client: (tsStartEl?.value || '').trim()
-        })
+          turnstile_token: tsToken,      // keep for older server code
+          ts_start_ms: tsStart,
+          ts_elapsed_ms: elapsed
+        }),
+        mode: 'cors',
+        credentials: 'omit'
       });
 
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || `HTTP ${res.status}`);
       }
+
       form.reset();
       resetTurnstile();
       setBtn('Opt-In Confirmed', { disabled: true, success: true });
@@ -256,7 +318,7 @@ if (form) {
       console.error('opt-in error', e3);
       setBtn('Click to Confirm Opt-In', { disabled: false });
       err(e3?.message || 'Sorry—something went wrong. Please try again.');
-      resetTurnstile();
+      resetTurnstile(); // never reuse a failed/expired token
     }
   });
 }

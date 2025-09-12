@@ -1,31 +1,23 @@
 // --- CORS helpers ------------------------------------------------------------
 function allowOrigin(env, req) {
   const origin = req.headers.get("origin") || "";
-  const allow = (env.CORS_ORIGINS || "http://localhost:1313,https://skovgard2026.org")
+  const allow = (env.CORS_ORIGINS
+      || "http://localhost:1313,https://skovgard2026.org,https://www.skovgard2026.org,https://skovgard2026.pages.dev")
     .split(",")
     .map(s => s.trim())
     .filter(Boolean);
-
-  // Return exact Origin when allowed; otherwise return empty string (stricter CORS)
   return allow.includes(origin) ? origin : "";
 }
 
 function corsHeaders(env, req) {
   const originHeader = allowOrigin(env, req);
-  return originHeader
-    ? {
-        "access-control-allow-origin": originHeader,
-        "access-control-allow-methods": "GET,POST,OPTIONS",
-        "access-control-allow-headers": "content-type",
-        "access-control-max-age": "86400",
-        "vary": "Origin",
-      }
-    : {
-        "access-control-allow-methods": "GET,POST,OPTIONS",
-        "access-control-allow-headers": "content-type",
-        "access-control-max-age": "86400",
-        "vary": "Origin",
-      };
+  const base = {
+    "access-control-allow-methods": "GET,POST,OPTIONS",
+    "access-control-allow-headers": "content-type, cf-turnstile-response",
+    "access-control-max-age": "86400",
+    "vary": "Origin",
+  };
+  return originHeader ? { "access-control-allow-origin": originHeader, ...base } : base;
 }
 
 function json(req, env, data, status = 200, extra = {}) {
@@ -131,16 +123,60 @@ export default {
         // - 13-digit numeric string (epoch ms)
         // - 10-digit numeric string (epoch s) -> convert to ms
         // - ISO date string
-        const rawTs = b.ts_client;
-        const tsClient = (() => {
-          if (typeof rawTs === "number" && Number.isFinite(rawTs)) return rawTs;
-          if (typeof rawTs === "string") {
-            if (/^\d{13}$/.test(rawTs)) return parseInt(rawTs, 10);
-            if (/^\d{10}$/.test(rawTs)) return parseInt(rawTs, 10) * 1000;
+
+      function parseClientEpochMs(raw, now = Date.now()) {
+        // Accept: number (ms), "###########" ms, "##########" s, ISO-like
+        let ms = 0;
+
+        if (typeof raw === 'number' && Number.isFinite(raw)) {
+          ms = Math.trunc(raw);
+        } else if (typeof raw === 'string') {
+          if (/^\d{13}$/.test(raw))        ms = parseInt(raw, 10);
+          else if (/^\d{10}$/.test(raw))   ms = parseInt(raw, 10) * 1000;
+          else {
+            const d = Date.parse(raw);
+            if (Number.isFinite(d)) ms = d;
           }
-          const d = Date.parse(String(rawTs || ""));
-          return Number.isFinite(d) ? d : 0;
-        })();
+        }
+
+        // Clamp to a sane window to avoid bogus values
+        // Reject if more than 5 minutes in the future or older than 7 days
+        const FIVE_MIN = 5 * 60 * 1000;
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+        if (!ms) return 0;
+        if (ms > now + FIVE_MIN) return 0;
+        if (now - ms > SEVEN_DAYS) return 0;
+
+        return ms;
+      }
+
+      function getElapsedMsFromBody(b, now = Date.now()) {
+        const startMs   = Number(b.ts_start_ms) || 0;
+        const elapsedMs = Number(b.ts_elapsed_ms) || 0;
+
+        // Preferred: explicit elapsed from client
+        if (elapsedMs > 0) return elapsedMs;
+
+        // Fallback: compute from client start timestamp
+        if (startMs > 0) {
+          const diff = now - startMs;
+          return diff > 0 ? diff : 0;
+        }
+
+        // Legacy fallback: ts_client. Use only if older clients sent a true page-start.
+        const tsClient = parseClientEpochMs(b.ts_client, now);
+        return tsClient > 0 ? (now - tsClient) : 0;
+      }
+
+        /// … inside your /api/optin handler:
+        const now = Date.now();
+        const elapsed = getElapsedMsFromBody(b, now); // <-- use b
+
+        // Enforce server-side minimum wait only if we have a credible elapsed
+        const MIN_WAIT = 1200; // must match browser check
+        if (elapsed > 0 && elapsed < MIN_WAIT) {
+          return json(req, env, { error: "Please wait a moment and try again." }, 400); // <-- use json helper
+        }
 
         // Required fields
         if (!firstName) return json(req, env, { error: "First name is required" }, 400);
