@@ -44,6 +44,18 @@ That is why I have pledged to:
 - **Use modern, secure technology** to give Wyomingites a direct voice in Washington  
 - **Listen first. Represent always.**
 
+## Health Care Rights
+
+On questions of life, family, and medical care, we start with Wyoming’s Constitution. Government must not force personal medical decisions on families.
+
+Our campaign stands with and for Every Wyomingite:
+
+> “Every competent adult has the right to make personal health care decisions for themselves and their dependents, and the State of Wyoming must protect those rights from undue governmental infringement.”
+
+*(Wyoming Constitution, Article 1, Section 38)*
+
+It is our job to help Wyoming protect that freedom from government overreach.
+
 ---
 
 ### No Political Experience, and That Is the Point  
