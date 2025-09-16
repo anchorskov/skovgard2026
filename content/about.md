@@ -79,7 +79,7 @@ Alongside this campaign, I have written hundreds of essays outlining my journey 
 
 We are all Americans, and every day we face the same choice: to build or to destroy. The choice is ours.  
 
-To dig deeper into my reflections and stories, visit my Substack: [Grassroots Rising on Substack](https://your-substack-link).  
+To dig deeper into my reflections and stories, visit my Substack: [This is Us, Grassroots Rising on Substack](https://your-substack-link).  
 
 {{< rawhtml >}}
   <div style="text-align:center; margin:2em 0;">
