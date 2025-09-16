@@ -50,4 +50,28 @@ skovgard2026Tree.txt
 *.bak
 *.old
 *~
+# Local runtime data (keep out of Git)
+backups/
+data/
+exports/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Cloudflare Wrangler build cache (safety)
+worker/.wrangler/state/
+worker/.wrangler/tmp/
+
 EOF
+
+# Local runtime data (keep out of Git)
+backups/
+data/
+exports/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Wrangler cache
+worker/.wrangler/state/
+worker/.wrangler/tmp/
