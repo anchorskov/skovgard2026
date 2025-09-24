@@ -27,6 +27,29 @@ We are a grassroots campaign. We build together, we share the load, we win with 
 
 ---
 
+## Affidavit
+📝 **Join the fight to be heard.**
+
+This affidavit is your declaration that Wyoming’s closed primary law violates free speech and free association. By signing, you help show the court that voters across Wyoming are being silenced.
+
+**How to use it:**
+
+1. [Download the fillable PDF Affidavit](/resources/Wyoming-Affidavit-Template-Fillable-2026-v3.pdf)  
+2. Complete the form with your information print it.  
+3. Have it notarized.  
+4. Return it via mail to:  
+   Skovgard for Senate  
+   5685 Hanly Mills  
+   Casper, WY 82604  
+
+   Or scan and email it to me at anchorskov@gmail.com
+
+📄 [Download Affidavit (Fillable 2026 v3)](/resources/Wyoming-Affidavit-Template-Fillable-2026-v3.pdf)
+
+Together, we stand for fair elections and one meaningful vote for every Wyoming citizen.
+
+---
+
 ## Training
 **Street rules, not theory.**
 

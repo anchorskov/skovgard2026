@@ -54,12 +54,17 @@ name       = "Finance"
 url        = "/finance/"
 weight     = 6
 
+[[menu.main]]
+name   = "Resources"
+url    = "/volunteer-resources/"
+weight = 40         # pick a spot relative to your other items
+
 # CTA last so it stands out
 [[menu.main]]
 identifier = "donate"
 name       = "Donate"
 url        = "/donate/"
-weight     = 99
+weight     = 7
 
 # Footer menu for legal
 [[menu.footer]]
