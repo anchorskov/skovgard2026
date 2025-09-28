@@ -25,6 +25,9 @@ We are a grassroots campaign. We build together, we share the load, we win with 
 - 🗳️ **Wyoming Voter Registration Form (PDF)**  
   [Download](/resources/VoterRegistrationForm.pdf)
 
+- 📄 **Affidavit QR Code (PNG)**  
+  [Open image](/resources/affidavit-qr.png)
+
 ---
 
 ## Affidavit
