@@ -4,20 +4,23 @@ cat > .gitignore <<'EOF'
 # Hugo build outputs
 /public/
 /resources/_gen/
-/hugo_stats.json
+hugo_stats.json
 .hugo_build.lock
 
-# Node
-/node_modules/
+# Node (any depth)
+node_modules/
 dist/
 
 # Cloudflare Workers (local state only)
 .dev.vars
 .wrangler/
 **/.wrangler/state/
+**/.wrangler/tmp/
 
-# Databases / local data
+# Databases / local data (any extension variant)
 *.sqlite
+*.sqlite-wal
+*.sqlite-shm
 *.db
 
 # OS / editor artifacts
@@ -46,32 +49,12 @@ tree-*.txt
 skovgard2026Tree.txt
 .tmp/
 
-# Backups
-*.bak
-*.old
-*~
 # Local runtime data (keep out of Git)
 backups/
 data/
 exports/
-*.sqlite
-*.sqlite-wal
-*.sqlite-shm
 
-# Cloudflare Wrangler build cache (safety)
-worker/.wrangler/state/
-worker/.wrangler/tmp/
-
+# Repo-specific review artifacts
+optin-review-*.zip
+optin-review-manifest-*.txt
 EOF
-
-# Local runtime data (keep out of Git)
-backups/
-data/
-exports/
-*.sqlite
-*.sqlite-wal
-*.sqlite-shm
-
-# Wrangler cache
-worker/.wrangler/state/
-worker/.wrangler/tmp/
