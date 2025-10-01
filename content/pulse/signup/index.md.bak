@@ -1,0 +1,78 @@
+---
+title: "Sign Up for Text Updates"
+slug: "signup"
+draft: false
+---
+
+<p>Not a volunteer form. This page is only for opting in to receive campaign text messages. Open to all Wyoming voters: Republican, Democrat, and undecided.</p>
+
+<form id="optin-form" class="optin-form" novalidate>
+  <div class="field-inline">
+    <div class="field">
+      <label for="first_name">First name</label>
+      <input id="first_name" name="first_name" type="text" autocomplete="given-name" required />
+    </div>
+    <div class="field">
+      <label for="last_name">Last name</label>
+      <input id="last_name" name="last_name" type="text" autocomplete="family-name" required />
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="county">Wyoming county</label>
+    <select id="county" name="county" required>
+      <option value="">Select your county…</option>
+      <option>Albany</option><option>Big Horn</option><option>Campbell</option>
+      <option>Carbon</option><option>Converse</option><option>Crook</option>
+      <option>Fremont</option><option>Goshen</option><option>Hot Springs</option>
+      <option>Johnson</option><option>Laramie</option><option>Lincoln</option>
+      <option>Natrona</option><option>Niobrara</option><option>Park</option>
+      <option>Platte</option><option>Sheridan</option><option>Sublette</option>
+      <option>Sweetwater</option><option>Teton</option><option>Uinta</option>
+      <option>Washakie</option><option>Weston</option>
+    </select>
+  </div>
+
+  <div class="field-inline">
+    <div class="field">
+      <label for="zip">ZIP code (WY)</label>
+      <input id="zip" name="zip" type="text" inputmode="numeric" pattern="\\d{5}" placeholder="82001" required />
+    </div>
+    <div class="field">
+      <label for="phone">Mobile number (US)</label>
+      <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="307-555-1234" required />
+    </div>
+  </div>
+
+  <div class="checkbox-row">
+    <input type="checkbox" id="wy_voter" name="wy_voter" required />
+    <label for="wy_voter">I am a registered voter in the state of Wyoming.</label>
+  </div>
+
+  <div class="checkbox-row">
+    <input type="checkbox" id="consent_sms" name="consent_sms" required />
+    <label for="consent_sms">
+      I agree to receive recurring campaign texts from Skovgard for Senate. Consent is not a condition of purchase. Message frequency varies. Reply STOP to cancel, HELP for help. Message and data rates may apply.
+    </label>
+  </div>
+
+  <hr />
+
+  <div class="field">
+    <label for="email">Email <span class="help">(optional)</span></label>
+    <input id="email" name="email" type="email" inputmode="email" placeholder="you@example.com" />
+  </div>
+
+  <div class="checkbox-row">
+    <input type="checkbox" id="consent_email" name="consent_email" />
+    <label for="consent_email">Yes, email me the campaign newsletter and updates.</label>
+  </div>
+
+  <button type="submit">Confirm Opt-In</button>
+
+  <p class="help">
+    Not a Wyoming voter? <a href="/donate/">Donate here</a> or <a href="/newsletter/">join our email list</a>.
+  </p>
+</form>
+
+<script type="module" src="/js/pulse-optin.js" defer></script>
