@@ -5,15 +5,18 @@ draft: false
 ---
 
 {{< rawhtml >}}
-<div class="home-cta">
-  <a class="cta-btn cta-primary" href="/donate/" aria-label="Support the campaign financially">
+<div style="display:flex;gap:1.25rem;flex-wrap:wrap;justify-content:center;margin:1.25rem auto 1.5rem;max-width:980px;padding:0 1rem;">
+  <a href="/donate/" aria-label="Support the campaign financially"
+     style="display:inline-flex;align-items:center;gap:.6rem;padding:1.0rem 1.5rem;border-radius:.8rem;font-weight:800;font-size:1.1rem;line-height:1;text-decoration:none;background:#4f67ff;color:#fff;box-shadow:0 4px 14px rgba(79,103,255,.25)">
     🧡 <span>Support the campaign, financially</span>
   </a>
-  <a class="cta-btn cta-ghost" href="/volunteer/" aria-label="Support the campaign by volunteering">
+  <a href="/volunteer/" aria-label="Support the campaign by volunteering"
+     style="display:inline-flex;align-items:center;gap:.6rem;padding:1.0rem 1.5rem;border-radius:.8rem;font-weight:800;font-size:1.1rem;line-height:1;text-decoration:none;background:#fff;color:#111827;border:2px solid #4f67ff">
     🤝 <span>Support the campaign, volunteer</span>
   </a>
 </div>
 {{< /rawhtml >}}
+
 
 # Headline
 **This is your seat. This is your future.**
