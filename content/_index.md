@@ -4,6 +4,20 @@ description: "Conservative Republican for U.S. Senate | Rooted in Wyoming. Power
 draft: false
 ---
 
+{{< rawhtml >}}
+<div class="home-cta">
+  <a class="cta-btn cta-primary" href="/donate/" aria-label="Support the campaign financially">
+    🧡 <span>Support the campaign, financially</span>
+  </a>
+  <a class="cta-btn cta-ghost" href="/volunteer/" aria-label="Support the campaign by volunteering">
+    🤝 <span>Support the campaign, volunteer</span>
+  </a>
+</div>
+{{< /rawhtml >}}
+
+# Headline
+**This is your seat. This is your future.**
+
 <div class="home-hero">
 
 ![Jimmy Skovgard](/images/jimmy.png)

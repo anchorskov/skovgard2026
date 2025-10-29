@@ -82,3 +82,13 @@ html, body { height: 100%; margin: 0; }
   background: #1e4fcb; /* blue-700 */
   outline: none;
 }
+
+/* Home top CTAs (namespaced, no collisions) */
+.home-cta { display:flex; gap:1.25rem; flex-wrap:wrap; justify-content:center; margin:1.25rem auto 1.5rem; max-width:980px; padding:0 1rem; }
+.home-cta .cta-btn { display:inline-flex; align-items:center; gap:.6rem; padding:1.0rem 1.5rem; border-radius:.8rem; font-weight:800; font-size:1.1rem; line-height:1; text-decoration:none; transition:transform .04s ease, box-shadow .12s ease; }
+.home-cta .cta-btn:focus { outline:2px solid #2563eb; outline-offset:2px; }
+.home-cta .cta-primary { background:#4f67ff; color:#fff; box-shadow:0 4px 14px rgba(79,103,255,.25); }
+.home-cta .cta-primary:hover { transform:translateY(-1px); }
+.home-cta .cta-ghost { background:#fff; color:#111827; border:2px solid #4f67ff; }
+@media (max-width:640px){ .home-cta .cta-btn{ width:100%; justify-content:center; } }
+
