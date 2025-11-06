@@ -18,8 +18,8 @@ draft: false
 {{< /rawhtml >}}
 
 
-# Headline
-**This is your seat. This is your future.**
+# Headline  
+**This is our seat. Help preserve our legacy and our children's future.**
 
 <div class="home-hero">
 
