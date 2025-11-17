@@ -5,13 +5,11 @@ draft: false
 ---
 
 {{< rawhtml >}}
-<div style="display:flex;gap:1.25rem;flex-wrap:wrap;justify-content:center;align-items:stretch;margin:1.25rem auto 1.5rem;max-width:980px;padding:0 1rem;">
-  <a href="/donate/" aria-label="Support the campaign financially"
-     style="display:inline-flex;align-items:center;justify-content:center;gap:.6rem;padding:1.0rem 1.5rem;border-radius:.8rem;font-weight:800;font-size:1.1rem;line-height:1;text-decoration:none;background:#d4d7df;color:#111827;box-shadow:0 3px 10px rgba(52,64,84,.12);flex:1 1 280px;min-width:240px;">
+<div class="home-cta">
+  <a href="/donate/" aria-label="Support the campaign financially" class="cta-btn cta-donate">
     🧡 <span>Support the campaign, financially</span>
   </a>
-  <a href="/volunteer/" aria-label="Support the campaign by volunteering"
-     style="display:inline-flex;align-items:center;justify-content:center;gap:.6rem;padding:1.0rem 1.5rem;border-radius:.8rem;font-weight:800;font-size:1.1rem;line-height:1;text-decoration:none;background:#ebeef3;color:#111827;border:2px solid #c9d1df;flex:1 1 280px;min-width:240px;">
+  <a href="/volunteer/" aria-label="Support the campaign by volunteering" class="cta-btn cta-volunteer">
     🤝 <span>Support the campaign, volunteer</span>
   </a>
 </div>

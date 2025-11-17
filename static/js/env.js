@@ -14,5 +14,7 @@ export const API_URL    = isLocalHost ? LOCAL_API : PROD_API;
 export const isLocalEnv = isLocalHost;
 export const isProd     = !isLocalHost;
 
-// Optional debug
-console.debug(JSON.stringify({host: location.host, API_URL, isLocalEnv}, null, 2));
+// Optional debug (local only)
+if (isLocalEnv) {
+  console.debug(JSON.stringify({ host: location.host, API_URL, isLocalEnv }, null, 2));
+}
