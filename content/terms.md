@@ -14,7 +14,7 @@ By engaging with Skovgard for Senate, including signing up to receive updates or
 By providing your phone number, you consent to receive campaign-related SMS/text messages. Message frequency may vary. Standard message and data rates may apply.  
 
 ### 2. Opt-Out
-You may opt out of receiving SMS/text messages at any time by replying **STOP**. For help, reply **HELP** or contact us at **anchorskov@gmail.com**.  
+You may opt out of receiving SMS/text messages at any time by replying **STOP**. For help, reply **HELP** or contact us at **skovgard2026@gmail.com**.  
 
 ### 3. Use of Website
 Content on skovgard2026.org is provided for informational purposes related to the Skovgard for Senate campaign. You may not use the site for unauthorized commercial purposes.  

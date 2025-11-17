@@ -48,6 +48,7 @@ draft: false
 
   <p><em>Federal law requires us to use our best efforts to collect and report the name, address, occupation, and employer of individuals whose contribution exceeds $200 in an election cycle.</em></p>
 <p>Online donations incur a 4% + $0.50 processing fee. To avoid this fee, send a check payable to <em>Skovgard for Senate, 5685 Hanly, Mills, WY 82604</em>.</p>
+  <p>Need help with your contribution or have compliance questions? Email <a href="mailto:skovgard2026@gmail.com">skovgard2026@gmail.com</a> and our team will respond quickly.</p>
   <button id="agree-btn">
     I agree to the terms above — select here to proceed to donation page
   </button>

@@ -1,6 +1,7 @@
 ---
+<!-- File: content/about.md -->
 title: "About Jimmy Skovgard"
-description: "Candidate for U.S. Senate, Wyoming Values, Local Spirit, and a Voice for Us."
+description: "Candidate for U.S. Senate, Wyoming values, local spirit, and a voice for us."
 type: page
 layout: "about"
 draft: false
@@ -15,53 +16,90 @@ I grew up in the Big Horn Basin, grade school in Greybull, high school in Basin,
 
 I served 12 years in the Wyoming Army National Guard and was honorably discharged as a captain. I have worked in the private sector, run my own business, and spent my life grounded in Wyoming values.
 
-But I never planned to run for office.  
+I never planned to run for office.
 
-I got off the couch in 2024 because I felt the direction of division, distraction, and fear mongering is wrong. I acknowledge fear is a powerful psychological motivator, yet in this case it is being used to perpetuate harm. Nothing is being built.
+I got off the couch in 2024 because the direction of division, distraction, and fear mongering is wrong. Fear can sharpen the mind in a crisis, but right now it is being used to keep us angry and apart. Nothing is being built.
 
-I have seen it in my own family. My brother sends me link after link filled with half truths. My sister has become fixated on the fear of "illegals" entering her home in the Big Horn Basin. I have seen how an immigrant receiving health care can spark outrage, as if the system helping one person must mean we blame a whole class of people for our problems. These are not natural divisions. They are the result of manipulation for control, and they cut deep.
+I have seen this in my own family. A brother who forwards link after link filled with half truths. A sister who lives in the Big Horn Basin and worries that “illegals” will invade her home. Anger at an immigrant who receives health care, as if one person’s treatment means the system must blame a whole group for our problems.  
+
+These are not natural divisions. This is deliberate manipulation for control, and it cuts deep.
 
 ---
 
 ### Why I Am Running  
 
-If manipulation can divide a family, it can divide a nation. That is why I am running.  
+If manipulation can divide a family, it can divide a nation. That is why I am running.
 
 This is not about party politics or career ambition. It is about principle.  
 It is about us, the people of Wyoming, being seen, heard, and respected again.
 
-**We don't need a rubber stamp in Congress.**
+Our budget is a moral document. Every line tells a story about who is protected, who is forgotten, and who pays the bill in the end. Right now that bill is drifting toward our children.
 
-**We don’t need a career politician afraid of retribution.**
+We do not need a rubber stamp in Congress.  
 
-We need service.
-We need accountability.
+We do not need a career politician afraid of retribution.  
+
+We need service.  
+We need accountability.  
 We need tools that bring our voices to the table, not more backroom deals.
 
-That is why I have pledged to:
+---
 
-- **Sponsor term limits** for the House and Senate  
-- **Use modern, secure technology** to give Wyomingites a direct voice in Washington  
-- **Listen first. Represent always.**
+### Season of Service: Term Limits and Stewardship  
 
-## Health Care Rights
+If we want fiscal responsibility, we have to change the incentives. Office should be a season of service, not a lifetime entitlement.
+
+I have made a simple pledge:
+
+- I will treat this work as a shift, not a career. I support term limits so that service in Congress is measured in years of work, not decades of entitlement.
+- I will support a constitutional framework that pairs term limits with long term fiscal rules, including plain language public reports that show what came in, what went out, and how that affects our future.
+- I will live under the standard I am asking us to adopt.
+
+As a candidate, I will publish a simple “citizen balance sheet” for this campaign:  
+what we raise, what we spend, and what work gets done with that support.
+
+As a senator, I will fight for the same kind of clarity in Washington, and I will start with my own office budget. No secret slush funds, no mystery trips, no hiding behind process. Receipts, not rhetoric.
+
+---
+
+### The Boss Is Us  
+
+There is a hard truth we have to face together.  
+
+For too long, officeholders have treated our budget like someone else’s credit card. That has our name on it. That has our children’s name on it.
+
+The boss in this story is not a single hero. The boss is us.
+
+Our job is to:
+
+- Set the rules: term limits, honest fiscal guardrails, and real transparency.  
+- Elect people who accept those rules in advance.  
+- Reward courage when a representative tells the truth about what we can afford and what we cannot.
+
+My job, if trusted with this seat, is to show the work. To close the books each year in public. To connect the dots between today’s votes, yesterday’s promises, and tomorrow’s choices.
+
+That is how we rebuild trust. Not through slogans, but through habits we can all see.
+
+---
+
+## Health Care Rights  
 
 On questions of life, family, and medical care, we start with Wyoming’s Constitution. Government must not force personal medical decisions on families.
 
-Our campaign stands with and for Every Wyomingite:
+Our campaign stands with and for every Wyomingite:
 
 > “Every competent adult has the right to make personal health care decisions for themselves and their dependents, and the State of Wyoming must protect those rights from undue governmental infringement.”
 
 *(Wyoming Constitution, Article 1, Section 38)*
 
-It is our job to help Wyoming protect that freedom from government overreach.
+Our work is to help Wyoming protect that freedom from government overreach.
 
 ---
 
-### No Political Experience, and That Is the Point  
+### No Political Machine Behind Me  
 
-I bring no strings, no debts, and no ties to the political machine.  
-I am running with a clean slate, and a full heart, because I believe we can do better.
+I bring no strings, no debts, and no ties to a political machine.  
+I am running with a clean slate and a full heart, because we can do better.
 
 In Wyoming, when something is broken, we do not wait around.  
 We fix it.  
@@ -75,27 +113,12 @@ It is time to bring it home.
 
 ### My Writings and Podcast  
 
-Alongside this campaign, I have written hundreds of essays outlining my journey and my thoughts as I pursue one goal: to help restore trust in each other.  
+Alongside this campaign, I have written hundreds of essays outlining my journey and my thoughts as I pursue one goal: to help restore trust in each other.
 
-We are all Americans, and every day we face the same choice: to build or to destroy. The choice is ours.  
+We are all Americans, and every day we face the same choice: to build or to destroy. The choice is ours.
 
-To dig deeper into my reflections and stories, visit my Substack: [This is Us, Grassroots Rising on Substack](https://your-substack-link).  
+To dig deeper into my reflections and stories, visit my Substack:  
+[This Is Us, Grassroots Rising on Substack](https://your-substack-link)
 
-{{< rawhtml >}}
-  <div style="text-align:center; margin:2em 0;">
-    <button
-      onclick="window.open('https://jimskovgard.substack.com/podcast', '_blank')"
-      style="
-        background-color: #FF6719;
-        color: white;
-        border: none;
-        padding: 1em 2em;
-        font-size: 1rem;
-        border-radius: 0.375em;
-        cursor: pointer;
-      "
-    >
-      Listen to the This Is US Podcast
-    </button>
-  </div>
-{{< /rawhtml >}}
+To listen in, join the conversation on the podcast:  
+[Listen to the This Is Us Podcast](https://jimskovgard.substack.com/podcast)

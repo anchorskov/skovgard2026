@@ -25,7 +25,7 @@ We **do not sell or share** your personal information with third parties for com
 
 ### Your Choices
 - You may opt out of SMS/text messages at any time by replying **STOP**.  
-- You may request to update or delete your contact information by emailing us at **anchorskov@gmail.com**.  
+- You may request to update or delete your contact information by emailing us at **skovgard2026@gmail.com**.  
 
 ### Security
 We take reasonable steps to protect your information from unauthorized access, loss, or misuse.  
@@ -34,4 +34,4 @@ We take reasonable steps to protect your information from unauthorized access, l
 If you have questions about this Privacy Policy, contact us at:  
 **Skovgard for Senate**  
 5685 Hanly Mills Wy, Casper, WY 82604  
-Email: anchorskov@gmail.com  
+Email: skovgard2026@gmail.com  

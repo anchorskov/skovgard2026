@@ -5,13 +5,13 @@ draft: false
 ---
 
 {{< rawhtml >}}
-<div style="display:flex;gap:1.25rem;flex-wrap:wrap;justify-content:center;margin:1.25rem auto 1.5rem;max-width:980px;padding:0 1rem;">
+<div style="display:flex;gap:1.25rem;flex-wrap:wrap;justify-content:center;align-items:stretch;margin:1.25rem auto 1.5rem;max-width:980px;padding:0 1rem;">
   <a href="/donate/" aria-label="Support the campaign financially"
-     style="display:inline-flex;align-items:center;gap:.6rem;padding:1.0rem 1.5rem;border-radius:.8rem;font-weight:800;font-size:1.1rem;line-height:1;text-decoration:none;background:#4f67ff;color:#fff;box-shadow:0 4px 14px rgba(79,103,255,.25)">
+     style="display:inline-flex;align-items:center;justify-content:center;gap:.6rem;padding:1.0rem 1.5rem;border-radius:.8rem;font-weight:800;font-size:1.1rem;line-height:1;text-decoration:none;background:#d4d7df;color:#111827;box-shadow:0 3px 10px rgba(52,64,84,.12);flex:1 1 280px;min-width:240px;">
     🧡 <span>Support the campaign, financially</span>
   </a>
   <a href="/volunteer/" aria-label="Support the campaign by volunteering"
-     style="display:inline-flex;align-items:center;gap:.6rem;padding:1.0rem 1.5rem;border-radius:.8rem;font-weight:800;font-size:1.1rem;line-height:1;text-decoration:none;background:#fff;color:#111827;border:2px solid #4f67ff">
+     style="display:inline-flex;align-items:center;justify-content:center;gap:.6rem;padding:1.0rem 1.5rem;border-radius:.8rem;font-weight:800;font-size:1.1rem;line-height:1;text-decoration:none;background:#ebeef3;color:#111827;border:2px solid #c9d1df;flex:1 1 280px;min-width:240px;">
     🤝 <span>Support the campaign, volunteer</span>
   </a>
 </div>
@@ -66,7 +66,14 @@ Let’s reclaim it together.
 
 **In Wyoming, if we need something, we build it.** 
 
-[Explore Civ-Tech](/civ-tech/)
+{{< rawhtml >}}
+<div style="display:flex;justify-content:center;margin:1.5rem 0 2rem;">
+  <a href="/civ-tech/" aria-label="Explore Civ-Tech"
+     style="display:inline-flex;align-items:center;gap:.55rem;padding:.95rem 1.75rem;border-radius:.85rem;font-weight:700;font-size:1rem;line-height:1;text-decoration:none;background:#1f2933;color:#fff;box-shadow:0 5px 18px rgba(15,23,42,.22);letter-spacing:.01em;">
+    ⚙️ <span>Explore Civ-Tech</span>
+  </a>
+</div>
+{{< /rawhtml >}}
 
 *This Is Us.*
 </div>

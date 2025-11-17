@@ -45,7 +45,7 @@ This affidavit is your declaration that Wyoming’s closed primary law violates 
    5685 Hanly Mills  
    Casper, WY 82604  
 
-   Or scan and email it to me at anchorskov@gmail.com
+   Or scan and email it to me at skovgard2026@gmail.com
 
 📄 [Download Affidavit (Fillable 2026 v3)](/resources/Wyoming-Affidavit-Template-Fillable-2026-v3.pdf)
 
@@ -67,6 +67,7 @@ Together, we stand for fair elections and one meaningful vote for every Wyoming 
 
 ## Meetings
 - Weekly volunteer Zoom, Saturdays 10 am Mountain  
+- To join the meeting send an email to skovgard2026@gmail.com with subject: “Join Weekly Volunteer Meeting”.
 - After-action reviews, county by county  
 - Local meetups posted on the home page when scheduled
 
