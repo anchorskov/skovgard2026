@@ -5,6 +5,13 @@ draft: false
 ---
 
 {{< rawhtml >}}
+<div style="font-weight:800;font-size:1.1rem;line-height:1.6;margin:1rem 0 2rem;">
+  <p><strong>“For in a democracy, every citizen, regardless of his interest in politics, ‘holds office’; every one of us is in a position of responsibility; and, in the final analysis, the kind of government we get depends upon how we fulfill those responsibilities. We, the people, are the boss…”</strong></p>
+  <p style="margin:.35rem 0 0;font-weight:700;">— John F. Kennedy, <em>Profiles in Courage</em></p>
+</div>
+{{< /rawhtml >}}
+
+{{< rawhtml >}}
 <div class="home-cta">
   <a href="/donate/" aria-label="Support the campaign financially" class="cta-btn cta-donate">
     🧡 <span>Support the campaign, financially</span>
@@ -15,15 +22,22 @@ draft: false
 </div>
 {{< /rawhtml >}}
 
-
-# Headline  
-**This is our seat. Help preserve our legacy and our children's future.**
+{{< rawhtml >}}
+<p style="text-align:center;font-size:1.25em;font-weight:800;margin:1.5rem 0 1.25rem;">
+  This is our seat. Help preserve our legacy and our children's future.
+</p>
+{{< /rawhtml >}}
 
 <div class="home-hero">
 
 ![Jimmy Skovgard](/images/jimmy.png)
 
-### Conservative Republican for U.S. Senate  
+{{< rawhtml >}}
+<p style="text-align:center;font-size:1.1em;font-weight:700;margin:1rem 0 .35rem;">
+  Conservative Republican for U.S. Senate
+</p>
+{{< /rawhtml >}}
+
 **Rooted in Wyoming. Powered by Us. Zero Experience.** 
 
 ---

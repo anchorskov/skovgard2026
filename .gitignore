@@ -58,3 +58,4 @@ exports/
 optin-review-*.zip
 optin-review-manifest-*.txt
 EOF
+bank_statements/
