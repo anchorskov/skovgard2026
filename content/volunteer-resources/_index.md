@@ -47,6 +47,8 @@ This affidavit is your declaration that Wyoming’s closed primary law violates 
 
    Or scan and email it to me at skovgard2026@gmail.com
 
+5. Read the instructions → [Affidavit Instructions (Case No. 0115573)](/resources/affidavit_instructions.md)  
+
 📄 [Download Affidavit (Fillable 2026 v3)](/resources/Wyoming-Affidavit-Template-Fillable-2026-v3.pdf)
 
 Together, we stand for fair elections and one meaningful vote for every Wyoming citizen.
