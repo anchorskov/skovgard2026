@@ -47,6 +47,12 @@ function json(req, env, data, status = 200, extra = {}) {
 }
 
 // --- Utilities ---------------------------------------------------------------
+function mediaBaseUrl(env) {
+  const raw = String(env.MEDIA_BASE_URL || "").trim();
+  const base = raw || "https://media.skovgard2026.org";
+  return base.replace(/\/+$/, "");
+}
+
 async function sha256Hex(s) {
   const bytes = new TextEncoder().encode(s || "");
   const h = await crypto.subtle.digest("SHA-256", bytes);
@@ -164,6 +170,42 @@ export default {
       // Health check
       if (req.method === "GET" && path === "/api/health") {
         return json(req, env, { ok: true, d1Bound: Boolean(env.DB) });
+      }
+
+      // Podcast metadata (public)
+      if (req.method === "GET" && path === "/api/podcasts") {
+        if (!env.DB) {
+          return json(req, env, { error: "Database not configured" }, 500);
+        }
+        try {
+          const base = mediaBaseUrl(env);
+          const { results = [] } =
+            (await env.DB.prepare(
+              `SELECT guest_slug, episode_date, part_number, r2_key, sha256, bytes, uploaded_at, summary
+                 FROM podcast_uploads
+                 ORDER BY episode_date DESC, part_number ASC`
+            ).all()) || {};
+
+          const episodes = results.map((r) => {
+            const key = String(r.r2_key || "").replace(/^\/+/, "");
+            const url = key ? `${base}/${key}` : null;
+            return {
+              guest_slug: r.guest_slug,
+              episode_date: r.episode_date,
+              part_number: r.part_number,
+              r2_key: key,
+              url,
+              sha256: r.sha256,
+              bytes: r.bytes,
+              uploaded_at: r.uploaded_at,
+              summary: r.summary,
+            };
+          });
+
+          return json(req, env, { mediaBaseUrl: base, episodes });
+        } catch (err) {
+          return json(req, env, { error: "Failed to load podcasts" }, 500);
+        }
       }
 
       // ---------------- SMS OPT-IN ----------------

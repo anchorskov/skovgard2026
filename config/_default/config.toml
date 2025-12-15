@@ -1,3 +1,4 @@
+# path: config/_default/config.toml
 baseURL       = "https://www.skovgard2026.org/"
 languageCode  = "en-us"
 title         = "Jimmy Skovgard U.S. Senate 2026"
@@ -8,6 +9,7 @@ relativeURLs = true
 canonifyURLs = false
 
 [params]
+  mediaBaseUrl = "https://media.skovgard2026.org"
   contactEmail = "skovgard2026@gmail.com"
 
 [[params.socialIcons]]
@@ -58,6 +60,12 @@ identifier = "pulse"
 name       = "Pulse"
 url        = "/pulse/"
 weight     = 5
+
+[[menu.main]]
+identifier = "podcast"
+name       = "Podcast"
+url        = "/podcast/"
+weight     = 6
 
 [[menu.main]]
 identifier = "finance"

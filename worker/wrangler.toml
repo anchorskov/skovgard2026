@@ -9,18 +9,22 @@ workers_dev = true
 CORS_ORIGINS = "http://localhost:1313,https://skovgard2026.org,https://skovgard2026.pages.dev"
 # Hostnames accepted from Turnstile Siteverify
 TS_ALLOWED_HOSTNAMES = "localhost,127.0.0.1,skovgard2026.org,www.skovgard2026.org,skovgard2026.pages.dev"
+# Public media CDN for podcasts/audio assets
+MEDIA_BASE_URL = "https://media.skovgard2026.org"
 
 # ---------- Production environment ----------
 [env.production]
 [env.production.vars]
 CORS_ORIGINS = "https://skovgard2026.org"
 TS_ALLOWED_HOSTNAMES = "skovgard2026.org,www.skovgard2026.org"
+MEDIA_BASE_URL = "https://media.skovgard2026.org"
 
 # ---------- Preview environment (Pages preview, etc.) ----------
 [env.preview]
 [env.preview.vars]
 CORS_ORIGINS = "https://skovgard2026.pages.dev"
 TS_ALLOWED_HOSTNAMES = "skovgard2026.pages.dev"
+MEDIA_BASE_URL = "https://media.skovgard2026.org"
 
 # ---------- D1 binding (shared across envs) ----------
 [[d1_databases]]
