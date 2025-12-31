@@ -4,29 +4,25 @@ resources:
 - src: css/finance.css
 ---
 
-Below is our monthly summary. We update this page at the start of each month.
+Below is our monthly summary for the campaign. We update this page at the start of each month.
 
 ## Current Month Summary
 
-- **Reporting month:** November 2025  
-- **Balance forward (as of Nov 1):** $687.40  
-- **Contributions and refunds received in November:** $318.46  
-- **Expenditures in November:** $140.79  
-- **Cash on hand at Nov 30:** $865.07  
+- **Reporting month:** December 2025  
+- **Balance forward (as of Dec 1):** $865.07  
+- **Contributions received in December:** $15.00  
+- **Expenditures in December:** $0.90  
+- **Cash on hand at Dec 31:** $879.17  
 - **Debts and obligations:** $0.00  
 
-*Notes:* November activity includes a $294.67 vendor refund and $23.79 in candidate-paid postage (out-of-pocket, not in bank). Cash aligns to the bank statement; the postage is recorded as both a contribution and an expense with no cash impact.
+*Notes:* December activity includes a $15.00 gross contribution recorded as contributions and a $0.90 Anedot fee recorded as an expenditure. Net deposit was $14.10. Cash reconciles to the bank as of Dec 31.
 
-### Year-to-date snapshot (through Nov 30, 2025)
-- **Total contributions and refunds received (YTD):** $5,067.11  
-- **Total expenditures (YTD):** $4,202.04  
-- **Cash on hand (as of Nov 30):** $865.07  
+### Year-to-date snapshot (through Dec 31, 2025)
+- **Total contributions received (YTD):** $5,082.11  
+- **Total expenditures (YTD):** $4,202.94  
+- **Cash on hand (as of Dec 31):** $879.17  
 
----
-
-## November 2025 PDFs
-- **Expenses:** [Download (PDF)](/finance/2025-11-Expenses.pdf)  
-- **Contributions:** [Download (PDF)](/finance/contributions/2025-11-Contributions.pdf)
+For detailed line-item contributions and expenses, please see the PDFs posted below.
 
 ---
 
