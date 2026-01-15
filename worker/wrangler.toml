@@ -35,7 +35,11 @@ binding = "DB"
 database_name = "ballot_sources"
 database_id   = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
 
-# Optional: custom route when you attach a subdomain later
-# [[routes]]
-# pattern   = "api.skovgard2026.org/*"
-# zone_name = "skovgard2026.org"
+# Routes: attach Worker to /api/* paths on production domains
+[[routes]]
+pattern = "www.skovgard2026.org/api/*"
+zone_name = "skovgard2026.org"
+
+[[routes]]
+pattern = "skovgard2026.org/api/*"
+zone_name = "skovgard2026.org"

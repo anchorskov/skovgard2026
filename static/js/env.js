@@ -4,7 +4,7 @@ const params = new URLSearchParams(window.location.search);
 
 // Default local API
 let LOCAL_API = 'http://localhost:8787';
-const PROD_API  = 'https://skovgard2026-api.anchorskov.workers.dev';
+const PROD_API  = ''; // Same-origin: calls will use /api/config, /api/donate/*, etc.
 
 // Allow one-off override for debugging: ?api=http://127.0.0.1:8788
 const override = params.get('api');
