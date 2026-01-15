@@ -1,0 +1,246 @@
+/* static/css/donateV1.css */
+
+:root {
+  --donate-v1-bg: #f8fafc;
+  --donate-v1-card: #ffffff;
+  --donate-v1-border: #e2e8f0;
+  --donate-v1-text: #0f172a;
+  --donate-v1-muted: #475569;
+  --donate-v1-accent: #1d4ed8;
+  --donate-v1-accent-dark: #1e40af;
+  --donate-v1-error-bg: #fef2f2;
+  --donate-v1-error-border: #fecaca;
+  --donate-v1-error-text: #991b1b;
+  --donate-v1-success-bg: #ecfdf5;
+  --donate-v1-success-border: #a7f3d0;
+  --donate-v1-success-text: #065f46;
+}
+
+main .donate-v1 {
+  background: var(--donate-v1-bg);
+  padding: 2rem 0;
+}
+
+main .donate-v1 .donate-v1-wrap {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+main .donate-v1 .donate-v1-card {
+  background: var(--donate-v1-card);
+  border: 1px solid var(--donate-v1-border);
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+main .donate-v1 h1 {
+  margin: 0 0 0.5rem 0;
+  color: var(--donate-v1-text);
+  font-size: 2rem;
+}
+
+main .donate-v1 p {
+  color: var(--donate-v1-muted);
+  line-height: 1.6;
+}
+
+main .donate-v1 .donate-v1-note {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+}
+
+main .donate-v1 .donate-v1-list {
+  margin: 1rem 0 1.5rem 1.25rem;
+  color: var(--donate-v1-muted);
+}
+
+main .donate-v1-form {
+  margin-top: 1.5rem;
+}
+
+main .donate-v1-form .field {
+  margin-bottom: 1rem;
+}
+
+main .donate-v1-form .field.has-error input,
+main .donate-v1-form .field.has-error select {
+  border-color: var(--donate-v1-error-border);
+  box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.15);
+}
+
+main .donate-v1-form .field-error {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--donate-v1-error-text);
+}
+
+main .donate-v1-form .field-inline {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 720px) {
+  main .donate-v1-form .field-inline {
+    grid-template-columns: 1fr;
+  }
+}
+
+main .donate-v1-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--donate-v1-text);
+}
+
+main .donate-v1-form .help {
+  font-size: 0.9rem;
+  color: var(--donate-v1-muted);
+}
+
+main .donate-v1-form input[type="text"],
+main .donate-v1-form input[type="email"],
+main .donate-v1-form input[type="tel"],
+main .donate-v1-form input[type="number"],
+main .donate-v1-form select {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--donate-v1-border);
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  background: #ffffff;
+  color: var(--donate-v1-text);
+  box-sizing: border-box;
+}
+
+main .donate-v1-form input:focus,
+main .donate-v1-form select:focus {
+  outline: none;
+  border-color: var(--donate-v1-accent);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
+}
+
+main .donate-v1-form fieldset {
+  border: 1px solid var(--donate-v1-border);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+}
+
+main .donate-v1-form legend {
+  font-weight: 700;
+  color: var(--donate-v1-text);
+  padding: 0 0.4rem;
+}
+
+main .donate-v1-form .checkbox-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0.75rem 0;
+}
+
+main .donate-v1-form .checkbox-row input {
+  margin-top: 0.25rem;
+}
+
+main .donate-v1-form .donate-v1-status {
+  display: none;
+  margin-top: 1rem;
+  border-radius: 0.6rem;
+  padding: 0.75rem 1rem;
+}
+
+main .donate-v1-form .donate-v1-status.error {
+  display: block;
+  background: var(--donate-v1-error-bg);
+  border: 1px solid var(--donate-v1-error-border);
+  color: var(--donate-v1-error-text);
+}
+
+main .donate-v1-form .donate-v1-status.success {
+  display: block;
+  background: var(--donate-v1-success-bg);
+  border: 1px solid var(--donate-v1-success-border);
+  color: var(--donate-v1-success-text);
+}
+
+main .donate-v1-form .donate-v1-actions {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+main .donate-v1-form .donate-v1-cancel {
+  color: var(--donate-v1-muted);
+  text-decoration: underline;
+}
+
+main .donate-v1-form button[type="submit"] {
+  background: var(--donate-v1-accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+main .donate-v1-form button[type="submit"][disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+main .donate-v1-form .donate-v1-payment {
+  border: 1px solid var(--donate-v1-border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-top: 1.5rem;
+  background: #ffffff;
+}
+
+main .donate-v1-form .payment-element {
+  min-height: 48px;
+}
+
+main .donate-v1-form .is-hidden {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  main .donate-v1 {
+    background: #0b1120;
+  }
+
+  main .donate-v1 .donate-v1-card {
+    background: #0f172a;
+    border-color: #1e293b;
+  }
+
+  main .donate-v1 h1,
+  main .donate-v1-form label,
+  main .donate-v1-form legend {
+    color: #f8fafc;
+  }
+
+  main .donate-v1 p,
+  main .donate-v1 .donate-v1-list,
+  main .donate-v1-form .help {
+    color: #cbd5f5;
+  }
+
+  main .donate-v1-form input[type="text"],
+  main .donate-v1-form input[type="email"],
+  main .donate-v1-form input[type="tel"],
+  main .donate-v1-form input[type="number"],
+  main .donate-v1-form select {
+    background: #0b1220;
+    border-color: #1e293b;
+    color: #f1f5f9;
+  }
+}

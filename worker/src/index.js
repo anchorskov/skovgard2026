@@ -1,3 +1,4 @@
+// worker/src/index.js
 // --- CORS helpers ------------------------------------------------------------
 function allowOrigin(env, req) {
   const origin = req.headers.get("origin") || "";
@@ -53,12 +54,32 @@ function mediaBaseUrl(env) {
   return base.replace(/\/+$/, "");
 }
 
+function hexFromBuffer(buffer) {
+  return [...new Uint8Array(buffer)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 async function sha256Hex(s) {
   const bytes = new TextEncoder().encode(s || "");
   const h = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(h)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return hexFromBuffer(h);
+}
+
+async function hmacSha256Hex(secret, payload) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret || ""),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(payload || "")
+  );
+  return hexFromBuffer(sig);
 }
 
 // Cloudflare Turnstile: server-side validation (returns full response)
@@ -152,12 +173,125 @@ function getElapsedMsFromBody(b, now = Date.now()) {
   return tsClient > 0 ? now - tsClient : 0;
 }
 
+// --- Donate helpers ---------------------------------------------------------
+function normalizeText(value) {
+  return String(value || "").trim();
+}
+
+function isNonEmpty(value) {
+  return normalizeText(value).length > 0;
+}
+
+function isAffirmative(value) {
+  return value === true || value === 1 || value === "1" || value === "true" || value === "on";
+}
+
+function parseAmountToCents(raw) {
+  const text = normalizeText(raw);
+  if (!/^\d+(\.\d{1,2})?$/.test(text)) return { error: "Invalid amount." };
+  const amount = Number(text);
+  if (!Number.isFinite(amount)) return { error: "Invalid amount." };
+  const cents = Math.round(amount * 100);
+  return { amount, cents };
+}
+
+function isValidEmail(email) {
+  return /.+@.+\..+/.test(String(email || "").trim());
+}
+
+function timingSafeEqual(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+function parseStripeSignature(header) {
+  const parts = String(header || "").split(",").map((p) => p.trim());
+  const signatures = [];
+  let timestamp = "";
+  for (const part of parts) {
+    const [key, value] = part.split("=");
+    if (key === "t") timestamp = value;
+    if (key === "v1") signatures.push(value);
+  }
+  return { timestamp, signatures };
+}
+
+async function verifyStripeSignature(secret, payload, header) {
+  if (!secret || !header) return false;
+  const { timestamp, signatures } = parseStripeSignature(header);
+  if (!timestamp || signatures.length === 0) return false;
+  const tsNumber = Number(timestamp);
+  if (!Number.isFinite(tsNumber)) return false;
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - tsNumber) > 300) return false;
+  const signedPayload = `${timestamp}.${payload}`;
+  const expected = await hmacSha256Hex(secret, signedPayload);
+  return signatures.some((sig) => timingSafeEqual(sig, expected));
+}
+
+async function buildIdempotencyKey({ email, amountCents, address1, zip }) {
+  const minute = Math.floor(Date.now() / 60000) * 60000;
+  const seed = `${email}|${amountCents}|${address1}|${zip}|${minute}`;
+  return sha256Hex(seed);
+}
+
+async function createStripePaymentIntent(env, data, metadata = {}) {
+  if (!env.STRIPE_SECRET_KEY) return { error: "Stripe not configured." };
+  const { amountCents, email, address1, zip } = data;
+  const idempotencyKey = await buildIdempotencyKey({
+    email,
+    amountCents,
+    address1,
+    zip,
+  });
+
+  const body = new URLSearchParams({
+    amount: String(amountCents),
+    currency: "usd",
+    receipt_email: email,
+    "automatic_payment_methods[enabled]": "true",
+  });
+
+  Object.entries(metadata).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    body.append(`metadata[${key}]`, String(value));
+  });
+
+  const res = await fetch("https://api.stripe.com/v1/payment_intents", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+      "content-type": "application/x-www-form-urlencoded",
+      "idempotency-key": idempotencyKey,
+    },
+    body,
+  });
+
+  const stripeResult = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const message = stripeResult?.error?.message || "Stripe error.";
+    return { error: message };
+  }
+
+  return stripeResult;
+}
+
 // --- Worker ------------------------------------------------------------------
 export default {
   async fetch(req, env) {
     try {
       const url = new URL(req.url);
       const path = url.pathname.replace(/\/+$/, ""); // strip trailing slash
+      const isLocalDev = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+
+      if (isLocalDev && !env.STRIPE_SECRET_KEY) {
+        throw new Error("Missing STRIPE_SECRET_KEY for local development. Add it to worker/.dev.vars.");
+      }
 
       // CORS preflight
       if (req.method === "OPTIONS" && path.startsWith("/api")) {
@@ -170,6 +304,248 @@ export default {
       // Health check
       if (req.method === "GET" && path === "/api/health") {
         return json(req, env, { ok: true, d1Bound: Boolean(env.DB) });
+      }
+
+      if (req.method === "GET" && path === "/api/config") {
+        const key = String(env.STRIPE_PUBLISHABLE_KEY || "").trim();
+        if (!key) {
+          return json(
+            req,
+            env,
+            { error: "Payment service temporarily unavailable. Please try again later or email skovgard2026@gmail.com for support." },
+            503
+          );
+        }
+        return json(req, env, { stripePublishableKey: key });
+      }
+
+      if (req.method === "POST" && path === "/api/donate/create-intent") {
+        if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
+        if (!env.STRIPE_SECRET_KEY) return json(req, env, { error: "Stripe not configured." }, 500);
+
+        const body = await req.json().catch(() => ({}));
+        const donor = {
+          first_name: normalizeText(body.first_name),
+          last_name: normalizeText(body.last_name),
+          email: normalizeText(body.email),
+          phone: normalizeText(body.phone),
+          address1: normalizeText(body.address1),
+          address2: normalizeText(body.address2),
+          city: normalizeText(body.city),
+          state: normalizeText(body.state),
+          zip: normalizeText(body.zip),
+          country: normalizeText(body.country || "US"),
+          employer: normalizeText(body.employer),
+          occupation: normalizeText(body.occupation),
+        };
+
+        const attest = body.attestations || {};
+        const attestation = {
+          us_citizen: isAffirmative(attest.us_citizen),
+          personal_funds: isAffirmative(attest.personal_funds),
+          age_18: isAffirmative(attest.age_18),
+          not_federal_contractor: isAffirmative(attest.not_federal_contractor),
+          personal_card: isAffirmative(attest.personal_card),
+        };
+
+        if (!isNonEmpty(donor.first_name)) return json(req, env, { error: "First name is required." }, 400);
+        if (!isNonEmpty(donor.last_name)) return json(req, env, { error: "Last name is required." }, 400);
+        if (donor.email && !isValidEmail(donor.email)) return json(req, env, { error: "Email is not valid." }, 400);
+        if (!isNonEmpty(donor.address1)) return json(req, env, { error: "Address line 1 is required." }, 400);
+        if (!isNonEmpty(donor.city)) return json(req, env, { error: "City is required." }, 400);
+        if (!isNonEmpty(donor.state)) return json(req, env, { error: "State is required." }, 400);
+        if (!isNonEmpty(donor.zip)) return json(req, env, { error: "ZIP is required." }, 400);
+        if (!isNonEmpty(donor.country)) return json(req, env, { error: "Country is required." }, 400);
+
+        const { amount, cents, error: amountError } = parseAmountToCents(body.amount);
+        if (amountError) return json(req, env, { error: amountError }, 400);
+        if (amount < 1 || amount > 3500) return json(req, env, { error: "Amount must be between $1 and $3,500." }, 400);
+
+        if (amount > 200) {
+          if (!isNonEmpty(donor.employer)) return json(req, env, { error: "Employer is required for contributions over $200." }, 400);
+          if (!isNonEmpty(donor.occupation)) return json(req, env, { error: "Occupation is required for contributions over $200." }, 400);
+        }
+
+        const attestationOk = attestation.us_citizen && attestation.personal_funds && attestation.age_18 && attestation.not_federal_contractor && attestation.personal_card;
+        if (!attestationOk) return json(req, env, { error: "All attestations are required." }, 400);
+
+        const stripeResult = await createStripePaymentIntent(
+          env,
+          {
+            amountCents: cents,
+            email: donor.email,
+            address1: donor.address1,
+            zip: donor.zip,
+          },
+          {
+            source: "donateV1",
+            donor_email: donor.email,
+          }
+        );
+        if (stripeResult.error) return json(req, env, { error: stripeResult.error }, 502);
+
+        const ua = req.headers.get("user-agent") || "";
+        const ip = req.headers.get("cf-connecting-ip") || "";
+
+        try {
+          const donorInsert = await env.DB.prepare(
+            `INSERT INTO donors (first_name, last_name, email, phone, address1, address2, city, state, zip, country, employer, occupation)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`
+          ).bind(
+            donor.first_name,
+            donor.last_name,
+            donor.email,
+            donor.phone,
+            donor.address1,
+            donor.address2,
+            donor.city,
+            donor.state,
+            donor.zip,
+            donor.country,
+            donor.employer,
+            donor.occupation
+          ).run();
+
+          const donorId = donorInsert.meta.last_row_id;
+
+          const contributionInsert = await env.DB.prepare(
+            `INSERT INTO contributions (donor_id, amount_cents, currency, payment_intent_id, status, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, CURRENT_TIMESTAMP)`
+          ).bind(
+            donorId,
+            cents,
+            "usd",
+            stripeResult.id,
+            "pending"
+          ).run();
+
+          const contributionId = contributionInsert.meta.last_row_id;
+
+          await env.DB.prepare(
+            `INSERT INTO contribution_attestations
+              (contribution_id, us_citizen, personal_funds, age_18, not_federal_contractor, personal_card, ip, user_agent)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
+          ).bind(
+            contributionId,
+            attestation.us_citizen ? 1 : 0,
+            attestation.personal_funds ? 1 : 0,
+            attestation.age_18 ? 1 : 0,
+            attestation.not_federal_contractor ? 1 : 0,
+            attestation.personal_card ? 1 : 0,
+            ip,
+            ua
+          ).run();
+        } catch (error) {
+          return json(req, env, { error: "Database error." }, 500);
+        }
+
+        return json(req, env, { client_secret: stripeResult.client_secret });
+      }
+
+      if (req.method === "POST" && path === "/api/donate/sms-optin") {
+        if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
+
+        const body = await req.json().catch(() => ({}));
+        const firstName = normalizeText(body.first_name);
+        const lastName = normalizeText(body.last_name);
+        const phone = normalizeText(body.phone).replace(/[^\d]/g, "");
+        const email = normalizeText(body.email);
+        const consentSMS = body.consent_sms === true || body.consent_sms === 1;
+        const consentVersion = normalizeText(body.consent_version)
+          || `donate-v1-${new Date().toISOString().slice(0, 10)}`;
+
+        if (!isNonEmpty(firstName)) return json(req, env, { error: "First name is required." }, 400);
+        if (!isNonEmpty(lastName)) return json(req, env, { error: "Last name is required." }, 400);
+        if (!phone || phone.length < 10) return json(req, env, { error: "Valid 10-digit mobile required." }, 400);
+        if (!consentSMS) return json(req, env, { error: "SMS consent required." }, 400);
+
+        const ip = req.headers.get("cf-connecting-ip") || "";
+        const ipHash = await sha256Hex(ip);
+        const ua = req.headers.get("user-agent") || "";
+
+        await env.DB.prepare(
+          `INSERT INTO sms_optins
+             (first_name, last_name, name, phone, email, consent, consent_email,
+              consent_version, source, user_agent, ip_hash)
+           VALUES (?1, ?2, TRIM(?1||' '||?2), ?3, ?4, ?5, ?6,
+                   ?7, 'skovgard2026:donate', ?8, ?9)
+           ON CONFLICT(phone) DO UPDATE SET
+             first_name=excluded.first_name,
+             last_name =excluded.last_name,
+             name      =excluded.name,
+             email     =excluded.email,
+             consent   =excluded.consent,
+             consent_version=excluded.consent_version,
+             source    =excluded.source,
+             user_agent=excluded.user_agent,
+             ip_hash   =excluded.ip_hash`
+        )
+          .bind(
+            firstName,
+            lastName,
+            phone,
+            email || null,
+            consentSMS ? 1 : 0,
+            0,
+            consentVersion,
+            ua,
+            ipHash
+          )
+          .run();
+
+        return json(req, env, { ok: true });
+      }
+
+      if (req.method === "POST" && path === "/api/donate/webhook") {
+        if (!env.STRIPE_WEBHOOK_SECRET) {
+          return json(
+            req,
+            env,
+            { error: "Stripe webhook secret not configured." },
+            501
+          );
+        }
+        if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
+
+        const payload = await req.text();
+        const signature = req.headers.get("stripe-signature") || "";
+        const valid = await verifyStripeSignature(
+          env.STRIPE_WEBHOOK_SECRET,
+          payload,
+          signature
+        );
+
+        if (!valid) {
+          return json(req, env, { error: "Invalid signature." }, 400);
+        }
+
+        let event = {};
+        try {
+          event = JSON.parse(payload);
+        } catch {
+          return json(req, env, { error: "Invalid payload." }, 400);
+        }
+
+        const eventType = event.type || "";
+        const intent = event.data?.object || {};
+        const paymentIntentId = intent.id || "";
+        if (!paymentIntentId) return json(req, env, { ok: true });
+
+        let newStatus = "";
+        if (eventType === "payment_intent.succeeded") newStatus = "succeeded_webhook";
+        if (eventType === "payment_intent.payment_failed") newStatus = "failed";
+
+        if (newStatus) {
+          await env.DB.prepare(
+            `UPDATE contributions
+             SET status = ?1, updated_at = CURRENT_TIMESTAMP
+             WHERE payment_intent_id = ?2`
+          )
+            .bind(newStatus, paymentIntentId)
+            .run();
+        }
+
+        return json(req, env, { ok: true });
       }
 
       // Podcast metadata (public)

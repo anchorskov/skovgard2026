@@ -18,6 +18,7 @@ MEDIA_BASE_URL = "https://media.skovgard2026.org"
 CORS_ORIGINS = "https://skovgard2026.org"
 TS_ALLOWED_HOSTNAMES = "skovgard2026.org,www.skovgard2026.org"
 MEDIA_BASE_URL = "https://media.skovgard2026.org"
+STRIPE_PUBLISHABLE_KEY = "pk_live_51Son0YIfsL5VU7kUc0Ux82IBA80IuVchE5qJz4UIiJEOLTe06wKPuFRDiMZ4wvYgPinz0AGmrpnZ5EUuVm3sQAkK00Fohb6wLr"
 
 # ---------- Preview environment (Pages preview, etc.) ----------
 [env.preview]
@@ -25,6 +26,8 @@ MEDIA_BASE_URL = "https://media.skovgard2026.org"
 CORS_ORIGINS = "https://skovgard2026.pages.dev"
 TS_ALLOWED_HOSTNAMES = "skovgard2026.pages.dev"
 MEDIA_BASE_URL = "https://media.skovgard2026.org"
+# Use test key in preview to prevent accidental live charges
+
 
 # ---------- D1 binding (shared across envs) ----------
 [[d1_databases]]

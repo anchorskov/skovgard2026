@@ -1,0 +1,160 @@
+{{/* layouts/donatev1/single.html */}}
+{{- define "main" }}
+<section class="donate-v1">
+  <div class="donate-v1-wrap">
+    <div class="donate-v1-card">
+      <h1>Support Jimmy</h1>
+      <p>Your contribution keeps this campaign independent and focused on Wyoming.</p>
+      <p class="donate-v1-note">Federal law requires best efforts to collect name, address, occupation, and employer for contributions over $200.</p>
+      <p class="donate-v1-note">Online donations incur about a 3% + $0.30 processing fee. To avoid this fee, send a check payable to <strong>Skovgard for Senate</strong>, 5685 Hanly, Mills, WY 82604.</p>
+
+      <ul class="donate-v1-list">
+        <li>I am a U.S. citizen or lawfully admitted permanent resident.</li>
+        <li>This contribution is from my own personal funds and not from another person or entity.</li>
+        <li>I am at least eighteen years old.</li>
+        <li>I am not a federal contractor.</li>
+        <li>I am using my own personal credit card or check.</li>
+      </ul>
+
+      <form id="donate-v1-form" class="donate-v1-form" novalidate>
+        <div id="donate-v1-errors" class="donate-v1-status" role="alert" aria-live="polite"></div>
+        <div class="field-inline">
+          <div class="field">
+            <label for="first-name">First name</label>
+            <input id="first-name" name="first_name" type="text" autocomplete="given-name" required>
+          </div>
+          <div class="field">
+            <label for="last-name">Last name</label>
+            <input id="last-name" name="last_name" type="text" autocomplete="family-name" required>
+          </div>
+        </div>
+
+        <div class="field-inline">
+          <div class="field">
+            <label for="email">Email <span class="help">(optional)</span></label>
+            <input id="email" name="email" type="email" autocomplete="email">
+            <div class="help">We'll use this for a receipt and campaign updates if you opt in.</div>
+          </div>
+          <div class="field">
+            <label for="phone">Phone</label>
+            <input id="phone" name="phone" type="tel" autocomplete="tel">
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="checkbox-row">
+            <input type="checkbox" id="consent_sms_updates" name="consent_sms_updates">
+            <span>Opt in to text updates. Msg and data rates may apply.</span>
+          </label>
+          <div id="sms-consent-hint" class="help is-hidden">SMS opt-in requires a valid mobile number.</div>
+          <div class="help">We will only text if you opt in. Reply STOP to end, HELP for help.</div>
+        </div>
+
+        <div class="field">
+          <label for="address1">Address line 1</label>
+          <input id="address1" name="address1" type="text" autocomplete="address-line1" required>
+        </div>
+
+        <div class="field">
+          <label for="address2">Address line 2</label>
+          <input id="address2" name="address2" type="text" autocomplete="address-line2">
+        </div>
+
+        <div class="field-inline">
+          <div class="field">
+            <label for="city">City</label>
+            <input id="city" name="city" type="text" autocomplete="address-level2" required>
+          </div>
+          <div class="field">
+            <label for="state">State</label>
+            <input id="state" name="state" type="text" autocomplete="address-level1" required>
+          </div>
+        </div>
+
+        <div class="field-inline">
+          <div class="field">
+            <label for="zip">ZIP</label>
+            <input id="zip" name="zip" type="text" autocomplete="postal-code" required>
+          </div>
+          <div class="field">
+            <label for="country">Country</label>
+            <select id="country" name="country" autocomplete="country" required>
+              <option value="US" selected>United States</option>
+              <option value="CA">Canada</option>
+              <option value="MX">Mexico</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-inline">
+          <div class="field">
+            <label for="employer">Employer</label>
+            <input id="employer" name="employer" type="text" autocomplete="organization">
+            <div class="help">Required if your total contributions exceed $200.</div>
+          </div>
+          <div class="field">
+            <label for="occupation">Occupation</label>
+            <input id="occupation" name="occupation" type="text" autocomplete="organization-title">
+            <div class="help">Required if your total contributions exceed $200.</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="amount">Contribution amount (USD)</label>
+          <input id="amount" name="amount" type="text" inputmode="decimal" list="donate-v1-amounts" required>
+          <datalist id="donate-v1-amounts">
+            <option value="$25"></option>
+            <option value="$50"></option>
+            <option value="$100"></option>
+            <option value="$500"></option>
+            <option value="$1000"></option>
+            <option value="$3500"></option>
+            <option value="Other"></option>
+          </datalist>
+          <div class="help">Choose a suggested amount or type a custom amount.</div>
+        </div>
+
+        <fieldset>
+          <legend>Required attestations</legend>
+          <label class="checkbox-row">
+            <input type="checkbox" name="attest_us_citizen" required>
+            <span>I am a U.S. citizen or lawfully admitted permanent resident.</span>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" name="attest_personal_funds" required>
+            <span>This contribution is from my own personal funds.</span>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" name="attest_age_18" required>
+            <span>I am at least eighteen years old.</span>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" name="attest_not_federal_contractor" required>
+            <span>I am not a federal contractor.</span>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" name="attest_personal_card" required>
+            <span>I am using my own personal credit card or check.</span>
+          </label>
+        </fieldset>
+
+        <div id="donate-v1-payment" class="donate-v1-payment is-hidden">
+          <div id="payment-element" class="payment-element"></div>
+        </div>
+
+        <div id="donate-v1-status" class="donate-v1-status"></div>
+
+        <div class="donate-v1-actions">
+          <button id="donate-v1-submit" type="submit">Continue to payment</button>
+          <span class="help">You will be redirected to a confirmation screen after payment.</span>
+          <a class="donate-v1-cancel" href="/donatev1/cancel/">Cancel and return later</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script id="stripe-js" src="https://js.stripe.com/v3" async></script>
+<script type="module" src="/js/donateV1/donateV1.js"></script>
+{{- end }}
