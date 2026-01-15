@@ -6,11 +6,11 @@
 <!-- Content Security Policy for payment form; allows Stripe -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  script-src 'self' https://js.stripe.com;
+  script-src 'self' https://js.stripe.com https://static.cloudflareinsights.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: https:;
   frame-src 'self' https://js.stripe.com;
-  connect-src 'self' https://api.stripe.com https://skovgard2026-api.anchorskov.workers.dev http://localhost:8787 http://127.0.0.1:8787;
+  connect-src 'self' https://api.stripe.com https://skovgard2026-api.anchorskov.workers.dev http://localhost:8787 http://127.0.0.1:8787 https://cloudflareinsights.com;
   base-uri 'self';
 " />
 {{- end }}
