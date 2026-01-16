@@ -1,0 +1,39 @@
+# Caddyfile
+# Production domain with HTTPS enforcement and security headers
+skovgard2026.org www.skovgard2026.org {
+  header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+  header X-Content-Type-Options "nosniff"
+  header X-Frame-Options "SAMEORIGIN"
+  header X-XSS-Protection "1; mode=block"
+  header Referrer-Policy "strict-origin-when-cross-origin"
+  
+  # Handle API requests to Worker
+  handle_path /api/* {
+    reverse_proxy 127.0.0.1:8787
+  }
+
+  # Set correct MIME type for JavaScript files
+  @js {
+    path *.js
+  }
+  handle @js {
+    header Content-Type "text/javascript; charset=utf-8"
+    reverse_proxy 127.0.0.1:1313
+  }
+
+  # All other requests to Hugo
+  handle {
+    reverse_proxy 127.0.0.1:1313
+  }
+}
+
+# Local development (no HTTPS)
+:1314 {
+  handle_path /api/* {
+    reverse_proxy 127.0.0.1:8787
+  }
+
+  handle {
+    reverse_proxy 127.0.0.1:1313
+  }
+}

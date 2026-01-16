@@ -1,3 +1,4 @@
+# .gitignore
 cd /home/anchor/projects/skovgard2026
 
 cat > .gitignore <<'EOF'
@@ -13,6 +14,8 @@ dist/
 
 # Cloudflare Workers (local state only)
 .dev.vars
+worker/.dev.vars
+worker/.env
 .wrangler/
 **/.wrangler/state/
 **/.wrangler/tmp/

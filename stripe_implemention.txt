@@ -1,0 +1,33 @@
+# stripe_implemention.txt
+
+Path: /home/anchor/projects/skovgard2026/stripe_implemention.txt
+
+Goal
+- Replace the current AneDot flow with a Stripe Elements flow using a staged rollout.
+
+Phase 1: Build and test V1 at /donateV1 (private path)
+- Hugo route: content/donateV1/_index.md with layout layouts/donateV1/list.html
+- Thank you and cancel pages: content/donateV1/thanks.md and content/donateV1/cancel.md
+- CSS: static/css/donateV1.css
+- JS modules: static/js/donateV1/ui.js, static/js/donateV1/stripe-elements.js, static/js/donateV1/donateV1.js
+- Stripe publishable key meta tag in layouts/partials/extend_head.html
+- Stripe.js script tag in layouts/donateV1/list.html
+- API endpoints: worker/src/index.js
+- D1 migration: worker/migrations/008_donate_stripe.sql
+
+Phase 2: Swap routes (after V1 is validated)
+- Move current donate content and assets to donateLegacy (or remove on branch)
+- Rename donateV1 files to donate to take over /donate
+- Update return_url and cancel_url paths to /donate/thanks and /donate/cancel
+
+Phase 3: Remove legacy flow
+- Delete AneDot embed assets and legacy routes
+- Remove any legacy navigation links
+
+Elements to build
+- Donation form with donor fields and amount
+- Required attestation checkboxes
+- Stripe Elements payment section
+- Status and error messaging UI
+- Create intent API endpoint with validation and D1 inserts
+- D1 tables for donors, contributions, and attestations

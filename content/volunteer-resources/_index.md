@@ -79,7 +79,6 @@ Together, we stand for fair elections and one meaningful vote for every Wyoming 
 Start small. Keep it personal. No spam.
 
 - Join: **[Sign up here](/pulse/signup/)**  
-- How-to: **[Android](/pulse/setup-android/)** • **[iPhone](/pulse/setup-iphone/)**
 
 ---
 

@@ -4,6 +4,8 @@ aliases:
 title: "Pulse Setup – iPhone"
 date: 2025-09-06
 draft: false
+_build:
+  list: false
 ---
 
 # Pulse Setup – iPhone

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SMS Opt-In Behavior Test</title>
+  <style>
+    body { font-family: monospace; padding: 20px; line-height: 1.6; }
+    .test-section { background: #f5f5f5; padding: 15px; margin: 15px 0; border-left: 3px solid #007bff; }
+    .test-step { background: white; padding: 10px; margin: 10px 0; border: 1px solid #ddd; }
+    .pass { color: green; font-weight: bold; }
+    .fail { color: red; font-weight: bold; }
+    .note { color: #666; font-size: 0.9em; }
+    #results { background: #f9f9f9; border: 1px solid #ccc; padding: 15px; margin-top: 30px; }
+    .code-snippet { background: #000; color: #0f0; padding: 10px; margin: 10px 0; font-size: 0.85em; overflow-x: auto; }
+  </style>
+</head>
+<body>
+
+<h1>SMS Opt-In Behavior Test Plan</h1>
+<p>Testing the current SMS opt-in implementation in donateV1.js</p>
+
+<div class="test-section">
+  <h2>Issue Analysis</h2>
+  <p class="note">The JavaScript code for SMS opt-in exists but has a critical flaw:</p>
+  
+  <div class="code-snippet">
+// Lines 233-249 in donateV1.js: Phone field listener
+if (phoneInput) {
+  const handlePhoneCheck = () => {
+    const isValid = isValidSmsPhone(phoneInput.value);
+    if (isValid && smsConsentInput && !smsConsentInput.checked) {
+      smsConsentInput.checked = true;    // ← Sets property
+      updateSmsConsentHint(true);         // ← Updates UI
+      // ✗ MISSING: smsConsentInput.dispatchEvent(new Event('change'))
+    }
+    if (smsConsentInput?.checked) {
+      if (!isValid) {
+        setFieldError(phoneInput, "Enter a valid mobile number...");
+      } else {
+        setFieldError(phoneInput, "");
+      }
+    }
+  };
+
+  phoneInput.addEventListener("blur", handlePhoneCheck);
+  phoneInput.addEventListener("change", handlePhoneCheck);
+}</div>
+
+  <p><span class="fail">PROBLEM:</span> When phone is filled with valid number, the code sets <code>checked = true</code> but doesn't fire the 'change' event. This means the form doesn't know it changed.</p>
+</div>
+
+<div class="test-section">
+  <h2>Current Behavior vs Expected</h2>
+  
+  <div class="test-step">
+    <h3>Test 1: User fills phone with valid number</h3>
+    <p><strong>Expected:</strong></p>
+    <ul>
+      <li>SMS opt-in checkbox auto-checks</li>
+      <li>Hint "SMS opt-in requires a valid mobile number." appears</li>
+      <li>Phone field error (if any) clears</li>
+    </ul>
+    <p><strong>Actual:</strong></p>
+    <ul>
+      <li><span class="pass">✓ Checkbox gets checked (checked property = true)</span></li>
+      <li><span class="pass">✓ Hint shows (is-hidden class removed)</span></li>
+      <li><span class="pass">✓ Phone error clears if valid</span></li>
+      <li><span class="fail">✗ But 'change' event NOT fired on checkbox</span></li>
+      <li><span class="fail">✗ So unchecking it later won't trigger the 'change' listener properly</span></li>
+    </ul>
+  </div>
+
+  <div class="test-step">
+    <h3>Test 2: User checks SMS opt-in WITHOUT phone number</h3>
+    <p><strong>Expected:</strong></p>
+    <ul>
+      <li>Focus moves to phone field</li>
+      <li>Error: "Enter a valid mobile number for text opt-in." appears on phone</li>
+      <li>Checkbox remains unchecked (form prevents it)</li>
+    </ul>
+    <p><strong>Actual:</strong></p>
+    <ul>
+      <li><span class="pass">✓ Focus moves to phone field</span></li>
+      <li><span class="pass">✓ Error message shows</span></li>
+      <li><span class="pass">✓ Checkbox doesn't stay checked</span></li>
+    </ul>
+  </div>
+
+  <div class="test-step">
+    <h3>Test 3: User unchecks SMS opt-in</h3>
+    <p><strong>Expected:</strong></p>
+    <ul>
+      <li>Hint hides</li>
+      <li>Phone field errors clear</li>
+      <li>Form can be submitted without valid phone</li>
+    </ul>
+    <p><strong>Actual:</strong></p>
+    <ul>
+      <li><span class="pass">✓ Hint hides (is-hidden added)</span></li>
+      <li><span class="pass">✓ Phone error clears</span></li>
+      <li><span class="pass">✓ Form can submit without phone</span></li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="test-section">
+  <h2>Root Cause</h2>
+  <p>When <code>smsConsentInput.checked = true</code> is set programmatically (line 239), it does NOT fire the 'change' event.</p>
+  <p>This causes synchronization issues:</p>
+  <ol>
+    <li>Phone blur with valid number → checkbox.checked = true (but no event fired)</li>
+    <li>User manually unchecks → 'change' listener fires → clears errors</li>
+    <li>User checks again manually → 'change' fires → works fine</li>
+    <li>But if phone field is filled and auto-checked, then manually unchecked, the state is now out of sync</li>
+  </ol>
+</div>
+
+<div class="test-section">
+  <h2>The Fix</h2>
+  <p>After setting <code>smsConsentInput.checked = true</code>, dispatch a 'change' event:</p>
+  
+  <div class="code-snippet">
+if (isValid && smsConsentInput && !smsConsentInput.checked) {
+  smsConsentInput.checked = true;
+  updateSmsConsentHint(true);
+  // ADD THIS LINE:
+  smsConsentInput.dispatchEvent(new Event('change', { bubbles: true }));
+}</div>
+
+  <p>This ensures that when the checkbox is auto-checked, the 'change' listener fires and all dependent logic runs.</p>
+</div>
+
+<div class="test-section">
+  <h2>Testing Steps (Manual)</h2>
+  
+  <div class="test-step">
+    <h3>1. Load form at http://localhost:1313/donatev1/</h3>
+    <p>✓ No errors in console<br/>✓ SMS consent hint is hidden initially</p>
+  </div>
+
+  <div class="test-step">
+    <h3>2. Leave phone field with valid number (10+ digits)</h3>
+    <p>Expected: Checkbox auto-checks, hint appears<br/>
+    Test: In DevTools Console, check: <code>document.getElementById('consent_sms_updates').checked</code><br/>
+    Should return: <code>true</code></p>
+  </div>
+
+  <div class="test-step">
+    <h3>3. Manually uncheck SMS consent</h3>
+    <p>Expected: Hint hides, phone error clears<br/>
+    Verify: Form allows submit without phone now</p>
+  </div>
+
+  <div class="test-step">
+    <h3>4. Clear phone field and check SMS consent again</h3>
+    <p>Expected: Error appears on phone, focus moves to phone<br/>
+    Test: Try to submit - should be blocked</p>
+  </div>
+
+  <div class="test-step">
+    <h3>5. Fill phone again and blur</h3>
+    <p>Expected: Checkbox auto-checks again, hint visible<br/>
+    Verify: Checkbox state matches UI hint state</p>
+  </div>
+
+</div>
+
+<div id="results">
+  <h2>Summary</h2>
+  <p><span class="fail">ISSUE FOUND:</span> Missing event dispatch in phone field listener</p>
+  <p><strong>File:</strong> /home/anchor/projects/skovgard2026/static/js/donateV1/donateV1.js</p>
+  <p><strong>Line:</strong> 239 (after <code>smsConsentInput.checked = true;</code>)</p>
+  <p><strong>Fix:</strong> Add <code>smsConsentInput.dispatchEvent(new Event('change', { bubbles: true }));</code></p>
+  <p><strong>Impact:</strong> Ensures SMS opt-in state is consistent with UI and form logic</p>
+</div>
+
+</body>
+</html>
