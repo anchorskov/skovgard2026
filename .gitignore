@@ -1,7 +1,3 @@
-# .gitignore
-cd /home/anchor/projects/skovgard2026
-
-cat > .gitignore <<'EOF'
 # Hugo build outputs
 /public/
 /resources/_gen/
@@ -60,5 +56,6 @@ exports/
 # Repo-specific review artifacts
 optin-review-*.zip
 optin-review-manifest-*.txt
-EOF
+
+# Vendor/bank data
 bank_statements/
