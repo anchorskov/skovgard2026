@@ -1,0 +1,95 @@
+═══════════════════════════════════════════════════════════════════════
+R2 JR RIGGINS FILES VERIFICATION REPORT
+═══════════════════════════════════════════════════════════════════════
+Date: 2026-01-26
+Status: ⚠️ MISSING DATABASE ENTRIES
+
+═══════════════════════════════════════════════════════════════════════
+ISSUE FOUND
+═══════════════════════════════════════════════════════════════════════
+
+The podcast.md file references 3 JR Riggins episodes:
+
+Expected Keys in R2:
+  1. podcasts/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp3
+  2. podcasts/jr-riggins/2025-12-14/JR_RIGGINS_-02.mp3
+  3. podcasts/jr-riggins/2025-12-14/JR_RIGGINS_-03.mp3
+
+Database Status:
+  ❌ NO entries found for guest_slug = 'jr-riggins'
+  ✅ Only found: jack-daniels (2026-01-25)
+
+R2 File Check:
+  - Download commands started but files came back empty (0 bytes)
+  - Files may not actually exist in R2
+  - Or database records are missing
+
+═══════════════════════════════════════════════════════════════════════
+DATABASE AUDIT
+═══════════════════════════════════════════════════════════════════════
+
+Current podcast_uploads table entries:
+
+Guest: jack-daniels
+  - Episode Date: 2026-01-25
+  - Part: 1
+  - R2 Key: podcasts/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3
+  - Size: 35,369,393 bytes
+  - Status: ✅ Present and verified
+
+Guest: jr-riggins
+  - Status: ❌ NO ENTRIES FOUND
+
+═══════════════════════════════════════════════════════════════════════
+POSSIBLE CAUSES
+═══════════════════════════════════════════════════════════════════════
+
+1. JR Riggins files never uploaded to R2
+   - podcast.md references them but files don't exist
+   - Database entries were never created
+
+2. Files existed but were deleted
+   - R2 objects may have been removed
+   - Database entries not cleaned up
+
+3. Files are in R2 but no database metadata
+   - Entries not inserted into podcast_uploads table
+   - API won't return them (requires database entry)
+
+═══════════════════════════════════════════════════════════════════════
+RECOMMENDATIONS
+═══════════════════════════════════════════════════════════════════════
+
+Option A: Locate and upload missing files
+  - Find the JR Riggins MP3 files
+  - Upload to R2 with proper keys
+  - Create database entries with metadata
+
+Option B: Remove references from podcast.md
+  - If files are permanently lost
+  - Remove JR Riggins section from content/podcast.md
+  - Keep only Jack Daniels episode
+
+Option C: Check R2 bucket directly
+  - List all objects in podcasts bucket
+  - Verify file existence
+  - Restore from backup if available
+
+═══════════════════════════════════════════════════════════════════════
+ACTION ITEMS
+═══════════════════════════════════════════════════════════════════════
+
+1. Determine actual status of JR Riggins files
+   - Are they in R2?
+   - Are they on local storage?
+   - Are they permanently lost?
+
+2. If files exist:
+   - Upload to R2 (if missing)
+   - Create database entries
+
+3. If files don't exist:
+   - Either remove from podcast.md
+   - Or provide instruction to user
+
+═══════════════════════════════════════════════════════════════════════

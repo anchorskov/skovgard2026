@@ -1,0 +1,131 @@
+═══════════════════════════════════════════════════════════════════════
+CRON & DELETION AUDIT REPORT
+═══════════════════════════════════════════════════════════════════════
+Date: 2026-01-26
+Purpose: Find automated tasks that might delete R2 files
+
+═══════════════════════════════════════════════════════════════════════
+CRONTAB FINDINGS
+═══════════════════════════════════════════════════════════════════════
+
+User Crontab (anchor):
+
+✓ @monthly /home/anchor/update-hugo.sh
+  - Updates Hugo binary
+  - No R2 involvement
+
+✓ 5 6 * * 0 /home/anchor/projects/skovgard2026/scripts/pulse-sync.sh
+  - Weekly (every Sunday at 6:05 AM)
+  - Syncs D1 database (sms_optins) to local SQLite
+  - No R2 involvement
+
+═══════════════════════════════════════════════════════════════════════
+SYSTEM CRON (/etc/cron.d and /etc/cron.*)
+═══════════════════════════════════════════════════════════════════════
+
+Checked locations:
+  ✓ /etc/cron.d/ - No suspicious tasks
+  ✓ /etc/cron.daily/ - Standard system maintenance only
+  ✓ /etc/cron.hourly/ - Not found
+  ✓ /etc/cron.weekly/ - Not found
+  ✓ /etc/cron.monthly/ - Not found
+
+Result: NO R2 deletion crons found
+
+═══════════════════════════════════════════════════════════════════════
+SCRIPT ANALYSIS
+═══════════════════════════════════════════════════════════════════════
+
+Scripts searched:
+  - /home/anchor/projects/skovgard2026/scripts/
+  - /home/anchor/projects/skovgard2026/worker/src/
+
+Results:
+  ✓ snapshot.sh - Creates snapshots, does NOT delete R2
+  ✓ pulse-sync.sh - Syncs D1 database, does NOT touch R2
+  ✓ devStart.sh - Starts dev environment
+  ✓ stop.sh - Stops containers
+  ✓ zipshell.sh - Creates zips
+  ✓ index.js (Worker) - API only reads from R2, no deletion code
+
+No deletion logic found in any scripts
+
+═══════════════════════════════════════════════════════════════════════
+WORKER API ANALYSIS
+═══════════════════════════════════════════════════════════════════════
+
+API Endpoints (worker/src/index.js):
+
+GET /api/podcasts
+  - Reads from database
+  - Returns metadata with R2 keys
+  - Does NOT delete or modify R2
+
+POST endpoints:
+  - /api/donate/create-intent (Stripe payment)
+  - /api/donate/sms-optin (SMS opt-in)
+  - /api/donate/webhook (Stripe webhook)
+  - /api/optin (Generic opt-in)
+
+Result: NO R2 deletion endpoints
+
+═══════════════════════════════════════════════════════════════════════
+POSSIBLE EXPLANATIONS FOR MISSING JR RIGGINS FILES
+═══════════════════════════════════════════════════════════════════════
+
+1. FILES NEVER UPLOADED
+   - podcast.md references them
+   - But files were never uploaded to R2
+   - Database entries don't exist (confirmed)
+
+2. MANUAL DELETION
+   - Someone manually deleted the files from R2
+   - Using wrangler r2 object delete
+   - Or Cloudflare dashboard
+
+3. R2 LIFECYCLE POLICY
+   - May have auto-delete rules on the R2 bucket
+   - Check Cloudflare R2 bucket settings
+   - Possible retention/TTL policy
+
+4. INCOMPLETE INITIAL SETUP
+   - podcast.md added with references
+   - But upload process wasn't completed
+   - Only database entries were attempted
+
+═══════════════════════════════════════════════════════════════════════
+ACTIONS VERIFIED
+═══════════════════════════════════════════════════════════════════════
+
+✓ Checked user crontab - No R2 deletions
+✓ Checked system cron - No R2 deletions
+✓ Checked all shell scripts - No deletion logic
+✓ Checked Worker API - No deletion endpoints
+✓ Searched for "delete", "remove", "r2" - Only found metadata reads
+
+CONCLUSION: No automated deletion process found in code or cron
+
+═══════════════════════════════════════════════════════════════════════
+NEXT STEPS
+═══════════════════════════════════════════════════════════════════════
+
+1. Check R2 bucket settings for lifecycle policies
+   Command: wrangler r2 bucket view podcasts --remote
+
+2. Check Cloudflare dashboard for:
+   - R2 bucket versioning
+   - Lifecycle/retention rules
+   - Access logs
+
+3. Search git history for any deletion commands:
+   git log --all -S "r2 object delete"
+
+4. Check if files exist but weren't indexed:
+   wrangler r2 object list podcasts --remote (proper format)
+
+5. Decision needed:
+   - Option A: Remove JR Riggins from podcast.md
+   - Option B: Find and re-upload JR Riggins files
+   - Option C: Leave as-is (partial podcast page)
+
+═══════════════════════════════════════════════════════════════════════
