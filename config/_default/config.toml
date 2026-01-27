@@ -9,7 +9,7 @@ relativeURLs = false
 canonifyURLs = false
 
 [params]
-  mediaBaseUrl = "https://media.skovgard2026.org"
+  mediaBaseUrl = "https://media.this-is-us.org"
   contactEmail = "skovgard2026@gmail.com"
   turnstile_sitekey_donation = "0x4AAAAAACMCTeRx-deO9TQh"
   turnstile_sitekey_feedback = "0x4AAAAAACMC4Jop09SlNB0m"
