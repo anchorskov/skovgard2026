@@ -306,6 +306,41 @@ export default {
         return json(req, env, { ok: true, d1Bound: Boolean(env.DB) });
       }
 
+      // Public ICS proxy (same-origin, avoids browser CORS issues)
+      if (req.method === "GET" && path === "/api/events.ics") {
+        const icsUrl = String(env.GCAL_PUBLIC_ICS_URL || "").trim();
+        if (!icsUrl) {
+          return json(req, env, { error: "GCAL_PUBLIC_ICS_URL not set" }, 500);
+        }
+
+        const upstream = await fetch(icsUrl, {
+          cf: { cacheTtl: 300, cacheEverything: true },
+        });
+
+        if (!upstream.ok) {
+          const msg = await upstream.text().catch(() => "");
+          return new Response(msg || "Upstream calendar fetch failed", {
+            status: 502,
+            headers: {
+              "content-type": "text/plain; charset=utf-8",
+              "cache-control": "no-store",
+              ...corsHeaders(env, req),
+            },
+          });
+        }
+
+        const body = await upstream.text();
+
+        return new Response(body, {
+          status: 200,
+          headers: {
+            "content-type": "text/calendar; charset=utf-8",
+            "cache-control": "public, max-age=300, s-maxage=300",
+            ...corsHeaders(env, req),
+          },
+        });
+      }
+
       if (req.method === "GET" && path === "/api/config") {
         const key = String(env.STRIPE_PUBLISHABLE_KEY || "").trim();
         if (!key) {

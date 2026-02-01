@@ -1,0 +1,26 @@
+{{/* layouts/events/single.html */}}
+{{- define "main" }}
+
+<link rel="stylesheet" href="/vendor/fullcalendar/index.global.min.css" />
+<link rel="stylesheet" href="/css/events.css" />
+
+<section class="events">
+  <div class="events-wrap">
+    <header class="events-header">
+      <h1>{{ .Title }}</h1>
+      {{ with .Content }}<div class="events-intro">{{ . }}</div>{{ end }}
+    </header>
+
+    <div id="campaign-calendar" class="events-calendar"></div>
+    <p class="events-footnote">
+      Tip: Click an event to open a map search if a location is included.
+    </p>
+  </div>
+</section>
+
+<script defer src="/vendor/fullcalendar/index.global.min.js"></script>
+<script defer src="/vendor/icaljs/ical.min.js"></script>
+<script defer src="/vendor/fullcalendar-icalendar/index.global.min.js"></script>
+<script defer src="/js/events/calendar.js"></script>
+
+{{- end }}

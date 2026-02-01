@@ -59,22 +59,28 @@ url        = "/volunteer/"
 weight     = 4
 
 [[menu.main]]
+identifier = "events"
+name       = "Events"
+url        = "/events/"
+weight     = 5
+
+[[menu.main]]
 identifier = "pulse"
 name       = "Pulse"
 url        = "/pulse/"
-weight     = 5
+weight     = 6
 
 [[menu.main]]
 identifier = "podcast"
 name       = "Podcast"
 url        = "/podcast/"
-weight     = 6
+weight     = 7
 
 [[menu.main]]
 identifier = "finance"
 name       = "Finance"
 url        = "/finance/"
-weight     = 6
+weight     = 8
 
 [[menu.main]]
 name   = "Resources"
@@ -86,7 +92,7 @@ weight = 40         # pick a spot relative to your other items
 identifier = "donate"
 name       = "Donate"
 url        = "/donatev1/"
-weight     = 7
+weight     = 9
 
 # Footer menu for legal
 [[menu.footer]]
