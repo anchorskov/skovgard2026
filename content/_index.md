@@ -6,18 +6,21 @@ draft: false
 
 {{< rawhtml >}}
 <div style="font-weight:800;font-size:1.1rem;line-height:1.6;margin:1rem 0 2rem;">
-  <p><strong>“For in a democracy, every citizen, regardless of his interest in politics, ‘holds office’; every one of us is in a position of responsibility; and, in the final analysis, the kind of government we get depends upon how we fulfill those responsibilities. We, the people, are the boss…”</strong></p>
-  <p style="margin:.35rem 0 0;font-weight:700;">— John F. Kennedy, <em>Profiles in Courage</em></p>
+  <p><strong>"We, the people, are the boss, and we will get the kind of political leadership that we demand and deserve."</strong></p>
+  <p style="margin:.35rem 0 0;font-weight:700;font-size:0.95rem;">John F. Kennedy, <a href="https://www.jfklibrary.org/learn/about-jfk/publications/profiles-in-courage" style="font-style:italic;color:inherit;"><em>Profiles in Courage</em></a></p>
 </div>
 {{< /rawhtml >}}
 
 {{< rawhtml >}}
 <div class="home-cta">
-  <a href="/donate/" aria-label="Support the campaign financially" class="cta-btn cta-donate">
+  <a href="/donate/" aria-label="Support the campaign financially" class="cta-btn" style="background:#d0d4de;color:#111827;box-shadow:0 6px 18px rgba(52,64,84,.18);">
     🧡 <span>Support the campaign, financially</span>
   </a>
-  <a href="/volunteer/" aria-label="Support the campaign by volunteering" class="cta-btn cta-volunteer">
+  <a href="/volunteer/" aria-label="Support the campaign by volunteering" class="cta-btn" style="background:#d0d4de;color:#111827;box-shadow:0 5px 16px rgba(15,23,42,.1);">
     🤝 <span>Support the campaign, volunteer</span>
+  </a>
+  <a href="https://grassrootsmvt.org" aria-label="Take our surveys" class="cta-btn" style="background:#d0d4de;color:#111827;box-shadow:0 5px 16px rgba(15,23,42,.1);">
+    📋 <span>Surveys</span>
   </a>
 </div>
 {{< /rawhtml >}}
@@ -42,17 +45,34 @@ draft: false
 
 ---
 
-#### I’ve pledged to do three things in Washington:
-1. **Sponsor and fight for term limits** for the House and Senate  
+## Three Pillars
 
-<p><strong><a href="/pledge/" style="font-size: 1.5em;">👉 View my signed Term Limits Pledge</a></strong></p>
+**1. The Constitutional Guardrail**
+* Oath over office
+* Restore Article I
+* Tenth Amendment: powers not delegated remain with the states and the people
 
-2. **Bring Wyoming’s voice — your voice — to Congress** using secure, modern tech  
-3. **Represent you**
+**2. Modernizing Oversight (Civ-Tech)**
+* Plain English bill summaries
+* Transparency for digital systems used by government
+* Town hall tools to gather and verify our voices
+
+**3. Accountability and Term Limits**
+* Term limits amendment
+* Transparency for money in politics
+* Oversight and ethics enforcement
+
+<p><strong><a href="/pledge/" style="font-size: 1.25em;">👉 View my signed Term Limits Pledge</a></strong></p>
+
+{{< rawhtml >}}
+<p style="text-align:center;margin:1rem 0;">
+  <a href="/resources/Our%20Wyoming%20Covenant%20and%20My%20Three-Pillar%20Platform.pdf" style="font-weight:700;">📄 Read the full Wyoming Covenant (PDF)</a>
+</p>
+{{< /rawhtml >}}
 
 ---
 
-Let’s face it — Washington has stopped listening.
+Let's face it: Washington has stopped listening.
 
 I feel it too. You’re not alone. You’re not wrong.
 
