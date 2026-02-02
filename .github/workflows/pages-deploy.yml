@@ -1,0 +1,53 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build UnoCSS
+        run: npm run unocss
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: '0.146.6'
+          extended: false
+
+      - name: Build with Hugo (Production)
+        env:
+          HUGO_ENV: production
+        run: hugo --minify -b https://www.skovgard2026.org/
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: skovgard2026
+          directory: public
+          branch: main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,18 @@
+name = "skovgard2026"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+[build]
+command = "npm run build"
+cwd = "."
+watch_paths = ["content/**", "layouts/**", "static/**", "config/**", "archetypes/**", "data/**"]
+
+[env.production]
+name = "skovgard2026"
+routes = [
+  { pattern = "skovgard2026.org/*", zone_name = "skovgard2026.org" },
+  { pattern = "www.skovgard2026.org/*", zone_name = "skovgard2026.org" }
+]
+
+[observability]
+enabled = true

@@ -1,0 +1,34 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+# HTML pages - minimal caching to ensure fresh content
+/index.html
+  Cache-Control: public, max-age=60, must-revalidate
+
+/*/index.html
+  Cache-Control: public, max-age=60, must-revalidate
+
+# CSS and JS - can be cached longer since they're versioned
+/css/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# PDFs and other static assets - long cache
+/finance/*.pdf
+  Cache-Control: public, max-age=604800, immutable
+
+/finance/contributions/*.pdf
+  Cache-Control: public, max-age=604800, immutable
+
+/resources/*
+  Cache-Control: public, max-age=604800, immutable
+
+# Images - moderate cache
+/images/*
+  Cache-Control: public, max-age=604800
