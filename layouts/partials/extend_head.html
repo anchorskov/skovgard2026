@@ -2,6 +2,8 @@
 {{/* Head custom content area start */}}
 {{/*     Insert any custom code (web-analytics, resources, etc.) - it will appear in the <head></head> section of every page. */}}
 {{/*     Can be overridden by a partial with the same name in the global layouts. */}}
+{{/* UnoCSS utility classes - must be loaded before other custom styles */}}
+<link rel="stylesheet" href="/css/uno.css">
 {{- if eq .Type "donatev1" }}
 <!-- Content Security Policy for payment form; allows Stripe -->
 <meta http-equiv="Content-Security-Policy" content="
