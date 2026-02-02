@@ -47,20 +47,34 @@ draft: false
 
 ## Three Pillars
 
-**1. The Constitutional Guardrail**
-* Oath over office
-* Restore Article I
-* Tenth Amendment: powers not delegated remain with the states and the people
-
-**2. Modernizing Oversight (Civ-Tech)**
-* Plain English bill summaries
-* Transparency for digital systems used by government
-* Town hall tools to gather and verify our voices
-
-**3. Accountability and Term Limits**
-* Term limits amendment
-* Transparency for money in politics
-* Oversight and ethics enforcement
+{{< rawhtml >}}
+<ol class="home-pillars">
+  <li>
+    <div class="home-pillars-title">The Constitutional Guardrail</div>
+    <ul class="home-pillars-bullets">
+      <li>Oath over office</li>
+      <li>Restore Article I</li>
+      <li>Tenth Amendment: powers not delegated remain with the states and the people</li>
+    </ul>
+  </li>
+  <li>
+    <div class="home-pillars-title">Modernizing Oversight (Civ-Tech)</div>
+    <ul class="home-pillars-bullets">
+      <li>Plain English bill summaries</li>
+      <li>Transparency for digital systems used by government</li>
+      <li>Town hall tools to gather and verify our voices</li>
+    </ul>
+  </li>
+  <li>
+    <div class="home-pillars-title">Accountability and Term Limits</div>
+    <ul class="home-pillars-bullets">
+      <li>Term limits amendment</li>
+      <li>Transparency for money in politics</li>
+      <li>Oversight and ethics enforcement</li>
+    </ul>
+  </li>
+</ol>
+{{< /rawhtml >}}
 
 <p><strong><a href="/pledge/" style="font-size: 1.25em;">👉 View my signed Term Limits Pledge</a></strong></p>
 
@@ -78,20 +92,29 @@ I feel it too. You’re not alone. You’re not wrong.
 
 ---
 
-I’m **Jimmy Skovgard**, born and raised here.  
-* Great-grandfather Simon homesteaded near Basin in 1909.  
-* Greybull grade school → Basin High School → University of Wyoming.  
-* Twelve years of service in the Wyoming Army National Guard, honorably discharged as a captain.  
-* Zero political connections. Zero experience. Just a clean slate. My only agenda your voice.
+I'm **Jimmy Skovgard**, born and raised here.
 
-I’m running because Wyoming deserves:
+{{< rawhtml >}}
+<ul class="home-bullets">
+  <li>Great-grandfather Simon homesteaded near Basin in 1909</li>
+  <li>Greybull grade school, Basin High School, University of Wyoming</li>
+  <li>Twelve years of service in the Wyoming Army National Guard, honorably discharged as a captain</li>
+  <li>Zero political connections. Zero experience. Just a clean slate. My only agenda: your voice</li>
+</ul>
+{{< /rawhtml >}}
 
-* Your voice  
-* Accountability over showmanship.  
-* Limited government over endless growth.  
-* Service over self-promotion.  
+I'm running because Wyoming deserves:
 
-I’m not here to play a part. I’m here to **do the job** — listen, represent, restore trust.
+{{< rawhtml >}}
+<ul class="home-bullets">
+  <li>Your voice</li>
+  <li>Accountability over showmanship</li>
+  <li>Limited government over endless growth</li>
+  <li>Service over self-promotion</li>
+</ul>
+{{< /rawhtml >}}
+
+I'm not here to play a part. I'm here to **do the job**: listen, represent, restore trust.
 
 **This is your seat. This is your future.**  
 Let’s reclaim it together.

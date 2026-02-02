@@ -51,9 +51,13 @@ If we want fiscal responsibility, we have to change the incentives. Office shoul
 
 I have made a simple pledge:
 
-- I will treat this work as a shift, not a career. I support term limits so that service in Congress is measured in years of work, not decades of entitlement.
-- I will support a constitutional framework that pairs term limits with long term fiscal rules, including plain language public reports that show what came in, what went out, and how that affects our future.
-- I will live under the standard I am asking us to adopt.
+{{< rawhtml >}}
+<ul class="home-bullets">
+  <li>I will treat this work as a shift, not a career. I support term limits so that service in Congress is measured in years of work, not decades of entitlement.</li>
+  <li>I will support a constitutional framework that pairs term limits with long term fiscal rules, including plain language public reports that show what came in, what went out, and how that affects our future.</li>
+  <li>I will live under the standard I am asking us to adopt.</li>
+</ul>
+{{< /rawhtml >}}
 
 As a candidate, I will publish a simple “citizen balance sheet” for this campaign:  
 what we raise, what we spend, and what work gets done with that support.
@@ -72,9 +76,13 @@ The boss in this story is not a single hero. The boss is us.
 
 Our job is to:
 
-- Set the rules: term limits, honest fiscal guardrails, and real transparency.  
-- Elect people who accept those rules in advance.  
-- Reward courage when a representative tells the truth about what we can afford and what we cannot.
+{{< rawhtml >}}
+<ul class="home-bullets">
+  <li>Set the rules: term limits, honest fiscal guardrails, and real transparency.</li>
+  <li>Elect people who accept those rules in advance.</li>
+  <li>Reward courage when a representative tells the truth about what we can afford and what we cannot.</li>
+</ul>
+{{< /rawhtml >}}
 
 My job, if trusted with this seat, is to show the work. To close the books each year in public. To connect the dots between today’s votes, yesterday’s promises, and tomorrow’s choices.
 
