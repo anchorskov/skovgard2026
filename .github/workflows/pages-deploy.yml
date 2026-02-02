@@ -47,8 +47,11 @@ jobs:
         run: hugo --minify -b https://www.skovgard2026.org/
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy public --project-name=skovgard2026 --branch=${{ github.head_ref || github.ref_name }}
+          projectName: skovgard2026
+          directory: public
+          branch: ${{ github.head_ref || github.ref_name }}
+          wranglerVersion: '3'
