@@ -41,7 +41,7 @@ draft: false
 </p>
 {{< /rawhtml >}}
 
-**Rooted in Wyoming. Powered by Us. Zero Experience.** 
+**Rooted in Wyoming. Powered by Us. Zero Experience. Answers only to Wyoming.** 
 
 ---
 
