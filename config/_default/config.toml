@@ -10,7 +10,7 @@ canonifyURLs = false
 
 [params]
   mediaBaseUrl = "https://media.this-is-us.org"
-  contactEmail = "skovgard2026@gmail.com"
+  contactEmail = "jimmy@grassrootsmvt.org"
   turnstile_sitekey_donation = "0x4AAAAAACMCTeRx-deO9TQh"
   turnstile_sitekey_feedback = "0x4AAAAAACMC4Jop09SlNB0m"
   stripe_public_key          = "pk_live_51Son0YIfsL5VU7kUc0Ux82IBA80IuVchE5qJz4UIiJEOLTe06wKPuFRDiMZ4wvYgPinz0AGmrpnZ5EUuVm3sQAkK00Fohb6wLr"

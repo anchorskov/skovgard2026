@@ -8,7 +8,7 @@ We’re integrating secure, modern technology into our campaign—and building a
 
 Not a slogan. A commitment.
 
-A commitment that every Wyomingite can contribute to policy through a secure, open-source forum. That aggregates our voices, when we agree we will be heard.
+A commitment that every Wyomingite can contribute to policy through a secure, open-source forum that aggregates our voices so, when we agree, we are heard.
 
 This is about you. Everyone.
 
@@ -37,7 +37,7 @@ Because the best ideas come from honest conversation and shared solutions.
 - Future generations watching how we act  
 
 This is our movement.  
-**This is Us.**
+**This Is Us.**
 
 ## Our Principles
 
@@ -58,10 +58,10 @@ We reject:
 
 Help shape Civ-Tech:
 
-**Test** the platform at [this-is-us.org](https://this-is-us.org) — Wyoming’s 501(c)(3) nonprofit bringing Your voice to DC
-- **Share** your feedback at `/feedback`  
+**Test** the platform at [this-is-us.org](https://this-is-us.org) — Wyoming’s 501(c)(3) nonprofit bringing your voice to DC
+- **Share** your feedback at [https://www.skovgard2026.org/feedback/](https://www.skovgard2026.org/feedback/)  
 - **Spread** the word—invite your neighbors  
 
-In Wyoming, when we need it we go to the shop and build it.
+In Wyoming, when we need it, we go to the shop and build it.
 
-*Skovgard 2026. Empowering our voices real representation.*
+*Skovgard 2026. Empowering our voices. Real representation.*

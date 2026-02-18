@@ -20,7 +20,7 @@ You may opt out of receiving SMS/text messages at any time by replying **STOP**.
 Content on skovgard2026.org is provided for informational purposes related to the Skovgard for Senate campaign. You may not use the site for unauthorized commercial purposes.  
 
 ### 4. Donations
-Contributions to Skovgard for Senate are subject to Federal Election Commission rules. Contributions are not tax deductible.  
+Contributions to Skovgard for Senate are subject to Federal Election Commission rules. Contributions are not tax-deductible.  
 
 ### 5. Privacy
 Please review our Privacy Policy for information about how we handle your data.  

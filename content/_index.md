@@ -14,10 +14,10 @@ draft: false
 {{< rawhtml >}}
 <div class="home-cta">
   <a href="/donate/" aria-label="Support the campaign financially" class="cta-btn" style="background:#d0d4de;color:#111827;box-shadow:0 6px 18px rgba(52,64,84,.18);">
-    🧡 <span>Support the campaign, financially</span>
+    🧡 <span>Support the campaign financially</span>
   </a>
   <a href="/volunteer/" aria-label="Support the campaign by volunteering" class="cta-btn" style="background:#d0d4de;color:#111827;box-shadow:0 5px 16px rgba(15,23,42,.1);">
-    🤝 <span>Support the campaign, volunteer</span>
+    🤝 <span>Support the campaign by volunteering</span>
   </a>
   <a href="https://grassrootsmvt.org" aria-label="Take our surveys" class="cta-btn" style="background:#d0d4de;color:#111827;box-shadow:0 5px 16px rgba(15,23,42,.1);">
     📋 <span>Surveys</span>
@@ -41,7 +41,7 @@ draft: false
 </p>
 {{< /rawhtml >}}
 
-**Rooted in Wyoming. Powered by Us. Zero Experience. Answers only to Wyoming.** 
+**Rooted in Wyoming. Powered by Us. Zero experience. Answers only to Wyoming.** 
 
 ---
 
@@ -52,25 +52,25 @@ draft: false
   <li>
     <div class="home-pillars-title">The Constitutional Guardrail</div>
     <ul class="home-pillars-bullets">
-      <li>Oath over office</li>
-      <li>Restore Article I</li>
-      <li>Tenth Amendment: powers not delegated remain with the states and the people</li>
+   <li>Oath over office</li>
+   <li>Restore Article I</li>
+   <li>Tenth Amendment: powers not delegated remain with the states and the people</li>
     </ul>
   </li>
   <li>
     <div class="home-pillars-title">Modernizing Oversight (Civ-Tech)</div>
     <ul class="home-pillars-bullets">
-      <li>Plain English bill summaries</li>
-      <li>Transparency for digital systems used by government</li>
-      <li>Town hall tools to gather and verify our voices</li>
+   <li>Plain English bill summaries</li>
+   <li>Transparency for digital systems used by government</li>
+   <li>Town hall tools to gather and verify our voices</li>
     </ul>
   </li>
   <li>
     <div class="home-pillars-title">Accountability and Term Limits</div>
     <ul class="home-pillars-bullets">
-      <li>Term limits amendment</li>
-      <li>Transparency for money in politics</li>
-      <li>Oversight and ethics enforcement</li>
+   <li>Term limits amendment</li>
+   <li>Transparency for money in politics</li>
+   <li>Oversight and ethics enforcement</li>
     </ul>
   </li>
 </ol>
@@ -130,6 +130,4 @@ Let’s reclaim it together.
 </div>
 {{< /rawhtml >}}
 
-*This Is Us.*
 </div>
-<- Episode 3: Deploy: 2026-02-02T13:32:55-07:00 -->

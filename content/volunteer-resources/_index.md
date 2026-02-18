@@ -8,7 +8,7 @@ draft: false
 
 We are a grassroots campaign. We build together, we share the load, we win with discipline.
 
-## Quick start
+## Quick Start
 1. Join the team → **[Volunteer sign-up](/volunteer/)**  
 2. Start with Pulse → **[Join Pulse](/pulse/)**  
 3. Download flyers → **See Downloads below**
@@ -38,7 +38,7 @@ This affidavit is your declaration that Wyoming’s closed primary law violates 
 **How to use it:**
 
 1. [Download the fillable PDF Affidavit](/resources/Wyoming-Affidavit-Template-Fillable-2026-v3.pdf)  
-2. Complete the form with your information print it.  
+2. Complete the form with your information, then print it.  
 3. Have it notarized.  
 4. Return it via mail to:  
    Skovgard for Senate  
@@ -69,20 +69,20 @@ Together, we stand for fair elections and one meaningful vote for every Wyoming 
 
 ## Meetings
 - Weekly volunteer Zoom, Saturdays 10 am Mountain  
-- To join the meeting send an email to skovgard2026@gmail.com with subject: “Join Weekly Volunteer Meeting”.
+- To join the meeting, send an email to skovgard2026@gmail.com with the subject: “Join Weekly Volunteer Meeting”.
 - After-action reviews, county by county  
 - Local meetups posted on the home page when scheduled
 
 ---
 
-## Texting circles
+## Texting Circles
 Start small. Keep it personal. No spam.
 
 - Join: **[Sign up here](/pulse/signup/)**  
 
 ---
 
-## Code of conduct
+## Code of Conduct
 - Be respectful. No insults. No dehumanizing language.  
 - Share facts. If unsure, pause and verify.  
 - Represent the campaign with integrity.  

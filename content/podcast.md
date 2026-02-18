@@ -6,7 +6,17 @@ description: "Skovgard 2026 conversations and podcast episodes."
 
 <!-- path: content/podcast.md -->
 
-Welcome to the Skovgard 2026 podcast. Listen in as we talk with Wyoming leaders about restoration, renewal, and building civic infrastructure together.
+Welcome to the Skovgard 2026 podcast. Listen in as we talk with Wyoming leaders, teachers, newsmakers, and citizens about restoration, renewal, and building civic infrastructure together.
+
+## Jake Interviews Jimmy on Cowboy State Daily Interview, February 17, 2026
+
+[Watch on YouTube (starts at 1:27:50)](https://youtu.be/yrcZ6PyU1mE?t=5270)
+
+## Eric Henderson Talk Shop, February 6, 2026
+
+[Watch on Facebook (Video)](https://www.facebook.com/share/p/1EyN2KJZMw/)
+
+[Watch on Facebook (Video)](https://www.facebook.com/share/v/187BgDeHSQ/)
 
 ## Jack Daniels, January 25, 2026
 

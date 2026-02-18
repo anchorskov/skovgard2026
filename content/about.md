@@ -10,17 +10,17 @@ draft: false
 ## About Jimmy Skovgard  
 ### For Wyoming. For Us.  
 
-I am Jimmy Skovgard, a fifth generation Immigrant and forth generation Wyomingite, husband, father, veteran, and now a candidate for the U.S. Senate.
+I am Jimmy Skovgard, a fifth-generation immigrant and fourth-generation Wyomingite, husband, father, veteran, and now a candidate for the U.S. Senate.
 
-I grew up in the Big Horn Basin, grade school in Greybull, high school in Basin, and college at the University of Wyoming. My great grandfather, Simon Skovgard, homesteaded near Basin in 1909. Like many of us, I was raised to work hard, speak the truth, and take responsibility for my actions.
+I grew up in the Big Horn Basin: grade school in Greybull, high school in Basin, and college at the University of Wyoming. My great-grandfather, Simon Skovgard, homesteaded near Basin in 1909. Like many of us, I was raised to work hard, speak the truth, and take responsibility for my actions.
 
 I served 12 years in the Wyoming Army National Guard and was honorably discharged as a captain. I have worked in the private sector, run my own business, and spent my life grounded in Wyoming values.
 
 I never planned to run for office.
 
-I got off the couch in 2024 because the direction of division, distraction, and fear mongering is wrong. Fear can sharpen the mind in a crisis, but right now it is being used to keep us angry and apart. Nothing is being built.
+I got off the couch in 2024 because the path of division, distraction, and fearmongering is wrong. Fear can sharpen the mind in a crisis, but right now it is being used to keep us angry and apart. Nothing is being built.
 
-I have seen this in my own family. A brother who forwards link after link filled with half truths. A sister who lives in the Big Horn Basin and worries that “illegals” will invade her home. Anger at an immigrant who receives health care, as if one person’s treatment means the system must blame a whole group for our problems.  
+I have seen this in my own family. A brother who forwards link after link filled with half-truths. A sister who lives in the Big Horn Basin and worries that “illegals” will invade her home. Anger at an immigrant who receives health care, as if one person’s treatment means the system must blame a whole group for our problems.  
 
 These are not natural divisions. This is deliberate manipulation for control, and it cuts deep.
 
@@ -54,7 +54,7 @@ I have made a simple pledge:
 {{< rawhtml >}}
 <ul class="home-bullets">
   <li>I will treat this work as a shift, not a career. I support term limits so that service in Congress is measured in years of work, not decades of entitlement.</li>
-  <li>I will support a constitutional framework that pairs term limits with long term fiscal rules, including plain language public reports that show what came in, what went out, and how that affects our future.</li>
+  <li>I will support a constitutional framework that pairs term limits with long-term fiscal rules, including plain-language public reports that show what came in, what went out, and how that affects our future.</li>
   <li>I will live under the standard I am asking us to adopt.</li>
 </ul>
 {{< /rawhtml >}}
@@ -70,7 +70,7 @@ As a senator, I will fight for the same kind of clarity in Washington, and I wil
 
 There is a hard truth we have to face together.  
 
-For too long, officeholders have treated our budget like someone else’s credit card. That has our name on it. That has our children’s name on it.
+For too long, officeholders have treated our budget like someone else’s credit card. It has our name on it. It has our children’s name on it.
 
 The boss in this story is not a single hero. The boss is us.
 
@@ -129,4 +129,4 @@ To dig deeper into my reflections and stories, visit my Substack:
 [This Is Us, Grassroots Rising on Substack](https://jimskovgard.substack.com/)
 
 To listen in, join the conversation on the podcast:  
-[Listen to the This Is Us Podcast](https://jimskovgard.substack.com/)
+[Listen to the This Is Us podcast](https://www.skovgard2026.org/podcast/)

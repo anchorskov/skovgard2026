@@ -10,6 +10,6 @@ We are building a community. This page is for reflections and stories from the t
 👉 For tools, downloads, and training, visit **[Volunteer Resources](/volunteer-resources/)**.
 
 ## Reflection & Stories
-If you’ve handed out flyers, hosted a kitchen-table conversation, or simply shared your thoughts with a neighbor, we want to hear it.
+If you’ve handed out flyers, hosted a kitchen-table conversation, or simply shared your thoughts with a neighbor, we want to hear from you.
 
 👉 [Share Your Story](/feedback/)
