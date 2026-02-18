@@ -10,7 +10,7 @@ draft: false
 ## About Jimmy Skovgard  
 ### For Wyoming. For Us.  
 
-I am Jimmy Skovgard, a fifth generation Wyomingite, husband, father, veteran, and now a candidate for the U.S. Senate.
+I am Jimmy Skovgard, a fifth generation Immigrant and forth generation Wyomingite, husband, father, veteran, and now a candidate for the U.S. Senate.
 
 I grew up in the Big Horn Basin, grade school in Greybull, high school in Basin, and college at the University of Wyoming. My great grandfather, Simon Skovgard, homesteaded near Basin in 1909. Like many of us, I was raised to work hard, speak the truth, and take responsibility for my actions.
 
@@ -126,7 +126,7 @@ Alongside this campaign, I have written hundreds of essays outlining my journey 
 We are all Americans, and every day we face the same choice: to build or to destroy. The choice is ours.
 
 To dig deeper into my reflections and stories, visit my Substack:  
-[This Is Us, Grassroots Rising on Substack](https://your-substack-link)
+[This Is Us, Grassroots Rising on Substack](https://jimskovgard.substack.com/)
 
 To listen in, join the conversation on the podcast:  
-[Listen to the This Is Us Podcast](https://jimskovgard.substack.com/podcast)
+[Listen to the This Is Us Podcast](https://jimskovgard.substack.com/)
