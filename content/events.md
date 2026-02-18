@@ -12,6 +12,8 @@ This calendar shows our confirmed public schedule.
 
 ## Request a New Event
 Use this link to email an event request:
-<a class="request-event" href="mailto:skovgard2026@gmail.com?subject=Event%20Request&body=Proposed%20date%20and%20time%3A%0D%0ACity%3A%0D%0ALocation%20idea%20(or%20TBD)%3A%0D%0AEvent%20type%20(coffee%2C%20public%20meeting%2C%20canvass%2C%20phone%20bank%2C%20sign%20wave)%3A%0D%0AExpected%20attendance%3A%0D%0AContact%20name%20and%20phone%3A%0D%0ANotes%3A%0D%0A">Request an Event</a>
+<a class="request-event" href="https://mail.google.com/mail/?view=cm&fs=1&to=jimmy@grassrootsmvt.org&su=Requested%20Event&body=Name%3A%0APhone%3A%0APreferred%20date%2Ftime%3A%0ACity%3A%0AEvent%20details%3A" target="_blank" rel="noopener noreferrer">Request an Event</a>
+
+If you prefer your local email app, use: jimmy@grassrootsmvt.org
 
 We confirm details, then publish the event to the calendar.
