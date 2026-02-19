@@ -1,0 +1,47 @@
+---
+title: "Email Updates"
+slug: "updates"
+draft: false
+description: "Join Jimmy Skovgard campaign email updates."
+summary: "Join campaign email updates."
+---
+
+<p>Want campaign updates by email? Join the list below.</p>
+
+<noscript>
+  <p class="notice">
+    JavaScript is required to submit this form securely. Please email
+    <a href="mailto:jimmy@grassrootsmvt.org?subject=Email%20Updates%20Sign-Up">jimmy@grassrootsmvt.org</a>
+    with the subject “Email Updates Sign-Up.”
+  </p>
+</noscript>
+
+<form id="newsletter-form" class="optin-form" method="post" novalidate>
+  <div class="field">
+    <label for="email">Email address</label>
+    <input id="email" name="email" type="email" inputmode="email" placeholder="you@example.com" required />
+  </div>
+
+  <div class="checkbox-row">
+    <input type="checkbox" id="consent_email" name="consent_email" required />
+    <label for="consent_email">Yes, email me campaign updates and newsletter announcements.</label>
+  </div>
+
+  <div class="hp-field" aria-hidden="true">
+    <label for="website">Website</label>
+    <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+  </div>
+
+  <input type="hidden" id="ts_start" name="ts_start" value="" />
+
+  <div id="ts-slot" class="field" aria-live="polite"></div>
+
+  <button type="submit" id="newsletter-submit">Join Email Updates</button>
+</form>
+
+<p class="help">
+  Prefer direct contact? Email <a href="mailto:jimmy@grassrootsmvt.org">jimmy@grassrootsmvt.org</a>.
+</p>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script type="module" src="/js/newsletter-signup.js" defer></script>

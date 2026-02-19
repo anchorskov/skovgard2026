@@ -775,6 +775,108 @@ export default {
         return json(req, env, { ok: true });
       }
 
+      // ------------- NEWSLETTER EMAIL SIGNUP -------------
+      if (req.method === "POST" && path === "/api/newsletter/subscribe") {
+        if (!env.DB) {
+          return json(req, env, { error: "Database not configured" }, 500);
+        }
+
+        const b = await req.json().catch(() => ({}));
+
+        const emailRaw = String(b.email || "").trim();
+        const email = emailRaw.toLowerCase();
+        const consentEmail = b.consent_email === true || b.consent_email === 1;
+        const consentVer = String(b.consent_version || "email-v1-2026-02-19");
+
+        // Token: prefer header (official), fallback to body for older clients
+        const tsToken = (
+          req.headers.get("cf-turnstile-response") ||
+          String(b.turnstile_token || "")
+        ).trim();
+
+        // Server-side time trap
+        const now = Date.now();
+        const elapsed = getElapsedMsFromBody(b, now);
+        const MIN_WAIT = 1200;
+        if (elapsed > 0 && elapsed < MIN_WAIT) {
+          return json(
+            req,
+            env,
+            { error: "Please wait a moment and try again." },
+            400
+          );
+        }
+
+        if (!email || !/.+@.+\..+/.test(email)) {
+          return json(req, env, { error: "Valid email is required" }, 400);
+        }
+        if (!consentEmail) {
+          return json(req, env, { error: "Email consent required" }, 400);
+        }
+
+        // Bot protections
+        const ip = req.headers.get("cf-connecting-ip") || "";
+        const ipHash = await sha256Hex(ip);
+
+        const origin = req.headers.get("origin") || "";
+        const hostHdr = req.headers.get("host") || "";
+        const isLocalHost =
+          origin.startsWith("http://localhost:") ||
+          origin.startsWith("http://127.0.0.1:") ||
+          hostHdr.startsWith("localhost") ||
+          hostHdr.startsWith("127.0.0.1");
+
+        const sv = isLocalHost
+          ? { success: true, hostname: "localhost", action: "newsletter" }
+          : await verifyTurnstile(env.TURNSTILE_SECRET, tsToken, ip);
+
+        if (!isLocalHost && sv.hostname && !tsHostAllowed(env, sv.hostname)) {
+          return json(req, env, { error: "Invalid origin" }, 400);
+        }
+        if (!isLocalHost && sv.action && sv.action !== "newsletter") {
+          return json(req, env, { error: "Verification mismatch" }, 400);
+        }
+        if (!sv.success) {
+          const code = String((sv["error-codes"] || [])[0] || "");
+          const msg = code.includes("timeout-or-duplicate")
+            ? "Verification timed out. Please try again."
+            : code.includes("invalid-input-response")
+            ? "Verification failed. Please refresh and try again."
+            : "Verification failed";
+          return json(req, env, { error: msg }, 400);
+        }
+
+        const okRl = await rateLimitOk(env, ipHash, 15, 5);
+        if (!okRl) {
+          return json(
+            req,
+            env,
+            { error: "Too many requests, please try later" },
+            429
+          );
+        }
+
+        const ua = req.headers.get("user-agent") || "";
+        await env.DB.prepare(
+          `INSERT INTO newsletter_subscribers
+             (email, email_norm, consent_email, consent_version, source, active, user_agent, ip_hash, updated_at)
+           VALUES (?1, ?2, ?3, ?4, 'skovgard2026:updates', 1, ?5, ?6, datetime('now'))
+           ON CONFLICT(email_norm) DO UPDATE SET
+             email=excluded.email,
+             consent_email=excluded.consent_email,
+             consent_version=excluded.consent_version,
+             source=excluded.source,
+             active=1,
+             user_agent=excluded.user_agent,
+             ip_hash=excluded.ip_hash,
+             updated_at=datetime('now')`
+        )
+          .bind(emailRaw, email, consentEmail ? 1 : 0, consentVer, ua, ipHash)
+          .run();
+
+        return json(req, env, { ok: true });
+      }
+
       // Fallback (ensure CORS on 404)
       return new Response("Not found", {
         status: 404,
