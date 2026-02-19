@@ -1,0 +1,29 @@
+---
+title: "Admin Exports"
+slug: "admin/exports"
+draft: false
+description: "Download newsletter and pulse opt-in exports."
+summary: "Admin data exports."
+---
+
+<p>Download CSV exports for newsletter subscribers and pulse opt-ins.</p>
+
+<p class="notice">
+  This page requires an admin export key. Enter it below to authorize downloads.
+</p>
+
+<form id="admin-export-form" class="optin-form" novalidate>
+  <div class="field">
+    <label for="admin_key">Admin export key</label>
+    <input id="admin_key" name="admin_key" type="password" autocomplete="off" required />
+  </div>
+
+  <div class="button-row">
+    <button type="button" id="download-newsletter">Download Newsletter CSV</button>
+    <button type="button" id="download-pulse">Download Pulse CSV</button>
+  </div>
+
+  <p id="admin-export-status" class="help" role="status" aria-live="polite"></p>
+</form>
+
+<script type="module" src="/js/admin-exports.js" defer></script>

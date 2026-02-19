@@ -26,7 +26,7 @@ function corsHeaders(env, req) {
   const originHeader = allowOrigin(env, req);
   const base = {
     "access-control-allow-methods": "GET,POST,OPTIONS",
-    "access-control-allow-headers": "content-type, cf-turnstile-response",
+    "access-control-allow-headers": "content-type, cf-turnstile-response, authorization",
     "access-control-max-age": "86400",
     "vary": "Origin",
   };
@@ -219,6 +219,48 @@ function parseStripeSignature(header) {
     if (key === "v1") signatures.push(value);
   }
   return { timestamp, signatures };
+}
+
+function getAdminBearerToken(req) {
+  const header = String(req.headers.get("authorization") || "");
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
+function isAdminAuthorized(req, env, url) {
+  const configured = String(env.ADMIN_EXPORT_KEY || "").trim();
+  if (!configured) return false;
+  const bearer = getAdminBearerToken(req);
+  const query = String(url.searchParams.get("key") || "").trim();
+  const provided = bearer || query;
+  return timingSafeEqual(provided, configured);
+}
+
+function csvField(value) {
+  if (value === null || value === undefined) return "";
+  const s = String(value);
+  if (!/[",\n\r]/.test(s)) return s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+function rowsToCsv(columns, rows) {
+  const header = columns.join(",");
+  const lines = rows.map((row) =>
+    columns.map((col) => csvField(row[col])).join(",")
+  );
+  return [header, ...lines].join("\n");
+}
+
+function csvResponse(req, env, filename, csv) {
+  return new Response(csv, {
+    status: 200,
+    headers: {
+      "content-type": "text/csv; charset=utf-8",
+      "content-disposition": `attachment; filename="${filename}"`,
+      "cache-control": "no-store",
+      ...corsHeaders(env, req),
+    },
+  });
 }
 
 async function verifyStripeSignature(secret, payload, header) {
@@ -875,6 +917,82 @@ export default {
           .run();
 
         return json(req, env, { ok: true });
+      }
+
+      // ------------- ADMIN CSV EXPORTS -------------
+      if (req.method === "GET" && path === "/api/admin/exports/newsletter.csv") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        if (!String(env.ADMIN_EXPORT_KEY || "").trim()) {
+          return json(req, env, { error: "Admin export key not configured" }, 503);
+        }
+        if (!isAdminAuthorized(req, env, url)) {
+          return json(req, env, { error: "Unauthorized" }, 401);
+        }
+
+        const columns = [
+          "id",
+          "email",
+          "email_norm",
+          "consent_email",
+          "consent_version",
+          "source",
+          "active",
+          "confirmed_at",
+          "created_at",
+          "updated_at",
+        ];
+
+        const { results = [] } =
+          (await env.DB.prepare(
+            `SELECT id, email, email_norm, consent_email, consent_version,
+                    source, active, confirmed_at, created_at, updated_at
+               FROM newsletter_subscribers
+               ORDER BY created_at DESC`
+          ).all()) || {};
+
+        const date = new Date().toISOString().slice(0, 10);
+        const csv = rowsToCsv(columns, results);
+        return csvResponse(req, env, `newsletter-subscribers-${date}.csv`, csv);
+      }
+
+      if (req.method === "GET" && path === "/api/admin/exports/pulse.csv") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        if (!String(env.ADMIN_EXPORT_KEY || "").trim()) {
+          return json(req, env, { error: "Admin export key not configured" }, 503);
+        }
+        if (!isAdminAuthorized(req, env, url)) {
+          return json(req, env, { error: "Unauthorized" }, 401);
+        }
+
+        const columns = [
+          "id",
+          "first_name",
+          "last_name",
+          "name",
+          "phone",
+          "email",
+          "consent",
+          "consent_email",
+          "wy_voter",
+          "county",
+          "zip",
+          "consent_version",
+          "source",
+          "created_at",
+        ];
+
+        const { results = [] } =
+          (await env.DB.prepare(
+            `SELECT id, first_name, last_name, name, phone, email, consent,
+                    consent_email, wy_voter, county, zip, consent_version,
+                    source, created_at
+               FROM sms_optins
+               ORDER BY created_at DESC`
+          ).all()) || {};
+
+        const date = new Date().toISOString().slice(0, 10);
+        const csv = rowsToCsv(columns, results);
+        return csvResponse(req, env, `pulse-optins-${date}.csv`, csv);
       }
 
       // Fallback (ensure CORS on 404)
