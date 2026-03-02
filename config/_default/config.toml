@@ -83,6 +83,12 @@ url        = "/finance/"
 weight     = 8
 
 [[menu.main]]
+identifier = "support"
+name       = "Support"
+url        = "/support/"
+weight     = 9
+
+[[menu.main]]
 name   = "Resources"
 url    = "/volunteer-resources/"
 weight = 40         # pick a spot relative to your other items
@@ -92,7 +98,7 @@ weight = 40         # pick a spot relative to your other items
 identifier = "donate"
 name       = "Donate"
 url        = "/donatev1/"
-weight     = 9
+weight     = 10
 
 # Footer menu for legal
 [[menu.footer]]
