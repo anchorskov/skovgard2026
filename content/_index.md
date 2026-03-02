@@ -130,4 +130,29 @@ Let’s reclaim it together.
 </div>
 {{< /rawhtml >}}
 
+---
+
+## Call to Action
+{{< rawhtml >}}
+<section style="margin:1.5rem 0 0;padding:1.4rem 1.25rem;border:1px solid rgba(31,41,51,.18);border-radius:1rem;background:linear-gradient(180deg,#f8fafc 0%,#eef2f7 100%);">
+  <p style="margin:0 0 1rem;font-size:1.05rem;line-height:1.7;font-weight:600;">
+    Thank you for taking a step on the path toward preserving self-government for our children and our children’s children.
+  </p>
+  <p style="margin:0 0 1.15rem;font-size:1rem;line-height:1.7;">
+    Citizen by citizen, we rebuild the habits of a free people.
+  </p>
+  <div style="height:1px;background:rgba(31,41,51,.16);margin:1rem 0 1rem;"></div>
+  <p style="margin:0 0 1rem;font-weight:800;letter-spacing:.01em;">
+    Take the citizen's oath:
+  </p>
+  <blockquote style="margin:0;padding:1rem 1.1rem;border-left:4px solid #1f2933;background:rgba(255,255,255,.72);font-style:normal;line-height:1.75;">
+    “I, [state your name], do hereby solemnly swear that I will support and defend the Constitution of the United States against all enemies, foreign and domestic; that I will bear true faith and allegiance to the same; and that I take this obligation freely, as a citizen committed to the duties of self-government.”
+  </blockquote>
+  <div style="height:1px;background:rgba(31,41,51,.16);margin:1rem 0 1rem;"></div>
+  <p style="margin:0;font-weight:700;line-height:1.7;">
+    Build what you can. Teach what you learn. Help the next person step forward.
+  </p>
+</section>
+{{< /rawhtml >}}
+
 </div>
