@@ -12,6 +12,8 @@ This is the more detailed, step-by-step version of the process introduced on the
 
 Jimmy Skovgard and Kevin Christensen built their campaign pages by making practical choices, keeping ownership with the candidate, and documenting the work so it could be repeated. This page captures the actual path in a more complete form.
 
+We see this work as part of the basic duty of self-government: citizens building the tools they need to speak, organize, and lead in public.
+
 We offer this as one real example, not as the only correct model. As candidates, volunteers, and organizers, we should treat this as a working path we can adapt, improve, and reshape to fit the needs of each campaign.
 
 ## What This Guide Is For
@@ -54,7 +56,7 @@ As candidates, we are building a campaign website that:
 
 ## What We Want Long-Term
 
-Our goal is independence. We may begin with support, but the end state should be candidate ownership.
+Our goal is independence. We may begin with support, but the end state should be candidate ownership and durable local self-government.
 
 That means:
 
@@ -377,12 +379,12 @@ That is what makes the work sustainable.
 
 ## Call to Action
 
-Thank you for taking a step on the path toward ensuring that we pass our agency to our children and our children’s children.
+Thank you for taking a step on the path toward preserving self-government for our children and our children’s children.
 
-Join the fight. Citizen by citizen, we rebuild the habits of self-government.
+Citizen by citizen, we rebuild the habits of a free people.
 
 Take the citizen’s oath:
 
-“I, [state your name], do hereby solemnly swear that I will support and defend the Constitution of the United States against all enemies, foreign and domestic; that I will bear true faith and allegiance to the same; and that I take this obligation freely, with full responsibility to act as a citizen in defense of self-government.”
+“I, [state your name], do hereby solemnly swear that I will support and defend the Constitution of the United States against all enemies, foreign and domestic; that I will bear true faith and allegiance to the same; and that I take this obligation freely, as a citizen committed to the duties of self-government.”
 
 Build what you can. Teach what you learn. Help the next person step forward.
