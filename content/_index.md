@@ -45,16 +45,18 @@ draft: false
 
 ---
 
-## Three Pillars
+## Four Pillars
 
 {{< rawhtml >}}
 <ol class="home-pillars">
   <li>
-    <div class="home-pillars-title">The Constitutional Guardrail</div>
+    <div class="home-pillars-title">Stronger Together</div>
     <ul class="home-pillars-bullets">
-   <li>Oath over office</li>
-   <li>Restore Article I</li>
-   <li>Tenth Amendment: powers not delegated remain with the states and the people</li>
+   <li>Cooperation is not weakness. It is how free people solve hard problems.</li>
+   <li>The founding generation worked together to create the Constitution.</li>
+   <li>The Union preserved the nation during the Civil War.</li>
+   <li>The country mobilized together during World War II, and Americans still come together after national disasters.</li>
+   <li>When we stand together, we succeed. When we divide, we weaken ourselves.</li>
     </ul>
   </li>
   <li>
@@ -73,6 +75,14 @@ draft: false
    <li>Oversight and ethics enforcement</li>
     </ul>
   </li>
+  <li>
+    <div class="home-pillars-title">The Constitutional Guardrail</div>
+    <ul class="home-pillars-bullets">
+   <li>Oath over office</li>
+   <li>Restore Article I</li>
+   <li>Tenth Amendment: powers not delegated remain with the states and the people</li>
+    </ul>
+  </li>
 </ol>
 {{< /rawhtml >}}
 
@@ -80,7 +90,7 @@ draft: false
 
 {{< rawhtml >}}
 <p style="text-align:center;margin:1rem 0;">
-  <a href="/resources/Our%20Wyoming%20Covenant%20and%20My%20Three-Pillar%20Platform.pdf" style="font-weight:700;">📄 Read the full Wyoming Covenant (PDF)</a>
+  <a href="/resources/Our%20Wyoming%20Covenant.pdf" style="font-weight:700;">📄 Read the full Wyoming Covenant (PDF)</a>
 </p>
 {{< /rawhtml >}}
 
