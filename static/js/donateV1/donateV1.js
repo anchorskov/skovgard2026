@@ -219,6 +219,15 @@ function getReturnUrl() {
   return new URL("/donatev1/thanks/", window.location.origin).toString();
 }
 
+function preloadAmountFromQuery() {
+  if (!amountInput) return;
+  const params = new URLSearchParams(window.location.search);
+  const amountParam = (params.get("amount") || "").trim();
+  if (!amountParam) return;
+  amountInput.value = amountParam;
+  validateAmountField();
+}
+
 async function initDonate() {
   if (!form) {
     console.warn("Donate form not found.");
@@ -298,6 +307,8 @@ async function initDonate() {
     amountInput.addEventListener("blur", handleAmountChange);
     amountInput.addEventListener("change", handleAmountChange);
   }
+
+  preloadAmountFromQuery();
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
