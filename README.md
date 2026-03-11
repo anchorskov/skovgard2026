@@ -1,5 +1,7 @@
 # Skovgard 2026
 
+AI instruction: Review [agents.md](/home/anchor/projects/skovgard2026/agents.md) before performing tasks in this repository.
+
 ## Development Scripts
 
 ### scripts/devStart.sh

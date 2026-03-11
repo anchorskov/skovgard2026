@@ -14,7 +14,7 @@ This page outlines one workable model for getting a campaign site online quickly
 
 Our goal is not to force one template on everyone. Our goal is to share a reliable starting point that can save time, reduce confusion, and help more local campaigns get moving.
 
-If you want the fuller version of how Jimmy and Kevin actually approached it, read the more detailed step-by-step guide here: [My Path](/my-path/).
+If you want the fuller version of how Jimmy actually approached it, email <a href="mailto:jimmy@grassrootsmvt.org?subject=Website%20Help%20Please">jimmy@grassrootsmvt.org</a> and ask for help building a low-cost website.
 
 ## What This Support Can Help With
 
