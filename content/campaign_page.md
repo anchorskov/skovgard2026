@@ -8,11 +8,11 @@ draft: false
 
 ## Campaign-to-Campaign Support
 
-Jimmy Skovgard for Senate and Kevin Christensen for House want to help other candidates build practical campaign websites that they can understand, maintain, and hand off cleanly.
+Jimmy Skovgard for Senate wants to help other candidates build practical campaign websites they can understand, maintain, and hand off cleanly.
 
-This page outlines one workable model for getting a campaign site online quickly. It is not the only right way to do it. We encourage every candidate, volunteer, and organizer to use their own imagination, adapt the process to their needs, and build something that fits their community.
+This page outlines one workable model for getting a campaign site online quickly. It is not the only way to do it. We encourage every candidate, volunteer, and organizer to use their own imagination, adapt the process to their needs, and build something that fits their community.
 
-Our goal is not to force one template on everyone. Our goal is to share a reliable starting point that can save time, reduce confusion, and help more local campaigns get moving.
+We are not trying to force one template on everyone. We want to share a reliable starting point that can save time, reduce confusion, and help more local campaigns get moving.
 
 If you want the fuller version of how Jimmy actually approached it, email <a href="mailto:jimmy@grassrootsmvt.org?subject=Website%20Help%20Please">jimmy@grassrootsmvt.org</a> and ask for help building a low-cost website.
 
@@ -85,7 +85,7 @@ Even if you choose a completely different setup, these principles still matter:
 
 ## If You Want Help
 
-If you are building a campaign and need help getting a website off the ground, we may be able to help point you in the right direction.
+If you are building a campaign and need help getting a website off the ground, we may be able to point you in the right direction.
 
 We cannot promise full support for every project, but we do want to make it easier for more people to build credible, independent campaigns.
 
