@@ -23,3 +23,6 @@
 </div>
 
 <script src="/js/site-ui.js" defer></script>
+{{- if eq .Type "donate-router" }}
+<script src='{{ "js/donate/donate-router.js" | relURL }}' defer></script>
+{{- end }}

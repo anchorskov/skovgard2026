@@ -1,0 +1,136 @@
+/* static/css/donate.css */
+
+.donate-router {
+  padding: 1.5rem 0 2.5rem;
+}
+
+.donate-router-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.donate-router-card {
+  border: 1px solid #d4d7df;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.06);
+}
+
+.donate-router-card h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.5rem, 1.3rem + 1vw, 2rem);
+}
+
+.donate-router-lead {
+  margin: 0 0 0.75rem;
+}
+
+.donate-router-note {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.donate-router-form {
+  margin: 1rem 0 1.25rem;
+}
+
+.donate-router-presets {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.donate-router-presets legend {
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+
+.donate-router-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.donate-router-preset {
+  border: 1px solid #c8ccd7;
+  background: #f7f8fb;
+  color: #111827;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.donate-router-preset:hover,
+.donate-router-preset:focus-visible {
+  border-color: #1f2937;
+  background: #eef2ff;
+  outline: none;
+}
+
+.donate-router-custom {
+  margin-top: 0.9rem;
+}
+
+.donate-router-custom label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+#donate-custom-amount {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #c8ccd7;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+}
+
+#donate-custom-amount:focus-visible {
+  outline: 2px solid #1f2937;
+  outline-offset: 1px;
+}
+
+.donate-router-error {
+  min-height: 1.4rem;
+  margin-top: 0.55rem;
+  color: #b42318;
+  font-size: 0.92rem;
+}
+
+.donate-router-submit {
+  width: 100%;
+  margin-top: 0.6rem;
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #1f2937;
+  color: #fff;
+}
+
+.donate-router-submit:hover,
+.donate-router-submit:focus-visible {
+  background: #111827;
+  outline: none;
+}
+
+.donate-router-list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.donate-router-list li + li {
+  margin-top: 0.3rem;
+}
+
+@media (max-width: 640px) {
+  .donate-router-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
