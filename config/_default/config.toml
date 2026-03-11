@@ -97,7 +97,7 @@ weight = 40         # pick a spot relative to your other items
 [[menu.main]]
 identifier = "donate"
 name       = "Donate"
-url        = "/donatev1/"
+url        = "/donate/"
 weight     = 10
 
 # Footer menu for legal
