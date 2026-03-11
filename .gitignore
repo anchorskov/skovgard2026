@@ -40,6 +40,7 @@ yarn-error.log*
 
 # Archives & review artifacts
 *.zip
+*.mp4
 site-all-*.zip
 site-bundle-*.txt
 site-binary-assets-*.txt
@@ -60,3 +61,11 @@ optin-review-manifest-*.txt
 # Vendor/bank data
 bank_statements/
 downloads/
+
+# Local assistant/process artifacts
+agents.md
+how_to_mp4.md
+proj_review_*.txt
+winred_review.txt
+gen_code.py
+new_optins.sh
