@@ -8,6 +8,12 @@ description: "Skovgard 2026 conversations and podcast episodes."
 
 Welcome to the Skovgard 2026 podcast. Listen in as we talk with Wyoming leaders, teachers, newsmakers, and citizens about restoration, renewal, and building civic infrastructure together.
 
+## Jimmy and Kevin discuss real Wyoming Issues, March 20, 2026
+
+Watch this episode on YouTube starting right at the key segment.
+
+[Watch on YouTube starting at 2:36](https://youtu.be/yiqVj_xtO7Q?t=156)
+
 ## Jake Interviews Jimmy on Cowboy State Daily Interview, February 17, 2026
 
 [Watch on YouTube (starts at 1:27:50)](https://youtu.be/yrcZ6PyU1mE?t=5270)
