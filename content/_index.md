@@ -24,7 +24,7 @@ draft: false
   </a>
 </div>
 <p style="text-align:center;margin:1rem auto 0;max-width:44rem;font-size:1rem;line-height:1.7;font-weight:600;">
-  Want to collaborate with the campaign first? Email <a href="mailto:join@wyforeveryone.org">join@wyforeveryone.org</a>.
+  Want to collaborate with the campaign first? Email <a href="mailto:jimmy@grassrootsmvt.org">jimmy@grassrootsmvt.org</a>.
 </p>
 {{< /rawhtml >}}
 
