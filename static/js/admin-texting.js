@@ -52,13 +52,13 @@ function getActorEmail() {
   return String(actorEmailInput?.value || "").trim();
 }
 
-function authHeaders() {
+function buildApiUrl(path) {
   const key = getAdminKey();
   const actorEmail = getActorEmail();
-  return {
-    authorization: `Bearer ${key}`,
-    ...(actorEmail ? { "x-admin-email": actorEmail } : {}),
-  };
+  const url = new URL(`${API_URL}${path}`, window.location.origin);
+  if (key) url.searchParams.set("key", key);
+  if (actorEmail) url.searchParams.set("actor_email", actorEmail);
+  return url.toString();
 }
 
 function escapeHtml(value) {
@@ -98,11 +98,11 @@ function parseFilename(disposition, fallback) {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     ...options,
+    credentials: "same-origin",
     headers: {
       ...(options.body ? { "content-type": "application/json" } : {}),
-      ...authHeaders(),
       ...(options.headers || {}),
     },
   });
@@ -306,8 +306,8 @@ function renderBroadcastPreview(data) {
 }
 
 async function downloadCsv(path, fallbackName) {
-  const response = await fetch(`${API_URL}${path}`, {
-    headers: authHeaders(),
+  const response = await fetch(buildApiUrl(path), {
+    credentials: "same-origin",
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));

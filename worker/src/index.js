@@ -247,8 +247,13 @@ function isAdminAuthorized(req, env, url) {
 }
 
 function getAdminActor(req) {
-  const actorEmail = String(req.headers.get("x-admin-email") || "").trim() || null;
-  const actorUserId = String(req.headers.get("x-admin-user-id") || "").trim() || null;
+  const url = new URL(req.url);
+  const actorEmail = String(
+    req.headers.get("x-admin-email") || url.searchParams.get("actor_email") || ""
+  ).trim() || null;
+  const actorUserId = String(
+    req.headers.get("x-admin-user-id") || url.searchParams.get("actor_user_id") || ""
+  ).trim() || null;
   return { actorEmail, actorUserId };
 }
 
