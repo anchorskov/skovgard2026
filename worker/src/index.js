@@ -676,7 +676,7 @@ export default {
 
         const consentSMS = b.consent_sms === true || b.consent === 1;
         const consentEmail = b.consent_email === true;
-        const consentVer = String(b.consent_version || "v1-2025-09-08");
+        const consentVer = String(b.consent_version || "v2-2026-03-24");
 
         // Token: prefer header (official), fallback to body for older clients
         const tsToken = (
@@ -718,9 +718,6 @@ export default {
             { error: "Valid 10-digit mobile required" },
             400
           );
-        if (!consentSMS)
-          return json(req, env, { error: "SMS consent required" }, 400);
-
         // Bot protections
         const ip = req.headers.get("cf-connecting-ip") || "";
         const ipHash = await sha256Hex(ip);

@@ -257,7 +257,6 @@ function resetTurnstile() {
     if (!/^\d{5}$/.test(zip)) return err('Enter a 5-digit Wyoming ZIP.');
     if (!wy_voter)   return err('This SMS list is for registered Wyoming voters only.');
     if (phone10.length !== 10) return err('Enter a valid 10-digit mobile.');
-    if (!consent_sms) return err('Please confirm SMS consent.');
     if (email && !consent_email) return err('Check the email opt-in to receive emails.');
 
     // token
@@ -300,7 +299,7 @@ function resetTurnstile() {
           email: email || null,
           consent_sms: !!consent_sms,
           consent_email: !!consent_email,
-          consent_version: 'v1-2025-09-08',
+          consent_version: 'v2-2026-03-24',
           turnstile_token: tsToken,      // keep for older server code
           ts_start_ms: tsStart,
           ts_elapsed_ms: elapsed
