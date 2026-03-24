@@ -1,6 +1,6 @@
 // worker/src/telnyx.js
 const STOP_KEYWORDS = new Set(["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"]);
-const START_KEYWORDS = new Set(["START", "UNSTOP"]);
+const START_KEYWORDS = new Set(["START", "UNSTOP", "JOIN"]);
 const HELP_KEYWORDS = new Set(["HELP"]);
 
 function normalizeWhitespace(value) {
@@ -254,6 +254,100 @@ export async function logTelnyxEvent(db, event) {
     .run();
 }
 
+async function syncInboundSmsOptinRecord(db, phoneE164, keyword, occurredAt) {
+  const phoneDigits = phoneDigitsOnly(phoneE164);
+  if (!phoneDigits) return;
+
+  const consentDate = String(occurredAt || new Date().toISOString()).slice(0, 10);
+  const consentVersion = `inbound-sms-${keyword.toLowerCase()}-${consentDate}`;
+
+  await db.prepare(
+    `INSERT INTO sms_optins
+       (first_name, last_name, name, phone, email, consent, consent_email,
+        wy_voter, county, zip, consent_version, source, user_agent, ip_hash)
+     VALUES (NULL, NULL, NULL, ?1, NULL, 1, 0,
+             0, NULL, NULL, ?2, 'skovgard2026:inbound_sms', NULL, NULL)
+     ON CONFLICT(phone) DO UPDATE SET
+       consent=1,
+       consent_version=excluded.consent_version,
+       source=excluded.source`
+  )
+    .bind(phoneDigits, consentVersion)
+    .run();
+}
+
+async function handleInboundOptInKeyword(db, env, { phoneE164, keyword, occurredAt, eventType }) {
+  const phone = normalizePhoneNumber(phoneE164);
+  if (!phone || !keyword) return { changed: false, reason: "missing_phone_or_keyword" };
+
+  const existing = await db.prepare(
+    `SELECT status
+       FROM consent_status
+      WHERE phone_e164 = ?1`
+  )
+    .bind(phone)
+    .first();
+
+  const existingStatus = String(existing?.status || "").trim();
+  const allowReactivation = String(env.TELNYX_ALLOW_REACTIVATION || "0") === "1";
+
+  if (existingStatus === "opted_in") {
+    await db.prepare(
+      `UPDATE consent_status
+          SET last_inbound_keyword = ?2,
+              updated_at = datetime('now')
+        WHERE phone_e164 = ?1`
+    )
+      .bind(phone, keyword)
+      .run();
+
+    await insertTextingAuditLog(db, {
+      action: "inbound_opt_in_existing",
+      targetPhone: phone,
+      detailsJson: JSON.stringify({ keyword, eventType }),
+    });
+    return { changed: false, reason: "already_opted_in" };
+  }
+
+  if (existingStatus === "opted_out" && !allowReactivation) {
+    await db.prepare(
+      `UPDATE consent_status
+          SET last_inbound_keyword = ?2,
+              updated_at = datetime('now')
+        WHERE phone_e164 = ?1`
+    )
+      .bind(phone, keyword)
+      .run();
+
+    await insertTextingAuditLog(db, {
+      action: "inbound_opt_in_reactivation_blocked",
+      targetPhone: phone,
+      detailsJson: JSON.stringify({ keyword, eventType }),
+    });
+    return { changed: false, reason: "reactivation_disabled" };
+  }
+
+  await upsertConsentStatus(db, {
+    phoneE164: phone,
+    status: "opted_in",
+    source: "inbound_sms",
+    sourceDetail: `${eventType}:${keyword.toLowerCase()}`,
+    consentedAt: occurredAt || new Date().toISOString(),
+    lastInboundKeyword: keyword,
+  });
+
+  await syncInboundSmsOptinRecord(db, phone, keyword, occurredAt);
+
+  await insertTextingAuditLog(db, {
+    action: existingStatus === "opted_out" ? "inbound_opt_in_reactivated" : "inbound_opt_in",
+    targetPhone: phone,
+    detailsJson: JSON.stringify({ keyword, eventType }),
+  });
+
+  await maybeSendWelcomeText(db, env, phone);
+  return { changed: true, reason: existingStatus === "opted_out" ? "reactivated" : "opted_in" };
+}
+
 export async function upsertConsentStatus(db, input) {
   const phoneE164 = normalizePhoneNumber(input?.phoneE164 || input?.phone || "");
   if (!phoneE164) return;
@@ -437,16 +531,13 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
         revokedAt: occurredAt || new Date().toISOString(),
         lastInboundKeyword: keyword,
       });
-    } else if (START_KEYWORDS.has(keyword) && String(env.TELNYX_ALLOW_REACTIVATION || "0") === "1") {
-      await upsertConsentStatus(db, {
+    } else if (START_KEYWORDS.has(keyword)) {
+      await handleInboundOptInKeyword(db, env, {
         phoneE164: phoneFrom,
-        status: "opted_in",
-        source: "inbound_sms",
-        sourceDetail: eventType,
-        consentedAt: occurredAt || new Date().toISOString(),
-        lastInboundKeyword: keyword,
+        keyword,
+        occurredAt,
+        eventType,
       });
-      await maybeSendWelcomeText(db, env, phoneFrom);
     } else if (HELP_KEYWORDS.has(keyword)) {
       await upsertConsentStatus(db, {
         phoneE164: phoneFrom,

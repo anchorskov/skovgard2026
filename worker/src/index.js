@@ -543,10 +543,10 @@ export default {
         if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
 
         const rawBody = await req.text();
-        const hostHdr = req.headers.get("host") || "";
-        const isLocalHost = hostHdr.startsWith("localhost") || hostHdr.startsWith("127.0.0.1");
+        const hostHdr = String(req.headers.get("host") || "").trim();
+        const requestHost = String(url.hostname || "").trim();
         const allowInsecureLocal =
-          isLocalHost && String(env.TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS || "0") === "1";
+          String(env.TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS || "0") === "1";
 
         const validSignature = allowInsecureLocal
           ? true
