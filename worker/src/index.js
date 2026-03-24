@@ -1,9 +1,11 @@
 // worker/src/index.js
 import {
   isOutboundSendBlocked,
+  insertTextingAuditLog,
   logTelnyxEvent,
   normalizePhoneNumber,
   processTelnyxWebhookEvent,
+  sendSmsWithTelnyx,
   verifyTelnyxSignature,
 } from "./telnyx.js";
 // --- CORS helpers ------------------------------------------------------------
@@ -243,6 +245,12 @@ function isAdminAuthorized(req, env, url) {
   return timingSafeEqual(provided, configured);
 }
 
+function getAdminActor(req) {
+  const actorEmail = String(req.headers.get("x-admin-email") || "").trim() || null;
+  const actorUserId = String(req.headers.get("x-admin-user-id") || "").trim() || null;
+  return { actorEmail, actorUserId };
+}
+
 function csvField(value) {
   if (value === null || value === undefined) return "";
   const s = String(value);
@@ -268,6 +276,31 @@ function csvResponse(req, env, filename, csv) {
       ...corsHeaders(env, req),
     },
   });
+}
+
+function normalizeMessageText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function mustBeAdmin(req, env, url) {
+  if (!String(env.ADMIN_EXPORT_KEY || "").trim()) {
+    return { ok: false, response: json(req, env, { error: "Admin export key not configured" }, 503) };
+  }
+  if (!isAdminAuthorized(req, env, url)) {
+    return { ok: false, response: json(req, env, { error: "Unauthorized" }, 401) };
+  }
+  return { ok: true };
+}
+
+async function tableExists(db, tableName) {
+  const row = await db.prepare(
+    `SELECT name
+       FROM sqlite_master
+      WHERE type = 'table' AND name = ?1`
+  )
+    .bind(tableName)
+    .first();
+  return Boolean(row?.name);
 }
 
 async function verifyStripeSignature(secret, payload, header) {
@@ -357,12 +390,8 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/telnyx/status") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        if (!String(env.ADMIN_EXPORT_KEY || "").trim()) {
-          return json(req, env, { error: "Admin export key not configured" }, 503);
-        }
-        if (!isAdminAuthorized(req, env, url)) {
-          return json(req, env, { error: "Unauthorized" }, 401);
-        }
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
 
         const lastWebhookRow = await env.DB.prepare(
           `SELECT MAX(processed_at) AS ts
@@ -374,6 +403,11 @@ export default {
             WHERE signature_valid = 0`
         ).first();
 
+        const tables = {};
+        for (const name of ["contacts", "consent_status", "inbound_messages", "outbound_messages", "telnyx_events", "texting_audit_log"]) {
+          tables[name] = await tableExists(env.DB, name);
+        }
+
         return json(req, env, {
           ok: true,
           webhookRouteLive: true,
@@ -382,9 +416,11 @@ export default {
           envPresent: {
             telnyxPublicKey: Boolean(String(env.TELNYX_PUBLIC_KEY || "").trim()),
             telnyxApiKey: Boolean(String(env.TELNYX_API_KEY || "").trim()),
+            telnyxFromNumber: Boolean(String(env.TELNYX_FROM_NUMBER || "").trim()),
             adminExportKey: Boolean(String(env.ADMIN_EXPORT_KEY || "").trim()),
             d1: Boolean(env.DB),
           },
+          tables,
         });
       }
 
@@ -948,12 +984,8 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/telnyx/can-send") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        if (!String(env.ADMIN_EXPORT_KEY || "").trim()) {
-          return json(req, env, { error: "Admin export key not configured" }, 503);
-        }
-        if (!isAdminAuthorized(req, env, url)) {
-          return json(req, env, { error: "Unauthorized" }, 401);
-        }
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
 
         const phone = String(url.searchParams.get("phone") || "").trim();
         const phoneE164 = normalizePhoneNumber(phone);
@@ -969,6 +1001,265 @@ export default {
           blocked,
           // TODO(worker/src/index.js): call this guard from the future Telnyx send endpoint before any outbound API request.
         });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/texting/status") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const lastOutboundRow = await env.DB.prepare(
+          `SELECT MAX(updated_at) AS ts FROM outbound_messages`
+        ).first();
+        const lastInboundRow = await env.DB.prepare(
+          `SELECT MAX(received_at) AS ts FROM inbound_messages`
+        ).first();
+        const failedRow = await env.DB.prepare(
+          `SELECT COUNT(*) AS n FROM outbound_messages WHERE status IN ('failed', 'delivery_failed')`
+        ).first();
+
+        const internalUrl = new URL(req.url);
+        internalUrl.pathname = "/api/admin/telnyx/status";
+        internalUrl.search = "";
+        const statusReq = new Request(internalUrl.toString(), {
+          method: "GET",
+          headers: req.headers,
+        });
+        const telnyxStatusResp = await this.fetch(statusReq, env, ctx);
+        const telnyxStatus = await telnyxStatusResp.json().catch(() => ({}));
+
+        return json(req, env, {
+          ok: true,
+          lastOutboundAt: lastOutboundRow?.ts || null,
+          lastInboundAt: lastInboundRow?.ts || null,
+          failedDeliveries: Number(failedRow?.n || 0),
+          telnyx: telnyxStatus,
+        });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/texting/messages") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 200);
+        const q = String(url.searchParams.get("q") || "").trim();
+        const qLike = q ? `%${q}%` : null;
+
+        const outboundSql = q
+          ? `SELECT 'outbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+                    status, created_at AS at, updated_at, raw_json
+               FROM outbound_messages
+              WHERE phone_to LIKE ?1 OR phone_from LIKE ?1 OR text LIKE ?1`
+          : `SELECT 'outbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+                    status, created_at AS at, updated_at, raw_json
+               FROM outbound_messages`;
+
+        const inboundSql = q
+          ? `SELECT 'inbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+                    direction AS status, received_at AS at, received_at AS updated_at, raw_json
+               FROM inbound_messages
+              WHERE phone_from LIKE ?1 OR phone_to LIKE ?1 OR text LIKE ?1`
+          : `SELECT 'inbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+                    direction AS status, received_at AS at, received_at AS updated_at, raw_json
+               FROM inbound_messages`;
+
+        const outbound = q
+          ? ((await env.DB.prepare(`${outboundSql} ORDER BY datetime(updated_at) DESC LIMIT ?2`).bind(qLike, limit).all())?.results || [])
+          : ((await env.DB.prepare(`${outboundSql} ORDER BY datetime(updated_at) DESC LIMIT ?1`).bind(limit).all())?.results || []);
+        const inbound = q
+          ? ((await env.DB.prepare(`${inboundSql} ORDER BY datetime(updated_at) DESC LIMIT ?2`).bind(qLike, limit).all())?.results || [])
+          : ((await env.DB.prepare(`${inboundSql} ORDER BY datetime(updated_at) DESC LIMIT ?1`).bind(limit).all())?.results || []);
+
+        const items = [...outbound, ...inbound]
+          .sort((a, b) => String(b.updated_at || b.at).localeCompare(String(a.updated_at || a.at)))
+          .slice(0, limit);
+
+        return json(req, env, { ok: true, items });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/texting/contacts") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 200);
+        const q = String(url.searchParams.get("q") || "").trim();
+        const sql = q
+          ? `SELECT c.phone_e164, c.first_name, c.last_name, c.created_at, c.updated_at,
+                    cs.status, cs.last_inbound_keyword, cs.updated_at AS consent_updated_at
+               FROM contacts c
+               LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164
+              WHERE c.phone_e164 LIKE ?1 OR c.first_name LIKE ?1 OR c.last_name LIKE ?1
+              ORDER BY datetime(c.updated_at) DESC
+              LIMIT ?2`
+          : `SELECT c.phone_e164, c.first_name, c.last_name, c.created_at, c.updated_at,
+                    cs.status, cs.last_inbound_keyword, cs.updated_at AS consent_updated_at
+               FROM contacts c
+               LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164
+              ORDER BY datetime(c.updated_at) DESC
+              LIMIT ?1`;
+
+        const results = q
+          ? ((await env.DB.prepare(sql).bind(`%${q}%`, limit).all())?.results || [])
+          : ((await env.DB.prepare(sql).bind(limit).all())?.results || []);
+
+        return json(req, env, { ok: true, items: results });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/texting/conversations") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const phone = normalizePhoneNumber(url.searchParams.get("phone") || "");
+        if (!phone) {
+          return json(req, env, { error: "Valid phone query parameter required" }, 400);
+        }
+
+        const inbound = ((await env.DB.prepare(
+          `SELECT 'inbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+                  received_at AS at, raw_json, direction AS status
+             FROM inbound_messages
+            WHERE phone_from = ?1 OR phone_to = ?1`
+        ).bind(phone).all())?.results || []);
+        const outbound = ((await env.DB.prepare(
+          `SELECT 'outbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+                  updated_at AS at, raw_json, status
+             FROM outbound_messages
+            WHERE phone_from = ?1 OR phone_to = ?1`
+        ).bind(phone).all())?.results || []);
+        const consent = await env.DB.prepare(
+          `SELECT * FROM consent_status WHERE phone_e164 = ?1`
+        ).bind(phone).first();
+
+        const items = [...inbound, ...outbound]
+          .sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+
+        return json(req, env, { ok: true, phone, consent, items });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/texting/send") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        if (!String(env.TELNYX_API_KEY || "").trim()) {
+          return json(req, env, { error: "TELNYX_API_KEY not configured" }, 503);
+        }
+        if (!String(env.TELNYX_FROM_NUMBER || "").trim()) {
+          return json(req, env, { error: "TELNYX_FROM_NUMBER not configured" }, 503);
+        }
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const to = normalizePhoneNumber(body.to || "");
+        const text = normalizeMessageText(body.text);
+        const dryRun = body.dry_run === true || body.preview === true;
+
+        if (!to) return json(req, env, { error: "Valid E.164 destination required" }, 400);
+        if (!text) return json(req, env, { error: "Message text is required" }, 400);
+        if (text.length > 1200) return json(req, env, { error: "Message text too long" }, 400);
+
+        const blocked = await isOutboundSendBlocked(env.DB, to);
+        if (blocked) {
+          await insertTextingAuditLog(env.DB, {
+            actorUserId: actor.actorUserId,
+            actorEmail: actor.actorEmail,
+            action: "send_blocked_opted_out",
+            targetPhone: to,
+            detailsJson: JSON.stringify({ to, text }),
+          });
+          return json(req, env, { error: "Cannot send to an opted-out number", blocked: true }, 409);
+        }
+
+        if (dryRun) {
+          await insertTextingAuditLog(env.DB, {
+            actorUserId: actor.actorUserId,
+            actorEmail: actor.actorEmail,
+            action: "send_preview",
+            targetPhone: to,
+            detailsJson: JSON.stringify({ to, text }),
+          });
+          return json(req, env, {
+            ok: true,
+            dryRun: true,
+            preview: {
+              to,
+              from: String(env.TELNYX_FROM_NUMBER || "").trim(),
+              text,
+            },
+          });
+        }
+
+        try {
+          const telnyx = await sendSmsWithTelnyx({
+            apiKey: env.TELNYX_API_KEY,
+            fromNumber: String(env.TELNYX_FROM_NUMBER || "").trim(),
+            to,
+            text,
+          });
+
+          await env.DB.prepare(
+            `INSERT INTO outbound_messages
+               (telnyx_message_id, phone_from, phone_to, text, status, created_at, updated_at, raw_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, datetime('now'), datetime('now'), ?6)
+             ON CONFLICT(telnyx_message_id) DO UPDATE SET
+               phone_from=excluded.phone_from,
+               phone_to=excluded.phone_to,
+               text=excluded.text,
+               status=excluded.status,
+               updated_at=datetime('now'),
+               raw_json=excluded.raw_json`
+          )
+            .bind(
+              telnyx.providerId,
+              String(env.TELNYX_FROM_NUMBER || "").trim(),
+              to,
+              text,
+              telnyx.status,
+              JSON.stringify(telnyx.body || null)
+            )
+            .run();
+
+          await env.DB.prepare(
+            `INSERT INTO contacts (phone_e164, created_at, updated_at)
+             VALUES (?1, datetime('now'), datetime('now'))
+             ON CONFLICT(phone_e164) DO UPDATE SET
+               updated_at=datetime('now')`
+          ).bind(to).run();
+
+          await insertTextingAuditLog(env.DB, {
+            actorUserId: actor.actorUserId,
+            actorEmail: actor.actorEmail,
+            action: "send_message",
+            targetPhone: to,
+            messageId: telnyx.providerId,
+            detailsJson: JSON.stringify({
+              to,
+              from: String(env.TELNYX_FROM_NUMBER || "").trim(),
+              status: telnyx.status,
+            }),
+          });
+
+          return json(req, env, {
+            ok: true,
+            providerId: telnyx.providerId,
+            status: telnyx.status,
+          });
+        } catch (error) {
+          await insertTextingAuditLog(env.DB, {
+            actorUserId: actor.actorUserId,
+            actorEmail: actor.actorEmail,
+            action: "send_failed",
+            targetPhone: to,
+            detailsJson: JSON.stringify({
+              to,
+              error: error.message,
+              body: error.body || null,
+            }),
+          });
+          return json(req, env, { error: error.message, details: error.body || null }, error.status || 502);
+        }
       }
 
       // ------------- NEWSLETTER EMAIL SIGNUP -------------

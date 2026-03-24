@@ -1,0 +1,103 @@
+---
+title: "Admin Texting"
+slug: "admin/texting"
+draft: false
+description: "Admin-only texting operations portal."
+summary: "Operational texting portal."
+---
+<!-- content/admin/texting/index.html -->
+
+<link rel="stylesheet" href="/css/admin-texting.css">
+
+<p class="notice">
+  This operational texting page is for campaign admins only. Enter the admin key to load messaging data and send texts from the production Worker.
+</p>
+
+<form id="admin-texting-auth" class="optin-form" novalidate>
+  <div class="field-inline">
+    <div class="field">
+      <label for="admin_texting_key">Admin key</label>
+      <input id="admin_texting_key" name="admin_texting_key" type="password" autocomplete="off" required />
+    </div>
+    <div class="field">
+      <label for="admin_actor_email">Operator email <span class="help">(optional for audit log)</span></label>
+      <input id="admin_actor_email" name="admin_actor_email" type="email" autocomplete="off" placeholder="you@example.com" />
+    </div>
+  </div>
+  <div class="button-row">
+    <button type="button" id="admin-texting-connect">Load portal</button>
+    <button type="button" id="admin-texting-clear" class="secondary">Clear key</button>
+  </div>
+  <p id="admin-texting-auth-status" class="help" role="status" aria-live="polite"></p>
+</form>
+
+<section id="admin-texting-shell" class="admin-texting-shell" hidden>
+  <section class="admin-texting-hero">
+    <div>
+      <p class="eyebrow">Production Ops</p>
+      <h1>Texting Portal</h1>
+      <p class="help">Send single texts from the production Worker, review replies, and check webhook health without relying on localhost.</p>
+    </div>
+    <div class="admin-texting-actions">
+      <button type="button" id="admin-texting-refresh">Refresh</button>
+    </div>
+  </section>
+
+  <section class="admin-texting-grid admin-texting-grid-top">
+    <section class="admin-card">
+      <h2>Send Text</h2>
+      <form id="admin-texting-send" class="optin-form" novalidate>
+        <div class="field">
+          <label for="send_to">To</label>
+          <input id="send_to" name="send_to" type="tel" placeholder="+1307..." required />
+        </div>
+        <div class="field">
+          <label for="send_text">Message</label>
+          <textarea id="send_text" name="send_text" rows="5" placeholder="Write your message" required></textarea>
+        </div>
+        <div class="button-row">
+          <button type="button" id="text-preview">Preview</button>
+          <button type="submit" id="text-send-confirm">Send now</button>
+        </div>
+        <div id="text-preview-box" class="preview-box" hidden>
+          <h3>Send Review</h3>
+          <p id="text-preview-summary" class="help"></p>
+        </div>
+        <p id="admin-texting-send-status" class="help" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="admin-card">
+      <h2>System Status</h2>
+      <div id="admin-texting-status" class="status-stack"></div>
+    </section>
+  </section>
+
+  <section class="admin-texting-grid">
+    <section class="admin-card">
+      <div class="card-head">
+        <h2>Messages</h2>
+        <input id="messages_search" type="search" placeholder="Search phone or text" />
+      </div>
+      <div id="admin-texting-messages" class="list-stack"></div>
+    </section>
+
+    <section class="admin-card">
+      <div class="card-head">
+        <h2>Contacts</h2>
+        <input id="contacts_search" type="search" placeholder="Search phone or name" />
+      </div>
+      <div id="admin-texting-contacts" class="list-stack"></div>
+    </section>
+  </section>
+
+  <section class="admin-card">
+    <div class="card-head">
+      <h2>Conversation</h2>
+      <p class="help">Select a contact to load recent inbound and outbound history.</p>
+    </div>
+    <div id="admin-texting-conversation" class="list-stack"></div>
+  </section>
+</section>
+
+<script type="module" src="/js/admin-texting.js" defer></script>

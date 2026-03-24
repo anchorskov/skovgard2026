@@ -119,6 +119,36 @@ export async function verifyTelnyxSignature(rawBody, headers, publicKey, options
   return crypto.subtle.verify({ name: "Ed25519" }, publicCryptoKey, sigBytes, data);
 }
 
+export async function sendSmsWithTelnyx({ apiKey, fromNumber, to, text }) {
+  const response = await fetch("https://api.telnyx.com/v2/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      from: fromNumber,
+      to,
+      text,
+    }),
+  });
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = body?.errors?.[0]?.detail || `Telnyx request failed with ${response.status}`;
+    const error = new Error(message);
+    error.status = response.status;
+    error.body = body;
+    throw error;
+  }
+
+  return {
+    providerId: body?.data?.id || null,
+    status: body?.data?.status || "accepted",
+    body,
+  };
+}
+
 export async function logTelnyxEvent(db, event) {
   const {
     eventId = null,
@@ -255,6 +285,26 @@ export async function isOutboundSendBlocked(db, phone) {
     .first();
 
   return String(row?.status || "").trim() === "opted_out";
+}
+
+export async function insertTextingAuditLog(db, input) {
+  const action = String(input?.action || "").trim();
+  if (!action) return;
+
+  await db.prepare(
+    `INSERT INTO texting_audit_log
+       (actor_user_id, actor_email, action, target_phone, message_id, details_json, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, datetime('now'))`
+  )
+    .bind(
+      input?.actorUserId ?? null,
+      input?.actorEmail ?? null,
+      action,
+      input?.targetPhone ?? null,
+      input?.messageId ?? null,
+      input?.detailsJson ?? null
+    )
+    .run();
 }
 
 export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
