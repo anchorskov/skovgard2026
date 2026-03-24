@@ -37,6 +37,11 @@ const STORAGE_EMAIL = "skovgard_admin_texting_email";
 let selectedPhone = "";
 let previewReady = false;
 let broadcastPreviewReady = null;
+let lastApiDiagnostic = {
+  kind: "idle",
+  status: null,
+  message: "No API request yet.",
+};
 
 function setStatus(el, message, isError = false) {
   if (!el) return;
@@ -52,13 +57,46 @@ function getActorEmail() {
   return String(actorEmailInput?.value || "").trim();
 }
 
+function apiBaseForDisplay() {
+  return API_URL ? String(API_URL).replace(/\/+$/, "") : window.location.origin;
+}
+
 function buildApiUrl(path) {
   const key = getAdminKey();
   const actorEmail = getActorEmail();
-  const url = new URL(`${API_URL}${path}`, window.location.origin);
+  const base = API_URL ? `${String(API_URL).replace(/\/+$/, "")}/` : window.location.origin;
+  const normalizedPath = String(path || "").replace(/^\/+/, "");
+  const url = new URL(normalizedPath, `${base}`);
   if (key) url.searchParams.set("key", key);
   if (actorEmail) url.searchParams.set("actor_email", actorEmail);
+  if (!API_URL && url.origin === window.location.origin) {
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
   return url.toString();
+}
+
+function setApiDiagnostic(kind, message, status = null) {
+  lastApiDiagnostic = { kind, message, status };
+}
+
+function isAccessLoginLocation(value) {
+  const s = String(value || "");
+  return s.includes("/cdn-cgi/access/login") || s.includes(".cloudflareaccess.com/");
+}
+
+function makeFriendlyApiError() {
+  switch (lastApiDiagnostic.kind) {
+    case "access_missing":
+      return new Error("Your Access session for the texting API is not active. Re-authenticate to Cloudflare Access for this hostname and try again.");
+    case "unauthorized":
+      return new Error("The admin key was rejected.");
+    case "network_error":
+      return new Error("The texting API could not be reached. Check your network or Cloudflare Access session.");
+    case "html":
+      return new Error("The texting API returned HTML instead of JSON. Your Access session may not be active for the API route.");
+    default:
+      return new Error(lastApiDiagnostic.message || "Request failed.");
+  }
 }
 
 function escapeHtml(value) {
@@ -98,18 +136,54 @@ function parseFilename(disposition, fallback) {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(buildApiUrl(path), {
-    ...options,
-    credentials: "same-origin",
-    headers: {
-      ...(options.body ? { "content-type": "application/json" } : {}),
-      ...(options.headers || {}),
-    },
-  });
-  const json = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(json?.error || `Request failed (${response.status})`);
+  let response;
+  try {
+    response = await fetch(buildApiUrl(path), {
+      ...options,
+      credentials: "same-origin",
+      redirect: "manual",
+      headers: {
+        ...(options.body ? { "content-type": "application/json" } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  } catch (_error) {
+    setApiDiagnostic("network_error", "Network request failed before the API responded.");
+    throw makeFriendlyApiError();
   }
+
+  const location = response.headers.get("location") || "";
+  if (
+    response.type === "opaqueredirect" ||
+    ((response.status === 301 || response.status === 302 || response.status === 307 || response.status === 308) &&
+      isAccessLoginLocation(location))
+  ) {
+    setApiDiagnostic("access_missing", "Cloudflare Access redirected the API request to login.", response.status || 302);
+    throw makeFriendlyApiError();
+  }
+
+  const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+  if (contentType.includes("text/html")) {
+    setApiDiagnostic("html", "Received HTML from the API route instead of JSON.", response.status);
+    throw makeFriendlyApiError();
+  }
+
+  const json = await response.json().catch(() => null);
+  if (!json) {
+    setApiDiagnostic("html", "API response could not be parsed as JSON.", response.status);
+    throw makeFriendlyApiError();
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      setApiDiagnostic("unauthorized", "Admin key rejected by API.", response.status);
+    } else {
+      setApiDiagnostic("error", json?.error || `Request failed (${response.status})`, response.status);
+    }
+    throw makeFriendlyApiError();
+  }
+
+  setApiDiagnostic("json", "JSON response received from API.", response.status);
   return json;
 }
 
@@ -140,6 +214,14 @@ function renderStatus(data) {
       <div class="meta">Telnyx API key: ${telnyx.envPresent?.telnyxApiKey ? "present" : "missing"}</div>
       <div class="meta">Telnyx from number: ${telnyx.envPresent?.telnyxFromNumber ? "present" : "missing"}</div>
       <div class="meta">Audit log table: ${telnyx.tables?.texting_audit_log ? "present" : "missing"}</div>
+    </article>
+    <article class="status-item">
+      <strong>Browser/API</strong>
+      <div class="meta">Origin: ${escapeHtml(window.location.origin)}</div>
+      <div class="meta">API base: ${escapeHtml(apiBaseForDisplay())}</div>
+      <div class="meta">Last response: ${escapeHtml(lastApiDiagnostic.kind)}</div>
+      <div class="meta">Last status: ${escapeHtml(lastApiDiagnostic.status ?? "n/a")}</div>
+      <div class="meta">${escapeHtml(lastApiDiagnostic.message)}</div>
     </article>
   `;
 }
@@ -306,13 +388,31 @@ function renderBroadcastPreview(data) {
 }
 
 async function downloadCsv(path, fallbackName) {
-  const response = await fetch(buildApiUrl(path), {
-    credentials: "same-origin",
-  });
+  let response;
+  try {
+    response = await fetch(buildApiUrl(path), {
+      credentials: "same-origin",
+      redirect: "manual",
+    });
+  } catch (_error) {
+    setApiDiagnostic("network_error", "CSV download request failed before the API responded.");
+    throw makeFriendlyApiError();
+  }
+  const location = response.headers.get("location") || "";
+  if (
+    response.type === "opaqueredirect" ||
+    ((response.status === 301 || response.status === 302 || response.status === 307 || response.status === 308) &&
+      isAccessLoginLocation(location))
+  ) {
+    setApiDiagnostic("access_missing", "Cloudflare Access redirected the CSV download request to login.", response.status || 302);
+    throw makeFriendlyApiError();
+  }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body?.error || `Download failed (${response.status})`);
+    setApiDiagnostic(response.status === 401 ? "unauthorized" : "error", body?.error || `Download failed (${response.status})`, response.status);
+    throw makeFriendlyApiError();
   }
+  setApiDiagnostic("csv", "CSV response received from API.", response.status);
   const blob = await response.blob();
   const filename = parseFilename(response.headers.get("content-disposition"), fallbackName);
   triggerDownload(blob, filename);
