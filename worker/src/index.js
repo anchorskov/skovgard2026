@@ -1,4 +1,11 @@
 // worker/src/index.js
+import {
+  isOutboundSendBlocked,
+  logTelnyxEvent,
+  normalizePhoneNumber,
+  processTelnyxWebhookEvent,
+  verifyTelnyxSignature,
+} from "./telnyx.js";
 // --- CORS helpers ------------------------------------------------------------
 function allowOrigin(env, req) {
   const origin = req.headers.get("origin") || "";
@@ -325,7 +332,7 @@ async function createStripePaymentIntent(env, data, metadata = {}) {
 
 // --- Worker ------------------------------------------------------------------
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     try {
       const url = new URL(req.url);
       const path = url.pathname.replace(/\/+$/, ""); // strip trailing slash
@@ -346,6 +353,39 @@ export default {
       // Health check
       if (req.method === "GET" && path === "/api/health") {
         return json(req, env, { ok: true, d1Bound: Boolean(env.DB) });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/telnyx/status") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        if (!String(env.ADMIN_EXPORT_KEY || "").trim()) {
+          return json(req, env, { error: "Admin export key not configured" }, 503);
+        }
+        if (!isAdminAuthorized(req, env, url)) {
+          return json(req, env, { error: "Unauthorized" }, 401);
+        }
+
+        const lastWebhookRow = await env.DB.prepare(
+          `SELECT MAX(processed_at) AS ts
+             FROM telnyx_events`
+        ).first();
+        const lastInvalidRow = await env.DB.prepare(
+          `SELECT MAX(processed_at) AS ts
+             FROM telnyx_events
+            WHERE signature_valid = 0`
+        ).first();
+
+        return json(req, env, {
+          ok: true,
+          webhookRouteLive: true,
+          lastWebhookReceivedAt: lastWebhookRow?.ts || null,
+          lastInvalidSignatureAt: lastInvalidRow?.ts || null,
+          envPresent: {
+            telnyxPublicKey: Boolean(String(env.TELNYX_PUBLIC_KEY || "").trim()),
+            telnyxApiKey: Boolean(String(env.TELNYX_API_KEY || "").trim()),
+            adminExportKey: Boolean(String(env.ADMIN_EXPORT_KEY || "").trim()),
+            d1: Boolean(env.DB),
+          },
+        });
       }
 
       // Public ICS proxy (same-origin, avoids browser CORS issues)
@@ -394,6 +434,46 @@ export default {
           );
         }
         return json(req, env, { stripePublishableKey: key });
+      }
+
+      if (req.method === "POST" && path === "/api/telnyx/webhook") {
+        if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
+
+        const rawBody = await req.text();
+        const hostHdr = req.headers.get("host") || "";
+        const isLocalHost = hostHdr.startsWith("localhost") || hostHdr.startsWith("127.0.0.1");
+        const allowInsecureLocal =
+          isLocalHost && String(env.TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS || "0") === "1";
+
+        const validSignature = allowInsecureLocal
+          ? true
+          : await verifyTelnyxSignature(
+              rawBody,
+              req.headers,
+              env.TELNYX_PUBLIC_KEY,
+              { toleranceSeconds: Number(env.TELNYX_WEBHOOK_TOLERANCE_SECONDS || 300) }
+            );
+
+        if (!validSignature) {
+          ctx.waitUntil(
+            logTelnyxEvent(env.DB, {
+              eventType: "invalid_signature",
+              signatureValid: false,
+              rawJson: rawBody,
+            })
+          );
+          return json(req, env, { error: "Invalid signature." }, 401);
+        }
+
+        let event = {};
+        try {
+          event = JSON.parse(rawBody);
+        } catch {
+          return json(req, env, { error: "Invalid payload." }, 400);
+        }
+
+        ctx.waitUntil(processTelnyxWebhookEvent(env.DB, rawBody, event, env));
+        return json(req, env, { ok: true, accepted: true });
       }
 
       if (req.method === "POST" && path === "/api/donate/create-intent") {
@@ -568,6 +648,31 @@ export default {
             ua,
             ipHash
           )
+          .run();
+
+        await env.DB.prepare(
+          `INSERT INTO contacts (phone_e164, first_name, last_name, created_at, updated_at)
+           VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))
+           ON CONFLICT(phone_e164) DO UPDATE SET
+             first_name=COALESCE(excluded.first_name, contacts.first_name),
+             last_name=COALESCE(excluded.last_name, contacts.last_name),
+             updated_at=datetime('now')`
+        )
+          .bind(normalizePhoneNumber(phone), firstName, lastName)
+          .run();
+
+        await env.DB.prepare(
+          `INSERT INTO consent_status
+             (phone_e164, status, source, source_detail, consented_at, created_at, updated_at)
+           VALUES (?1, 'opted_in', 'web_form', 'donate', datetime('now'), datetime('now'), datetime('now'))
+           ON CONFLICT(phone_e164) DO UPDATE SET
+             status='opted_in',
+             source='web_form',
+             source_detail='donate',
+             consented_at=COALESCE(consent_status.consented_at, datetime('now')),
+             updated_at=datetime('now')`
+        )
+          .bind(normalizePhoneNumber(phone))
           .run();
 
         return json(req, env, { ok: true });
@@ -811,7 +916,59 @@ export default {
           )
           .run();
 
+        await env.DB.prepare(
+          `INSERT INTO contacts (phone_e164, first_name, last_name, created_at, updated_at)
+           VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))
+           ON CONFLICT(phone_e164) DO UPDATE SET
+             first_name=COALESCE(excluded.first_name, contacts.first_name),
+             last_name=COALESCE(excluded.last_name, contacts.last_name),
+             updated_at=datetime('now')`
+        )
+          .bind(normalizePhoneNumber(phone), firstName, lastName)
+          .run();
+
+        if (consentSMS) {
+          await env.DB.prepare(
+            `INSERT INTO consent_status
+               (phone_e164, status, source, source_detail, consented_at, created_at, updated_at)
+             VALUES (?1, 'opted_in', 'web_form', 'pulse', datetime('now'), datetime('now'), datetime('now'))
+             ON CONFLICT(phone_e164) DO UPDATE SET
+               status='opted_in',
+               source='web_form',
+               source_detail='pulse',
+               consented_at=COALESCE(consent_status.consented_at, datetime('now')),
+               updated_at=datetime('now')`
+          )
+            .bind(normalizePhoneNumber(phone))
+            .run();
+        }
+
         return json(req, env, { ok: true });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/telnyx/can-send") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        if (!String(env.ADMIN_EXPORT_KEY || "").trim()) {
+          return json(req, env, { error: "Admin export key not configured" }, 503);
+        }
+        if (!isAdminAuthorized(req, env, url)) {
+          return json(req, env, { error: "Unauthorized" }, 401);
+        }
+
+        const phone = String(url.searchParams.get("phone") || "").trim();
+        const phoneE164 = normalizePhoneNumber(phone);
+        if (!phoneE164) {
+          return json(req, env, { error: "Valid phone query parameter required" }, 400);
+        }
+
+        const blocked = await isOutboundSendBlocked(env.DB, phoneE164);
+        return json(req, env, {
+          ok: true,
+          phone: phoneE164,
+          canSend: !blocked,
+          blocked,
+          // TODO(worker/src/index.js): call this guard from the future Telnyx send endpoint before any outbound API request.
+        });
       }
 
       // ------------- NEWSLETTER EMAIL SIGNUP -------------

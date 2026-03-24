@@ -1,3 +1,4 @@
+# worker/wrangler.toml
 name = "skovgard2026-api"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
@@ -12,6 +13,9 @@ TS_ALLOWED_HOSTNAMES = "localhost,127.0.0.1,skovgard2026.org,www.skovgard2026.or
 # Public media CDN for podcasts/audio assets
 MEDIA_BASE_URL = "https://media.skovgard2026.org"
 GCAL_PUBLIC_ICS_URL = "https://calendar.google.com/calendar/ical/38a0e5d50371ca9fd7f5c39451b12f3fcc571e8465dd8a8a092f0ca8ca587512%40group.calendar.google.com/public/basic.ics"
+TELNYX_WEBHOOK_TOLERANCE_SECONDS = "300"
+TELNYX_ALLOW_REACTIVATION = "0"
+TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS = "0"
 
 # ---------- Production environment ----------
 [env.production]
@@ -21,6 +25,9 @@ TS_ALLOWED_HOSTNAMES = "skovgard2026.org,www.skovgard2026.org"
 MEDIA_BASE_URL = "https://media.skovgard2026.org"
 STRIPE_PUBLISHABLE_KEY = "pk_live_51Son0YIfsL5VU7kUc0Ux82IBA80IuVchE5qJz4UIiJEOLTe06wKPuFRDiMZ4wvYgPinz0AGmrpnZ5EUuVm3sQAkK00Fohb6wLr"
 GCAL_PUBLIC_ICS_URL = "https://calendar.google.com/calendar/ical/38a0e5d50371ca9fd7f5c39451b12f3fcc571e8465dd8a8a092f0ca8ca587512%40group.calendar.google.com/public/basic.ics"
+TELNYX_WEBHOOK_TOLERANCE_SECONDS = "300"
+TELNYX_ALLOW_REACTIVATION = "0"
+TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS = "0"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -33,6 +40,9 @@ database_id   = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
 CORS_ORIGINS = "https://skovgard2026.pages.dev"
 TS_ALLOWED_HOSTNAMES = "skovgard2026.pages.dev"
 MEDIA_BASE_URL = "https://media.skovgard2026.org"
+TELNYX_WEBHOOK_TOLERANCE_SECONDS = "300"
+TELNYX_ALLOW_REACTIVATION = "0"
+TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS = "0"
 # Use test key in preview to prevent accidental live charges
 
 [[env.preview.d1_databases]]
