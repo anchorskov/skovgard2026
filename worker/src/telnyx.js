@@ -149,6 +149,84 @@ export async function sendSmsWithTelnyx({ apiKey, fromNumber, to, text }) {
   };
 }
 
+export async function maybeSendWelcomeText(db, env, phoneE164) {
+  const enabled = String(env.TEXTING_WELCOME_ENABLED || "0") === "1";
+  const welcomeText = String(env.TEXTING_WELCOME_TEXT || "").trim();
+  const apiKey = String(env.TELNYX_API_KEY || "").trim();
+  const fromNumber = String(env.TELNYX_FROM_NUMBER || "").trim();
+  const to = normalizePhoneNumber(phoneE164);
+
+  if (!enabled || !welcomeText || !apiKey || !fromNumber || !to) {
+    return { sent: false, reason: "disabled_or_missing_config" };
+  }
+
+  const row = await db.prepare(
+    `SELECT c.phone_e164, c.welcome_sent_at, cs.status
+       FROM contacts c
+       LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164
+      WHERE c.phone_e164 = ?1`
+  )
+    .bind(to)
+    .first();
+
+  if (!row) return { sent: false, reason: "contact_not_found" };
+  if (String(row.status || "").trim() !== "opted_in") {
+    return { sent: false, reason: "not_opted_in" };
+  }
+  if (row.welcome_sent_at) {
+    return { sent: false, reason: "already_sent" };
+  }
+
+  const telnyx = await sendSmsWithTelnyx({
+    apiKey,
+    fromNumber,
+    to,
+    text: welcomeText,
+  });
+
+  await db.prepare(
+    `UPDATE contacts
+        SET welcome_sent_at = datetime('now'),
+            updated_at = datetime('now')
+      WHERE phone_e164 = ?1`
+  )
+    .bind(to)
+    .run();
+
+  await db.prepare(
+    `INSERT INTO outbound_messages
+       (telnyx_message_id, phone_from, phone_to, text, status, created_at, updated_at, raw_json)
+     VALUES (?1, ?2, ?3, ?4, ?5, datetime('now'), datetime('now'), ?6)
+     ON CONFLICT(telnyx_message_id) DO UPDATE SET
+       phone_from=excluded.phone_from,
+       phone_to=excluded.phone_to,
+       text=excluded.text,
+       status=excluded.status,
+       updated_at=datetime('now'),
+       raw_json=excluded.raw_json`
+  )
+    .bind(
+      telnyx.providerId,
+      fromNumber,
+      to,
+      welcomeText,
+      telnyx.status,
+      JSON.stringify(telnyx.body || null)
+    )
+    .run();
+
+  await insertTextingAuditLog(db, {
+    action: "welcome_send",
+    targetPhone: to,
+    messageId: telnyx.providerId,
+    detailsJson: JSON.stringify({
+      status: telnyx.status,
+    }),
+  });
+
+  return { sent: true, providerId: telnyx.providerId, status: telnyx.status };
+}
+
 export async function logTelnyxEvent(db, event) {
   const {
     eventId = null,
@@ -368,6 +446,7 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
         consentedAt: occurredAt || new Date().toISOString(),
         lastInboundKeyword: keyword,
       });
+      await maybeSendWelcomeText(db, env, phoneFrom);
     } else if (HELP_KEYWORDS.has(keyword)) {
       await upsertConsentStatus(db, {
         phoneE164: phoneFrom,

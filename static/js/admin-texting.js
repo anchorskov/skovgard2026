@@ -20,12 +20,23 @@ const contactsEl = document.getElementById("admin-texting-contacts");
 const conversationEl = document.getElementById("admin-texting-conversation");
 const messagesSearchInput = document.getElementById("messages_search");
 const contactsSearchInput = document.getElementById("contacts_search");
+const contactsFilterInput = document.getElementById("contacts_filter");
+const suppressionEl = document.getElementById("admin-texting-suppression");
+const downloadContactsBtn = document.getElementById("download-texting-contacts");
+const downloadSuppressedBtn = document.getElementById("download-suppressed-contacts");
+const broadcastForm = document.getElementById("admin-texting-broadcast");
+const broadcastStatusEl = document.getElementById("broadcast-send-status");
+const broadcastPreviewBtn = document.getElementById("broadcast-preview");
+const broadcastPreviewBox = document.getElementById("broadcast-preview-box");
+const broadcastPreviewSummary = document.getElementById("broadcast-preview-summary");
+const broadcastPreviewList = document.getElementById("broadcast-preview-list");
 
 const STORAGE_KEY = "skovgard_admin_texting_key";
 const STORAGE_EMAIL = "skovgard_admin_texting_email";
 
 let selectedPhone = "";
 let previewReady = false;
+let broadcastPreviewReady = null;
 
 function setStatus(el, message, isError = false) {
   if (!el) return;
@@ -70,6 +81,22 @@ function badge(status) {
   return `<span class="status-badge status-${escapeHtml(s)}">${escapeHtml(s)}</span>`;
 }
 
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function parseFilename(disposition, fallback) {
+  const match = String(disposition || "").match(/filename="?([^"]+)"?/i);
+  return match ? match[1] : fallback;
+}
+
 async function api(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -100,6 +127,12 @@ function renderStatus(data) {
       <div class="meta">Last outbound: ${escapeHtml(formatTs(data.lastOutboundAt) || "none yet")}</div>
       <div class="meta">Last inbound: ${escapeHtml(formatTs(data.lastInboundAt) || "none yet")}</div>
       <div class="meta">Failed deliveries: ${escapeHtml(String(data.failedDeliveries ?? 0))}</div>
+    </article>
+    <article class="status-item">
+      <strong>Consent</strong>
+      <div class="meta">Opted in: ${escapeHtml(String(data.optedInCount ?? 0))}</div>
+      <div class="meta">Opted out: ${escapeHtml(String(data.optedOutCount ?? 0))}</div>
+      <div class="meta">New opt-ins (24h): ${escapeHtml(String(data.newOptIns24h ?? 0))}</div>
     </article>
     <article class="status-item">
       <strong>Secrets and Tables</strong>
@@ -143,6 +176,22 @@ function renderContacts(items) {
     : `<p class="empty">No contacts found.</p>`;
 }
 
+function renderSuppression(items) {
+  suppressionEl.innerHTML = items.length
+    ? items.map((item) => `
+        <article class="list-item">
+          <div class="row">
+            <strong>${escapeHtml(item.phone_e164)}</strong>
+            ${badge(item.status || "opted_out")}
+          </div>
+          <div class="meta">${escapeHtml(`${item.first_name || ""} ${item.last_name || ""}`.trim() || "Unnamed contact")}</div>
+          <div class="meta">Revoked: ${escapeHtml(formatTs(item.revoked_at) || "unknown")}</div>
+          <div class="meta">Keyword: ${escapeHtml(item.last_inbound_keyword || "none")}</div>
+        </article>
+      `).join("")
+    : `<p class="empty">No suppressed contacts found.</p>`;
+}
+
 function renderConversation(data) {
   const items = data?.items || [];
   const consent = data?.consent;
@@ -180,8 +229,14 @@ async function loadMessages() {
 
 async function loadContacts() {
   const q = encodeURIComponent(String(contactsSearchInput?.value || "").trim());
-  const data = await api(`/api/admin/texting/contacts?limit=50${q ? `&q=${q}` : ""}`);
+  const filter = encodeURIComponent(String(contactsFilterInput?.value || "all").trim());
+  const data = await api(`/api/admin/texting/contacts?limit=50&filter=${filter}${q ? `&q=${q}` : ""}`);
   renderContacts(data.items || []);
+}
+
+async function loadSuppression() {
+  const data = await api("/api/admin/texting/suppression?limit=25");
+  renderSuppression(data.items || []);
 }
 
 async function loadConversation(phone) {
@@ -198,6 +253,7 @@ async function refreshAll() {
     loadStatus(),
     loadMessages(),
     loadContacts(),
+    loadSuppression(),
     selectedPhone ? loadConversation(selectedPhone) : Promise.resolve(renderConversation({ phone: "", items: [] })),
   ]);
 }
@@ -216,7 +272,7 @@ async function connectPortal() {
     localStorage.setItem(STORAGE_EMAIL, getActorEmail());
     shellEl.hidden = false;
     setStatus(authStatusEl, "Portal loaded.");
-    await Promise.all([loadMessages(), loadContacts()]);
+    await Promise.all([loadMessages(), loadContacts(), loadSuppression()]);
     renderConversation({ phone: "", items: [] });
   } catch (error) {
     shellEl.hidden = true;
@@ -232,6 +288,34 @@ function updatePreview() {
   previewSummary.textContent = previewReady
     ? `Review send to ${to}: ${text}`
     : "";
+}
+
+function renderBroadcastPreview(data) {
+  const items = data?.previewRecipients || [];
+  broadcastPreviewReady = data;
+  broadcastPreviewBox.hidden = false;
+  broadcastPreviewSummary.textContent = `Audience size: ${data.count}. Batch ID: ${data.batchId}. Previewing first ${items.length} recipients.`;
+  broadcastPreviewList.innerHTML = items.length
+    ? items.map((item) => `
+        <div class="preview-list-item">
+          <strong>${escapeHtml(`${item.first_name || ""} ${item.last_name || ""}`.trim() || item.phone_e164)}</strong>
+          <div class="meta">${escapeHtml(item.phone_e164)}</div>
+        </div>
+      `).join("")
+    : `<p class="empty">No recipients match the selected audience.</p>`;
+}
+
+async function downloadCsv(path, fallbackName) {
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error || `Download failed (${response.status})`);
+  }
+  const blob = await response.blob();
+  const filename = parseFilename(response.headers.get("content-disposition"), fallbackName);
+  triggerDownload(blob, filename);
 }
 
 connectBtn?.addEventListener("click", () => {
@@ -301,11 +385,62 @@ sendForm?.addEventListener("submit", async (event) => {
   }
 });
 
+broadcastPreviewBtn?.addEventListener("click", async () => {
+  try {
+    const payload = {
+      filter: document.getElementById("broadcast_filter")?.value || "opted_in",
+      text: document.getElementById("broadcast_text")?.value.trim() || "",
+      limit: Number(document.getElementById("broadcast_limit")?.value || 100),
+      dry_run: true,
+    };
+    const data = await api("/api/admin/texting/send-batch", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    renderBroadcastPreview(data);
+    setStatus(broadcastStatusEl, "Broadcast preview generated.");
+  } catch (error) {
+    setStatus(broadcastStatusEl, error.message, true);
+  }
+});
+
+broadcastForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!broadcastPreviewReady) {
+    setStatus(broadcastStatusEl, "Run broadcast preview before sending.", true);
+    return;
+  }
+
+  try {
+    const payload = {
+      filter: document.getElementById("broadcast_filter")?.value || "opted_in",
+      text: document.getElementById("broadcast_text")?.value.trim() || "",
+      limit: Number(document.getElementById("broadcast_limit")?.value || 100),
+      dry_run: false,
+      confirmed: true,
+    };
+    const data = await api("/api/admin/texting/send-batch", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    setStatus(broadcastStatusEl, `Broadcast ${data.batchId} sent ${data.sentCount} messages with ${data.failedCount} failures.`);
+    broadcastPreviewReady = null;
+    broadcastPreviewBox.hidden = true;
+    await refreshAll();
+  } catch (error) {
+    setStatus(broadcastStatusEl, error.message, true);
+  }
+});
+
 messagesSearchInput?.addEventListener("change", () => {
   loadMessages().catch((error) => setStatus(authStatusEl, error.message, true));
 });
 
 contactsSearchInput?.addEventListener("change", () => {
+  loadContacts().catch((error) => setStatus(authStatusEl, error.message, true));
+});
+
+contactsFilterInput?.addEventListener("change", () => {
   loadContacts().catch((error) => setStatus(authStatusEl, error.message, true));
 });
 
@@ -320,3 +455,13 @@ const savedKey = localStorage.getItem(STORAGE_KEY);
 const savedEmail = localStorage.getItem(STORAGE_EMAIL);
 if (savedKey) keyInput.value = savedKey;
 if (savedEmail) actorEmailInput.value = savedEmail;
+
+downloadContactsBtn?.addEventListener("click", () => {
+  downloadCsv("/api/admin/texting/contacts.csv", "texting-contacts.csv")
+    .catch((error) => setStatus(authStatusEl, error.message, true));
+});
+
+downloadSuppressedBtn?.addEventListener("click", () => {
+  downloadCsv("/api/admin/texting/suppressed.csv", "texting-suppressed.csv")
+    .catch((error) => setStatus(authStatusEl, error.message, true));
+});

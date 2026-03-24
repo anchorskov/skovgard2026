@@ -16,6 +16,8 @@ GCAL_PUBLIC_ICS_URL = "https://calendar.google.com/calendar/ical/38a0e5d50371ca9
 TELNYX_WEBHOOK_TOLERANCE_SECONDS = "300"
 TELNYX_ALLOW_REACTIVATION = "0"
 TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS = "0"
+TEXTING_WELCOME_ENABLED = "0"
+TEXTING_WELCOME_TEXT = ""
 
 # ---------- Production environment ----------
 [env.production]
@@ -28,6 +30,8 @@ GCAL_PUBLIC_ICS_URL = "https://calendar.google.com/calendar/ical/38a0e5d50371ca9
 TELNYX_WEBHOOK_TOLERANCE_SECONDS = "300"
 TELNYX_ALLOW_REACTIVATION = "0"
 TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS = "0"
+TEXTING_WELCOME_ENABLED = "0"
+TEXTING_WELCOME_TEXT = ""
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -43,6 +47,8 @@ MEDIA_BASE_URL = "https://media.skovgard2026.org"
 TELNYX_WEBHOOK_TOLERANCE_SECONDS = "300"
 TELNYX_ALLOW_REACTIVATION = "0"
 TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS = "0"
+TEXTING_WELCOME_ENABLED = "0"
+TEXTING_WELCOME_TEXT = ""
 # Use test key in preview to prevent accidental live charges
 
 [[env.preview.d1_databases]]

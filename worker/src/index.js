@@ -3,6 +3,7 @@ import {
   isOutboundSendBlocked,
   insertTextingAuditLog,
   logTelnyxEvent,
+  maybeSendWelcomeText,
   normalizePhoneNumber,
   processTelnyxWebhookEvent,
   sendSmsWithTelnyx,
@@ -280,6 +281,72 @@ function csvResponse(req, env, filename, csv) {
 
 function normalizeMessageText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function positiveInt(value, fallback, max = 1000) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(Math.trunc(n), max);
+}
+
+function contactStatusWhereClause(filter, sinceHours = 24) {
+  switch (filter) {
+    case "opted_in":
+      return {
+        clause: "COALESCE(cs.status, 'unknown') = 'opted_in'",
+        bind: [],
+      };
+    case "opted_out":
+      return {
+        clause: "COALESCE(cs.status, 'unknown') = 'opted_out'",
+        bind: [],
+      };
+    case "pending":
+      return {
+        clause: "COALESCE(cs.status, 'unknown') = 'pending'",
+        bind: [],
+      };
+    case "unknown":
+      return {
+        clause: "COALESCE(cs.status, 'unknown') = 'unknown'",
+        bind: [],
+      };
+    case "new_opt_ins":
+      return {
+        clause: "COALESCE(cs.status, 'unknown') = 'opted_in' AND datetime(cs.consented_at) >= datetime('now', ?1)",
+        bind: [`-${sinceHours} hours`],
+      };
+    default:
+      return { clause: "1=1", bind: [] };
+  }
+}
+
+async function queryAudienceContacts(db, { filter = "opted_in", q = "", limit = 250, sinceHours = 24 } = {}) {
+  const normalizedFilter = String(filter || "opted_in").trim();
+  const statusFilter = contactStatusWhereClause(normalizedFilter, sinceHours);
+  const search = String(q || "").trim();
+  const binds = [];
+  let where = statusFilter.clause;
+
+  for (const value of statusFilter.bind) binds.push(value);
+
+  if (search) {
+    binds.push(`%${search}%`);
+    const idx = binds.length;
+    where += ` AND (c.phone_e164 LIKE ?${idx} OR c.first_name LIKE ?${idx} OR c.last_name LIKE ?${idx})`;
+  }
+
+  binds.push(limit);
+  const limitIdx = binds.length;
+
+  const sql = `SELECT c.phone_e164, c.first_name, c.last_name, c.tags, c.welcome_sent_at,
+                      cs.status, cs.source, cs.source_detail, cs.consented_at, cs.revoked_at, cs.last_inbound_keyword
+                 FROM contacts c
+                 LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164
+                WHERE ${where}
+                ORDER BY datetime(COALESCE(cs.updated_at, c.updated_at)) DESC
+                LIMIT ?${limitIdx}`;
+  return ((await db.prepare(sql).bind(...binds).all())?.results || []);
 }
 
 function mustBeAdmin(req, env, url) {
@@ -711,6 +778,8 @@ export default {
           .bind(normalizePhoneNumber(phone))
           .run();
 
+        await maybeSendWelcomeText(env.DB, env, phone);
+
         return json(req, env, { ok: true });
       }
 
@@ -977,6 +1046,8 @@ export default {
           )
             .bind(normalizePhoneNumber(phone))
             .run();
+
+          await maybeSendWelcomeText(env.DB, env, phone);
         }
 
         return json(req, env, { ok: true });
@@ -1017,6 +1088,18 @@ export default {
         const failedRow = await env.DB.prepare(
           `SELECT COUNT(*) AS n FROM outbound_messages WHERE status IN ('failed', 'delivery_failed')`
         ).first();
+        const optedInRow = await env.DB.prepare(
+          `SELECT COUNT(*) AS n FROM consent_status WHERE status = 'opted_in'`
+        ).first();
+        const optedOutRow = await env.DB.prepare(
+          `SELECT COUNT(*) AS n FROM consent_status WHERE status = 'opted_out'`
+        ).first();
+        const newOptInRow = await env.DB.prepare(
+          `SELECT COUNT(*) AS n
+             FROM consent_status
+            WHERE status = 'opted_in'
+              AND datetime(consented_at) >= datetime('now', '-24 hours')`
+        ).first();
 
         const internalUrl = new URL(req.url);
         internalUrl.pathname = "/api/admin/telnyx/status";
@@ -1033,6 +1116,9 @@ export default {
           lastOutboundAt: lastOutboundRow?.ts || null,
           lastInboundAt: lastInboundRow?.ts || null,
           failedDeliveries: Number(failedRow?.n || 0),
+          optedInCount: Number(optedInRow?.n || 0),
+          optedOutCount: Number(optedOutRow?.n || 0),
+          newOptIns24h: Number(newOptInRow?.n || 0),
           telnyx: telnyxStatus,
         });
       }
@@ -1085,24 +1171,29 @@ export default {
 
         const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 200);
         const q = String(url.searchParams.get("q") || "").trim();
-        const sql = q
-          ? `SELECT c.phone_e164, c.first_name, c.last_name, c.created_at, c.updated_at,
-                    cs.status, cs.last_inbound_keyword, cs.updated_at AS consent_updated_at
-               FROM contacts c
-               LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164
-              WHERE c.phone_e164 LIKE ?1 OR c.first_name LIKE ?1 OR c.last_name LIKE ?1
-              ORDER BY datetime(c.updated_at) DESC
-              LIMIT ?2`
-          : `SELECT c.phone_e164, c.first_name, c.last_name, c.created_at, c.updated_at,
-                    cs.status, cs.last_inbound_keyword, cs.updated_at AS consent_updated_at
-               FROM contacts c
-               LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164
-              ORDER BY datetime(c.updated_at) DESC
-              LIMIT ?1`;
+        const filter = String(url.searchParams.get("filter") || "all").trim();
+        const sinceHours = positiveInt(url.searchParams.get("since_hours"), 24, 24 * 30);
+        const results = await queryAudienceContacts(env.DB, {
+          filter,
+          q,
+          limit,
+          sinceHours,
+        });
 
-        const results = q
-          ? ((await env.DB.prepare(sql).bind(`%${q}%`, limit).all())?.results || [])
-          : ((await env.DB.prepare(sql).bind(limit).all())?.results || []);
+        return json(req, env, { ok: true, items: results });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/texting/suppression") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const limit = positiveInt(url.searchParams.get("limit"), 100, 500);
+        const results = await queryAudienceContacts(env.DB, {
+          filter: "opted_out",
+          q: String(url.searchParams.get("q") || "").trim(),
+          limit,
+        });
 
         return json(req, env, { ok: true, items: results });
       }
@@ -1260,6 +1351,185 @@ export default {
           });
           return json(req, env, { error: error.message, details: error.body || null }, error.status || 502);
         }
+      }
+
+      if (req.method === "POST" && path === "/api/admin/texting/send-batch") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        if (!String(env.TELNYX_API_KEY || "").trim()) {
+          return json(req, env, { error: "TELNYX_API_KEY not configured" }, 503);
+        }
+        if (!String(env.TELNYX_FROM_NUMBER || "").trim()) {
+          return json(req, env, { error: "TELNYX_FROM_NUMBER not configured" }, 503);
+        }
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const filter = String(body.filter || "opted_in").trim();
+        const text = normalizeMessageText(body.text);
+        const dryRun = body.dry_run !== false;
+        const confirmed = body.confirmed === true;
+        const limit = positiveInt(body.limit, 250, 250);
+        const sinceHours = positiveInt(body.since_hours, 24, 24 * 30);
+        const batchId = crypto.randomUUID();
+
+        if (!text) return json(req, env, { error: "Message text is required" }, 400);
+
+        const audience = await queryAudienceContacts(env.DB, {
+          filter,
+          q: "",
+          limit,
+          sinceHours,
+        });
+        const recipients = audience.filter((item) => String(item.status || "").trim() === "opted_in");
+        const previewRecipients = recipients.slice(0, 10).map((item) => ({
+          phone_e164: item.phone_e164,
+          first_name: item.first_name,
+          last_name: item.last_name,
+        }));
+
+        if (dryRun) {
+          await insertTextingAuditLog(env.DB, {
+            actorUserId: actor.actorUserId,
+            actorEmail: actor.actorEmail,
+            action: "broadcast_preview",
+            detailsJson: JSON.stringify({
+              batchId,
+              filter,
+              count: recipients.length,
+              limit,
+            }),
+          });
+          return json(req, env, {
+            ok: true,
+            dryRun: true,
+            batchId,
+            count: recipients.length,
+            previewRecipients,
+          });
+        }
+
+        if (!confirmed) {
+          return json(req, env, { error: "Broadcast execution requires confirmed=true" }, 400);
+        }
+
+        const sent = [];
+        const failed = [];
+        for (const recipient of recipients) {
+          try {
+            const telnyx = await sendSmsWithTelnyx({
+              apiKey: env.TELNYX_API_KEY,
+              fromNumber: String(env.TELNYX_FROM_NUMBER || "").trim(),
+              to: recipient.phone_e164,
+              text,
+            });
+
+            await env.DB.prepare(
+              `INSERT INTO outbound_messages
+                 (telnyx_message_id, phone_from, phone_to, text, status, created_at, updated_at, raw_json)
+               VALUES (?1, ?2, ?3, ?4, ?5, datetime('now'), datetime('now'), ?6)
+               ON CONFLICT(telnyx_message_id) DO UPDATE SET
+                 phone_from=excluded.phone_from,
+                 phone_to=excluded.phone_to,
+                 text=excluded.text,
+                 status=excluded.status,
+                 updated_at=datetime('now'),
+                 raw_json=excluded.raw_json`
+            )
+              .bind(
+                telnyx.providerId,
+                String(env.TELNYX_FROM_NUMBER || "").trim(),
+                recipient.phone_e164,
+                text,
+                telnyx.status,
+                JSON.stringify(telnyx.body || null)
+              )
+              .run();
+
+            sent.push({
+              phone: recipient.phone_e164,
+              providerId: telnyx.providerId,
+              status: telnyx.status,
+            });
+          } catch (error) {
+            failed.push({
+              phone: recipient.phone_e164,
+              error: error.message,
+            });
+          }
+        }
+
+        await insertTextingAuditLog(env.DB, {
+          actorUserId: actor.actorUserId,
+          actorEmail: actor.actorEmail,
+          action: "broadcast_execute",
+          detailsJson: JSON.stringify({
+            batchId,
+            filter,
+            sent,
+            failed,
+          }),
+        });
+
+        return json(req, env, {
+          ok: true,
+          batchId,
+          sentCount: sent.length,
+          failedCount: failed.length,
+          sent,
+          failed,
+        });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/texting/contacts.csv") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const results = await queryAudienceContacts(env.DB, {
+          filter: "all",
+          q: String(url.searchParams.get("q") || "").trim(),
+          limit: 10000,
+        });
+        const columns = [
+          "phone_e164",
+          "first_name",
+          "last_name",
+          "status",
+          "source",
+          "source_detail",
+          "consented_at",
+          "revoked_at",
+          "last_inbound_keyword",
+          "tags",
+          "welcome_sent_at",
+        ];
+        const date = new Date().toISOString().slice(0, 10);
+        return csvResponse(req, env, `texting-contacts-${date}.csv`, rowsToCsv(columns, results));
+      }
+
+      if (req.method === "GET" && path === "/api/admin/texting/suppressed.csv") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const results = await queryAudienceContacts(env.DB, {
+          filter: "opted_out",
+          q: String(url.searchParams.get("q") || "").trim(),
+          limit: 10000,
+        });
+        const columns = [
+          "phone_e164",
+          "first_name",
+          "last_name",
+          "status",
+          "source",
+          "revoked_at",
+          "last_inbound_keyword",
+        ];
+        const date = new Date().toISOString().slice(0, 10);
+        return csvResponse(req, env, `texting-suppressed-${date}.csv`, rowsToCsv(columns, results));
       }
 
       // ------------- NEWSLETTER EMAIL SIGNUP -------------

@@ -73,30 +73,95 @@ summary: "Operational texting portal."
     </section>
   </section>
 
-  <section class="admin-texting-grid">
+  <section class="admin-texting-grid admin-texting-grid-top">
     <section class="admin-card">
+      <h2>Broadcast Send</h2>
+      <form id="admin-texting-broadcast" class="optin-form" novalidate>
+        <div class="field-inline">
+          <div class="field">
+            <label for="broadcast_filter">Audience</label>
+            <select id="broadcast_filter" name="broadcast_filter">
+              <option value="opted_in">Opted in</option>
+              <option value="new_opt_ins">New opt-ins (24h)</option>
+              <option value="all">All contacts</option>
+              <option value="pending">Pending</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="broadcast_limit">Recipient cap</label>
+            <input id="broadcast_limit" name="broadcast_limit" type="number" min="1" max="250" value="100" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="broadcast_text">Broadcast message</label>
+          <textarea id="broadcast_text" name="broadcast_text" rows="4" placeholder="Write the broadcast message" required></textarea>
+        </div>
+        <div id="broadcast-preview-box" class="preview-box" hidden>
+          <h3>Broadcast Review</h3>
+          <p id="broadcast-preview-summary" class="help"></p>
+          <div id="broadcast-preview-list" class="list-stack"></div>
+        </div>
+        <div class="button-row">
+          <button type="button" id="broadcast-preview">Preview audience</button>
+          <button type="submit" id="broadcast-send-confirm">Send broadcast</button>
+        </div>
+        <p id="broadcast-send-status" class="help" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="admin-card">
+      <h2>Suppression</h2>
+      <div class="button-row">
+        <button type="button" id="download-texting-contacts">Export contacts CSV</button>
+        <button type="button" id="download-suppressed-contacts">Export suppressed CSV</button>
+      </div>
+      <div id="admin-texting-suppression" class="list-stack"></div>
+    </section>
+  </section>
+
+  <section class="admin-texting-stack">
+    <section class="admin-card admin-card-full">
       <div class="card-head">
-        <h2>Messages</h2>
+        <div>
+          <h2>Messages</h2>
+          <p class="help">Latest inbound and outbound message activity from the production database.</p>
+        </div>
         <input id="messages_search" type="search" placeholder="Search phone or text" />
       </div>
       <div id="admin-texting-messages" class="list-stack"></div>
     </section>
 
-    <section class="admin-card">
+    <section class="admin-card admin-card-full">
       <div class="card-head">
-        <h2>Contacts</h2>
-        <input id="contacts_search" type="search" placeholder="Search phone or name" />
+        <div>
+          <h2>Contacts</h2>
+          <p class="help">Search the operational contact list and select a contact to inspect history.</p>
+        </div>
+        <div class="card-controls">
+          <select id="contacts_filter">
+            <option value="all">All</option>
+            <option value="opted_in">Opted in</option>
+            <option value="opted_out">Opted out</option>
+            <option value="pending">Pending</option>
+            <option value="unknown">Unknown</option>
+            <option value="new_opt_ins">New opt-ins</option>
+          </select>
+          <input id="contacts_search" type="search" placeholder="Search phone or name" />
+        </div>
       </div>
       <div id="admin-texting-contacts" class="list-stack"></div>
     </section>
-  </section>
 
-  <section class="admin-card">
-    <div class="card-head">
-      <h2>Conversation</h2>
-      <p class="help">Select a contact to load recent inbound and outbound history.</p>
-    </div>
-    <div id="admin-texting-conversation" class="list-stack"></div>
+    <section class="admin-card admin-card-full">
+      <div class="card-head">
+        <div>
+          <h2>Conversation</h2>
+          <p class="help">Select a contact to load recent inbound and outbound history.</p>
+        </div>
+      </div>
+      <div id="admin-texting-conversation" class="list-stack"></div>
+    </section>
   </section>
 </section>
 
