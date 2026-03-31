@@ -180,15 +180,43 @@ main .preview-list-item {
   background: #fff;
 }
 
-main .button-row {
+#admin-texting-auth .button-row,
+.admin-texting-shell .button-row {
   display: flex;
   flex-wrap: wrap;
   gap: .75rem;
   align-items: center;
 }
 
-main .button-row button {
+#admin-texting-auth .button-row button,
+.admin-texting-shell .button-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin: 0;
+  min-height: 2.75rem;
+  padding: .6rem 1.1rem;
+  border: 1px solid #2563eb;
+  border-radius: .7rem;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+#admin-texting-auth .button-row button:hover,
+.admin-texting-shell .button-row button:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+#admin-texting-auth .button-row button:focus-visible,
+.admin-texting-shell .button-row button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
 main .status-badge {
@@ -227,8 +255,16 @@ main .status-unknown {
   color: #075985;
 }
 
-main .button-row .secondary {
-  background: #64748b !important;
+#admin-texting-auth .button-row .secondary,
+.admin-texting-shell .button-row .secondary {
+  background: #64748b;
+  border-color: #64748b;
+}
+
+#admin-texting-auth .button-row .secondary:hover,
+.admin-texting-shell .button-row .secondary:hover {
+  background: #475569;
+  border-color: #475569;
 }
 
 main .is-error {

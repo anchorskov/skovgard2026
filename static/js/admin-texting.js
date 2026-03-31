@@ -173,6 +173,23 @@ function formatCount(value) {
   return Number.isFinite(n) ? String(n) : "n/a";
 }
 
+function statusChip(label, tone = "unknown") {
+  return `<span class="status-badge status-${escapeHtml(tone)}">${escapeHtml(label)}</span>`;
+}
+
+function maskPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "unknown";
+  return `***${digits.slice(-4)}`;
+}
+
+function truncatePreview(value, maxLength = 72) {
+  const normalized = String(value || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(1, maxLength - 3)).trimEnd()}...`;
+}
+
 function renderEmptyMessage(el, message) {
   if (!el) return;
   el.innerHTML = `<p class="empty">${escapeHtml(message)}</p>`;
@@ -182,13 +199,18 @@ function renderStatusFallback(message) {
   if (!statusEl) return;
   statusEl.innerHTML = `
     <article class="status-item">
-      <strong>System Status</strong>
+      <div class="row">
+        <strong>Operational Status</strong>
+        ${statusChip("API offline", "failed")}
+      </div>
       <div class="meta">${escapeHtml(message || "Status data is unavailable right now.")}</div>
+      <div class="meta">Refresh the portal after your admin key and Cloudflare Access session are active.</div>
     </article>
     <article class="status-item">
-      <strong>Browser/API</strong>
-      <div class="meta">Origin: ${escapeHtml(window.location.origin)}</div>
-      <div class="meta">API base: ${escapeHtml(apiBaseForDisplay())}</div>
+      <div class="row">
+        <strong>Recent Activity</strong>
+        ${statusChip("Unknown", "unknown")}
+      </div>
       <div class="meta">Last response: ${escapeHtml(lastApiDiagnostic.kind)}</div>
       <div class="meta">Last status: ${escapeHtml(lastApiDiagnostic.status ?? "n/a")}</div>
       <div class="meta">${escapeHtml(lastApiDiagnostic.message)}</div>
@@ -279,46 +301,72 @@ async function api(path, options = {}) {
 function renderStatus(data) {
   const model = isRecord(data) ? data : {};
   const telnyx = isRecord(model.telnyx) ? model.telnyx : {};
-  const envPresent = isRecord(telnyx.envPresent) ? telnyx.envPresent : {};
-  const tables = isRecord(telnyx.tables) ? telnyx.tables : {};
-  const telnyxMessage = String(telnyx.error || "").trim();
+  const lastOutboundSummary = isRecord(model.lastOutboundSummary) ? model.lastOutboundSummary : null;
+  const lastInboundSummary = isRecord(model.lastInboundSummary) ? model.lastInboundSummary : null;
+  const sendPathIssues = Array.isArray(model.sendPathIssues)
+    ? model.sendPathIssues.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+  const apiOnline = model.ok !== false;
+  const sendPathReady = model.sendPathReady === true;
+  const webhookRouteLive = model.webhookRouteLive === true || telnyx.webhookRouteLive === true;
+  const lastWebhookAt = model.lastWebhookReceivedAt || telnyx.lastWebhookReceivedAt || null;
+  const lastInvalidSignatureAt = model.lastInvalidSignatureAt || telnyx.lastInvalidSignatureAt || null;
+  const healthTone = apiOnline && sendPathReady && webhookRouteLive && Number(model.failedDeliveries || 0) === 0
+    ? "delivered"
+    : "failed";
+  const sendIssueText = sendPathReady
+    ? "Outbound texting is configured and ready."
+    : sendPathIssues.slice(0, 2).join("; ") || "Send path details are unavailable.";
   statusEl.innerHTML = `
     <article class="status-item">
-      <strong>Webhook</strong>
-      <div class="meta">Live: ${formatFlag(telnyx.webhookRouteLive, "yes", "no")}</div>
-      <div class="meta">Last webhook: ${escapeHtml(formatTs(telnyx.lastWebhookReceivedAt) || "none yet")}</div>
-      <div class="meta">Last invalid signature: ${escapeHtml(formatTs(telnyx.lastInvalidSignatureAt) || "none yet")}</div>
-      ${telnyxMessage ? `<div class="meta">${escapeHtml(telnyxMessage)}</div>` : ""}
+      <div class="row">
+        <strong>Operational Status</strong>
+        ${statusChip(apiOnline ? "API online" : "API offline", apiOnline ? "delivered" : "failed")}
+      </div>
+      <div class="meta">Send path: ${sendPathReady ? "Ready" : "Needs attention"}</div>
+      <div class="meta">Webhook route: ${webhookRouteLive ? "Live" : "Not live"}</div>
+      <div class="meta">Last webhook: ${escapeHtml(formatTs(lastWebhookAt) || "No webhook received yet")}</div>
+      <div class="meta">Last invalid signature: ${escapeHtml(formatTs(lastInvalidSignatureAt) || "None recorded")}</div>
+      <div class="meta">${escapeHtml(sendIssueText)}</div>
     </article>
     <article class="status-item">
-      <strong>Outbound</strong>
+      <div class="row">
+        <strong>Recent Activity</strong>
+        ${statusChip(healthTone === "delivered" ? "Healthy" : "Needs review", healthTone)}
+      </div>
       <div class="meta">Last outbound: ${escapeHtml(formatTs(model.lastOutboundAt) || "none yet")}</div>
       <div class="meta">Last inbound: ${escapeHtml(formatTs(model.lastInboundAt) || "none yet")}</div>
+      <div class="meta">Last delivery update: ${escapeHtml(formatTs(model.lastDeliveryUpdateAt) || "No delivery webhook yet")}</div>
+      <div class="meta">Sent today: ${escapeHtml(formatCount(model.messagesSentToday))}</div>
       <div class="meta">Failed deliveries: ${escapeHtml(formatCount(model.failedDeliveries))}</div>
     </article>
     <article class="status-item">
-      <strong>Consent</strong>
+      <div class="row">
+        <strong>Latest Outbound</strong>
+        ${lastOutboundSummary ? badge(lastOutboundSummary.status || "unknown") : statusChip("No recent outbound", "unknown")}
+      </div>
+      <div class="meta">To: ${escapeHtml(lastOutboundSummary ? maskPhone(lastOutboundSummary.phone) : "No outbound text yet")}</div>
+      <div class="meta">Sent: ${escapeHtml(lastOutboundSummary ? formatTs(lastOutboundSummary.at) || "Unknown time" : "Send a test text to populate this summary.")}</div>
+      <div class="meta">${escapeHtml(lastOutboundSummary ? truncatePreview(lastOutboundSummary.text, 84) || "No preview text captured." : "Send a test text to populate this summary.")}</div>
+    </article>
+    <article class="status-item">
+      <div class="row">
+        <strong>Latest Inbound</strong>
+        ${lastInboundSummary ? badge(lastInboundSummary.status || "inbound") : statusChip("No recent inbound", "unknown")}
+      </div>
+      <div class="meta">From: ${escapeHtml(lastInboundSummary ? maskPhone(lastInboundSummary.phone) : "No inbound reply yet")}</div>
+      <div class="meta">Received: ${escapeHtml(lastInboundSummary ? formatTs(lastInboundSummary.at) || "Unknown time" : "Reply STOP, START, or HELP to populate this summary.")}</div>
+      <div class="meta">${escapeHtml(lastInboundSummary ? truncatePreview(lastInboundSummary.text, 84) || "No preview text captured." : "Reply STOP, START, or HELP to populate this summary.")}</div>
+    </article>
+    <article class="status-item">
+      <div class="row">
+        <strong>Consent Totals</strong>
+        ${statusChip("Audience", "accepted")}
+      </div>
       <div class="meta">Opted in: ${escapeHtml(formatCount(model.optedInCount))}</div>
       <div class="meta">Opted out: ${escapeHtml(formatCount(model.optedOutCount))}</div>
+      <div class="meta">Suppressed: ${escapeHtml(formatCount(model.suppressedCount))}</div>
       <div class="meta">New opt-ins (24h): ${escapeHtml(formatCount(model.newOptIns24h))}</div>
-    </article>
-    <article class="status-item">
-      <strong>Secrets and Tables</strong>
-      <div class="meta">Telnyx public key: ${formatFlag(envPresent.telnyxPublicKey, "present", "missing")}</div>
-      <div class="meta">Telnyx API key: ${formatFlag(envPresent.telnyxApiKey, "present", "missing")}</div>
-      <div class="meta">Telnyx from number: ${formatFlag(envPresent.telnyxFromNumber, "present", "missing")}</div>
-      <div class="meta">Audit log table: ${formatFlag(tables.texting_audit_log, "present", "missing")}</div>
-      ${!Object.keys(envPresent).length && !Object.keys(tables).length
-        ? `<div class="meta">Telnyx status details are unavailable.</div>`
-        : ""}
-    </article>
-    <article class="status-item">
-      <strong>Browser/API</strong>
-      <div class="meta">Origin: ${escapeHtml(window.location.origin)}</div>
-      <div class="meta">API base: ${escapeHtml(apiBaseForDisplay())}</div>
-      <div class="meta">Last response: ${escapeHtml(lastApiDiagnostic.kind)}</div>
-      <div class="meta">Last status: ${escapeHtml(lastApiDiagnostic.status ?? "n/a")}</div>
-      <div class="meta">${escapeHtml(lastApiDiagnostic.message)}</div>
     </article>
   `;
 }

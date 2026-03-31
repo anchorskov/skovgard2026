@@ -1125,27 +1125,69 @@ export default {
         const auth = mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
-        const lastOutboundRow = await env.DB.prepare(
-          `SELECT MAX(updated_at) AS ts FROM outbound_messages`
-        ).first();
-        const lastInboundRow = await env.DB.prepare(
-          `SELECT MAX(received_at) AS ts FROM inbound_messages`
-        ).first();
-        const failedRow = await env.DB.prepare(
-          `SELECT COUNT(*) AS n FROM outbound_messages WHERE status IN ('failed', 'delivery_failed')`
-        ).first();
-        const optedInRow = await env.DB.prepare(
-          `SELECT COUNT(*) AS n FROM consent_status WHERE status = 'opted_in'`
-        ).first();
-        const optedOutRow = await env.DB.prepare(
-          `SELECT COUNT(*) AS n FROM consent_status WHERE status = 'opted_out'`
-        ).first();
-        const newOptInRow = await env.DB.prepare(
-          `SELECT COUNT(*) AS n
-             FROM consent_status
-            WHERE status = 'opted_in'
-              AND datetime(consented_at) >= datetime('now', '-24 hours')`
-        ).first();
+        const [
+          lastOutboundRow,
+          lastInboundRow,
+          lastDeliveryUpdateRow,
+          failedRow,
+          sentTodayRow,
+          optedInRow,
+          optedOutRow,
+          suppressedRow,
+          newOptInRow,
+          lastOutboundSummaryRow,
+          lastInboundSummaryRow,
+        ] = await Promise.all([
+          env.DB.prepare(
+            `SELECT MAX(created_at) AS ts FROM outbound_messages`
+          ).first(),
+          env.DB.prepare(
+            `SELECT MAX(received_at) AS ts FROM inbound_messages`
+          ).first(),
+          env.DB.prepare(
+            `SELECT MAX(COALESCE(occurred_at, processed_at)) AS ts
+               FROM telnyx_events
+              WHERE event_type IN ('message.sent', 'message.delivered', 'message.finalized', 'message.delivery_failed')`
+          ).first(),
+          env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM outbound_messages WHERE status IN ('failed', 'delivery_failed')`
+          ).first(),
+          env.DB.prepare(
+            `SELECT COUNT(*) AS n
+               FROM outbound_messages
+              WHERE datetime(created_at) >= datetime('now', 'start of day')`
+          ).first(),
+          env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM consent_status WHERE status = 'opted_in'`
+          ).first(),
+          env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM consent_status WHERE status = 'opted_out'`
+          ).first(),
+          env.DB.prepare(
+            `SELECT COUNT(*) AS n
+               FROM contacts c
+               LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164
+              WHERE COALESCE(cs.status, 'unknown') = 'opted_out'`
+          ).first(),
+          env.DB.prepare(
+            `SELECT COUNT(*) AS n
+               FROM consent_status
+              WHERE status = 'opted_in'
+                AND datetime(consented_at) >= datetime('now', '-24 hours')`
+          ).first(),
+          env.DB.prepare(
+            `SELECT phone_to, text, status, created_at AS at, updated_at
+               FROM outbound_messages
+              ORDER BY datetime(created_at) DESC, id DESC
+              LIMIT 1`
+          ).first(),
+          env.DB.prepare(
+            `SELECT phone_from, text, direction AS status, received_at AS at
+               FROM inbound_messages
+              ORDER BY datetime(received_at) DESC, id DESC
+              LIMIT 1`
+          ).first(),
+        ]);
 
         const internalUrl = new URL(req.url);
         internalUrl.pathname = "/api/admin/telnyx/status";
@@ -1166,14 +1208,59 @@ export default {
           };
         }
 
+        const envPresent = telnyxStatus?.envPresent && typeof telnyxStatus.envPresent === "object"
+          ? telnyxStatus.envPresent
+          : {};
+        const tables = telnyxStatus?.tables && typeof telnyxStatus.tables === "object"
+          ? telnyxStatus.tables
+          : {};
+        const sendPathIssues = [];
+        if (telnyxStatus?.ok === false && telnyxStatus?.error) {
+          sendPathIssues.push(String(telnyxStatus.error));
+        }
+        if (!envPresent.telnyxApiKey) sendPathIssues.push("Telnyx API key missing");
+        if (!envPresent.telnyxFromNumber) sendPathIssues.push("Telnyx from number missing");
+        if (!envPresent.adminExportKey) sendPathIssues.push("Admin key missing");
+        if (!envPresent.d1) sendPathIssues.push("Database not configured");
+        if (tables.contacts === false) sendPathIssues.push("Contacts table missing");
+        if (tables.outbound_messages === false) sendPathIssues.push("Outbound message table missing");
+        if (tables.texting_audit_log === false) sendPathIssues.push("Texting audit log table missing");
+        const sendPathReady = sendPathIssues.length === 0;
+        const webhookRouteLive = telnyxStatus?.webhookRouteLive === true;
+
         return json(req, env, {
           ok: true,
           lastOutboundAt: lastOutboundRow?.ts || null,
           lastInboundAt: lastInboundRow?.ts || null,
+          lastDeliveryUpdateAt: lastDeliveryUpdateRow?.ts || null,
+          messagesSentToday: Number(sentTodayRow?.n || 0),
           failedDeliveries: Number(failedRow?.n || 0),
           optedInCount: Number(optedInRow?.n || 0),
           optedOutCount: Number(optedOutRow?.n || 0),
+          suppressedCount: Number(suppressedRow?.n || 0),
           newOptIns24h: Number(newOptInRow?.n || 0),
+          sendPathReady,
+          sendPathIssues,
+          webhookRouteLive,
+          lastWebhookReceivedAt: telnyxStatus?.lastWebhookReceivedAt || null,
+          lastInvalidSignatureAt: telnyxStatus?.lastInvalidSignatureAt || null,
+          lastOutboundSummary: lastOutboundSummaryRow
+            ? {
+                at: lastOutboundSummaryRow.at || null,
+                updatedAt: lastOutboundSummaryRow.updated_at || null,
+                status: lastOutboundSummaryRow.status || "unknown",
+                phone: lastOutboundSummaryRow.phone_to || null,
+                text: lastOutboundSummaryRow.text || "",
+              }
+            : null,
+          lastInboundSummary: lastInboundSummaryRow
+            ? {
+                at: lastInboundSummaryRow.at || null,
+                status: lastInboundSummaryRow.status || "inbound",
+                phone: lastInboundSummaryRow.phone_from || null,
+                text: lastInboundSummaryRow.text || "",
+              }
+            : null,
           telnyx: telnyxStatus,
         });
       }

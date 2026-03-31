@@ -34,7 +34,6 @@
 .list-item{display:list-item;}
 .hidden{display:none;}
 .max-w-3xl{max-width:48rem;}
-.table{display:table;}
 .-translate-x-1\/2{--un-translate-x:-50%;transform:translateX(var(--un-translate-x)) translateY(var(--un-translate-y)) translateZ(var(--un-translate-z)) rotate(var(--un-rotate)) rotateX(var(--un-rotate-x)) rotateY(var(--un-rotate-y)) rotateZ(var(--un-rotate-z)) skewX(var(--un-skew-x)) skewY(var(--un-skew-y)) scaleX(var(--un-scale-x)) scaleY(var(--un-scale-y)) scaleZ(var(--un-scale-z));}
 .resize{resize:both;}
 .rounded-lg{border-radius:0.5rem;}
