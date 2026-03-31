@@ -30,13 +30,18 @@ const broadcastPreviewBtn = document.getElementById("broadcast-preview");
 const broadcastPreviewBox = document.getElementById("broadcast-preview-box");
 const broadcastPreviewSummary = document.getElementById("broadcast-preview-summary");
 const broadcastPreviewList = document.getElementById("broadcast-preview-list");
+const sendToInput = document.getElementById("send_to");
+const sendTextInput = document.getElementById("send_text");
+const broadcastFilterSelect = document.getElementById("broadcast_filter");
+const broadcastLimitInput = document.getElementById("broadcast_limit");
+const broadcastTextInput = document.getElementById("broadcast_text");
 
 const STORAGE_KEY = "skovgard_admin_texting_key";
 const STORAGE_EMAIL = "skovgard_admin_texting_email";
 
 let selectedPhone = "";
-let previewReady = false;
-let broadcastPreviewReady = null;
+let singlePreviewState = null;
+let broadcastPreviewState = null;
 let lastApiDiagnostic = {
   kind: "idle",
   status: null,
@@ -47,6 +52,19 @@ function setStatus(el, message, isError = false) {
   if (!el) return;
   el.textContent = message;
   el.classList.toggle("is-error", isError);
+}
+
+function returnToAuth(message, { clearStoredKey = false } = {}) {
+  shellEl.hidden = true;
+  clearSinglePreview();
+  clearBroadcastPreview();
+  renderConversation({ phone: "", items: [] });
+  if (clearStoredKey) {
+    localStorage.removeItem(STORAGE_KEY);
+    keyInput.value = "";
+  }
+  setStatus(authStatusEl, message, true);
+  keyInput?.focus();
 }
 
 function getAdminKey() {
@@ -99,6 +117,11 @@ function makeFriendlyApiError() {
   }
 }
 
+function shouldReturnToAuth(error) {
+  const message = String(error?.message || "");
+  return lastApiDiagnostic.kind === "unauthorized" || /admin key/i.test(message);
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")
@@ -133,6 +156,34 @@ function triggerDownload(blob, filename) {
 function parseFilename(disposition, fallback) {
   const match = String(disposition || "").match(/filename="?([^"]+)"?/i);
   return match ? match[1] : fallback;
+}
+
+function clearSinglePreview() {
+  singlePreviewState = null;
+  previewBox.hidden = true;
+  previewSummary.textContent = "";
+}
+
+function clearBroadcastPreview() {
+  broadcastPreviewState = null;
+  broadcastPreviewBox.hidden = true;
+  broadcastPreviewSummary.textContent = "";
+  broadcastPreviewList.innerHTML = "";
+}
+
+function currentSinglePayload() {
+  return {
+    to: sendToInput?.value.trim() || "",
+    text: sendTextInput?.value.trim() || "",
+  };
+}
+
+function currentBroadcastPayload() {
+  return {
+    filter: broadcastFilterSelect?.value || "opted_in",
+    text: broadcastTextInput?.value.trim() || "",
+    limit: Number(broadcastLimitInput?.value || 100),
+  };
 }
 
 async function api(path, options = {}) {
@@ -343,8 +394,7 @@ async function refreshAll() {
 async function connectPortal() {
   const key = getAdminKey();
   if (!key) {
-    setStatus(authStatusEl, "Enter the admin key first.", true);
-    keyInput?.focus();
+    returnToAuth("Enter the admin key first.");
     return;
   }
 
@@ -357,24 +407,26 @@ async function connectPortal() {
     await Promise.all([loadMessages(), loadContacts(), loadSuppression()]);
     renderConversation({ phone: "", items: [] });
   } catch (error) {
-    shellEl.hidden = true;
-    setStatus(authStatusEl, error.message, true);
+    returnToAuth(error.message, { clearStoredKey: shouldReturnToAuth(error) });
   }
 }
 
 function updatePreview() {
-  const to = document.getElementById("send_to")?.value.trim() || "";
-  const text = document.getElementById("send_text")?.value.trim() || "";
-  previewReady = Boolean(to && text);
-  previewBox.hidden = !previewReady;
-  previewSummary.textContent = previewReady
+  const { to, text } = currentSinglePayload();
+  const ready = Boolean(to && text);
+  previewBox.hidden = !ready;
+  previewSummary.textContent = ready
     ? `Review send to ${to}: ${text}`
     : "";
+  return ready;
 }
 
 function renderBroadcastPreview(data) {
   const items = data?.previewRecipients || [];
-  broadcastPreviewReady = data;
+  broadcastPreviewState = {
+    token: data?.approval?.token || "",
+    issuedAt: data?.approval?.issuedAt || "",
+  };
   broadcastPreviewBox.hidden = false;
   broadcastPreviewSummary.textContent = `Audience size: ${data.count}. Batch ID: ${data.batchId}. Previewing first ${items.length} recipients.`;
   broadcastPreviewList.innerHTML = items.length
@@ -428,6 +480,8 @@ clearBtn?.addEventListener("click", () => {
   keyInput.value = "";
   actorEmailInput.value = "";
   shellEl.hidden = true;
+  clearSinglePreview();
+  clearBroadcastPreview();
   setStatus(authStatusEl, "Saved key cleared.");
 });
 
@@ -436,51 +490,63 @@ refreshBtn?.addEventListener("click", () => {
 });
 
 previewBtn?.addEventListener("click", async () => {
-  updatePreview();
-  if (!previewReady) {
+  if (!updatePreview()) {
     setStatus(sendStatusEl, "Enter a destination and message first.", true);
     return;
   }
   try {
     const payload = {
-      to: document.getElementById("send_to")?.value.trim(),
-      text: document.getElementById("send_text")?.value.trim(),
+      ...currentSinglePayload(),
       dry_run: true,
     };
     const data = await api("/api/admin/texting/send", {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    singlePreviewState = {
+      to: data?.preview?.to || "",
+      text: data?.preview?.text || "",
+      token: data?.approval?.token || "",
+      issuedAt: data?.approval?.issuedAt || "",
+    };
     previewBox.hidden = false;
     previewSummary.textContent = `Ready to send from ${data.preview.from} to ${data.preview.to}: ${data.preview.text}`;
     setStatus(sendStatusEl, "Preview generated. Review and click Send now to transmit.", false);
   } catch (error) {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
     setStatus(sendStatusEl, error.message, true);
   }
 });
 
 sendForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!previewReady) {
+  if (!singlePreviewState?.token || !singlePreviewState?.issuedAt) {
     setStatus(sendStatusEl, "Run Preview before sending.", true);
     return;
   }
 
   try {
     const payload = {
-      to: document.getElementById("send_to")?.value.trim(),
-      text: document.getElementById("send_text")?.value.trim(),
+      ...currentSinglePayload(),
+      preview_token: singlePreviewState.token,
+      preview_issued_at: singlePreviewState.issuedAt,
     };
     const data = await api("/api/admin/texting/send", {
       method: "POST",
       body: JSON.stringify(payload),
     });
     sendForm.reset();
-    previewBox.hidden = true;
-    previewReady = false;
+    clearSinglePreview();
     setStatus(sendStatusEl, `Message accepted by Telnyx as ${data.providerId}.`);
     await refreshAll();
   } catch (error) {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
     setStatus(sendStatusEl, error.message, true);
   }
 });
@@ -488,9 +554,7 @@ sendForm?.addEventListener("submit", async (event) => {
 broadcastPreviewBtn?.addEventListener("click", async () => {
   try {
     const payload = {
-      filter: document.getElementById("broadcast_filter")?.value || "opted_in",
-      text: document.getElementById("broadcast_text")?.value.trim() || "",
-      limit: Number(document.getElementById("broadcast_limit")?.value || 100),
+      ...currentBroadcastPayload(),
       dry_run: true,
     };
     const data = await api("/api/admin/texting/send-batch", {
@@ -500,34 +564,41 @@ broadcastPreviewBtn?.addEventListener("click", async () => {
     renderBroadcastPreview(data);
     setStatus(broadcastStatusEl, "Broadcast preview generated.");
   } catch (error) {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
     setStatus(broadcastStatusEl, error.message, true);
   }
 });
 
 broadcastForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!broadcastPreviewReady) {
+  if (!broadcastPreviewState?.token || !broadcastPreviewState?.issuedAt) {
     setStatus(broadcastStatusEl, "Run broadcast preview before sending.", true);
     return;
   }
 
   try {
     const payload = {
-      filter: document.getElementById("broadcast_filter")?.value || "opted_in",
-      text: document.getElementById("broadcast_text")?.value.trim() || "",
-      limit: Number(document.getElementById("broadcast_limit")?.value || 100),
+      ...currentBroadcastPayload(),
       dry_run: false,
       confirmed: true,
+      preview_token: broadcastPreviewState.token,
+      preview_issued_at: broadcastPreviewState.issuedAt,
     };
     const data = await api("/api/admin/texting/send-batch", {
       method: "POST",
       body: JSON.stringify(payload),
     });
     setStatus(broadcastStatusEl, `Broadcast ${data.batchId} sent ${data.sentCount} messages with ${data.failedCount} failures.`);
-    broadcastPreviewReady = null;
-    broadcastPreviewBox.hidden = true;
+    clearBroadcastPreview();
     await refreshAll();
   } catch (error) {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
     setStatus(broadcastStatusEl, error.message, true);
   }
 });
@@ -544,6 +615,28 @@ contactsFilterInput?.addEventListener("change", () => {
   loadContacts().catch((error) => setStatus(authStatusEl, error.message, true));
 });
 
+[sendToInput, sendTextInput].forEach((el) => {
+  el?.addEventListener("input", () => {
+    if (!singlePreviewState) return;
+    clearSinglePreview();
+    setStatus(sendStatusEl, "Preview cleared because the message changed. Run Preview again.", false);
+  });
+});
+
+[broadcastTextInput, broadcastLimitInput].forEach((el) => {
+  el?.addEventListener("input", () => {
+    if (!broadcastPreviewState) return;
+    clearBroadcastPreview();
+    setStatus(broadcastStatusEl, "Broadcast preview cleared because the audience or message changed.", false);
+  });
+});
+
+broadcastFilterSelect?.addEventListener("change", () => {
+  if (!broadcastPreviewState) return;
+  clearBroadcastPreview();
+  setStatus(broadcastStatusEl, "Broadcast preview cleared because the audience or message changed.", false);
+});
+
 contactsEl?.addEventListener("click", (event) => {
   const target = event.target.closest("[data-phone]");
   if (!target) return;
@@ -558,10 +651,22 @@ if (savedEmail) actorEmailInput.value = savedEmail;
 
 downloadContactsBtn?.addEventListener("click", () => {
   downloadCsv("/api/admin/texting/contacts.csv", "texting-contacts.csv")
-    .catch((error) => setStatus(authStatusEl, error.message, true));
+    .catch((error) => {
+      if (shouldReturnToAuth(error)) {
+        returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+        return;
+      }
+      setStatus(authStatusEl, error.message, true);
+    });
 });
 
 downloadSuppressedBtn?.addEventListener("click", () => {
   downloadCsv("/api/admin/texting/suppressed.csv", "texting-suppressed.csv")
-    .catch((error) => setStatus(authStatusEl, error.message, true));
+    .catch((error) => {
+      if (shouldReturnToAuth(error)) {
+        returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+        return;
+      }
+      setStatus(authStatusEl, error.message, true);
+    });
 });

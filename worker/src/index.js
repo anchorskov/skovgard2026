@@ -394,6 +394,47 @@ async function buildIdempotencyKey({ email, amountCents, address1, zip }) {
   return sha256Hex(seed);
 }
 
+const PREVIEW_TOKEN_TTL_MS = 15 * 60 * 1000;
+
+function normalizePreviewIssuedAt(value) {
+  const date = new Date(value || "");
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+function isPreviewExpired(issuedAt) {
+  const normalized = normalizePreviewIssuedAt(issuedAt);
+  if (!normalized) return true;
+  return Date.now() - Date.parse(normalized) > PREVIEW_TOKEN_TTL_MS;
+}
+
+function buildSingleSendPreviewSeed({ to, text }) {
+  return ["single_send", to, text].join("|");
+}
+
+function buildBatchSendPreviewSeed({
+  filter,
+  text,
+  limit,
+  sinceHours,
+  recipientCount,
+  recipientHash,
+}) {
+  return [
+    "batch_send",
+    filter,
+    String(limit),
+    String(sinceHours),
+    String(recipientCount),
+    recipientHash,
+    text,
+  ].join("|");
+}
+
+async function createPreviewApprovalToken(env, seed, issuedAt) {
+  const secret = String(env.ADMIN_EXPORT_KEY || "").trim();
+  return hmacSha256Hex(secret, `${seed}|${issuedAt}`);
+}
+
 async function createStripePaymentIntent(env, data, metadata = {}) {
   if (!env.STRIPE_SECRET_KEY) return { error: "Stripe not configured." };
   const { amountCents, email, address1, zip } = data;
@@ -1251,6 +1292,8 @@ export default {
         const to = normalizePhoneNumber(body.to || "");
         const text = normalizeMessageText(body.text);
         const dryRun = body.dry_run === true || body.preview === true;
+        const previewToken = String(body.preview_token || "").trim();
+        const previewIssuedAt = normalizePreviewIssuedAt(body.preview_issued_at);
 
         if (!to) return json(req, env, { error: "Valid E.164 destination required" }, 400);
         if (!text) return json(req, env, { error: "Message text is required" }, 400);
@@ -1269,6 +1312,12 @@ export default {
         }
 
         if (dryRun) {
+          const issuedAt = new Date().toISOString();
+          const approvalToken = await createPreviewApprovalToken(
+            env,
+            buildSingleSendPreviewSeed({ to, text }),
+            issuedAt
+          );
           await insertTextingAuditLog(env.DB, {
             actorUserId: actor.actorUserId,
             actorEmail: actor.actorEmail,
@@ -1284,7 +1333,28 @@ export default {
               from: String(env.TELNYX_FROM_NUMBER || "").trim(),
               text,
             },
+            approval: {
+              issuedAt,
+              token: approvalToken,
+              expiresAt: new Date(Date.now() + PREVIEW_TOKEN_TTL_MS).toISOString(),
+            },
           });
+        }
+
+        if (!previewToken || !previewIssuedAt) {
+          return json(req, env, { error: "Run Preview again before sending." }, 400);
+        }
+        if (isPreviewExpired(previewIssuedAt)) {
+          return json(req, env, { error: "Preview expired. Run Preview again." }, 409);
+        }
+
+        const expectedPreviewToken = await createPreviewApprovalToken(
+          env,
+          buildSingleSendPreviewSeed({ to, text }),
+          previewIssuedAt
+        );
+        if (!timingSafeEqual(previewToken, expectedPreviewToken)) {
+          return json(req, env, { error: "Preview no longer matches this message. Run Preview again." }, 409);
         }
 
         try {
@@ -1378,6 +1448,8 @@ export default {
         const limit = positiveInt(body.limit, 250, 250);
         const sinceHours = positiveInt(body.since_hours, 24, 24 * 30);
         const batchId = crypto.randomUUID();
+        const previewToken = String(body.preview_token || "").trim();
+        const previewIssuedAt = normalizePreviewIssuedAt(body.preview_issued_at);
 
         if (!text) return json(req, env, { error: "Message text is required" }, 400);
 
@@ -1388,6 +1460,7 @@ export default {
           sinceHours,
         });
         const recipients = audience.filter((item) => String(item.status || "").trim() === "opted_in");
+        const recipientHash = await sha256Hex(recipients.map((item) => item.phone_e164).join(","));
         const previewRecipients = recipients.slice(0, 10).map((item) => ({
           phone_e164: item.phone_e164,
           first_name: item.first_name,
@@ -1395,6 +1468,19 @@ export default {
         }));
 
         if (dryRun) {
+          const issuedAt = new Date().toISOString();
+          const approvalToken = await createPreviewApprovalToken(
+            env,
+            buildBatchSendPreviewSeed({
+              filter,
+              text,
+              limit,
+              sinceHours,
+              recipientCount: recipients.length,
+              recipientHash,
+            }),
+            issuedAt
+          );
           await insertTextingAuditLog(env.DB, {
             actorUserId: actor.actorUserId,
             actorEmail: actor.actorEmail,
@@ -1412,11 +1498,38 @@ export default {
             batchId,
             count: recipients.length,
             previewRecipients,
+            approval: {
+              issuedAt,
+              token: approvalToken,
+              expiresAt: new Date(Date.now() + PREVIEW_TOKEN_TTL_MS).toISOString(),
+            },
           });
         }
 
         if (!confirmed) {
           return json(req, env, { error: "Broadcast execution requires confirmed=true" }, 400);
+        }
+        if (!previewToken || !previewIssuedAt) {
+          return json(req, env, { error: "Run broadcast preview again before sending." }, 400);
+        }
+        if (isPreviewExpired(previewIssuedAt)) {
+          return json(req, env, { error: "Broadcast preview expired. Run Preview again." }, 409);
+        }
+
+        const expectedPreviewToken = await createPreviewApprovalToken(
+          env,
+          buildBatchSendPreviewSeed({
+            filter,
+            text,
+            limit,
+            sinceHours,
+            recipientCount: recipients.length,
+            recipientHash,
+          }),
+          previewIssuedAt
+        );
+        if (!timingSafeEqual(previewToken, expectedPreviewToken)) {
+          return json(req, env, { error: "Broadcast preview no longer matches this audience or message. Run Preview again." }, 409);
         }
 
         const sent = [];
