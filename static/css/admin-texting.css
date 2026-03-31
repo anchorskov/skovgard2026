@@ -27,6 +27,42 @@ main .admin-texting-hero {
   padding: 1.25rem 1.5rem;
 }
 
+main .admin-texting-actions {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  align-items: flex-start;
+  margin-left: auto;
+}
+
+main #admin-texting-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: .7rem 1rem;
+  border: 1px solid #2563eb;
+  border-radius: .7rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.08);
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;
+}
+
+main #admin-texting-refresh:hover {
+  background: #dbeafe;
+  border-color: #1d4ed8;
+}
+
+main #admin-texting-refresh:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
 main .admin-texting-hero > *,
 main .admin-texting-grid > *,
 main .card-head > *,
@@ -224,5 +260,10 @@ main .is-error {
   main .admin-card,
   main .admin-texting-hero {
     padding: 1rem;
+  }
+
+  main .admin-texting-actions {
+    margin-left: 0;
+    justify-content: flex-start;
   }
 }

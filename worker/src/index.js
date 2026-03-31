@@ -1149,13 +1149,22 @@ export default {
 
         const internalUrl = new URL(req.url);
         internalUrl.pathname = "/api/admin/telnyx/status";
-        internalUrl.search = "";
+        internalUrl.search = url.search;
         const statusReq = new Request(internalUrl.toString(), {
           method: "GET",
           headers: req.headers,
         });
         const telnyxStatusResp = await this.fetch(statusReq, env, ctx);
-        const telnyxStatus = await telnyxStatusResp.json().catch(() => ({}));
+        let telnyxStatus = await telnyxStatusResp.json().catch(() => null);
+        if (!telnyxStatus || typeof telnyxStatus !== "object") {
+          telnyxStatus = {};
+        }
+        if (!telnyxStatusResp.ok) {
+          telnyxStatus = {
+            ok: false,
+            error: telnyxStatus.error || `Telnyx status request failed (${telnyxStatusResp.status})`,
+          };
+        }
 
         return json(req, env, {
           ok: true,

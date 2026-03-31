@@ -63,6 +63,7 @@ bank_statements/
 downloads/
 
 # Local assistant/process artifacts
+.codex
 agents.md
 how_to_mp4.md
 proj_review_*.txt

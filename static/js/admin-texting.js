@@ -158,6 +158,44 @@ function parseFilename(disposition, fallback) {
   return match ? match[1] : fallback;
 }
 
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function formatFlag(value, whenTrue, whenFalse, fallback = "unknown") {
+  if (value === true) return whenTrue;
+  if (value === false) return whenFalse;
+  return fallback;
+}
+
+function formatCount(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? String(n) : "n/a";
+}
+
+function renderEmptyMessage(el, message) {
+  if (!el) return;
+  el.innerHTML = `<p class="empty">${escapeHtml(message)}</p>`;
+}
+
+function renderStatusFallback(message) {
+  if (!statusEl) return;
+  statusEl.innerHTML = `
+    <article class="status-item">
+      <strong>System Status</strong>
+      <div class="meta">${escapeHtml(message || "Status data is unavailable right now.")}</div>
+    </article>
+    <article class="status-item">
+      <strong>Browser/API</strong>
+      <div class="meta">Origin: ${escapeHtml(window.location.origin)}</div>
+      <div class="meta">API base: ${escapeHtml(apiBaseForDisplay())}</div>
+      <div class="meta">Last response: ${escapeHtml(lastApiDiagnostic.kind)}</div>
+      <div class="meta">Last status: ${escapeHtml(lastApiDiagnostic.status ?? "n/a")}</div>
+      <div class="meta">${escapeHtml(lastApiDiagnostic.message)}</div>
+    </article>
+  `;
+}
+
 function clearSinglePreview() {
   singlePreviewState = null;
   previewBox.hidden = true;
@@ -239,32 +277,40 @@ async function api(path, options = {}) {
 }
 
 function renderStatus(data) {
-  const telnyx = data?.telnyx || {};
+  const model = isRecord(data) ? data : {};
+  const telnyx = isRecord(model.telnyx) ? model.telnyx : {};
+  const envPresent = isRecord(telnyx.envPresent) ? telnyx.envPresent : {};
+  const tables = isRecord(telnyx.tables) ? telnyx.tables : {};
+  const telnyxMessage = String(telnyx.error || "").trim();
   statusEl.innerHTML = `
     <article class="status-item">
       <strong>Webhook</strong>
-      <div class="meta">Live: ${telnyx.webhookRouteLive ? "yes" : "no"}</div>
+      <div class="meta">Live: ${formatFlag(telnyx.webhookRouteLive, "yes", "no")}</div>
       <div class="meta">Last webhook: ${escapeHtml(formatTs(telnyx.lastWebhookReceivedAt) || "none yet")}</div>
       <div class="meta">Last invalid signature: ${escapeHtml(formatTs(telnyx.lastInvalidSignatureAt) || "none yet")}</div>
+      ${telnyxMessage ? `<div class="meta">${escapeHtml(telnyxMessage)}</div>` : ""}
     </article>
     <article class="status-item">
       <strong>Outbound</strong>
-      <div class="meta">Last outbound: ${escapeHtml(formatTs(data.lastOutboundAt) || "none yet")}</div>
-      <div class="meta">Last inbound: ${escapeHtml(formatTs(data.lastInboundAt) || "none yet")}</div>
-      <div class="meta">Failed deliveries: ${escapeHtml(String(data.failedDeliveries ?? 0))}</div>
+      <div class="meta">Last outbound: ${escapeHtml(formatTs(model.lastOutboundAt) || "none yet")}</div>
+      <div class="meta">Last inbound: ${escapeHtml(formatTs(model.lastInboundAt) || "none yet")}</div>
+      <div class="meta">Failed deliveries: ${escapeHtml(formatCount(model.failedDeliveries))}</div>
     </article>
     <article class="status-item">
       <strong>Consent</strong>
-      <div class="meta">Opted in: ${escapeHtml(String(data.optedInCount ?? 0))}</div>
-      <div class="meta">Opted out: ${escapeHtml(String(data.optedOutCount ?? 0))}</div>
-      <div class="meta">New opt-ins (24h): ${escapeHtml(String(data.newOptIns24h ?? 0))}</div>
+      <div class="meta">Opted in: ${escapeHtml(formatCount(model.optedInCount))}</div>
+      <div class="meta">Opted out: ${escapeHtml(formatCount(model.optedOutCount))}</div>
+      <div class="meta">New opt-ins (24h): ${escapeHtml(formatCount(model.newOptIns24h))}</div>
     </article>
     <article class="status-item">
       <strong>Secrets and Tables</strong>
-      <div class="meta">Telnyx public key: ${telnyx.envPresent?.telnyxPublicKey ? "present" : "missing"}</div>
-      <div class="meta">Telnyx API key: ${telnyx.envPresent?.telnyxApiKey ? "present" : "missing"}</div>
-      <div class="meta">Telnyx from number: ${telnyx.envPresent?.telnyxFromNumber ? "present" : "missing"}</div>
-      <div class="meta">Audit log table: ${telnyx.tables?.texting_audit_log ? "present" : "missing"}</div>
+      <div class="meta">Telnyx public key: ${formatFlag(envPresent.telnyxPublicKey, "present", "missing")}</div>
+      <div class="meta">Telnyx API key: ${formatFlag(envPresent.telnyxApiKey, "present", "missing")}</div>
+      <div class="meta">Telnyx from number: ${formatFlag(envPresent.telnyxFromNumber, "present", "missing")}</div>
+      <div class="meta">Audit log table: ${formatFlag(tables.texting_audit_log, "present", "missing")}</div>
+      ${!Object.keys(envPresent).length && !Object.keys(tables).length
+        ? `<div class="meta">Telnyx status details are unavailable.</div>`
+        : ""}
     </article>
     <article class="status-item">
       <strong>Browser/API</strong>
@@ -278,8 +324,9 @@ function renderStatus(data) {
 }
 
 function renderMessages(items) {
-  messagesEl.innerHTML = items.length
-    ? items.map((item) => `
+  const rows = Array.isArray(items) ? items : [];
+  messagesEl.innerHTML = rows.length
+    ? rows.map((item) => `
         <article class="list-item">
           <div class="row">
             <strong>${escapeHtml(item.direction)}</strong>
@@ -295,8 +342,9 @@ function renderMessages(items) {
 }
 
 function renderContacts(items) {
-  contactsEl.innerHTML = items.length
-    ? items.map((item) => `
+  const rows = Array.isArray(items) ? items : [];
+  contactsEl.innerHTML = rows.length
+    ? rows.map((item) => `
         <button type="button" class="list-item contact-item" data-phone="${escapeHtml(item.phone_e164)}">
           <div class="row">
             <strong>${escapeHtml(`${item.first_name || ""} ${item.last_name || ""}`.trim() || item.phone_e164)}</strong>
@@ -310,8 +358,9 @@ function renderContacts(items) {
 }
 
 function renderSuppression(items) {
-  suppressionEl.innerHTML = items.length
-    ? items.map((item) => `
+  const rows = Array.isArray(items) ? items : [];
+  suppressionEl.innerHTML = rows.length
+    ? rows.map((item) => `
         <article class="list-item">
           <div class="row">
             <strong>${escapeHtml(item.phone_e164)}</strong>
@@ -326,11 +375,12 @@ function renderSuppression(items) {
 }
 
 function renderConversation(data) {
-  const items = data?.items || [];
-  const consent = data?.consent;
+  const model = isRecord(data) ? data : {};
+  const items = Array.isArray(model.items) ? model.items : [];
+  const consent = isRecord(model.consent) ? model.consent : null;
   conversationEl.innerHTML = `
     <div class="conversation-summary">
-      <strong>${escapeHtml(data?.phone || "No contact selected")}</strong>
+      <strong>${escapeHtml(model.phone || "No contact selected")}</strong>
       <div class="meta">Consent: ${consent ? escapeHtml(consent.status || "unknown") : "unknown"}</div>
       <div class="meta">Last keyword: ${escapeHtml(consent?.last_inbound_keyword || "none")}</div>
     </div>
@@ -381,14 +431,78 @@ async function loadConversation(phone) {
   renderConversation(data);
 }
 
-async function refreshAll() {
-  await Promise.all([
-    loadStatus(),
-    loadMessages(),
-    loadContacts(),
-    loadSuppression(),
-    selectedPhone ? loadConversation(selectedPhone) : Promise.resolve(renderConversation({ phone: "", items: [] })),
-  ]);
+async function loadSection(name, loader, onError, failures) {
+  try {
+    await loader();
+  } catch (error) {
+    if (shouldReturnToAuth(error)) throw error;
+    onError(error);
+    failures.push(`${name}: ${error.message}`);
+  }
+}
+
+async function refreshAll({ includeStatus = true, announceSuccess = false } = {}) {
+  const failures = [];
+  const tasks = [
+    loadSection(
+      "Messages",
+      () => loadMessages(),
+      (error) => renderEmptyMessage(messagesEl, `Unable to load messages. ${error.message}`),
+      failures
+    ),
+    loadSection(
+      "Contacts",
+      () => loadContacts(),
+      (error) => renderEmptyMessage(contactsEl, `Unable to load contacts. ${error.message}`),
+      failures
+    ),
+    loadSection(
+      "Suppression",
+      () => loadSuppression(),
+      (error) => renderEmptyMessage(suppressionEl, `Unable to load suppression list. ${error.message}`),
+      failures
+    ),
+  ];
+
+  if (includeStatus) {
+    tasks.unshift(
+      loadSection(
+        "System Status",
+        () => loadStatus(),
+        (error) => renderStatusFallback(`Unable to load system status. ${error.message}`),
+        failures
+      )
+    );
+  }
+
+  if (selectedPhone) {
+    tasks.push(
+      loadSection(
+        "Conversation",
+        () => loadConversation(selectedPhone),
+        (error) => renderEmptyMessage(conversationEl, `Unable to load conversation. ${error.message}`),
+        failures
+      )
+    );
+  } else {
+    renderConversation({ phone: "", items: [] });
+  }
+
+  await Promise.all(tasks);
+
+  if (failures.length) {
+    const summary = failures.length === 1
+      ? failures[0]
+      : `${failures.length} sections had issues. ${failures[0]}`;
+    setStatus(authStatusEl, `Portal refreshed with warnings. ${summary}`, true);
+    return failures;
+  }
+
+  if (announceSuccess) {
+    setStatus(authStatusEl, "Portal refreshed.");
+  }
+
+  return failures;
 }
 
 async function connectPortal() {
@@ -403,9 +517,11 @@ async function connectPortal() {
     localStorage.setItem(STORAGE_KEY, key);
     localStorage.setItem(STORAGE_EMAIL, getActorEmail());
     shellEl.hidden = false;
-    setStatus(authStatusEl, "Portal loaded.");
-    await Promise.all([loadMessages(), loadContacts(), loadSuppression()]);
     renderConversation({ phone: "", items: [] });
+    const failures = await refreshAll({ includeStatus: false });
+    if (!failures.length) {
+      setStatus(authStatusEl, "Portal loaded.");
+    }
   } catch (error) {
     returnToAuth(error.message, { clearStoredKey: shouldReturnToAuth(error) });
   }
@@ -486,7 +602,13 @@ clearBtn?.addEventListener("click", () => {
 });
 
 refreshBtn?.addEventListener("click", () => {
-  refreshAll().catch((error) => setStatus(authStatusEl, error.message, true));
+  refreshAll({ announceSuccess: true }).catch((error) => {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
+    setStatus(authStatusEl, error.message, true);
+  });
 });
 
 previewBtn?.addEventListener("click", async () => {
@@ -648,6 +770,15 @@ const savedKey = localStorage.getItem(STORAGE_KEY);
 const savedEmail = localStorage.getItem(STORAGE_EMAIL);
 if (savedKey) keyInput.value = savedKey;
 if (savedEmail) actorEmailInput.value = savedEmail;
+if (savedKey) {
+  connectPortal().catch((error) => {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
+    setStatus(authStatusEl, error.message, true);
+  });
+}
 
 downloadContactsBtn?.addEventListener("click", () => {
   downloadCsv("/api/admin/texting/contacts.csv", "texting-contacts.csv")
