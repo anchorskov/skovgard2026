@@ -25,6 +25,7 @@ main .optin-form .help {
 
 /* inputs */
 main .optin-form input[type="text"],
+main .optin-form input[type="password"],
 main .optin-form input[type="email"],
 main .optin-form input[type="tel"],
 main .optin-form select,
@@ -78,6 +79,7 @@ main .optin-form .optin-error{
 /* dark mode support */
 @media (prefers-color-scheme: dark){
   main .optin-form input[type="text"],
+  main .optin-form input[type="password"],
   main .optin-form input[type="email"],
   main .optin-form input[type="tel"],
   main .optin-form select,
