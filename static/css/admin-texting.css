@@ -33,6 +33,7 @@ main .admin-texting-actions {
   justify-content: flex-end;
   align-items: flex-start;
   margin-left: auto;
+  min-width: max-content;
 }
 
 main #admin-texting-refresh {
