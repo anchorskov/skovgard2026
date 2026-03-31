@@ -26,8 +26,8 @@ DATA="${DATA:-$DATA_ROOT/data}"
 MANIFEST="$ROOT/worker/package.json"
 LOCKFILE="$ROOT/worker/package-lock.json"
 DB="$DATA/pulse_local.sqlite"
-SQL="$OUT/${STAMP}-sms_optins.sql"
-CSV="$OUT/${STAMP}-sms_optins.csv"
+SQL="$OUT/${STAMP}-consent_status.sql"
+CSV="$OUT/${STAMP}-pulse-optins.csv"
 
 # Optional: set WRANGLER_ENV=production (or preview) in your shell to select an env
 WRANGLER_ENV="${WRANGLER_ENV:-}"
@@ -35,7 +35,7 @@ WRANGLER="${WRANGLER:-$ROOT/worker/node_modules/.bin/wrangler}"
 
 mkdir -p "$OUT" "$DATA"
 
-echo "[1/3] Exporting D1 sms_optins to SQL..."
+echo "[1/3] Exporting D1 consent_status to SQL..."
 cd "$ROOT/worker"
 
 if [[ ! -x "$WRANGLER" ]]; then
@@ -60,9 +60,9 @@ if [[ "$MODE" == "check" ]]; then
 fi
 
 if [[ -n "$WRANGLER_ENV" ]]; then
-  "$WRANGLER" d1 export ballot_sources --remote -e "$WRANGLER_ENV" --table=sms_optins --output "$SQL"
+  "$WRANGLER" d1 export ballot_sources --remote -e "$WRANGLER_ENV" --table=consent_status --output "$SQL"
 else
-  "$WRANGLER" d1 export ballot_sources --remote --table=sms_optins --output "$SQL"
+  "$WRANGLER" d1 export ballot_sources --remote --table=consent_status --output "$SQL"
 fi
 
 echo "[2/3] Rebuilding local SQLite..."
@@ -72,9 +72,45 @@ sqlite3 "$TMP" < "$SQL"
 mv -f "$TMP" "$DB"
 
 echo "[3/3] Emitting CSV snapshot..."
-sqlite3 -header -csv "$DB" "SELECT * FROM sms_optins;" > "$CSV"
+sqlite3 -header -csv "$DB" "
+SELECT
+  id,
+  COALESCE(first_name, '') AS first_name,
+  COALESCE(last_name, '') AS last_name,
+  TRIM(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) AS name,
+  CASE
+    WHEN phone_e164 LIKE '+1%' AND LENGTH(phone_e164) = 12 THEN SUBSTR(phone_e164, 3)
+    WHEN phone_e164 LIKE '+%' THEN SUBSTR(phone_e164, 2)
+    ELSE phone_e164
+  END AS phone,
+  COALESCE(email, '') AS email,
+  CASE
+    WHEN status = 'opted_in' THEN 1
+    WHEN status = 'opted_out' THEN 0
+    WHEN consented_at IS NOT NULL AND (revoked_at IS NULL OR consented_at >= revoked_at) THEN 1
+    ELSE 0
+  END AS consent,
+  COALESCE(consent_email, 0) AS consent_email,
+  COALESCE(wy_voter, 0) AS wy_voter,
+  COALESCE(county, '') AS county,
+  COALESCE(zip, '') AS zip,
+  COALESCE(consent_version, '') AS consent_version,
+  CASE
+    WHEN consent_version LIKE 'inbound-sms-%' THEN 'skovgard2026:inbound_sms'
+    WHEN COALESCE(wy_voter, 0) = 1 OR county IS NOT NULL OR zip IS NOT NULL THEN 'skovgard2026:pulse'
+    WHEN consent_version LIKE 'donate-%' THEN 'skovgard2026:donate'
+    WHEN source = 'web_form' AND source_detail = 'pulse' THEN 'skovgard2026:pulse'
+    WHEN source = 'web_form' AND source_detail = 'donate' THEN 'skovgard2026:donate'
+    WHEN source = 'inbound_sms' THEN 'skovgard2026:inbound_sms'
+    ELSE COALESCE(NULLIF(source_detail, ''), source)
+  END AS source,
+  created_at
+FROM consent_status
+WHERE consent_version IS NOT NULL
+ORDER BY datetime(COALESCE(consented_at, created_at)) DESC, id DESC;
+" > "$CSV"
 
-ROWS=$(sqlite3 "$DB" "SELECT COUNT(*) FROM sms_optins;")
+ROWS=$(sqlite3 "$DB" "SELECT COUNT(*) FROM consent_status WHERE consent_version IS NOT NULL;")
 
 echo "Done."
 echo "Local DB: $DB"

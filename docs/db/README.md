@@ -1,97 +1,136 @@
-# Skovgard2026 Database: Master Index
+# Skovgard2026 Database Notes
 
-Purpose: document our data model, its sources, and how data flows through the project.  
-Source of truth: Cloudflare D1 in production, with a local-only SQLite mirror for localhost testing.
+Last updated: 2026-03-31
+
+Purpose: document the current D1 data model, the operational source of truth for opt-ins and texting, and the local mirror/export paths used by the project.
+
+Source of truth: Cloudflare D1 in production. Local SQLite files are mirrors for localhost testing and ops work, not primary records.
 
 ## Environments
 
-- **Master DB (production binding):** `ballot_sources`  
-  Bound as `DB` in `worker/wrangler.toml`. Holds opt-ins and volunteers.
+- Master DB: `ballot_sources`
+  Bound as `DB` in [wrangler.toml](/home/anchor/projects/skovgard2026/worker/wrangler.toml).
+- Secondary DBs:
+  - `events_db`
+  - `events_db_preview`
 
-- **Secondary DBs:**  
-  - `events_db` — Town Hall and topic data for the site experience.  
-  - `events_db_preview` — Preview subset of the events schema for testing.
+## Current opt-in and texting model
+
+As of 2026-03-31, the canonical record for SMS consent is `consent_status`.
+
+- `consent_status` stores the live consent state for each phone number.
+- `contacts` stores the texting-facing contact record keyed by `phone_e164`.
+- `sms_optins` is now legacy backup data, kept temporarily for rollback and verification. New web opt-ins and texting updates should not rely on it.
+
+This is the important split:
+
+- Pulse and donate web forms write the canonical consent/profile record into `consent_status`.
+- The same flows keep `contacts` in sync for texting UI and send-path behavior.
+- Telnyx inbound STOP/START/HELP updates `consent_status`.
+- Admin Pulse export reads from `consent_status`.
+- `sms_optins` remains in D1 only as historical backup while production verifies cleanly after the 2026-03-31 refactor.
 
 ## Data flow overview
 
-**Inputs → Worker → D1 → Local mirror → Analytics and ops**
+Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
 
-1. **Inputs**
-   - Web forms and SMS capture new contacts and preferences.
-   - Coordinator updates add or edit volunteer records.
+1. Web forms
+   - Pulse signup posts to `/api/optin`.
+   - Donate SMS opt-in posts to `/api/donate/sms-optin`.
+   - Both flows write canonical SMS consent/profile data into `consent_status`.
+   - Both flows update `contacts`.
 
-2. **Worker**
-   - Validates requests and rate limits submissions.
-   - Writes to the master DB tables.
+2. Telnyx webhooks
+   - Incoming STOP/START/HELP and delivery events arrive at the Worker.
+   - Inbound/outbound activity is stored in messaging tables.
+   - Current consent state is updated in `consent_status`.
 
-3. **D1 (production)**
-   - Stores authoritative rows for opt-ins, volunteers, and submission logs.
+3. Admin tools
+   - `/admin/texting/` reads `contacts`, `consent_status`, `inbound_messages`, `outbound_messages`, `telnyx_events`, and `texting_audit_log`.
+   - `/admin/exports/` Pulse CSV now reads from `consent_status`.
 
-4. **Local mirror (SQLite)**
-   - `~/projects/data/skovgard2026/data/pulse_local.sqlite` is a local-only copy.
-   - Refreshed via scripts, never committed to Git.
+4. Local mirrors and backups
+   - `scripts/pulse-sync.sh` mirrors `consent_status` into local SQLite and emits Pulse CSV snapshots.
+   - Local mirror DBs and backup CSV/SQL files are not committed.
 
-5. **Analytics and ops**
-   - CSV snapshots in `~/projects/data/skovgard2026/backups/d1/`.
-   - Used for analysis, assignments, and messaging plans.
+## Master DB tables
 
-## Databases and tables
+### Canonical opt-in and texting tables
 
-### Master: `ballot_sources`
+| Table | Purpose |
+|---|---|
+| `contacts` | Texting-facing contact identity keyed by `phone_e164`. Holds names plus texting helper fields like `tags` and `welcome_sent_at`. |
+| `consent_status` | Canonical SMS consent record keyed by `phone_e164`. Stores live status (`opted_in`, `opted_out`, `unknown`, etc.), consent timestamps, inbound keyword metadata, and Pulse/donate profile fields such as name, email, county, ZIP, voter flag, consent version, user agent, and IP hash. |
+| `inbound_messages` | Raw inbound SMS records from Telnyx webhooks. |
+| `outbound_messages` | Outbound SMS records plus delivery status updates. |
+| `telnyx_events` | Raw webhook event log for send, delivery, and inbound processing diagnostics. |
+| `texting_audit_log` | Admin action log for texting sends and consent-related operational events. |
 
-| Table           | Purpose |
-|-----------------|---------|
-| `sms_optins`    | Phone and email opt-ins collected via web flows. Includes consent flags and minimal demographics for targeting. Unique index on `phone`. |
-| `volunteers`    | People who raised a hand to help. Minimal schema with `tags_json` for skills and availability. Unique indexes on `email` and `phone` when present. |
-| `rl_submissions`| Rate limit ledger that stores `ip_hash` and timestamps to throttle abusive or accidental repeat posts. |
-| `ballot_sources`| Registry of reference links and labels used by the Worker or admin tools for election resources. |
-| `d1_migrations` | System table for applied migrations. Not documented further. |
-| `_cf_KV`        | System table created by Cloudflare. Not documented further. |
+### Legacy / compatibility tables
 
-### Secondary: `events_db`
+| Table | Purpose |
+|---|---|
+| `sms_optins` | Legacy backup of older SMS opt-in data. Historical only as of 2026-03-31; no longer the canonical source for current opt-in/export behavior. |
 
-| Table              | Purpose |
-|--------------------|---------|
-| `candidates`       | Public candidates data for the site’s civic features. |
-| `events`           | Site events or Town Hall sessions stored for discovery. |
-| `topic_index`      | Normalized list of topics and friendly slugs for routing and search. |
-| `topic_requests`   | Incoming requests for new topics from users. |
-| `townhall_posts`   | Posts or messages within a Town Hall thread. |
-| `user_preferences` | Site-level preferences and flags per user. |
-| `user_topic_prefs` | User follows, mutes, or priority on topics. |
-| `d1_migrations`    | System table for applied migrations. Not documented further. |
-| `_cf_KV`           | System table created by Cloudflare. Not documented further. |
+### Other operational tables in `ballot_sources`
 
-### Secondary: `events_db_preview`
+| Table | Purpose |
+|---|---|
+| `newsletter_subscribers` | Email-only newsletter signups and consent metadata. |
+| `volunteers` | Volunteer signups and tags. |
+| `rl_submissions` | Rate-limit ledger keyed by hashed IP/timestamps. |
+| `donors` | Donation contact records. |
+| `contributions` | Donation/payment intent records. |
+| `contribution_attestations` | Donation compliance attestations and request metadata. |
+| `podcast_uploads` | Podcast/audio media metadata. |
+| `ballot_sources` | Election-resource reference links/labels used by site and admin tooling. |
+| `d1_migrations` | Cloudflare D1 migration ledger. |
+| `_cf_KV` | Cloudflare-managed system table. |
 
-Subset of the events schema for safe preview builds.
+## Consent field conventions
 
-| Table           | Purpose |
-|-----------------|---------|
-| `candidates`    | Same structure as production, smaller set. |
-| `events`        | Preview events used during testing. |
-| `townhall_posts`| Preview posts used during testing. |
-| `d1_migrations` | System table for applied migrations. Not documented further. |
-| `_cf_KV`        | System table created by Cloudflare. Not documented further. |
+- Phone keys:
+  - `contacts.phone_e164`
+  - `consent_status.phone_e164`
+  - Stored as E.164 when valid.
+- Live SMS consent:
+  - `consent_status.status` is the operational truth.
+  - `consent_status.consented_at` records affirmative opt-in timing.
+  - `consent_status.revoked_at` records opt-out timing.
+  - `consent_status.last_inbound_keyword` tracks STOP/START/HELP when present.
+- Export-oriented profile fields:
+  - `first_name`
+  - `last_name`
+  - `email`
+  - `consent_email`
+  - `wy_voter`
+  - `county`
+  - `zip`
+  - `consent_version`
+  - `user_agent`
+  - `ip_hash`
 
-## Field notes and standards
+## Scripts and local mirrors
 
-- **IDs**: text UUID or ULID, lowercase.
-- **Timestamps**: UTC in ISO-like format, for example `2025-09-29T14:00:00.000Z`.
-- **Phones**: store as E.164 when practical.
-- **Email**: normalize to lowercase.
-- **Consent**: `consent` for SMS, `consent_email` for email. Track `consent_version` for disclosures.
-- **JSON**: flexible columns stored as JSON text. `tags_json` in `volunteers` is for skills, availability, and flags.
+- [pulse-sync.sh](/home/anchor/projects/skovgard2026/scripts/pulse-sync.sh)
+  - Exports `consent_status` from D1.
+  - Rebuilds the local Pulse mirror SQLite file.
+  - Emits a Pulse CSV snapshot from canonical consent data.
 
-## Scripts
+- Local mirror path:
+  - `~/projects/data/skovgard2026/data/pulse_local.sqlite`
 
-- `scripts/pulse-sync.sh` — mirror `sms_optins` into local SQLite and CSV.  
-- `scripts/volunteers-sync.sh` — mirror `volunteers` into local SQLite and CSV.  
-- Optional combined refresh can rebuild both tables into the local mirror.
+- Backup path:
+  - `~/projects/data/skovgard2026/backups/d1/`
+
+## Notes for future cleanup
+
+- `sms_optins` should remain available until production verification and rollback confidence are complete.
+- After that verification window, the remaining legacy references to `sms_optins` can be removed entirely.
+- `contacts` still exists separately because the texting portal and send-path logic already rely on it; this refactor moved canonical consent/profile data into `consent_status` without rewriting the whole texting model.
 
 ## Do not commit local data
 
-- Local DB: `~/projects/data/skovgard2026/data/pulse_local.sqlite`  
-- Backups: `~/projects/data/skovgard2026/backups/d1/`  
-- Covered by `.gitignore`. Never add these paths to the repo.
-
+- Never commit local SQLite mirrors.
+- Never commit local SQL/CSV exports.
+- Keep all local data files under ignored paths only.

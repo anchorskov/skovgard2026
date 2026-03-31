@@ -7,6 +7,16 @@ function normalizeWhitespace(value) {
   return String(value || "").trim().replace(/\s+/g, " ");
 }
 
+function normalizeOptionalText(value) {
+  const text = normalizeWhitespace(value);
+  return text ? text : null;
+}
+
+function normalizeOptionalFlag(value) {
+  if (value === undefined || value === null || value === "") return null;
+  return value === true || value === 1 || value === "1" ? 1 : 0;
+}
+
 function base64ToBytes(value) {
   const text = String(value || "").trim();
   if (!text) return new Uint8Array();
@@ -254,31 +264,11 @@ export async function logTelnyxEvent(db, event) {
     .run();
 }
 
-async function syncInboundSmsOptinRecord(db, phoneE164, keyword, occurredAt) {
-  const phoneDigits = phoneDigitsOnly(phoneE164);
-  if (!phoneDigits) return;
-
-  const consentDate = String(occurredAt || new Date().toISOString()).slice(0, 10);
-  const consentVersion = `inbound-sms-${keyword.toLowerCase()}-${consentDate}`;
-
-  await db.prepare(
-    `INSERT INTO sms_optins
-       (first_name, last_name, name, phone, email, consent, consent_email,
-        wy_voter, county, zip, consent_version, source, user_agent, ip_hash)
-     VALUES (NULL, NULL, NULL, ?1, NULL, 1, 0,
-             0, NULL, NULL, ?2, 'skovgard2026:inbound_sms', NULL, NULL)
-     ON CONFLICT(phone) DO UPDATE SET
-       consent=1,
-       consent_version=excluded.consent_version,
-       source=excluded.source`
-  )
-    .bind(phoneDigits, consentVersion)
-    .run();
-}
-
 async function handleInboundOptInKeyword(db, env, { phoneE164, keyword, occurredAt, eventType }) {
   const phone = normalizePhoneNumber(phoneE164);
   if (!phone || !keyword) return { changed: false, reason: "missing_phone_or_keyword" };
+  const consentDate = String(occurredAt || new Date().toISOString()).slice(0, 10);
+  const consentVersion = `inbound-sms-${keyword.toLowerCase()}-${consentDate}`;
 
   const existing = await db.prepare(
     `SELECT status
@@ -333,10 +323,9 @@ async function handleInboundOptInKeyword(db, env, { phoneE164, keyword, occurred
     source: "inbound_sms",
     sourceDetail: `${eventType}:${keyword.toLowerCase()}`,
     consentedAt: occurredAt || new Date().toISOString(),
+    consentVersion,
     lastInboundKeyword: keyword,
   });
-
-  await syncInboundSmsOptinRecord(db, phone, keyword, occurredAt);
 
   await insertTextingAuditLog(db, {
     action: existingStatus === "opted_out" ? "inbound_opt_in_reactivated" : "inbound_opt_in",
@@ -352,48 +341,89 @@ export async function upsertConsentStatus(db, input) {
   const phoneE164 = normalizePhoneNumber(input?.phoneE164 || input?.phone || "");
   if (!phoneE164) return;
 
-  const status = String(input?.status || "unknown").trim() || "unknown";
-  const source = String(input?.source || "inbound_sms").trim() || "inbound_sms";
+  const rawStatus = input?.status;
+  const status = rawStatus === undefined || rawStatus === null
+    ? null
+    : String(rawStatus).trim() || null;
+  const rawSource = input?.source;
+  const source = rawSource === undefined || rawSource === null
+    ? "inbound_sms"
+    : String(rawSource).trim() || "inbound_sms";
   const sourceDetail = input?.sourceDetail ?? null;
   const consentedAt = input?.consentedAt ?? null;
   const revokedAt = input?.revokedAt ?? null;
   const lastInboundKeyword = input?.lastInboundKeyword ?? null;
-  const phoneDigits = phoneDigitsOnly(phoneE164);
+  const overwriteProfile = input?.overwriteProfile === true ? 1 : 0;
+  const firstName = normalizeOptionalText(input?.firstName ?? input?.first_name);
+  const lastName = normalizeOptionalText(input?.lastName ?? input?.last_name);
+  const email = normalizeOptionalText(input?.email);
+  const consentEmail = normalizeOptionalFlag(input?.consentEmail ?? input?.consent_email);
+  const wyVoter = normalizeOptionalFlag(input?.wyVoter ?? input?.wy_voter);
+  const county = normalizeOptionalText(input?.county);
+  const zip = normalizeOptionalText(input?.zip);
+  const consentVersion = normalizeOptionalText(input?.consentVersion ?? input?.consent_version);
+  const userAgent = normalizeOptionalText(input?.userAgent ?? input?.user_agent);
+  const ipHash = normalizeOptionalText(input?.ipHash ?? input?.ip_hash);
 
   await db.prepare(
-    `INSERT INTO contacts (phone_e164, created_at, updated_at)
-     VALUES (?1, datetime('now'), datetime('now'))
+    `INSERT INTO contacts (phone_e164, first_name, last_name, created_at, updated_at)
+     VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))
      ON CONFLICT(phone_e164) DO UPDATE SET
+       first_name=COALESCE(?2, contacts.first_name),
+       last_name=COALESCE(?3, contacts.last_name),
        updated_at=datetime('now')`
   )
-    .bind(phoneE164)
+    .bind(phoneE164, firstName, lastName)
     .run();
 
   await db.prepare(
     `INSERT INTO consent_status
-       (phone_e164, status, source, source_detail, consented_at, revoked_at, last_inbound_keyword, created_at, updated_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, datetime('now'), datetime('now'))
+       (phone_e164, status, source, source_detail, consented_at, revoked_at, last_inbound_keyword,
+        first_name, last_name, email, consent_email, wy_voter, county, zip,
+        consent_version, user_agent, ip_hash, created_at, updated_at)
+     VALUES (?1, COALESCE(?2, 'unknown'), ?3, ?4, ?5, ?6, ?7,
+             ?8, ?9, ?10, ?11, ?12, ?13, ?14,
+             ?15, ?16, ?17, datetime('now'), datetime('now'))
      ON CONFLICT(phone_e164) DO UPDATE SET
-       status=excluded.status,
-       source=excluded.source,
-       source_detail=excluded.source_detail,
+       status=COALESCE(?2, consent_status.status),
+       source=COALESCE(?3, consent_status.source),
+       source_detail=COALESCE(?4, consent_status.source_detail),
        consented_at=COALESCE(excluded.consented_at, consent_status.consented_at),
        revoked_at=COALESCE(excluded.revoked_at, consent_status.revoked_at),
-       last_inbound_keyword=excluded.last_inbound_keyword,
+       last_inbound_keyword=COALESCE(?7, consent_status.last_inbound_keyword),
+       first_name=CASE WHEN ?18 = 1 THEN ?8 ELSE COALESCE(?8, consent_status.first_name) END,
+       last_name=CASE WHEN ?18 = 1 THEN ?9 ELSE COALESCE(?9, consent_status.last_name) END,
+       email=CASE WHEN ?18 = 1 THEN ?10 ELSE COALESCE(?10, consent_status.email) END,
+       consent_email=CASE WHEN ?18 = 1 THEN ?11 ELSE COALESCE(?11, consent_status.consent_email) END,
+       wy_voter=CASE WHEN ?18 = 1 THEN ?12 ELSE COALESCE(?12, consent_status.wy_voter) END,
+       county=CASE WHEN ?18 = 1 THEN ?13 ELSE COALESCE(?13, consent_status.county) END,
+       zip=CASE WHEN ?18 = 1 THEN ?14 ELSE COALESCE(?14, consent_status.zip) END,
+       consent_version=COALESCE(?15, consent_status.consent_version),
+       user_agent=CASE WHEN ?18 = 1 THEN ?16 ELSE COALESCE(?16, consent_status.user_agent) END,
+       ip_hash=CASE WHEN ?18 = 1 THEN ?17 ELSE COALESCE(?17, consent_status.ip_hash) END,
        updated_at=datetime('now')`
   )
-    .bind(phoneE164, status, source, sourceDetail, consentedAt, revokedAt, lastInboundKeyword)
-    .run();
-
-  if (status === "opted_in" || status === "opted_out") {
-    await db.prepare(
-      `UPDATE sms_optins
-         SET consent = ?2
-       WHERE phone = ?1`
+    .bind(
+      phoneE164,
+      status,
+      source,
+      sourceDetail,
+      consentedAt,
+      revokedAt,
+      lastInboundKeyword,
+      firstName,
+      lastName,
+      email,
+      consentEmail,
+      wyVoter,
+      county,
+      zip,
+      consentVersion,
+      userAgent,
+      ipHash,
+      overwriteProfile
     )
-      .bind(phoneDigits, status === "opted_out" ? 0 : 1)
-      .run();
-  }
+    .run();
 }
 
 export async function updateMessageDeliveryStatus(db, input) {

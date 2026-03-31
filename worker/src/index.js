@@ -5,8 +5,10 @@ import {
   logTelnyxEvent,
   maybeSendWelcomeText,
   normalizePhoneNumber,
+  phoneDigitsOnly,
   processTelnyxWebhookEvent,
   sendSmsWithTelnyx,
+  upsertConsentStatus,
   verifyTelnyxSignature,
 } from "./telnyx.js";
 // --- CORS helpers ------------------------------------------------------------
@@ -270,6 +272,64 @@ function rowsToCsv(columns, rows) {
     columns.map((col) => csvField(row[col])).join(",")
   );
   return [header, ...lines].join("\n");
+}
+
+function pulseExportPhone(phoneE164) {
+  const digits = phoneDigitsOnly(phoneE164);
+  if (digits.length === 11 && digits.startsWith("1")) return digits.slice(1);
+  return digits;
+}
+
+function pulseExportConsent(row) {
+  const status = String(row?.status || "").trim();
+  if (status === "opted_in") return 1;
+  if (status === "opted_out") return 0;
+  const consentedAt = String(row?.consented_at || "").trim();
+  const revokedAt = String(row?.revoked_at || "").trim();
+  if (!consentedAt) return 0;
+  if (!revokedAt) return 1;
+  return consentedAt >= revokedAt ? 1 : 0;
+}
+
+function pulseExportSource(row) {
+  const consentVersion = String(row?.consent_version || "").trim();
+  if (consentVersion.startsWith("inbound-sms-")) return "skovgard2026:inbound_sms";
+  if (row?.county || row?.zip || Number(row?.wy_voter || 0) === 1) return "skovgard2026:pulse";
+  if (consentVersion.startsWith("donate-")) return "skovgard2026:donate";
+  const source = String(row?.source || "").trim();
+  const detail = String(row?.source_detail || "").trim();
+  if (source === "web_form" && detail === "pulse") return "skovgard2026:pulse";
+  if (source === "web_form" && detail === "donate") return "skovgard2026:donate";
+  if (source === "inbound_sms") return "skovgard2026:inbound_sms";
+  return detail || source;
+}
+
+function pulseExportName(row) {
+  return [row?.first_name, row?.last_name]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function mapPulseExportRows(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => ({
+      id: row.id,
+      first_name: row.first_name || "",
+      last_name: row.last_name || "",
+      name: pulseExportName(row),
+      phone: pulseExportPhone(row.phone_e164 || ""),
+      email: row.email || "",
+      consent: pulseExportConsent(row),
+      consent_email: Number(row.consent_email || 0),
+      wy_voter: Number(row.wy_voter || 0),
+      county: row.county || "",
+      zip: row.zip || "",
+      consent_version: row.consent_version || "",
+      source: pulseExportSource(row),
+      created_at: row.created_at || "",
+    }))
+    .filter((row) => row.phone && row.consent_version);
 }
 
 function csvResponse(req, env, filename, csv) {
@@ -769,60 +829,21 @@ export default {
         const ipHash = await sha256Hex(ip);
         const ua = req.headers.get("user-agent") || "";
 
-        await env.DB.prepare(
-          `INSERT INTO sms_optins
-             (first_name, last_name, name, phone, email, consent, consent_email,
-              consent_version, source, user_agent, ip_hash)
-           VALUES (?1, ?2, TRIM(?1||' '||?2), ?3, ?4, ?5, ?6,
-                   ?7, 'skovgard2026:donate', ?8, ?9)
-           ON CONFLICT(phone) DO UPDATE SET
-             first_name=excluded.first_name,
-             last_name =excluded.last_name,
-             name      =excluded.name,
-             email     =excluded.email,
-             consent   =excluded.consent,
-             consent_version=excluded.consent_version,
-             source    =excluded.source,
-             user_agent=excluded.user_agent,
-             ip_hash   =excluded.ip_hash`
-        )
-          .bind(
-            firstName,
-            lastName,
-            phone,
-            email || null,
-            consentSMS ? 1 : 0,
-            0,
-            consentVersion,
-            ua,
-            ipHash
-          )
-          .run();
-
-        await env.DB.prepare(
-          `INSERT INTO contacts (phone_e164, first_name, last_name, created_at, updated_at)
-           VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))
-           ON CONFLICT(phone_e164) DO UPDATE SET
-             first_name=COALESCE(excluded.first_name, contacts.first_name),
-             last_name=COALESCE(excluded.last_name, contacts.last_name),
-             updated_at=datetime('now')`
-        )
-          .bind(normalizePhoneNumber(phone), firstName, lastName)
-          .run();
-
-        await env.DB.prepare(
-          `INSERT INTO consent_status
-             (phone_e164, status, source, source_detail, consented_at, created_at, updated_at)
-           VALUES (?1, 'opted_in', 'web_form', 'donate', datetime('now'), datetime('now'), datetime('now'))
-           ON CONFLICT(phone_e164) DO UPDATE SET
-             status='opted_in',
-             source='web_form',
-             source_detail='donate',
-             consented_at=COALESCE(consent_status.consented_at, datetime('now')),
-             updated_at=datetime('now')`
-        )
-          .bind(normalizePhoneNumber(phone))
-          .run();
+        await upsertConsentStatus(env.DB, {
+          phone,
+          status: "opted_in",
+          source: "web_form",
+          sourceDetail: "donate",
+          consentedAt: new Date().toISOString(),
+          firstName,
+          lastName,
+          email: email || null,
+          consentEmail: 0,
+          consentVersion,
+          userAgent: ua,
+          ipHash,
+          overwriteProfile: true,
+        });
 
         await maybeSendWelcomeText(env.DB, env, phone);
 
@@ -1028,73 +1049,27 @@ export default {
             429
           );
 
-        // Insert/update
         const ua = req.headers.get("user-agent") || "";
-        await env.DB.prepare(
-          `INSERT INTO sms_optins
-             (first_name, last_name, name, phone, email, consent, consent_email,
-              wy_voter, county, zip, consent_version, source, user_agent, ip_hash)
-           VALUES (?1, ?2, TRIM(?1||' '||?2), ?3, ?4, ?5, ?6,
-                   ?7, ?8, ?9, ?10, 'skovgard2026:pulse', ?11, ?12)
-           ON CONFLICT(phone) DO UPDATE SET
-             first_name=excluded.first_name,
-             last_name =excluded.last_name,
-             name      =excluded.name,
-             email     =excluded.email,
-             consent   =excluded.consent,
-             consent_email=excluded.consent_email,
-             wy_voter  =excluded.wy_voter,
-             county    =excluded.county,
-             zip       =excluded.zip,
-             consent_version=excluded.consent_version,
-             source    =excluded.source,
-             user_agent=excluded.user_agent,
-             ip_hash   =excluded.ip_hash`
-        )
-          .bind(
-            firstName,
-            lastName,
-            phone,
-            email || null,
-            consentSMS ? 1 : 0,
-            consentEmail ? 1 : 0,
-            wyVoter ? 1 : 0,
-            county || null,
-            zip,
-            consentVer,
-            ua,
-            ipHash
-          )
-          .run();
+        await upsertConsentStatus(env.DB, {
+          phone,
+          status: consentSMS ? "opted_in" : null,
+          source: "web_form",
+          sourceDetail: "pulse",
+          consentedAt: consentSMS ? new Date().toISOString() : null,
+          firstName,
+          lastName,
+          email: email || null,
+          consentEmail: consentEmail ? 1 : 0,
+          wyVoter: wyVoter ? 1 : 0,
+          county: county || null,
+          zip,
+          consentVersion: consentVer,
+          userAgent: ua,
+          ipHash,
+          overwriteProfile: true,
+        });
 
-        await env.DB.prepare(
-          `INSERT INTO contacts (phone_e164, first_name, last_name, created_at, updated_at)
-           VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))
-           ON CONFLICT(phone_e164) DO UPDATE SET
-             first_name=COALESCE(excluded.first_name, contacts.first_name),
-             last_name=COALESCE(excluded.last_name, contacts.last_name),
-             updated_at=datetime('now')`
-        )
-          .bind(normalizePhoneNumber(phone), firstName, lastName)
-          .run();
-
-        if (consentSMS) {
-          await env.DB.prepare(
-            `INSERT INTO consent_status
-               (phone_e164, status, source, source_detail, consented_at, created_at, updated_at)
-             VALUES (?1, 'opted_in', 'web_form', 'pulse', datetime('now'), datetime('now'), datetime('now'))
-             ON CONFLICT(phone_e164) DO UPDATE SET
-               status='opted_in',
-               source='web_form',
-               source_detail='pulse',
-               consented_at=COALESCE(consent_status.consented_at, datetime('now')),
-               updated_at=datetime('now')`
-          )
-            .bind(normalizePhoneNumber(phone))
-            .run();
-
-          await maybeSendWelcomeText(env.DB, env, phone);
-        }
+        if (consentSMS) await maybeSendWelcomeText(env.DB, env, phone);
 
         return json(req, env, { ok: true });
       }
@@ -1912,15 +1887,16 @@ export default {
 
         const { results = [] } =
           (await env.DB.prepare(
-            `SELECT id, first_name, last_name, name, phone, email, consent,
-                    consent_email, wy_voter, county, zip, consent_version,
-                    source, created_at
-               FROM sms_optins
-               ORDER BY created_at DESC`
+            `SELECT id, phone_e164, status, source, source_detail, consented_at, revoked_at,
+                    first_name, last_name, email, consent_email, wy_voter, county, zip,
+                    consent_version, created_at
+               FROM consent_status
+              WHERE consent_version IS NOT NULL
+               ORDER BY datetime(COALESCE(consented_at, created_at)) DESC, id DESC`
           ).all()) || {};
 
         const date = new Date().toISOString().slice(0, 10);
-        const csv = rowsToCsv(columns, results);
+        const csv = rowsToCsv(columns, mapPulseExportRows(results));
         return csvResponse(req, env, `pulse-optins-${date}.csv`, csv);
       }
 
