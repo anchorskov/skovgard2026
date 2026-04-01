@@ -242,7 +242,10 @@ function resetTurnstile() {
     // fields
     const first_name    = $('#first_name')?.value.trim() || '';
     const last_name     = $('#last_name')?.value.trim() || '';
-    const county        = $('#county')?.value.trim() || '';
+    const address1      = $('#address1')?.value.trim() || '';
+    const address2      = $('#address2')?.value.trim() || '';
+    const city          = $('#city')?.value.trim() || '';
+    const state         = ($('#state')?.value || '').trim().toUpperCase();
     const zip           = ($('#zip')?.value || '').replace(/\D/g, '');
     const phone10       = normalize10($('#phone')?.value || '');
     const wy_voter      = $('#wy_voter')?.checked || false;
@@ -253,7 +256,10 @@ function resetTurnstile() {
     // client validation
     if (!first_name) return err('First name is required.');
     if (!last_name)  return err('Last name is required.');
-    if (!county)     return err('Select your county.');
+    if (!address1)   return err('Street address is required.');
+    if (!city)       return err('City is required.');
+    if (!state)      return err('State is required.');
+    if (state !== 'WY') return err('This SMS list is for Wyoming addresses only.');
     if (!/^\d{5}$/.test(zip)) return err('Enter a 5-digit Wyoming ZIP.');
     if (!wy_voter)   return err('This SMS list is for registered Wyoming voters only.');
     if (phone10.length !== 10) return err('Enter a valid 10-digit mobile.');
@@ -276,9 +282,6 @@ function resetTurnstile() {
         return err('Verification failed. Please refresh and try again.');
       }
     }
-
-    console.log({ first_name, last_name, county, zip, phone10, email, consent_sms, consent_email });
-
     // 2) POST: send token via header (preferred) and body (compat)
     //    also send elapsed timing fields instead of ts_client
     try {
@@ -292,14 +295,18 @@ function resetTurnstile() {
         body: JSON.stringify({
           first_name,
           last_name,
-          county,
+          address1,
+          address2: address2 || null,
+          city,
+          state,
+          country: 'US',
           zip,
           wy_voter: !!wy_voter,
           phone: phone10,
           email: email || null,
           consent_sms: !!consent_sms,
           consent_email: !!consent_email,
-          consent_version: 'v2-2026-03-24',
+          consent_version: 'v3-2026-03-31',
           turnstile_token: tsToken,      // keep for older server code
           ts_start_ms: tsStart,
           ts_elapsed_ms: elapsed

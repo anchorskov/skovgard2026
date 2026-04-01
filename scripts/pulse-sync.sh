@@ -97,14 +97,21 @@ SELECT
   COALESCE(consent_version, '') AS consent_version,
   CASE
     WHEN consent_version LIKE 'inbound-sms-%' THEN 'skovgard2026:inbound_sms'
-    WHEN COALESCE(wy_voter, 0) = 1 OR county IS NOT NULL OR zip IS NOT NULL THEN 'skovgard2026:pulse'
     WHEN consent_version LIKE 'donate-%' THEN 'skovgard2026:donate'
+    WHEN COALESCE(wy_voter, 0) = 1 OR county IS NOT NULL OR zip IS NOT NULL OR address1 IS NOT NULL OR city IS NOT NULL THEN 'skovgard2026:pulse'
     WHEN source = 'web_form' AND source_detail = 'pulse' THEN 'skovgard2026:pulse'
     WHEN source = 'web_form' AND source_detail = 'donate' THEN 'skovgard2026:donate'
     WHEN source = 'inbound_sms' THEN 'skovgard2026:inbound_sms'
     ELSE COALESCE(NULLIF(source_detail, ''), source)
   END AS source,
-  created_at
+  created_at,
+  COALESCE(address1, '') AS address1,
+  COALESCE(address2, '') AS address2,
+  COALESCE(city, '') AS city,
+  COALESCE(state, '') AS state,
+  COALESCE(country, '') AS country,
+  COALESCE(state_house_district, '') AS state_house_district,
+  COALESCE(state_senate_district, '') AS state_senate_district
 FROM consent_status
 WHERE consent_version IS NOT NULL
 ORDER BY datetime(COALESCE(consented_at, created_at)) DESC, id DESC;

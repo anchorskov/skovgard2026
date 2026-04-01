@@ -4,7 +4,7 @@
   "description": "Hugo + UnoCSS static site for Jimmy Skovgard 2026",
   "private": true,
   "scripts": {
-    "dev": "npm run unocss:watch & hugo server -D",
+    "dev": "npm run unocss:watch & hugo server -D --environment development --config config/_default/config.toml,config/development/config.toml",
     "unocss": "unocss -c unocss.config.cjs 'layouts/**/*' 'content/**/*' 'static/js/**/*' -o static/css/uno.css",
     "unocss:watch": "npm run unocss -- --watch",
     "build": "npm run unocss && hugo --minify"

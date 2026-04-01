@@ -5,10 +5,8 @@ set -euo pipefail
 SESSION_NAME="skovgard-dev"
 REPO_ROOT="/home/anchor/projects/skovgard2026"
 WORKER_DIR="${REPO_ROOT}/worker"
-WRANGLER_CONFIG="${WORKER_DIR}/wrangler.toml"
+WRANGLER_DB="ballot_sources"
 HUGO_PORT="1313"
-PUBLIC_PORT="1314"
-CADDY_CONFIG="${REPO_ROOT}/Caddyfile"
 
 # Colors for output
 RED='\033[0;31m'
@@ -21,11 +19,6 @@ if ! command -v tmux >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v caddy >/dev/null 2>&1; then
-  echo "caddy is required for local proxying. Install it and try again."
-  exit 1
-fi
-
 if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
   echo "tmux session ${SESSION_NAME} already exists."
   echo "Attach with: tmux attach -t ${SESSION_NAME}"
@@ -33,17 +26,11 @@ if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
 fi
 
 # Create new session with Hugo window
-tmux new-session -d -s "${SESSION_NAME}" -x 200 -y 50 -c "${REPO_ROOT}" "hugo server -D --port ${HUGO_PORT}"
+tmux new-session -d -s "${SESSION_NAME}" -x 200 -y 50 -c "${REPO_ROOT}" "hugo server -D --environment development --config config/_default/config.toml,config/development/config.toml --port ${HUGO_PORT}"
 
 # Add Wrangler window and start the process
 tmux new-window -t "${SESSION_NAME}" -c "${WORKER_DIR}" -n "wrangler"
-tmux send-keys -t "${SESSION_NAME}:wrangler" "wrangler dev" Enter
-
-# Add Caddy window for local proxying (requires root - skip for local dev)
-# In production, use: sudo caddy run --config ${CADDY_CONFIG}
-# For local testing, access Worker directly on port 8787
-tmux new-window -t "${SESSION_NAME}" -c "${REPO_ROOT}" -n "caddy"
-tmux send-keys -t "${SESSION_NAME}:caddy" "echo '⚠️  Caddy requires root (sudo) to run. For local dev, access:'; echo '  Hugo: http://localhost:1313'; echo '  Worker API: http://localhost:8787'; sleep 999" Enter
+tmux send-keys -t "${SESSION_NAME}:wrangler" "echo 'Applying local D1 migrations...'; npx wrangler d1 migrations apply ${WRANGLER_DB} --local && npx wrangler dev" Enter
 
 # Select layout
 tmux select-layout -t "${SESSION_NAME}" even-horizontal
@@ -92,12 +79,11 @@ fi
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "Started tmux session ${SESSION_NAME} with 3 windows:"
+echo "Started tmux session ${SESSION_NAME} with 2 windows:"
 echo "   Window 0 (hugo):     Hugo server     -> http://localhost:${HUGO_PORT}"
 echo "   Window 1 (wrangler): Wrangler dev   -> http://localhost:8787"
-echo "   Window 2 (caddy):    Proxy          -> http://localhost:${PUBLIC_PORT}"
 echo ""
-echo "Use http://localhost:${PUBLIC_PORT}/donateV1/ for same-origin API calls."
+echo "Open http://localhost:${HUGO_PORT} for the site and http://localhost:8787 for the Worker API."
 echo ""
 echo "📋 Commands:"
 echo "   Attach:  tmux attach -t ${SESSION_NAME}"

@@ -211,6 +211,176 @@ function isValidEmail(email) {
   return /.+@.+\..+/.test(String(email || "").trim());
 }
 
+function normalizeLookupText(value) {
+  return normalizeText(value).replace(/\s+/g, " ").toUpperCase();
+}
+
+function normalizeZip5(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length >= 5 ? digits.slice(0, 5) : "";
+}
+
+function normalizePhone10(raw) {
+  const digits = phoneDigitsOnly(raw);
+  if (digits.length === 10) return digits;
+  if (digits.length === 11 && digits.startsWith("1")) return digits.slice(1);
+  return "";
+}
+
+async function wyObjectExists(db, type, name) {
+  const row = await db.prepare(
+    `SELECT 1 AS ok
+       FROM sqlite_master
+      WHERE type = ?1
+        AND name = ?2
+      LIMIT 1`
+  )
+    .bind(type, name)
+    .first()
+    .catch(() => null);
+  return Boolean(row?.ok);
+}
+
+async function findUniqueWyTargetMatch(wyDb, input) {
+  const firstName = normalizeLookupText(input.firstName);
+  const lastName = normalizeLookupText(input.lastName);
+  const city = normalizeLookupText(input.city);
+  const zip = normalizeZip5(input.zip);
+  const address1 = normalizeLookupText(input.address1);
+
+  if (!firstName || !lastName || !city || !zip) {
+    return { match: null, mode: "missing_lookup_fields" };
+  }
+
+  const baseSql = `
+    SELECT voter_id, first_name, last_name, city, zip, addr1, addr_raw
+      FROM v_voter_targeting
+     WHERE UPPER(TRIM(first_name)) = ?1
+       AND UPPER(TRIM(last_name)) = ?2
+       AND UPPER(TRIM(city)) = ?3
+       AND zip = ?4
+  `;
+
+  if (address1) {
+    const addressRows = await wyDb.prepare(
+      `${baseSql}
+        AND (
+          UPPER(TRIM(COALESCE(addr1, ''))) = ?5
+          OR UPPER(TRIM(COALESCE(addr_raw, ''))) = ?5
+        )
+      LIMIT 2`
+    )
+      .bind(firstName, lastName, city, zip, address1)
+      .all()
+      .then((result) => result?.results || [])
+      .catch(() => []);
+
+    if (addressRows.length === 1) {
+      return { match: addressRows[0], mode: "name_city_zip_address" };
+    }
+    if (addressRows.length > 1) {
+      return { match: null, mode: "ambiguous_address" };
+    }
+  }
+
+  const rows = await wyDb.prepare(`${baseSql} LIMIT 2`)
+    .bind(firstName, lastName, city, zip)
+    .all()
+    .then((result) => result?.results || [])
+    .catch(() => []);
+
+  if (rows.length === 1) {
+    return { match: rows[0], mode: "name_city_zip" };
+  }
+  if (rows.length > 1) {
+    return { match: null, mode: "ambiguous_name_city_zip" };
+  }
+  return { match: null, mode: "no_match" };
+}
+
+async function syncSubmittedPhoneToWyVoter(env, input) {
+  const wyDb = env.WY_DB;
+  if (!wyDb) return { ok: false, skipped: "missing_binding" };
+
+  const phoneE164 = normalizePhoneNumber(input.phone);
+  const phone10 = normalizePhone10(phoneE164);
+  if (!phoneE164 || !phone10) return { ok: false, skipped: "invalid_phone" };
+
+  const hasTargetView = await wyObjectExists(wyDb, "view", "v_voter_targeting");
+  const hasPhonesTable = await wyObjectExists(wyDb, "table", "voter_phones");
+  const hasBestPhoneTable = await wyObjectExists(wyDb, "table", "v_best_phone");
+  if (!hasTargetView || !hasPhonesTable || !hasBestPhoneTable) {
+    return { ok: false, skipped: "missing_wy_tables" };
+  }
+
+  const { match, mode } = await findUniqueWyTargetMatch(wyDb, input);
+  if (!match?.voter_id) {
+    return { ok: false, skipped: mode };
+  }
+
+  const conflicts = await wyDb.prepare(
+    `SELECT DISTINCT voter_id
+       FROM (
+         SELECT voter_id FROM v_best_phone WHERE phone_e164 = ?1
+         UNION ALL
+         SELECT voter_id FROM voter_phones WHERE phone_e164 = ?1
+       )
+      LIMIT 2`
+  )
+    .bind(phoneE164)
+    .all()
+    .then((result) => result?.results || [])
+    .catch(() => []);
+
+  const conflictingVoter = conflicts.find(
+    (row) => String(row?.voter_id || "").trim() && String(row.voter_id) !== String(match.voter_id)
+  );
+  if (conflictingVoter) {
+    return {
+      ok: false,
+      skipped: "phone_belongs_to_other_voter",
+      voterId: match.voter_id,
+    };
+  }
+
+  const isWyArea = phone10.startsWith("307") ? 1 : 0;
+  const confidenceCode = 5;
+  const source = "skovgard_optin";
+
+  await wyDb.prepare(
+    `INSERT INTO voter_phones
+       (voter_id, phone10, phone_e164, confidence_code, is_wy_area, source, imported_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, datetime('now'))
+     ON CONFLICT(voter_id, phone10) DO UPDATE SET
+       phone_e164 = excluded.phone_e164,
+       confidence_code = MAX(COALESCE(voter_phones.confidence_code, 0), excluded.confidence_code),
+       is_wy_area = excluded.is_wy_area,
+       source = excluded.source,
+       imported_at = datetime('now')`
+  )
+    .bind(match.voter_id, phone10, phoneE164, confidenceCode, isWyArea, source)
+    .run();
+
+  await wyDb.prepare(
+    `INSERT INTO v_best_phone
+       (voter_id, phone_e164, confidence_code, is_wy_area, imported_at)
+     VALUES (?1, ?2, ?3, ?4, datetime('now'))
+     ON CONFLICT(voter_id) DO UPDATE SET
+       phone_e164 = excluded.phone_e164,
+       confidence_code = excluded.confidence_code,
+       is_wy_area = excluded.is_wy_area,
+       imported_at = datetime('now')`
+  )
+    .bind(match.voter_id, phoneE164, confidenceCode, isWyArea)
+    .run();
+
+  return {
+    ok: true,
+    voterId: match.voter_id,
+    matchedBy: mode,
+  };
+}
+
 function timingSafeEqual(a, b) {
   if (typeof a !== "string" || typeof b !== "string") return false;
   if (a.length !== b.length) return false;
@@ -294,8 +464,10 @@ function pulseExportConsent(row) {
 function pulseExportSource(row) {
   const consentVersion = String(row?.consent_version || "").trim();
   if (consentVersion.startsWith("inbound-sms-")) return "skovgard2026:inbound_sms";
-  if (row?.county || row?.zip || Number(row?.wy_voter || 0) === 1) return "skovgard2026:pulse";
   if (consentVersion.startsWith("donate-")) return "skovgard2026:donate";
+  if (row?.county || row?.zip || row?.address1 || row?.city || Number(row?.wy_voter || 0) === 1) {
+    return "skovgard2026:pulse";
+  }
   const source = String(row?.source || "").trim();
   const detail = String(row?.source_detail || "").trim();
   if (source === "web_form" && detail === "pulse") return "skovgard2026:pulse";
@@ -328,6 +500,13 @@ function mapPulseExportRows(rows) {
       consent_version: row.consent_version || "",
       source: pulseExportSource(row),
       created_at: row.created_at || "",
+      address1: row.address1 || "",
+      address2: row.address2 || "",
+      city: row.city || "",
+      state: row.state || "",
+      country: row.country || "",
+      state_house_district: row.state_house_district || "",
+      state_senate_district: row.state_senate_district || "",
     }))
     .filter((row) => row.phone && row.consent_version);
 }
@@ -542,11 +721,6 @@ export default {
     try {
       const url = new URL(req.url);
       const path = url.pathname.replace(/\/+$/, ""); // strip trailing slash
-      const isLocalDev = url.hostname === "localhost" || url.hostname === "127.0.0.1";
-
-      if (isLocalDev && !env.STRIPE_SECRET_KEY) {
-        throw new Error("Missing STRIPE_SECRET_KEY for local development. Add it to worker/.dev.vars.");
-      }
 
       // CORS preflight
       if (req.method === "OPTIONS" && path.startsWith("/api")) {
@@ -816,6 +990,12 @@ export default {
         const lastName = normalizeText(body.last_name);
         const phone = normalizeText(body.phone).replace(/[^\d]/g, "");
         const email = normalizeText(body.email);
+        const address1 = normalizeText(body.address1);
+        const address2 = normalizeText(body.address2);
+        const city = normalizeText(body.city);
+        const state = normalizeText(body.state).toUpperCase();
+        const zip = normalizeText(body.zip);
+        const country = normalizeText(body.country || "US").toUpperCase();
         const consentSMS = body.consent_sms === true || body.consent_sms === 1;
         const consentVersion = normalizeText(body.consent_version)
           || `donate-v1-${new Date().toISOString().slice(0, 10)}`;
@@ -838,6 +1018,12 @@ export default {
           firstName,
           lastName,
           email: email || null,
+          address1: address1 || null,
+          address2: address2 || null,
+          city: city || null,
+          state: state || null,
+          zip: zip || null,
+          country: country || null,
           consentEmail: 0,
           consentVersion,
           userAgent: ua,
@@ -944,8 +1130,12 @@ export default {
 
         const firstName = String(b.first_name || "").trim();
         const lastName = String(b.last_name || "").trim();
+        const address1 = normalizeText(b.address1);
+        const address2 = normalizeText(b.address2);
+        const city = normalizeText(b.city);
+        const state = normalizeText(b.state || "WY").toUpperCase();
+        const country = normalizeText(b.country || "US").toUpperCase();
         const zip = String(b.zip || "").replace(/\D/g, "");
-        const county = String(b.county || "").trim();
         const wyVoter = b.wy_voter === true || b.wy_voter === 1;
 
         const phone = String(b.phone || "").replace(/[^\d]/g, "");
@@ -953,7 +1143,7 @@ export default {
 
         const consentSMS = b.consent_sms === true || b.consent === 1;
         const consentEmail = b.consent_email === true;
-        const consentVer = String(b.consent_version || "v2-2026-03-24");
+        const consentVer = String(b.consent_version || "v3-2026-03-31");
 
         // Token: prefer header (official), fallback to body for older clients
         const tsToken = (
@@ -979,6 +1169,17 @@ export default {
           return json(req, env, { error: "First name is required" }, 400);
         if (!lastName)
           return json(req, env, { error: "Last name is required" }, 400);
+        if (!isNonEmpty(address1))
+          return json(req, env, { error: "Street address is required" }, 400);
+        if (!isNonEmpty(city))
+          return json(req, env, { error: "City is required" }, 400);
+        if (state !== "WY")
+          return json(
+            req,
+            env,
+            { error: "This SMS list is for Wyoming addresses only." },
+            400
+          );
         if (!/^\d{5}$/.test(zip))
           return json(req, env, { error: "5-digit ZIP required" }, 400);
         if (!wyVoter)
@@ -1061,13 +1262,47 @@ export default {
           email: email || null,
           consentEmail: consentEmail ? 1 : 0,
           wyVoter: wyVoter ? 1 : 0,
-          county: county || null,
           zip,
+          address1: address1 || null,
+          address2: address2 || null,
+          city: city || null,
+          state,
+          country,
+          stateHouseDistrict: null,
+          stateSenateDistrict: null,
           consentVersion: consentVer,
           userAgent: ua,
           ipHash,
           overwriteProfile: true,
         });
+
+        if (consentSMS && ctx?.waitUntil) {
+          ctx.waitUntil(
+            syncSubmittedPhoneToWyVoter(env, {
+              phone,
+              firstName,
+              lastName,
+              address1,
+              city,
+              zip,
+            }).then((result) => {
+              if (result?.ok) {
+                console.log("[/api/optin] mirrored phone to WY voter", {
+                  voterId: result.voterId,
+                  matchedBy: result.matchedBy,
+                });
+                return;
+              }
+              if (result?.skipped && result.skipped !== "missing_binding" && result.skipped !== "missing_wy_tables") {
+                console.log("[/api/optin] skipped WY phone mirror", {
+                  reason: result.skipped,
+                });
+              }
+            }).catch((error) => {
+              console.error("[/api/optin] WY phone mirror failed", String(error?.message || error));
+            })
+          );
+        }
 
         if (consentSMS) await maybeSendWelcomeText(env.DB, env, phone);
 
@@ -1883,12 +2118,21 @@ export default {
           "consent_version",
           "source",
           "created_at",
+          "address1",
+          "address2",
+          "city",
+          "state",
+          "country",
+          "state_house_district",
+          "state_senate_district",
         ];
 
         const { results = [] } =
           (await env.DB.prepare(
             `SELECT id, phone_e164, status, source, source_detail, consented_at, revoked_at,
                     first_name, last_name, email, consent_email, wy_voter, county, zip,
+                    address1, address2, city, state, country,
+                    state_house_district, state_senate_district,
                     consent_version, created_at
                FROM consent_status
               WHERE consent_version IS NOT NULL
@@ -1907,6 +2151,29 @@ export default {
       });
     } catch (err) {
       console.error("Worker error:", err);
+      const errorMessage = String(err?.message || "");
+      const isLocalDevRequest = (() => {
+        try {
+          const requestUrl = new URL(req.url);
+          return requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1";
+        } catch {
+          return false;
+        }
+      })();
+      if (
+        isLocalDevRequest &&
+        /(has no column named|no such column|no such table)/i.test(errorMessage)
+      ) {
+        return json(
+          req,
+          env,
+          {
+            error:
+              "Local D1 schema is out of date. Run `npx wrangler d1 migrations apply ballot_sources --local` in /worker and restart Wrangler dev.",
+          },
+          500
+        );
+      }
       return json(req, env, { error: "Server error" }, 500);
     }
   },

@@ -1,4 +1,6 @@
 // worker/src/telnyx.js
+import { lookupWyLegislativeDistricts, normalizeZip5 } from "./address-districts.js";
+
 const STOP_KEYWORDS = new Set(["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"]);
 const START_KEYWORDS = new Set(["START", "UNSTOP", "JOIN"]);
 const HELP_KEYWORDS = new Set(["HELP"]);
@@ -359,11 +361,86 @@ export async function upsertConsentStatus(db, input) {
   const email = normalizeOptionalText(input?.email);
   const consentEmail = normalizeOptionalFlag(input?.consentEmail ?? input?.consent_email);
   const wyVoter = normalizeOptionalFlag(input?.wyVoter ?? input?.wy_voter);
-  const county = normalizeOptionalText(input?.county);
-  const zip = normalizeOptionalText(input?.zip);
+  const existing = await db.prepare(
+    `SELECT county, zip, address1, address2, city, state,
+            state_house_district, state_senate_district
+       FROM consent_status
+      WHERE phone_e164 = ?1`
+  )
+    .bind(phoneE164)
+    .first()
+    .catch(() => null);
+
+  const incomingCounty = normalizeOptionalText(input?.county);
+  const zip = normalizeZip5(input?.zip) || null;
+  const address1 = normalizeOptionalText(input?.address1);
+  const address2 = normalizeOptionalText(input?.address2);
+  const city = normalizeOptionalText(input?.city);
+  const state = normalizeOptionalText(input?.state)?.toUpperCase() || null;
+  const country = normalizeOptionalText(input?.country)?.toUpperCase() || null;
+  const explicitStateHouseDistrict =
+    normalizeOptionalText(input?.stateHouseDistrict ?? input?.state_house_district);
+  const explicitStateSenateDistrict =
+    normalizeOptionalText(input?.stateSenateDistrict ?? input?.state_senate_district);
   const consentVersion = normalizeOptionalText(input?.consentVersion ?? input?.consent_version);
   const userAgent = normalizeOptionalText(input?.userAgent ?? input?.user_agent);
   const ipHash = normalizeOptionalText(input?.ipHash ?? input?.ip_hash);
+  const latitude = input?.latitude ?? input?.lat ?? null;
+  const longitude = input?.longitude ?? input?.lon ?? input?.lng ?? null;
+
+  const existingAddress1 = normalizeOptionalText(existing?.address1);
+  const existingAddress2 = normalizeOptionalText(existing?.address2);
+  const existingCity = normalizeOptionalText(existing?.city);
+  const existingState = normalizeOptionalText(existing?.state)?.toUpperCase() || null;
+  const existingZip = normalizeZip5(existing?.zip) || null;
+
+  const effectiveAddress1 = overwriteProfile ? address1 : address1 || existingAddress1;
+  const effectiveAddress2 = overwriteProfile ? address2 : address2 || existingAddress2;
+  const effectiveCity = overwriteProfile ? city : city || existingCity;
+  const effectiveState = overwriteProfile ? state : state || existingState;
+  const effectiveZip = overwriteProfile ? zip : zip || existingZip;
+
+  const effectiveAddressKey = JSON.stringify([
+    effectiveAddress1 || "",
+    effectiveAddress2 || "",
+    effectiveCity || "",
+    effectiveState || "",
+    effectiveZip || "",
+  ]);
+  const existingAddressKey = JSON.stringify([
+    existingAddress1 || "",
+    existingAddress2 || "",
+    existingCity || "",
+    existingState || "",
+    existingZip || "",
+  ]);
+  const addressChanged = effectiveAddressKey !== existingAddressKey;
+
+  let resolvedDistricts = null;
+  if (!explicitStateHouseDistrict && !explicitStateSenateDistrict) {
+    resolvedDistricts = await lookupWyLegislativeDistricts(db, {
+      address1: effectiveAddress1,
+      address2: effectiveAddress2,
+      city: effectiveCity,
+      state: effectiveState,
+      zip: effectiveZip,
+      latitude,
+      longitude,
+    });
+  }
+
+  const county =
+    incomingCounty
+    || normalizeOptionalText(resolvedDistricts?.county)
+    || (addressChanged ? null : normalizeOptionalText(existing?.county));
+  const stateHouseDistrict =
+    explicitStateHouseDistrict
+    || normalizeOptionalText(resolvedDistricts?.stateHouseDistrict)
+    || (addressChanged ? null : normalizeOptionalText(existing?.state_house_district));
+  const stateSenateDistrict =
+    explicitStateSenateDistrict
+    || normalizeOptionalText(resolvedDistricts?.stateSenateDistrict)
+    || (addressChanged ? null : normalizeOptionalText(existing?.state_senate_district));
 
   await db.prepare(
     `INSERT INTO contacts (phone_e164, first_name, last_name, created_at, updated_at)
@@ -380,10 +457,12 @@ export async function upsertConsentStatus(db, input) {
     `INSERT INTO consent_status
        (phone_e164, status, source, source_detail, consented_at, revoked_at, last_inbound_keyword,
         first_name, last_name, email, consent_email, wy_voter, county, zip,
+        address1, address2, city, state, country, state_house_district, state_senate_district,
         consent_version, user_agent, ip_hash, created_at, updated_at)
      VALUES (?1, COALESCE(?2, 'unknown'), ?3, ?4, ?5, ?6, ?7,
              ?8, ?9, ?10, ?11, ?12, ?13, ?14,
-             ?15, ?16, ?17, datetime('now'), datetime('now'))
+             ?15, ?16, ?17, ?18, ?19, ?20, ?21,
+             ?22, ?23, ?24, datetime('now'), datetime('now'))
      ON CONFLICT(phone_e164) DO UPDATE SET
        status=COALESCE(?2, consent_status.status),
        source=COALESCE(?3, consent_status.source),
@@ -391,16 +470,23 @@ export async function upsertConsentStatus(db, input) {
        consented_at=COALESCE(excluded.consented_at, consent_status.consented_at),
        revoked_at=COALESCE(excluded.revoked_at, consent_status.revoked_at),
        last_inbound_keyword=COALESCE(?7, consent_status.last_inbound_keyword),
-       first_name=CASE WHEN ?18 = 1 THEN ?8 ELSE COALESCE(?8, consent_status.first_name) END,
-       last_name=CASE WHEN ?18 = 1 THEN ?9 ELSE COALESCE(?9, consent_status.last_name) END,
-       email=CASE WHEN ?18 = 1 THEN ?10 ELSE COALESCE(?10, consent_status.email) END,
-       consent_email=CASE WHEN ?18 = 1 THEN ?11 ELSE COALESCE(?11, consent_status.consent_email) END,
-       wy_voter=CASE WHEN ?18 = 1 THEN ?12 ELSE COALESCE(?12, consent_status.wy_voter) END,
-       county=CASE WHEN ?18 = 1 THEN ?13 ELSE COALESCE(?13, consent_status.county) END,
-       zip=CASE WHEN ?18 = 1 THEN ?14 ELSE COALESCE(?14, consent_status.zip) END,
-       consent_version=COALESCE(?15, consent_status.consent_version),
-       user_agent=CASE WHEN ?18 = 1 THEN ?16 ELSE COALESCE(?16, consent_status.user_agent) END,
-       ip_hash=CASE WHEN ?18 = 1 THEN ?17 ELSE COALESCE(?17, consent_status.ip_hash) END,
+       first_name=CASE WHEN ?25 = 1 THEN ?8 ELSE COALESCE(?8, consent_status.first_name) END,
+       last_name=CASE WHEN ?25 = 1 THEN ?9 ELSE COALESCE(?9, consent_status.last_name) END,
+       email=CASE WHEN ?25 = 1 THEN ?10 ELSE COALESCE(?10, consent_status.email) END,
+       consent_email=CASE WHEN ?25 = 1 THEN ?11 ELSE COALESCE(?11, consent_status.consent_email) END,
+       wy_voter=CASE WHEN ?25 = 1 THEN ?12 ELSE COALESCE(?12, consent_status.wy_voter) END,
+       county=CASE WHEN ?25 = 1 THEN ?13 ELSE COALESCE(?13, consent_status.county) END,
+       zip=CASE WHEN ?25 = 1 THEN ?14 ELSE COALESCE(?14, consent_status.zip) END,
+       address1=CASE WHEN ?25 = 1 THEN ?15 ELSE COALESCE(?15, consent_status.address1) END,
+       address2=CASE WHEN ?25 = 1 THEN ?16 ELSE COALESCE(?16, consent_status.address2) END,
+       city=CASE WHEN ?25 = 1 THEN ?17 ELSE COALESCE(?17, consent_status.city) END,
+       state=CASE WHEN ?25 = 1 THEN ?18 ELSE COALESCE(?18, consent_status.state) END,
+       country=CASE WHEN ?25 = 1 THEN ?19 ELSE COALESCE(?19, consent_status.country) END,
+       state_house_district=CASE WHEN ?25 = 1 THEN ?20 ELSE COALESCE(?20, consent_status.state_house_district) END,
+       state_senate_district=CASE WHEN ?25 = 1 THEN ?21 ELSE COALESCE(?21, consent_status.state_senate_district) END,
+       consent_version=COALESCE(?22, consent_status.consent_version),
+       user_agent=CASE WHEN ?25 = 1 THEN ?23 ELSE COALESCE(?23, consent_status.user_agent) END,
+       ip_hash=CASE WHEN ?25 = 1 THEN ?24 ELSE COALESCE(?24, consent_status.ip_hash) END,
        updated_at=datetime('now')`
   )
     .bind(
@@ -418,6 +504,13 @@ export async function upsertConsentStatus(db, input) {
       wyVoter,
       county,
       zip,
+      address1,
+      address2,
+      city,
+      state,
+      country,
+      stateHouseDistrict,
+      stateSenateDistrict,
       consentVersion,
       userAgent,
       ipHash,

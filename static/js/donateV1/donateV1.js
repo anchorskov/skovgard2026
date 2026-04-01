@@ -342,6 +342,12 @@ async function initDonate() {
         last_name: data.last_name,
         phone: digits,
         email: data.email || "",
+        address1: data.address1 || "",
+        address2: data.address2 || "",
+        city: data.city || "",
+        state: (data.state || "").toUpperCase(),
+        zip: data.zip || "",
+        country: (data.country || "US").toUpperCase(),
         consent_sms: true,
       });
       setLoading(false);

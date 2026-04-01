@@ -38,6 +38,12 @@ binding = "DB"
 database_name = "ballot_sources"
 database_id   = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
 
+[[env.production.d1_databases]]
+binding             = "WY_DB"
+database_name       = "wy"
+database_id         = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"
+preview_database_id = "de78cb41-176d-40e8-bd3b-e053e347ac3f"
+
 # ---------- Preview environment (Pages preview, etc.) ----------
 [env.preview]
 [env.preview.vars]
@@ -56,12 +62,23 @@ binding = "DB"
 database_name = "ballot_sources"
 database_id   = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
 
+[[env.preview.d1_databases]]
+binding       = "WY_DB"
+database_name = "wy_preview"
+database_id   = "de78cb41-176d-40e8-bd3b-e053e347ac3f"
+
 
 # ---------- D1 binding (shared across envs) ----------
 [[d1_databases]]
 binding = "DB"
 database_name = "ballot_sources"
 database_id   = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
+
+[[d1_databases]]
+binding             = "WY_DB"
+database_name       = "wy"
+database_id         = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"
+preview_database_id = "de78cb41-176d-40e8-bd3b-e053e347ac3f"
 
 # Routes: attach Worker to /api/* paths on production domains
 [[routes]]

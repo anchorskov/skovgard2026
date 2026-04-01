@@ -28,6 +28,10 @@ This is the important split:
 - The same flows keep `contacts` in sync for texting UI and send-path behavior.
 - Telnyx inbound STOP/START/HELP updates `consent_status`.
 - Admin Pulse export reads from `consent_status`.
+- Pulse now captures street address, city, state, and ZIP in the canonical consent record so district lookup can be layered on later.
+- District assignment now uses a two-stage lookup:
+  - first the mirrored Wyoming address tables loaded from `grassrootsmvt`
+  - then the US Census geocoder as fallback when the local mirror does not resolve House/Senate districts
 - `sms_optins` remains in D1 only as historical backup while production verifies cleanly after the 2026-03-31 refactor.
 
 ## Data flow overview
@@ -38,6 +42,7 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
    - Pulse signup posts to `/api/optin`.
    - Donate SMS opt-in posts to `/api/donate/sms-optin`.
    - Both flows write canonical SMS consent/profile data into `consent_status`.
+   - Pulse writes a full mailing address (`address1`, `address2`, `city`, `state`, `zip`, `country`) and keeps nullable district fields ready for later reverse geolocation.
    - Both flows update `contacts`.
 
 2. Telnyx webhooks
@@ -60,7 +65,9 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
 | Table | Purpose |
 |---|---|
 | `contacts` | Texting-facing contact identity keyed by `phone_e164`. Holds names plus texting helper fields like `tags` and `welcome_sent_at`. |
-| `consent_status` | Canonical SMS consent record keyed by `phone_e164`. Stores live status (`opted_in`, `opted_out`, `unknown`, etc.), consent timestamps, inbound keyword metadata, and Pulse/donate profile fields such as name, email, county, ZIP, voter flag, consent version, user agent, and IP hash. |
+| `consent_status` | Canonical SMS consent record keyed by `phone_e164`. Stores live status (`opted_in`, `opted_out`, `unknown`, etc.), consent timestamps, inbound keyword metadata, and Pulse/donate profile fields such as name, email, ZIP, full mailing address, voter flag, consent version, user agent, and IP hash. The `county` column remains for legacy data but is no longer collected by the Pulse form. |
+| `wy_address_district_lookup` | Exact Wyoming address-to-district lookup table derived from the normalized Grassroots voter-address dataset. This is the primary local mirror used to assign `state_house_district`, `state_senate_district`, and derived `county` during opt-in writes and backfills. |
+| `wy_district_coverage` | City/county-to-district coverage table mirrored from Grassroots for safe fallback when a city maps to exactly one House or Senate district. |
 | `inbound_messages` | Raw inbound SMS records from Telnyx webhooks. |
 | `outbound_messages` | Outbound SMS records plus delivery status updates. |
 | `telnyx_events` | Raw webhook event log for send, delivery, and inbound processing diagnostics. |
@@ -104,11 +111,63 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
   - `email`
   - `consent_email`
   - `wy_voter`
-  - `county`
+  - `county` (legacy / optional)
   - `zip`
+  - `address1`
+  - `address2`
+  - `city`
+  - `state`
+  - `country`
+  - `state_house_district`
+  - `state_senate_district`
   - `consent_version`
   - `user_agent`
   - `ip_hash`
+
+- District placeholders:
+  - `state_house_district` and `state_senate_district` live on `consent_status`.
+  - As of 2026-03-31, those fields are populated from `wy_address_district_lookup` when the mirrored Grassroots lookup tables have been loaded into D1.
+  - `county` is now derivable from the same lookup even though the Pulse form no longer asks the user to choose a county.
+
+## District lookup mirror
+
+- Source of truth for the mirror:
+  - `/home/anchor/projects/grassrootsmvt/worker/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite`
+  - Tables mirrored from that project:
+    - `voters_addr_norm`
+    - `district_coverage`
+    - `wy_city_county`
+
+- Mirrored lookup behavior in this repo:
+  - Exact match path:
+    - Normalize `address1` plus optional `address2`, `city`, and `zip`.
+    - Query `wy_address_district_lookup`.
+    - If exactly one House/Senate pair matches, save it to `consent_status`.
+  - Census fallback path:
+    - If the mirrored address tables do not resolve House/Senate, call the US Census geocoder from the Worker.
+    - Prefer the coordinates endpoint when `lat/lon` are present.
+    - Otherwise call the address endpoint with the submitted mailing address.
+    - Read county plus `2024 State Legislative Districts - Upper` / `Lower` from the Census geographies response.
+  - Safe fallback path:
+    - If neither the mirror nor Census resolves the address, query `wy_district_coverage`.
+    - Only use the coverage fallback when a city resolves to exactly one House or Senate district.
+    - If the city is ambiguous, leave the district field blank instead of guessing.
+
+- Source-data verification snapshot on 2026-03-31:
+  - `grassrootsmvt.voters_addr_norm` rows: `274656`
+  - Deduped exact address keys (`address + city + zip`): `166323`
+  - Exact-address keys with multiple district pairs: `2`
+  - `district_coverage` rows: `549`
+
+- Local/remote sync script:
+  - [sync-wy-district-lookup.mjs](/home/anchor/projects/skovgard2026/scripts/sync-wy-district-lookup.mjs)
+  - Responsibilities:
+    - Rebuild `wy_address_district_lookup`
+    - Rebuild `wy_district_coverage`
+    - Backfill `consent_status.county`
+    - Backfill `consent_status.state_house_district`
+    - Backfill `consent_status.state_senate_district`
+    - Print verification counts after the sync
 
 ## Scripts and local mirrors
 
