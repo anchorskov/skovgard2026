@@ -112,6 +112,81 @@ export function parseInboundKeyword(text) {
   return "";
 }
 
+function keywordOperation(keyword) {
+  const normalized = normalizeWhitespace(keyword).toUpperCase();
+  if (!normalized) return "";
+  if (STOP_KEYWORDS.has(normalized)) return "STOP";
+  if (START_KEYWORDS.has(normalized)) return "START";
+  if (HELP_KEYWORDS.has(normalized)) return "HELP";
+  return "";
+}
+
+function parseAutoresponseType(value) {
+  const normalized = normalizeWhitespace(value).toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+  if (!normalized) return "";
+  if (["STOP", "OPT_OUT", "OPTOUT", "UNSUBSCRIBE"].includes(normalized)) return "STOP";
+  if (["START", "OPT_IN", "OPTIN", "SUBSCRIBE"].includes(normalized)) return "START";
+  if (normalized === "HELP") return "HELP";
+  return "";
+}
+
+function resolveInboundKeyword(payload) {
+  const autoresponseKeyword = parseAutoresponseType(payload?.autoresponse_type);
+  if (autoresponseKeyword) {
+    const parsedTextKeyword = parseInboundKeyword(payload?.text ?? null);
+    return keywordOperation(parsedTextKeyword) === autoresponseKeyword
+      ? parsedTextKeyword
+      : autoresponseKeyword;
+  }
+  return parseInboundKeyword(payload?.text ?? null);
+}
+
+async function upsertInboundContact(db, phoneE164) {
+  const phone = normalizePhoneNumber(phoneE164);
+  if (!phone) return;
+
+  await db.prepare(
+    `INSERT INTO contacts (phone_e164, created_at, updated_at)
+     VALUES (?1, datetime('now'), datetime('now'))
+     ON CONFLICT(phone_e164) DO UPDATE SET
+       updated_at=datetime('now')`
+  )
+    .bind(phone)
+    .run();
+}
+
+async function recordInboundKeywordOnly(db, { phoneE164, keyword, source = "inbound_sms", sourceDetail = null }) {
+  const phone = normalizePhoneNumber(phoneE164);
+  if (!phone || !keyword) return;
+
+  const existing = await db.prepare(
+    `SELECT 1
+       FROM consent_status
+      WHERE phone_e164 = ?1`
+  )
+    .bind(phone)
+    .first();
+
+  if (existing) {
+    await db.prepare(
+      `UPDATE consent_status
+          SET last_inbound_keyword = ?2,
+              updated_at = datetime('now')
+        WHERE phone_e164 = ?1`
+    )
+      .bind(phone, keyword)
+      .run();
+    return;
+  }
+
+  await upsertConsentStatus(db, {
+    phoneE164: phone,
+    source,
+    sourceDetail,
+    lastInboundKeyword: keyword,
+  });
+}
+
 export async function verifyTelnyxSignature(rawBody, headers, publicKey, options = {}) {
   const timestamp = String(headers.get("telnyx-timestamp") || "").trim();
   const signature = String(headers.get("telnyx-signature-ed25519") || "").trim();
@@ -334,8 +409,6 @@ async function handleInboundOptInKeyword(db, env, { phoneE164, keyword, occurred
     targetPhone: phone,
     detailsJson: JSON.stringify({ keyword, eventType }),
   });
-
-  await maybeSendWelcomeText(db, env, phone);
   return { changed: true, reason: existingStatus === "opted_out" ? "reactivated" : "opted_in" };
 }
 
@@ -624,6 +697,10 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
     const phoneTo = normalizePhoneNumber(payload?.to?.[0]?.phone_number || "");
     const text = payload?.text ?? null;
     const receivedAt = payload?.received_at || occurredAt || null;
+    const keyword = resolveInboundKeyword(payload);
+    const sourceDetail = keyword ? `${eventType}:${keyword.toLowerCase()}` : eventType;
+
+    await upsertInboundContact(db, phoneFrom);
 
     await db.prepare(
       `INSERT INTO inbound_messages
@@ -644,32 +721,57 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
       )
       .run();
 
-    const keyword = parseInboundKeyword(text);
-    if (STOP_KEYWORDS.has(keyword)) {
+    await insertTextingAuditLog(db, {
+      action: "inbound_message_received",
+      targetPhone: phoneFrom || null,
+      messageId: telnyxMessageId,
+      detailsJson: JSON.stringify({
+        eventType,
+        from: phoneFrom || null,
+        to: phoneTo || null,
+        text,
+        keyword: keyword || null,
+        autoresponseType: payload?.autoresponse_type ?? null,
+      }),
+    });
+
+    if (keywordOperation(keyword) === "STOP") {
       await upsertConsentStatus(db, {
         phoneE164: phoneFrom,
         status: "opted_out",
         source: "inbound_sms",
-        sourceDetail: eventType,
+        sourceDetail,
         revokedAt: occurredAt || new Date().toISOString(),
         lastInboundKeyword: keyword,
       });
-    } else if (START_KEYWORDS.has(keyword)) {
+
+      await insertTextingAuditLog(db, {
+        action: "inbound_opt_out",
+        targetPhone: phoneFrom || null,
+        messageId: telnyxMessageId,
+        detailsJson: JSON.stringify({ eventType, keyword, autoresponseType: payload?.autoresponse_type ?? null }),
+      });
+    } else if (keywordOperation(keyword) === "START") {
       await handleInboundOptInKeyword(db, env, {
         phoneE164: phoneFrom,
         keyword,
         occurredAt,
         eventType,
       });
-    } else if (HELP_KEYWORDS.has(keyword)) {
-      await upsertConsentStatus(db, {
+    } else if (keywordOperation(keyword) === "HELP") {
+      await recordInboundKeywordOnly(db, {
         phoneE164: phoneFrom,
-        status: "unknown",
+        keyword,
         source: "inbound_sms",
-        sourceDetail: eventType,
-        lastInboundKeyword: keyword,
+        sourceDetail,
       });
-      // TODO(worker/src/telnyx.js): add policy-approved HELP auto-reply logic.
+
+      await insertTextingAuditLog(db, {
+        action: "inbound_help",
+        targetPhone: phoneFrom || null,
+        messageId: telnyxMessageId,
+        detailsJson: JSON.stringify({ eventType, keyword, autoresponseType: payload?.autoresponse_type ?? null }),
+      });
     }
     return;
   }

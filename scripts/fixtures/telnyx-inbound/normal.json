@@ -1,0 +1,22 @@
+{
+  "data": {
+    "id": "__EVENT_ID__",
+    "event_type": "message.received",
+    "occurred_at": "__OCCURRED_AT__",
+    "payload": {
+      "id": "__MESSAGE_ID__",
+      "direction": "inbound",
+      "received_at": "__RECEIVED_AT__",
+      "text": "Hello from local webhook test",
+      "autoresponse_type": null,
+      "from": {
+        "phone_number": "__FROM_NUMBER__"
+      },
+      "to": [
+        {
+          "phone_number": "__TO_NUMBER__"
+        }
+      ]
+    }
+  }
+}
