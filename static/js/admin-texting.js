@@ -16,8 +16,12 @@ const previewBox = document.getElementById("text-preview-box");
 const previewSummary = document.getElementById("text-preview-summary");
 const statusEl = document.getElementById("admin-texting-status");
 const messagesEl = document.getElementById("admin-texting-messages");
+const messagesClearVisibleBtn = document.getElementById("messages_clear_visible");
+const messagesActionStatusEl = document.getElementById("messages-action-status");
 const contactsEl = document.getElementById("admin-texting-contacts");
 const conversationEl = document.getElementById("admin-texting-conversation");
+const conversationClearBtn = document.getElementById("conversation_clear");
+const conversationActionStatusEl = document.getElementById("conversation-action-status");
 const messagesSearchInput = document.getElementById("messages_search");
 const contactsSearchInput = document.getElementById("contacts_search");
 const contactsFilterInput = document.getElementById("contacts_filter");
@@ -52,7 +56,10 @@ const STORAGE_EMAIL = "skovgard_admin_texting_email";
 let selectedPhone = "";
 let singlePreviewState = null;
 let broadcastPreviewState = null;
+let contactsDataset = [];
+let visibleMessages = [];
 let visibleContacts = [];
+let visibleConversationMessages = [];
 const selectedContactPhones = new Set();
 const knownContacts = new Map();
 const recipientTray = new Map();
@@ -72,12 +79,18 @@ function returnToAuth(message, { clearStoredKey = false } = {}) {
   shellEl.hidden = true;
   clearSinglePreview();
   clearBroadcastPreview();
+  contactsDataset = [];
+  visibleMessages = [];
   selectedContactPhones.clear();
   recipientTray.clear();
   visibleContacts = [];
+  visibleConversationMessages = [];
   renderConversation({ phone: "", items: [] });
+  renderMessages([]);
   renderRecipientTray();
   updateSelectionUi();
+  setStatus(messagesActionStatusEl, "");
+  setStatus(conversationActionStatusEl, "");
   if (clearStoredKey) {
     localStorage.removeItem(STORAGE_KEY);
     keyInput.value = "";
@@ -213,12 +226,110 @@ function contactDisplayName(item) {
   return `${item?.first_name || ""} ${item?.last_name || ""}`.trim() || item?.phone_e164 || "Unnamed contact";
 }
 
+function normalizeFacetText(value) {
+  return String(value || "").trim();
+}
+
+function normalizeCityValue(value) {
+  return normalizeFacetText(value).toLocaleLowerCase();
+}
+
+function normalizeDistrictValue(value) {
+  const text = normalizeFacetText(value);
+  if (!text) return "";
+  const digits = text.match(/\d+/)?.[0];
+  return digits ? String(Number(digits)) : text.toLocaleUpperCase();
+}
+
+function formatDistrictValue(value) {
+  const normalized = normalizeDistrictValue(value);
+  return normalized || "";
+}
+
+function compareDistrictLabels(a, b) {
+  const aNumber = Number.parseInt(a, 10);
+  const bNumber = Number.parseInt(b, 10);
+  if (Number.isFinite(aNumber) && Number.isFinite(bNumber)) return aNumber - bNumber;
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+}
+
+function setSelectOptions(selectEl, options, defaultLabel) {
+  if (!selectEl) return;
+  const currentValue = String(selectEl.value || "");
+  const values = Array.isArray(options) ? options : [];
+  selectEl.innerHTML = [
+    `<option value="">${escapeHtml(defaultLabel)}</option>`,
+    ...values.map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`),
+  ].join("");
+  const hasCurrent = currentValue && values.some((option) => option.value === currentValue);
+  selectEl.value = hasCurrent ? currentValue : "";
+}
+
+function buildContactFacetOptions(rows) {
+  const cityMap = new Map();
+  const hdMap = new Map();
+  const sdMap = new Map();
+
+  rows.forEach((item) => {
+    const city = normalizeFacetText(item?.city);
+    if (city) {
+      const key = normalizeCityValue(city);
+      if (!cityMap.has(key)) cityMap.set(key, city);
+    }
+
+    const hd = formatDistrictValue(item?.state_house_district);
+    if (hd && !hdMap.has(hd)) hdMap.set(hd, hd);
+
+    const sd = formatDistrictValue(item?.state_senate_district);
+    if (sd && !sdMap.has(sd)) sdMap.set(sd, sd);
+  });
+
+  const cities = [...cityMap.entries()]
+    .sort((a, b) => a[1].localeCompare(b[1], undefined, { sensitivity: "base" }))
+    .map(([, label]) => ({ value: label, label }));
+  const hds = [...hdMap.values()]
+    .sort(compareDistrictLabels)
+    .map((value) => ({ value, label: value }));
+  const sds = [...sdMap.values()]
+    .sort(compareDistrictLabels)
+    .map((value) => ({ value, label: value }));
+
+  return { cities, hds, sds };
+}
+
+function syncContactFacetOptions(rows) {
+  const options = buildContactFacetOptions(rows);
+  setSelectOptions(contactsCityInput, options.cities, "All cities");
+  setSelectOptions(contactsHdInput, options.hds, "All HDs");
+  setSelectOptions(contactsSdInput, options.sds, "All SDs");
+}
+
+function contactMatchesLocalFilters(item) {
+  const selectedCity = normalizeCityValue(contactsCityInput?.value || "");
+  const selectedHd = normalizeDistrictValue(contactsHdInput?.value || "");
+  const selectedSd = normalizeDistrictValue(contactsSdInput?.value || "");
+
+  if (selectedCity && normalizeCityValue(item?.city) !== selectedCity) return false;
+  if (selectedHd && normalizeDistrictValue(item?.state_house_district) !== selectedHd) return false;
+  if (selectedSd && normalizeDistrictValue(item?.state_senate_district) !== selectedSd) return false;
+  return true;
+}
+
 function contactLocationText(item) {
   const parts = [];
-  if (item?.city) parts.push(`City: ${item.city}`);
-  if (item?.state_house_district) parts.push(`HD: ${item.state_house_district}`);
-  if (item?.state_senate_district) parts.push(`SD: ${item.state_senate_district}`);
+  const city = normalizeFacetText(item?.city);
+  const hd = formatDistrictValue(item?.state_house_district);
+  const sd = formatDistrictValue(item?.state_senate_district);
+  if (city) parts.push(`City: ${city}`);
+  if (hd) parts.push(`HD: ${hd}`);
+  if (sd) parts.push(`SD: ${sd}`);
   return parts.join(" | ");
+}
+
+function districtText(item) {
+  const hd = formatDistrictValue(item?.state_house_district);
+  const sd = formatDistrictValue(item?.state_senate_district);
+  return [hd ? `HD: ${hd}` : null, sd ? `SD: ${sd}` : null].filter(Boolean).join(" | ");
 }
 
 function trayRecipientPhones() {
@@ -466,12 +577,21 @@ function renderStatus(data) {
 
 function renderMessages(items) {
   const rows = Array.isArray(items) ? items : [];
+  visibleMessages = rows;
   messagesEl.innerHTML = rows.length
     ? rows.map((item) => `
         <article class="list-item">
           <div class="row">
-            <strong>${escapeHtml(item.direction)}</strong>
-            ${badge(item.status)}
+            <div class="message-heading">
+              <strong>${escapeHtml(item.direction)}</strong>
+              ${badge(item.status)}
+            </div>
+            <button
+              type="button"
+              class="secondary message-delete"
+              data-direction="${escapeHtml(item.direction)}"
+              data-row-id="${escapeHtml(item.row_id)}"
+            >Delete</button>
           </div>
           <div class="meta">${escapeHtml(item.phone_from)} -> ${escapeHtml(item.phone_to)}</div>
           <div class="meta">${escapeHtml(formatTs(item.at))}</div>
@@ -510,10 +630,18 @@ function renderContacts(items) {
               <strong>${escapeHtml(contactDisplayName(item))}</strong>
               ${badge(item.status || "unknown")}
             </div>
-            <button type="button" class="secondary contact-thread" data-phone="${escapeHtml(item.phone_e164)}">View thread</button>
+            <div class="contact-actions">
+              <button
+                type="button"
+                class="contact-tray-toggle"
+                data-phone="${escapeHtml(item.phone_e164)}"
+              >${recipientTray.has(item.phone_e164) ? "Remove from tray" : "Add to tray"}</button>
+              <button type="button" class="secondary contact-thread" data-phone="${escapeHtml(item.phone_e164)}">View thread</button>
+            </div>
           </div>
           <div class="meta">${escapeHtml(item.phone_e164)}</div>
-          <div class="meta">${escapeHtml(contactLocationText(item) || "City / HD / SD unavailable")}</div>
+          <div class="meta">City: ${escapeHtml(normalizeFacetText(item?.city) || "\u2014")}</div>
+          <div class="meta">${escapeHtml(districtText(item) || "HD / SD unavailable")}</div>
           <div class="meta">Keyword: ${escapeHtml(item.last_inbound_keyword || "none")}</div>
         </article>
       `).join("")
@@ -542,12 +670,16 @@ function renderSuppression(items) {
 function renderConversation(data) {
   const model = isRecord(data) ? data : {};
   const items = Array.isArray(model.items) ? model.items : [];
+  visibleConversationMessages = items;
   const consent = isRecord(model.consent) ? model.consent : null;
   const location = contactLocationText({
     city: consent?.city,
     state_house_district: consent?.state_house_district,
     state_senate_district: consent?.state_senate_district,
   });
+  if (conversationClearBtn) {
+    conversationClearBtn.disabled = !(model.phone && items.length);
+  }
   conversationEl.innerHTML = `
     <div class="conversation-summary">
       <strong>${escapeHtml(model.phone || "No contact selected")}</strong>
@@ -559,8 +691,16 @@ function renderConversation(data) {
       ? items.map((item) => `
           <article class="list-item">
             <div class="row">
-              <strong>${escapeHtml(item.direction)}</strong>
-              ${badge(item.status)}
+              <div class="message-heading">
+                <strong>${escapeHtml(item.direction)}</strong>
+                ${badge(item.status)}
+              </div>
+              <button
+                type="button"
+                class="secondary conversation-message-delete"
+                data-direction="${escapeHtml(item.direction)}"
+                data-row-id="${escapeHtml(item.row_id)}"
+              >Delete</button>
             </div>
             <div class="meta">${escapeHtml(formatTs(item.at))}</div>
             <p>${escapeHtml(item.text || "")}</p>
@@ -584,13 +724,12 @@ async function loadMessages() {
 async function loadContacts() {
   const q = encodeURIComponent(String(contactsSearchInput?.value || "").trim());
   const filter = encodeURIComponent(String(contactsFilterInput?.value || "all").trim());
-  const city = encodeURIComponent(String(contactsCityInput?.value || "").trim());
-  const hd = encodeURIComponent(String(contactsHdInput?.value || "").trim());
-  const sd = encodeURIComponent(String(contactsSdInput?.value || "").trim());
   const data = await api(
-    `/api/admin/texting/contacts?limit=50&filter=${filter}${q ? `&q=${q}` : ""}${city ? `&city=${city}` : ""}${hd ? `&hd=${hd}` : ""}${sd ? `&sd=${sd}` : ""}`
+    `/api/admin/texting/contacts?limit=5000&filter=${filter}${q ? `&q=${q}` : ""}`
   );
-  renderContacts(data.items || []);
+  contactsDataset = Array.isArray(data?.items) ? data.items : [];
+  syncContactFacetOptions(contactsDataset);
+  renderContacts(contactsDataset.filter(contactMatchesLocalFilters));
 }
 
 async function loadSuppression() {
@@ -605,6 +744,109 @@ async function loadConversation(phone) {
   }
   const data = await api(`/api/admin/texting/conversations?phone=${encodeURIComponent(phone)}`);
   renderConversation(data);
+}
+
+function normalizeDeleteMessageItems(items) {
+  return (Array.isArray(items) ? items : [])
+    .map((item) => ({
+      direction: String(item?.direction || "").trim().toLowerCase(),
+      row_id: Number(item?.row_id || 0),
+    }))
+    .filter((item) => (item.direction === "inbound" || item.direction === "outbound") && Number.isInteger(item.row_id) && item.row_id > 0);
+}
+
+async function deleteMessageItems(items, { statusEl = messagesActionStatusEl, confirmText = "", successMessage = "" } = {}) {
+  const normalizedItems = normalizeDeleteMessageItems(items);
+  if (!normalizedItems.length) {
+    setStatus(statusEl, "No messages selected to delete.", true);
+    return;
+  }
+  const prompt = confirmText || `Delete ${normalizedItems.length} message${normalizedItems.length === 1 ? "" : "s"}? This permanently removes the rows from the texting tables.`;
+  if (!window.confirm(prompt)) return;
+
+  try {
+    const data = await api("/api/admin/texting/messages/delete", {
+      method: "POST",
+      body: JSON.stringify({ items: normalizedItems }),
+    });
+    await refreshAll();
+    const deletedCount = Number(data?.deletedCount || 0);
+    setStatus(
+      statusEl,
+      successMessage || `${deletedCount} message${deletedCount === 1 ? "" : "s"} deleted permanently from the texting tables.`
+    );
+  } catch (error) {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
+    setStatus(statusEl, error.message, true);
+  }
+}
+
+async function clearSelectedConversation() {
+  if (!selectedPhone) {
+    setStatus(conversationActionStatusEl, "Select a conversation first.", true);
+    return;
+  }
+  if (!visibleConversationMessages.length) {
+    setStatus(conversationActionStatusEl, "No conversation messages to clear.", true);
+    return;
+  }
+  if (!window.confirm(`Clear all messages for ${selectedPhone}? This permanently removes the conversation rows from the texting tables.`)) return;
+
+  try {
+    const data = await api("/api/admin/texting/conversations/clear", {
+      method: "POST",
+      body: JSON.stringify({ phone: selectedPhone }),
+    });
+    await refreshAll();
+    const deletedCount = Number(data?.deletedCount || 0);
+    setStatus(
+      conversationActionStatusEl,
+      `${deletedCount} message${deletedCount === 1 ? "" : "s"} deleted for ${selectedPhone}.`
+    );
+  } catch (error) {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
+    setStatus(conversationActionStatusEl, error.message, true);
+  }
+}
+
+async function clearMessagesBySearch() {
+  const q = String(messagesSearchInput?.value || "").trim();
+  const scopeText = q ? `all messages matching "${q}"` : "ALL messages";
+  const promptLabel = q ? "DELETE MATCHES" : "DELETE ALL";
+  const confirmation = window.prompt(
+    `Type ${promptLabel} to permanently remove ${scopeText} from the inbound and outbound message tables.`
+  );
+  if (confirmation !== promptLabel) {
+    setStatus(messagesActionStatusEl, `Deletion cancelled. Type ${promptLabel} exactly to confirm.`, true);
+    return;
+  }
+
+  try {
+    const data = await api("/api/admin/texting/messages/clear", {
+      method: "POST",
+      body: JSON.stringify({ q }),
+    });
+    await refreshAll();
+    const deletedCount = Number(data?.deletedCount || 0);
+    setStatus(
+      messagesActionStatusEl,
+      q
+        ? `${deletedCount} matching message${deletedCount === 1 ? "" : "s"} deleted from the texting tables.`
+        : `${deletedCount} message${deletedCount === 1 ? "" : "s"} deleted from the texting tables.`
+    );
+  } catch (error) {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
+    setStatus(messagesActionStatusEl, error.message, true);
+  }
 }
 
 async function loadSection(name, loader, onError, failures) {
@@ -805,11 +1047,18 @@ clearBtn?.addEventListener("click", () => {
   shellEl.hidden = true;
   clearSinglePreview();
   clearBroadcastPreview();
+  contactsDataset = [];
+  visibleMessages = [];
   selectedContactPhones.clear();
   recipientTray.clear();
   visibleContacts = [];
+  visibleConversationMessages = [];
   renderRecipientTray();
+  renderMessages([]);
+  renderConversation({ phone: "", items: [] });
   updateSelectionUi();
+  setStatus(messagesActionStatusEl, "");
+  setStatus(conversationActionStatusEl, "");
   setStatus(authStatusEl, "Saved key cleared.");
 });
 
@@ -944,6 +1193,10 @@ messagesSearchInput?.addEventListener("change", () => {
   loadMessages().catch((error) => setStatus(authStatusEl, error.message, true));
 });
 
+messagesClearVisibleBtn?.addEventListener("click", () => {
+  clearMessagesBySearch();
+});
+
 contactsSearchInput?.addEventListener("change", () => {
   loadContacts().catch((error) => setStatus(authStatusEl, error.message, true));
 });
@@ -954,7 +1207,7 @@ contactsFilterInput?.addEventListener("change", () => {
 
 [contactsCityInput, contactsHdInput, contactsSdInput].forEach((el) => {
   el?.addEventListener("change", () => {
-    loadContacts().catch((error) => setStatus(authStatusEl, error.message, true));
+    renderContacts(contactsDataset.filter(contactMatchesLocalFilters));
   });
 });
 
@@ -1011,12 +1264,59 @@ contactsEl?.addEventListener("change", (event) => {
 });
 
 contactsEl?.addEventListener("click", (event) => {
+  const trayButton = event.target.closest(".contact-tray-toggle");
+  if (trayButton) {
+    const phone = trayButton.getAttribute("data-phone") || "";
+    if (!phone) return;
+    if (recipientTray.has(phone)) {
+      recipientTray.delete(phone);
+      renderContacts(visibleContacts);
+      invalidateBroadcastPreview("Broadcast preview cleared because the recipient tray changed.");
+      setStatus(contactsSelectionStatusEl, `Removed ${phone} from the recipient tray.`);
+      return;
+    }
+    const item = knownContacts.get(phone);
+    if (!item) return;
+    recipientTray.set(phone, item);
+    renderContacts(visibleContacts);
+    invalidateBroadcastPreview("Broadcast preview cleared because the recipient tray changed.");
+    setStatus(contactsSelectionStatusEl, `Added ${contactDisplayName(item)} to the recipient tray.`);
+    return;
+  }
   const threadButton = event.target.closest(".contact-thread");
   if (!threadButton) return;
   const phone = threadButton.getAttribute("data-phone") || "";
   if (!phone) return;
   selectedPhone = phone;
   loadConversation(selectedPhone).catch((error) => setStatus(authStatusEl, error.message, true));
+});
+
+messagesEl?.addEventListener("click", (event) => {
+  const target = event.target.closest(".message-delete");
+  if (!target) return;
+  const rowId = Number(target.getAttribute("data-row-id") || 0);
+  const direction = String(target.getAttribute("data-direction") || "").trim().toLowerCase();
+  const item = visibleMessages.find((row) => Number(row?.row_id || 0) === rowId && String(row?.direction || "").trim().toLowerCase() === direction);
+  deleteMessageItems(item ? [item] : [{ row_id: rowId, direction }], {
+    statusEl: messagesActionStatusEl,
+    confirmText: "Delete this message? This permanently removes the row from the texting tables.",
+  });
+});
+
+conversationEl?.addEventListener("click", (event) => {
+  const target = event.target.closest(".conversation-message-delete");
+  if (!target) return;
+  const rowId = Number(target.getAttribute("data-row-id") || 0);
+  const direction = String(target.getAttribute("data-direction") || "").trim().toLowerCase();
+  const item = visibleConversationMessages.find((row) => Number(row?.row_id || 0) === rowId && String(row?.direction || "").trim().toLowerCase() === direction);
+  deleteMessageItems(item ? [item] : [{ row_id: rowId, direction }], {
+    statusEl: conversationActionStatusEl,
+    confirmText: "Delete this conversation message? This permanently removes the row from the texting tables.",
+  });
+});
+
+conversationClearBtn?.addEventListener("click", () => {
+  clearSelectedConversation();
 });
 
 recipientTrayList?.addEventListener("click", (event) => {

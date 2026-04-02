@@ -66,3 +66,28 @@ When creating audio/video files with `ffmpeg`, review `how_to_mp4.md` first. If 
 - When starting local servers for testing, treat them as temporary and close them when the test is complete.
 - Before finishing a task that used `wrangler dev` or another local server, verify that the listener has been shut down.
 - Do not leave background test servers running after validation unless the user explicitly asks to keep one open.
+
+## Button CSS Rules (admin pages)
+
+The PaperMod theme's global reset zeroes out all button appearance (`background: none; border: 0; padding: 0`). Every `<button>` on admin pages **must** be covered by an explicit CSS rule that restores its visual treatment.
+
+### Specificity pitfall
+
+`forms.css` contains `main .optin-form button[type="submit"]` with specificity **(0, 2, 2)**. Any admin-page button rule that uses only class selectors (e.g. `.admin-texting-shell .button-row button` = **(0, 2, 1)**) will **lose** for `type="submit"` buttons inside an `.optin-form`, stripping their border, radius, and padding. Use an **ID selector** on the closest ancestor section to raise specificity above (0, 2, 2):
+
+```css
+/* CORRECT — uses the section's actual ID, specificity (1, 1, 1) */
+#admin-texting-shell .button-row button { ... }
+
+/* WRONG — class-only, specificity (0, 2, 1) — loses to forms.css for submit buttons */
+.admin-texting-shell .button-row button { ... }
+```
+
+### Pattern for new admin pages
+
+1. Wrap all button groups in a `<div class="button-row">` inside a container that has a unique `id`.
+2. In the page-specific CSS, write button rules keyed to that ID (`#my-section-id .button-row button { ... }`).
+3. The primary button style: `display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: .6rem 1.1rem; border: 1px solid #2563eb; border-radius: .7rem; background: #2563eb; color: #fff; font-weight: 700; cursor: pointer;`
+4. Secondary variant: swap `background` and `border-color` to `#64748b`.
+5. Danger variant: `border: 1px solid #b91c1c; background: #fef2f2; color: #991b1b;`.
+6. Standalone buttons outside `.button-row` (e.g. a single action in a card header) need their own ID-targeted rule rather than relying on a class selector.

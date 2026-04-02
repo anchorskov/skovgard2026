@@ -677,6 +677,69 @@ async function queryContactsByPhones(db, phoneList = []) {
   return phones.map((phone) => byPhone.get(phone)).filter(Boolean);
 }
 
+async function deleteMessageRowsByIds(db, tableName, rowIds = []) {
+  const ids = [...new Set((Array.isArray(rowIds) ? rowIds : [])
+    .map((value) => positiveInt(value, 0, Number.MAX_SAFE_INTEGER))
+    .filter((value) => value > 0))];
+  if (!ids.length) return 0;
+
+  const sql = tableName === "inbound_messages"
+    ? `DELETE FROM inbound_messages WHERE id IN (${ids.map((_value, index) => `?${index + 1}`).join(", ")})`
+    : tableName === "outbound_messages"
+      ? `DELETE FROM outbound_messages WHERE id IN (${ids.map((_value, index) => `?${index + 1}`).join(", ")})`
+      : "";
+  if (!sql) throw new Error(`Unsupported delete table: ${tableName}`);
+
+  const result = await db.prepare(sql).bind(...ids).run();
+  return Number(result?.meta?.changes || 0);
+}
+
+async function clearConversationMessagesByPhone(db, phone) {
+  const normalizedPhone = normalizePhoneNumber(phone);
+  if (!normalizedPhone) return { inboundDeleted: 0, outboundDeleted: 0 };
+
+  const inboundResult = await db.prepare(
+    `DELETE FROM inbound_messages
+      WHERE phone_from = ?1 OR phone_to = ?1`
+  ).bind(normalizedPhone).run();
+  const outboundResult = await db.prepare(
+    `DELETE FROM outbound_messages
+      WHERE phone_from = ?1 OR phone_to = ?1`
+  ).bind(normalizedPhone).run();
+
+  return {
+    inboundDeleted: Number(inboundResult?.meta?.changes || 0),
+    outboundDeleted: Number(outboundResult?.meta?.changes || 0),
+  };
+}
+
+async function clearMessagesBySearch(db, q = "") {
+  const search = String(q || "").trim();
+  if (!search) {
+    const inboundResult = await db.prepare(`DELETE FROM inbound_messages`).run();
+    const outboundResult = await db.prepare(`DELETE FROM outbound_messages`).run();
+    return {
+      inboundDeleted: Number(inboundResult?.meta?.changes || 0),
+      outboundDeleted: Number(outboundResult?.meta?.changes || 0),
+    };
+  }
+
+  const qLike = `%${search}%`;
+  const inboundResult = await db.prepare(
+    `DELETE FROM inbound_messages
+      WHERE phone_from LIKE ?1 OR phone_to LIKE ?1 OR text LIKE ?1`
+  ).bind(qLike).run();
+  const outboundResult = await db.prepare(
+    `DELETE FROM outbound_messages
+      WHERE phone_from LIKE ?1 OR phone_to LIKE ?1 OR text LIKE ?1`
+  ).bind(qLike).run();
+
+  return {
+    inboundDeleted: Number(inboundResult?.meta?.changes || 0),
+    outboundDeleted: Number(outboundResult?.meta?.changes || 0),
+  };
+}
+
 function buildBatchPreviewRecipients(items) {
   return items.slice(0, 10).map((item) => ({
     phone_e164: item.phone_e164,
@@ -1593,20 +1656,20 @@ export default {
         const qLike = q ? `%${q}%` : null;
 
         const outboundSql = q
-          ? `SELECT 'outbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+          ? `SELECT id AS row_id, 'outbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
                     status, created_at AS at, updated_at, raw_json
                FROM outbound_messages
               WHERE phone_to LIKE ?1 OR phone_from LIKE ?1 OR text LIKE ?1`
-          : `SELECT 'outbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+          : `SELECT id AS row_id, 'outbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
                     status, created_at AS at, updated_at, raw_json
                FROM outbound_messages`;
 
         const inboundSql = q
-          ? `SELECT 'inbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+          ? `SELECT id AS row_id, 'inbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
                     direction AS status, received_at AS at, received_at AS updated_at, raw_json
                FROM inbound_messages
               WHERE phone_from LIKE ?1 OR phone_to LIKE ?1 OR text LIKE ?1`
-          : `SELECT 'inbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+          : `SELECT id AS row_id, 'inbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
                     direction AS status, received_at AS at, received_at AS updated_at, raw_json
                FROM inbound_messages`;
 
@@ -1624,12 +1687,94 @@ export default {
         return json(req, env, { ok: true, items });
       }
 
+      if (req.method === "POST" && path === "/api/admin/texting/messages/delete") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const requestedItems = Array.isArray(body?.items) ? body.items : [];
+        const deleteItems = requestedItems
+          .map((item) => ({
+            direction: String(item?.direction || "").trim().toLowerCase(),
+            rowId: positiveInt(item?.row_id, 0, Number.MAX_SAFE_INTEGER),
+          }))
+          .filter((item) => (item.direction === "inbound" || item.direction === "outbound") && item.rowId > 0);
+
+        if (!deleteItems.length) {
+          return json(req, env, { error: "No valid message rows supplied" }, 400);
+        }
+        if (deleteItems.length > 500) {
+          return json(req, env, { error: "Too many message rows requested" }, 400);
+        }
+
+        const inboundRowIds = [...new Set(deleteItems.filter((item) => item.direction === "inbound").map((item) => item.rowId))];
+        const outboundRowIds = [...new Set(deleteItems.filter((item) => item.direction === "outbound").map((item) => item.rowId))];
+        const inboundDeleted = await deleteMessageRowsByIds(env.DB, "inbound_messages", inboundRowIds);
+        const outboundDeleted = await deleteMessageRowsByIds(env.DB, "outbound_messages", outboundRowIds);
+        const deletedCount = inboundDeleted + outboundDeleted;
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail,
+          actorUserId: actor.actorUserId,
+          action: "admin_delete_messages",
+          detailsJson: JSON.stringify({
+            requestedCount: deleteItems.length,
+            deletedCount,
+            inboundRowIds,
+            outboundRowIds,
+            inboundDeleted,
+            outboundDeleted,
+          }),
+        });
+
+        return json(req, env, {
+          ok: true,
+          deletedCount,
+          inboundDeleted,
+          outboundDeleted,
+        });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/texting/messages/clear") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const q = String(body?.q || "").trim();
+        const { inboundDeleted, outboundDeleted } = await clearMessagesBySearch(env.DB, q);
+        const deletedCount = inboundDeleted + outboundDeleted;
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail,
+          actorUserId: actor.actorUserId,
+          action: "admin_clear_messages",
+          detailsJson: JSON.stringify({
+            q,
+            deletedCount,
+            inboundDeleted,
+            outboundDeleted,
+          }),
+        });
+
+        return json(req, env, {
+          ok: true,
+          q,
+          deletedCount,
+          inboundDeleted,
+          outboundDeleted,
+        });
+      }
+
       if (req.method === "GET" && path === "/api/admin/texting/contacts") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
         const auth = mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
-        const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 200);
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 5000);
         const q = String(url.searchParams.get("q") || "").trim();
         const filter = String(url.searchParams.get("filter") || "all").trim();
         const city = normalizeContactFilterValue(url.searchParams.get("city") || "");
@@ -1675,13 +1820,13 @@ export default {
         }
 
         const inbound = ((await env.DB.prepare(
-          `SELECT 'inbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+          `SELECT id AS row_id, 'inbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
                   received_at AS at, raw_json, direction AS status
              FROM inbound_messages
             WHERE phone_from = ?1 OR phone_to = ?1`
         ).bind(phone).all())?.results || []);
         const outbound = ((await env.DB.prepare(
-          `SELECT 'outbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
+          `SELECT id AS row_id, 'outbound' AS direction, telnyx_message_id AS message_id, phone_from, phone_to, text,
                   updated_at AS at, raw_json, status
              FROM outbound_messages
             WHERE phone_from = ?1 OR phone_to = ?1`
@@ -1694,6 +1839,42 @@ export default {
           .sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
 
         return json(req, env, { ok: true, phone, consent, items });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/texting/conversations/clear") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const phone = normalizePhoneNumber(body?.phone || "");
+        if (!phone) {
+          return json(req, env, { error: "Valid phone required" }, 400);
+        }
+
+        const { inboundDeleted, outboundDeleted } = await clearConversationMessagesByPhone(env.DB, phone);
+        const deletedCount = inboundDeleted + outboundDeleted;
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail,
+          actorUserId: actor.actorUserId,
+          action: "admin_clear_conversation_messages",
+          targetPhone: phone,
+          detailsJson: JSON.stringify({
+            deletedCount,
+            inboundDeleted,
+            outboundDeleted,
+          }),
+        });
+
+        return json(req, env, {
+          ok: true,
+          phone,
+          deletedCount,
+          inboundDeleted,
+          outboundDeleted,
+        });
       }
 
       if (req.method === "POST" && path === "/api/admin/texting/send") {

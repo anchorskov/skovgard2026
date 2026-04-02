@@ -129,6 +129,12 @@ main .card-controls input[type="search"] {
   margin: 0;
 }
 
+main .card-controls input[type="search"] {
+  flex: 1 1 16rem;
+  max-width: 18rem;
+  min-width: 12rem;
+}
+
 main .status-stack,
 main .list-stack {
   display: grid;
@@ -160,7 +166,9 @@ main .contact-item:hover {
   border-color: #2563eb;
 }
 
+main .message-heading,
 main .contact-heading,
+main .contact-actions,
 main .tray-actions,
 main .contacts-selection-bar,
 main .checkbox-inline {
@@ -169,10 +177,19 @@ main .checkbox-inline {
   gap: .65rem;
 }
 
+main .message-heading {
+  flex-wrap: wrap;
+}
+
 main .contact-heading {
   flex: 1 1 auto;
   justify-content: space-between;
   flex-wrap: wrap;
+}
+
+main .contact-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 main .contacts-selection-bar {
@@ -206,6 +223,7 @@ main .tray-actions {
 }
 
 main .contact-thread,
+main .contact-tray-toggle,
 main .tray-remove {
   display: inline-flex;
   align-items: center;
@@ -222,7 +240,33 @@ main .tray-remove {
   cursor: pointer;
 }
 
+main .danger-action,
+main .message-delete,
+main .conversation-message-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  margin: 0;
+  padding: .45rem .8rem;
+  border: 1px solid #b91c1c;
+  border-radius: .7rem;
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+main .danger-action:hover,
+main .message-delete:hover,
+main .conversation-message-delete:hover {
+  background: #fee2e2;
+  border-color: #991b1b;
+}
+
 main .contact-thread:hover,
+main .contact-tray-toggle:hover,
 main .tray-remove:hover {
   background: #475569;
   border-color: #475569;
@@ -232,6 +276,11 @@ main .meta,
 main .empty {
   color: #6b7280;
   font-size: .94rem;
+}
+
+main #messages-action-status,
+main #conversation-action-status {
+  margin: .5rem 0 .75rem;
 }
 
 main .preview-box {
@@ -249,7 +298,7 @@ main .preview-list-item {
 }
 
 #admin-texting-auth .button-row,
-.admin-texting-shell .button-row {
+#admin-texting-shell .button-row {
   display: flex;
   flex-wrap: wrap;
   gap: .75rem;
@@ -257,7 +306,7 @@ main .preview-list-item {
 }
 
 #admin-texting-auth .button-row button,
-.admin-texting-shell .button-row button {
+#admin-texting-shell .button-row button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -276,13 +325,13 @@ main .preview-list-item {
 }
 
 #admin-texting-auth .button-row button:hover,
-.admin-texting-shell .button-row button:hover {
+#admin-texting-shell .button-row button:hover {
   background: #1d4ed8;
   border-color: #1d4ed8;
 }
 
 #admin-texting-auth .button-row button:focus-visible,
-.admin-texting-shell .button-row button:focus-visible {
+#admin-texting-shell .button-row button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
@@ -324,13 +373,13 @@ main .status-unknown {
 }
 
 #admin-texting-auth .button-row .secondary,
-.admin-texting-shell .button-row .secondary {
+#admin-texting-shell .button-row .secondary {
   background: #64748b;
   border-color: #64748b;
 }
 
 #admin-texting-auth .button-row .secondary:hover,
-.admin-texting-shell .button-row .secondary:hover {
+#admin-texting-shell .button-row .secondary:hover {
   background: #475569;
   border-color: #475569;
 }

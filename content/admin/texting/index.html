@@ -140,8 +140,12 @@ summary: "Operational texting portal."
           <h2>Messages</h2>
           <p class="help">Latest inbound and outbound message activity from the production database.</p>
         </div>
-        <input id="messages_search" type="search" placeholder="Search phone or text" />
+        <div class="card-controls">
+          <input id="messages_search" type="search" placeholder="Search phone or text" />
+          <button type="button" id="messages_clear_visible" class="danger-action">Delete all</button>
+        </div>
       </div>
+      <p id="messages-action-status" class="help" role="status" aria-live="polite">Delete all removes matching rows from the inbound and outbound message tables.</p>
       <div id="admin-texting-messages" class="list-stack"></div>
     </section>
 
@@ -161,9 +165,15 @@ summary: "Operational texting portal."
             <option value="new_opt_ins">New opt-ins</option>
           </select>
           <input id="contacts_search" type="search" placeholder="Search phone or name" />
-          <input id="contacts_city" type="search" placeholder="City" />
-          <input id="contacts_hd" type="search" placeholder="HD" />
-          <input id="contacts_sd" type="search" placeholder="SD" />
+          <select id="contacts_city" aria-label="Filter contacts by city">
+            <option value="">All cities</option>
+          </select>
+          <select id="contacts_hd" aria-label="Filter contacts by house district">
+            <option value="">All HDs</option>
+          </select>
+          <select id="contacts_sd" aria-label="Filter contacts by senate district">
+            <option value="">All SDs</option>
+          </select>
         </div>
       </div>
       <div class="contacts-selection-bar">
@@ -186,7 +196,11 @@ summary: "Operational texting portal."
           <h2>Conversation</h2>
           <p class="help">Select a contact to load recent inbound and outbound history.</p>
         </div>
+        <div class="button-row">
+          <button type="button" id="conversation_clear" class="secondary" disabled>Clear conversation</button>
+        </div>
       </div>
+      <p id="conversation-action-status" class="help" role="status" aria-live="polite"></p>
       <div id="admin-texting-conversation" class="list-stack"></div>
     </section>
   </section>
