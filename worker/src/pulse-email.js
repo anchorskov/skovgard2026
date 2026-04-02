@@ -1,3 +1,5 @@
+import { sendResendEmail } from "./resend.js";
+
 function normalizeText(value) {
   return String(value ?? "").trim();
 }
@@ -144,33 +146,6 @@ function buildConfirmationEmail(config, profile) {
   };
 }
 
-async function sendResendEmail(config, message, idempotencyKey) {
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${config.apiKey}`,
-      "content-type": "application/json",
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-    },
-    body: JSON.stringify(message),
-  });
-
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const detail =
-      body?.message
-      || body?.error?.message
-      || body?.error
-      || `Resend request failed with ${response.status}`;
-    const error = new Error(detail);
-    error.status = response.status;
-    error.body = body;
-    throw error;
-  }
-
-  return body;
-}
-
 export async function sendPulseOptInEmails(env, profile, options = {}) {
   const config = {
     enabled: String(env.PULSE_EMAIL_ENABLED || "0") === "1",
@@ -189,7 +164,7 @@ export async function sendPulseOptInEmails(env, profile, options = {}) {
   if (options.sendStaff !== false && config.staffTo) {
     const staffMessage = buildStaffEmail(config, profile);
     jobs.push(
-      sendResendEmail(config, staffMessage, options.staffIdempotencyKey || null).then((data) => ({
+      sendResendEmail(config.apiKey, staffMessage, options.staffIdempotencyKey || null).then((data) => ({
         kind: "staff",
         id: data?.id || null,
       }))
@@ -200,7 +175,7 @@ export async function sendPulseOptInEmails(env, profile, options = {}) {
     const confirmationMessage = buildConfirmationEmail(config, profile);
     if (confirmationMessage) {
       jobs.push(
-        sendResendEmail(config, confirmationMessage, options.confirmationIdempotencyKey || null).then((data) => ({
+        sendResendEmail(config.apiKey, confirmationMessage, options.confirmationIdempotencyKey || null).then((data) => ({
           kind: "confirmation",
           id: data?.id || null,
         }))

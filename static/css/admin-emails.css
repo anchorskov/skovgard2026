@@ -1,0 +1,392 @@
+/* static/css/admin-emails.css */
+main .post-content {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+main .admin-emails-shell {
+  margin-top: 2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+main .admin-emails-hero,
+main .admin-card,
+main .status-item {
+  border: 1px solid #d1d5db;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+main .admin-emails-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+}
+
+main .admin-emails-actions {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  align-items: flex-start;
+  margin-left: auto;
+  min-width: max-content;
+}
+
+main #admin-emails-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: .7rem 1rem;
+  border: 1px solid #2563eb;
+  border-radius: .7rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.08);
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;
+}
+
+main #admin-emails-refresh:hover {
+  background: #dbeafe;
+  border-color: #1d4ed8;
+}
+
+main #admin-emails-refresh:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+main .admin-emails-hero > *,
+main .admin-emails-grid > *,
+main .card-head > *,
+main .row > * {
+  min-width: 0;
+}
+
+main .admin-emails-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(20rem, .85fr);
+  gap: 1rem;
+}
+
+main .admin-emails-grid-top {
+  align-items: start;
+}
+
+main .admin-card {
+  padding: 1.25rem 1.5rem;
+}
+
+main .admin-card-full {
+  width: 100%;
+}
+
+main .admin-card h2,
+main .recipient-tray h3,
+main .preview-box h3 {
+  margin-top: 0;
+  margin-bottom: .35rem;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+main .card-head,
+main .row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: center;
+}
+
+main .card-head input[type="search"] {
+  flex: 0 1 18rem;
+  max-width: 18rem;
+  min-width: 12rem;
+}
+
+main .card-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: center;
+}
+
+main .card-controls select,
+main .card-controls input[type="search"] {
+  margin: 0;
+}
+
+main .card-controls input[type="search"] {
+  flex: 1 1 16rem;
+  max-width: 18rem;
+  min-width: 12rem;
+}
+
+main .status-stack,
+main .list-stack {
+  display: grid;
+  gap: .75rem;
+}
+
+main .status-stack {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+main .status-item,
+main .list-item {
+  padding: .9rem 1rem;
+}
+
+main .contact-item {
+  width: 100%;
+  display: grid;
+  gap: .45rem;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: .85rem;
+  text-align: left;
+  color: inherit;
+}
+
+main .contact-item:hover {
+  border-color: #2563eb;
+}
+
+main .contact-heading,
+main .contact-actions,
+main .tray-actions,
+main .contacts-selection-bar,
+main .checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+main .contact-heading {
+  flex: 1 1 auto;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+main .contact-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+main .contacts-selection-bar {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin: .75rem 0 1rem;
+}
+
+main .checkbox-inline {
+  font-size: .94rem;
+  color: #0f172a;
+}
+
+main .checkbox-inline input {
+  margin: 0;
+}
+
+main .recipient-tray {
+  display: grid;
+  gap: .75rem;
+  margin: .75rem 0 1rem;
+  padding: .85rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: .85rem;
+  background: #f8fafc;
+}
+
+main .tray-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+main .contact-tray-toggle,
+main .tray-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  margin: 0;
+  padding: .45rem .8rem;
+  border: 1px solid #64748b;
+  border-radius: .7rem;
+  background: #64748b;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+main .contact-tray-toggle:hover,
+main .tray-remove:hover {
+  background: #475569;
+  border-color: #475569;
+}
+
+main .meta,
+main .empty {
+  color: #6b7280;
+  font-size: .94rem;
+}
+
+main .preview-box {
+  border: 1px dashed #94a3b8;
+  border-radius: .85rem;
+  padding: .85rem 1rem;
+  background: #f8fafc;
+}
+
+main .preview-list-item {
+  padding: .55rem .75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: .75rem;
+  background: #fff;
+}
+
+main .preview-copy {
+  margin-top: .75rem;
+  color: #0f172a;
+  line-height: 1.55;
+}
+
+#admin-emails-auth .button-row,
+#admin-emails-shell .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: center;
+}
+
+#admin-emails-auth .button-row button,
+#admin-emails-shell .button-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  min-height: 2.75rem;
+  padding: .6rem 1.1rem;
+  border: 1px solid #2563eb;
+  border-radius: .7rem;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+#admin-emails-auth .button-row button:hover,
+#admin-emails-shell .button-row button:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+#admin-emails-auth .button-row button:focus-visible,
+#admin-emails-shell .button-row button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+#admin-emails-auth .button-row .secondary,
+#admin-emails-shell .button-row .secondary {
+  background: #64748b;
+  border-color: #64748b;
+}
+
+#admin-emails-auth .button-row .secondary:hover,
+#admin-emails-shell .button-row .secondary:hover {
+  background: #475569;
+  border-color: #475569;
+}
+
+#admin-emails-auth .button-row button:disabled,
+#admin-emails-shell .button-row button:disabled {
+  background: #cbd5e1;
+  border-color: #cbd5e1;
+  color: #475569;
+  cursor: not-allowed;
+}
+
+main .status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: .25rem .6rem;
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+main .status-emailable,
+main .status-accepted,
+main .status-delivered,
+main .status-new_opt_ins {
+  background: #dcfce7;
+  color: #166534;
+}
+
+main .status-inactive,
+main .status-failed,
+main .status-no_consent {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+main .status-disabled,
+main .status-unknown {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+main .is-error {
+  color: #991b1b !important;
+}
+
+@media (max-width: 1120px) {
+  main .admin-emails-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  main .admin-emails-hero,
+  main .card-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  main .card-head input[type="search"] {
+    max-width: none;
+  }
+
+  main .card-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  main .admin-card,
+  main .admin-emails-hero {
+    padding: 1rem;
+  }
+
+  main .admin-emails-actions {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}

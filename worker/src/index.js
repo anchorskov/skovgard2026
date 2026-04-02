@@ -11,6 +11,11 @@ import {
   upsertConsentStatus,
   verifyTelnyxSignature,
 } from "./telnyx.js";
+import {
+  getAdminEmailConfig,
+  insertAdminEmailAuditLog,
+  sendAdminOutreachEmail,
+} from "./admin-email.js";
 import { sendPulseOptInEmails } from "./pulse-email.js";
 // --- CORS helpers ------------------------------------------------------------
 function allowOrigin(env, req) {
@@ -717,6 +722,330 @@ async function queryContactsByPhones(db, phoneList = []) {
   const results = ((await db.prepare(sql).bind(...phones).all())?.results || []);
   const byPhone = new Map(results.map((item) => [item.phone_e164, item]));
   return phones.map((phone) => byPhone.get(phone)).filter(Boolean);
+}
+
+function emailContactStatusWhereClause(filter, sinceHours = 24) {
+  switch (String(filter || "emailable").trim()) {
+    case "emailable":
+      return {
+        clause: "email_status = 'emailable'",
+        bind: [],
+      };
+    case "inactive":
+      return {
+        clause: "email_status = 'inactive'",
+        bind: [],
+      };
+    case "no_consent":
+      return {
+        clause: "email_status = 'no_consent'",
+        bind: [],
+      };
+    case "new_opt_ins":
+      return {
+        clause: "email_status = 'emailable' AND datetime(COALESCE(updated_at, created_at)) >= datetime('now', ?1)",
+        bind: [`-${sinceHours} hours`],
+      };
+    default:
+      return { clause: "1=1", bind: [] };
+  }
+}
+
+function normalizeRecipientEmails(value, maxRecipients = 250) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const normalized = [];
+  for (const entry of value) {
+    const raw =
+      typeof entry === "string"
+        ? entry
+        : entry?.email_norm || entry?.email || "";
+    const email = normalizeEmailForStorage(raw).normalized;
+    if (!email || !isValidEmail(email) || seen.has(email)) continue;
+    seen.add(email);
+    normalized.push(email);
+    if (normalized.length >= maxRecipients) break;
+  }
+  return normalized;
+}
+
+const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
+                                    SELECT LOWER(TRIM(cs.email)) AS email_norm,
+                                           TRIM(cs.email) AS email,
+                                           COALESCE(NULLIF(cs.first_name, ''), '') AS first_name,
+                                           COALESCE(NULLIF(cs.last_name, ''), '') AS last_name,
+                                           COALESCE(TRIM(cs.city), '') AS city,
+                                           COALESCE(TRIM(cs.state_house_district), '') AS state_house_district,
+                                           COALESCE(TRIM(cs.state_senate_district), '') AS state_senate_district,
+                                           COALESCE(cs.consent_email, 0) AS consent_email,
+                                           COALESCE(ns.active, CASE WHEN COALESCE(cs.consent_email, 0) = 1 THEN 1 ELSE 0 END) AS active,
+                                           COALESCE(ns.source, cs.source_detail, cs.source, '') AS source,
+                                           COALESCE(ns.consent_version, cs.consent_version, '') AS consent_version,
+                                           COALESCE(ns.created_at, cs.consented_at, cs.created_at) AS created_at,
+                                           COALESCE(ns.updated_at, cs.updated_at, cs.created_at) AS updated_at,
+                                           CASE
+                                             WHEN COALESCE(
+                                               NULLIF(cs.first_name, ''),
+                                               NULLIF(cs.last_name, ''),
+                                               NULLIF(cs.city, ''),
+                                               NULLIF(cs.state_house_district, ''),
+                                               NULLIF(cs.state_senate_district, '')
+                                             ) IS NOT NULL THEN 1
+                                             ELSE 0
+                                           END AS has_profile
+                                      FROM consent_status cs
+                                      LEFT JOIN newsletter_subscribers ns
+                                        ON ns.email_norm = LOWER(TRIM(cs.email))
+                                     WHERE TRIM(COALESCE(cs.email, '')) <> ''
+
+                                    UNION ALL
+
+                                    SELECT ns.email_norm AS email_norm,
+                                           TRIM(ns.email) AS email,
+                                           '' AS first_name,
+                                           '' AS last_name,
+                                           '' AS city,
+                                           '' AS state_house_district,
+                                           '' AS state_senate_district,
+                                           COALESCE(ns.consent_email, 0) AS consent_email,
+                                           COALESCE(ns.active, 0) AS active,
+                                           COALESCE(ns.source, '') AS source,
+                                           COALESCE(ns.consent_version, '') AS consent_version,
+                                           ns.created_at AS created_at,
+                                           COALESCE(ns.updated_at, ns.created_at) AS updated_at,
+                                           0 AS has_profile
+                                      FROM newsletter_subscribers ns
+                                     WHERE NOT EXISTS (
+                                       SELECT 1
+                                         FROM consent_status cs
+                                        WHERE LOWER(TRIM(COALESCE(cs.email, ''))) = ns.email_norm
+                                     )
+                                  ),
+                                  ranked_email_contacts AS (
+                                    SELECT email_norm,
+                                           email,
+                                           first_name,
+                                           last_name,
+                                           city,
+                                           state_house_district,
+                                           state_senate_district,
+                                           consent_email,
+                                           active,
+                                           source,
+                                           consent_version,
+                                           created_at,
+                                           updated_at,
+                                           CASE
+                                             WHEN COALESCE(consent_email, 0) != 1 THEN 'no_consent'
+                                             WHEN COALESCE(active, 0) != 1 THEN 'inactive'
+                                             ELSE 'emailable'
+                                           END AS email_status,
+                                           ROW_NUMBER() OVER (
+                                             PARTITION BY email_norm
+                                             ORDER BY has_profile DESC,
+                                                      datetime(COALESCE(updated_at, created_at)) DESC,
+                                                      datetime(created_at) DESC
+                                           ) AS rn
+                                      FROM email_candidates
+                                     WHERE TRIM(COALESCE(email_norm, '')) <> ''
+                                       AND TRIM(COALESCE(email, '')) <> ''
+                                  )`;
+
+async function queryAdminEmailContacts(
+  db,
+  {
+    filter = "emailable",
+    q = "",
+    city = "",
+    hd = "",
+    sd = "",
+    limit = 250,
+    sinceHours = 24,
+  } = {}
+) {
+  const normalizedFilter = String(filter || "emailable").trim();
+  const statusFilter = emailContactStatusWhereClause(normalizedFilter, sinceHours);
+  const search = String(q || "").trim();
+  const cityFilter = normalizeContactFilterValue(city);
+  const hdFilter = normalizeContactFilterValue(hd);
+  const sdFilter = normalizeContactFilterValue(sd);
+  const binds = [];
+  let where = `rn = 1 AND ${statusFilter.clause}`;
+
+  for (const value of statusFilter.bind) binds.push(value);
+
+  if (search) {
+    binds.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    const idx = binds.length - 3;
+    where += ` AND (
+      email LIKE ?${idx}
+      OR email_norm LIKE ?${idx + 1}
+      OR first_name LIKE ?${idx + 2}
+      OR last_name LIKE ?${idx + 3}
+    )`;
+  }
+
+  if (cityFilter) {
+    binds.push(cityFilter);
+    const idx = binds.length;
+    where += ` AND LOWER(TRIM(COALESCE(city, ''))) = LOWER(TRIM(?${idx}))`;
+  }
+
+  if (hdFilter) {
+    binds.push(hdFilter);
+    const idx = binds.length;
+    where += ` AND LOWER(TRIM(COALESCE(state_house_district, ''))) = LOWER(TRIM(?${idx}))`;
+  }
+
+  if (sdFilter) {
+    binds.push(sdFilter);
+    const idx = binds.length;
+    where += ` AND LOWER(TRIM(COALESCE(state_senate_district, ''))) = LOWER(TRIM(?${idx}))`;
+  }
+
+  binds.push(limit);
+  const limitIdx = binds.length;
+
+  const sql = `${ADMIN_EMAIL_CONTACTS_CTE}
+                SELECT email_norm,
+                       email,
+                       first_name,
+                       last_name,
+                       city,
+                       state_house_district,
+                       state_senate_district,
+                       consent_email,
+                       active,
+                       source,
+                       consent_version,
+                       created_at,
+                       updated_at,
+                       email_status
+                  FROM ranked_email_contacts
+                 WHERE ${where}
+                 ORDER BY datetime(COALESCE(updated_at, created_at)) DESC, email_norm ASC
+                 LIMIT ?${limitIdx}`;
+  return ((await db.prepare(sql).bind(...binds).all())?.results || []);
+}
+
+async function queryAdminEmailContactsByAddress(db, emailList = []) {
+  const emails = normalizeRecipientEmails(emailList);
+  if (!emails.length) return [];
+
+  const placeholders = emails.map((_value, index) => `?${index + 1}`).join(", ");
+  const sql = `${ADMIN_EMAIL_CONTACTS_CTE}
+                SELECT email_norm,
+                       email,
+                       first_name,
+                       last_name,
+                       city,
+                       state_house_district,
+                       state_senate_district,
+                       consent_email,
+                       active,
+                       source,
+                       consent_version,
+                       created_at,
+                       updated_at,
+                       email_status
+                  FROM ranked_email_contacts
+                 WHERE rn = 1
+                   AND email_norm IN (${placeholders})`;
+  const results = ((await db.prepare(sql).bind(...emails).all())?.results || []);
+  const byEmail = new Map(results.map((item) => [item.email_norm, item]));
+  return emails.map((email) => byEmail.get(email)).filter(Boolean);
+}
+
+async function queryAdminEmailContactCounts(db) {
+  const row = await db.prepare(
+    `${ADMIN_EMAIL_CONTACTS_CTE}
+      SELECT COUNT(*) AS total_count,
+             SUM(CASE WHEN email_status = 'emailable' THEN 1 ELSE 0 END) AS emailable_count,
+             SUM(CASE WHEN email_status = 'inactive' THEN 1 ELSE 0 END) AS inactive_count,
+             SUM(CASE WHEN email_status = 'no_consent' THEN 1 ELSE 0 END) AS no_consent_count,
+             SUM(
+               CASE
+                 WHEN email_status = 'emailable'
+                  AND datetime(COALESCE(updated_at, created_at)) >= datetime('now', '-24 hours')
+                 THEN 1
+                 ELSE 0
+               END
+             ) AS new_opt_ins_24h,
+             MAX(datetime(COALESCE(updated_at, created_at))) AS last_updated_at
+        FROM ranked_email_contacts
+       WHERE rn = 1`
+  ).first();
+  return row || {};
+}
+
+function buildAdminEmailPreviewRecipients(items) {
+  return items.slice(0, 10).map((item) => ({
+    email: item.email,
+    first_name: item.first_name,
+    last_name: item.last_name,
+    city: item.city || "",
+    hd: item.state_house_district || "",
+    sd: item.state_senate_district || "",
+    email_status: item.email_status || "unknown",
+  }));
+}
+
+function normalizeAdminEmailSubject(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeAdminEmailBody(value) {
+  return String(value || "").replace(/\r\n/g, "\n").trim();
+}
+
+function buildAdminEmailPreviewSeed({
+  mode,
+  filter,
+  city,
+  hd,
+  sd,
+  subject,
+  body,
+  limit,
+  sinceHours,
+  audienceCount,
+  audienceHash,
+  recipientCount,
+  recipientHash,
+}) {
+  return [
+    "admin_email_preview",
+    mode,
+    filter,
+    city,
+    hd,
+    sd,
+    String(limit),
+    String(sinceHours),
+    String(audienceCount),
+    audienceHash,
+    String(recipientCount),
+    recipientHash,
+    subject,
+    body,
+  ].join("|");
+}
+
+async function mapWithConcurrency(items, limit, worker) {
+  const concurrency = Math.max(1, Math.min(Number(limit) || 1, items.length || 1));
+  const results = new Array(items.length);
+  let cursor = 0;
+
+  async function runner() {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await worker(items[index], index);
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, () => runner()));
+  return results;
 }
 
 async function deleteMessageRowsByIds(db, tableName, rowIds = []) {
@@ -2436,6 +2765,431 @@ export default {
         ];
         const date = new Date().toISOString().slice(0, 10);
         return csvResponse(req, env, `texting-suppressed-${date}.csv`, rowsToCsv(columns, results));
+      }
+
+      if (req.method === "GET" && path === "/api/admin/emails/status") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const [counts, latestSubscriberRow] = await Promise.all([
+          queryAdminEmailContactCounts(env.DB),
+          env.DB.prepare(
+            `SELECT email, source, created_at, updated_at
+               FROM newsletter_subscribers
+              ORDER BY datetime(COALESCE(updated_at, created_at)) DESC, id DESC
+              LIMIT 1`
+          ).first().catch(() => null),
+        ]);
+
+        const envPresent = {
+          adminExportKey: Boolean(String(env.ADMIN_EXPORT_KEY || "").trim()),
+          resendApiKey: Boolean(String(env.RESEND_API_KEY || "").trim()),
+          adminEmailFrom: Boolean(String(env.ADMIN_EMAIL_FROM || "").trim()),
+          adminEmailEnabled: String(env.ADMIN_EMAIL_ENABLED || "0") === "1",
+          d1: Boolean(env.DB),
+        };
+        const tables = {
+          newsletter_subscribers: await tableExists(env.DB, "newsletter_subscribers"),
+          consent_status: await tableExists(env.DB, "consent_status"),
+          admin_email_audit_log: await tableExists(env.DB, "admin_email_audit_log"),
+        };
+
+        const previewPathIssues = [];
+        if (!envPresent.adminExportKey) previewPathIssues.push("Admin key missing");
+        if (!envPresent.d1) previewPathIssues.push("Database not configured");
+        if (tables.newsletter_subscribers === false) previewPathIssues.push("Newsletter subscribers table missing");
+        if (tables.consent_status === false) previewPathIssues.push("Consent status table missing");
+
+        const sendPathIssues = [];
+        if (!envPresent.resendApiKey) sendPathIssues.push("Resend API key missing");
+        if (!envPresent.adminEmailFrom) sendPathIssues.push("Admin email sender missing");
+        if (!envPresent.adminEmailEnabled) sendPathIssues.push("Admin email sending disabled");
+        if (tables.admin_email_audit_log === false) sendPathIssues.push("Admin email audit log table missing");
+
+        return json(req, env, {
+          ok: true,
+          previewPathReady: previewPathIssues.length === 0,
+          previewPathIssues,
+          sendPathReady: sendPathIssues.length === 0,
+          sendPathIssues,
+          totalCount: Number(counts?.total_count || 0),
+          emailableCount: Number(counts?.emailable_count || 0),
+          inactiveCount: Number(counts?.inactive_count || 0),
+          noConsentCount: Number(counts?.no_consent_count || 0),
+          newOptIns24h: Number(counts?.new_opt_ins_24h || 0),
+          lastAudienceUpdateAt: counts?.last_updated_at || null,
+          latestSubscriber: latestSubscriberRow
+            ? {
+                email: latestSubscriberRow.email || null,
+                source: latestSubscriberRow.source || "",
+                createdAt: latestSubscriberRow.created_at || null,
+                updatedAt: latestSubscriberRow.updated_at || null,
+              }
+            : null,
+          sender: String(env.ADMIN_EMAIL_FROM || "").trim() || null,
+          envPresent,
+          tables,
+        });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/emails/contacts") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 5000);
+        const q = String(url.searchParams.get("q") || "").trim();
+        const filter = String(url.searchParams.get("filter") || "emailable").trim();
+        const city = normalizeContactFilterValue(url.searchParams.get("city") || "");
+        const hd = normalizeContactFilterValue(url.searchParams.get("hd") || "");
+        const sd = normalizeContactFilterValue(url.searchParams.get("sd") || "");
+        const sinceHours = positiveInt(url.searchParams.get("since_hours"), 24, 24 * 30);
+        const results = await queryAdminEmailContacts(env.DB, {
+          filter,
+          q,
+          city,
+          hd,
+          sd,
+          limit,
+          sinceHours,
+        });
+
+        return json(req, env, { ok: true, items: results });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/emails/preview") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        const actor = getAdminActor(req);
+
+        const body = await req.json().catch(() => ({}));
+        const filter = String(body.filter || "emailable").trim();
+        const city = normalizeContactFilterValue(body.city || "");
+        const hd = normalizeContactFilterValue(body.hd || "");
+        const sd = normalizeContactFilterValue(body.sd || "");
+        const subject = normalizeAdminEmailSubject(body.subject);
+        const messageBody = normalizeAdminEmailBody(body.body);
+        const limit = positiveInt(body.limit, 250, 250);
+        const sinceHours = positiveInt(body.since_hours, 24, 24 * 30);
+        const requestedRecipients = normalizeRecipientEmails(body.recipients, 251);
+        const hasExplicitRecipientInput = Array.isArray(body.recipients) && body.recipients.length > 0;
+        const useExplicitRecipients = requestedRecipients.length > 0;
+        const mode = useExplicitRecipients ? "explicit" : "filter";
+
+        if (!subject) return json(req, env, { error: "Email subject is required" }, 400);
+        if (!messageBody) return json(req, env, { error: "Email body is required" }, 400);
+        if (subject.length > 180) return json(req, env, { error: "Email subject too long" }, 400);
+        if (messageBody.length > 20000) return json(req, env, { error: "Email body too long" }, 400);
+        if (requestedRecipients.length > 250) {
+          return json(req, env, { error: "Recipient tray is limited to 250 contacts per preview." }, 400);
+        }
+        if (hasExplicitRecipientInput && !useExplicitRecipients) {
+          return json(req, env, { error: "Recipient tray did not include any valid email addresses." }, 400);
+        }
+
+        const audience = useExplicitRecipients
+          ? await queryAdminEmailContactsByAddress(env.DB, requestedRecipients)
+          : await queryAdminEmailContacts(env.DB, {
+              filter,
+              q: "",
+              city,
+              hd,
+              sd,
+              limit,
+              sinceHours,
+            });
+        const recipients = audience.filter((item) => String(item.email_status || "").trim() === "emailable");
+        const audienceSeedEmails = useExplicitRecipients
+          ? requestedRecipients
+          : audience.map((item) => item.email_norm);
+        const audienceCount = audienceSeedEmails.length;
+        const audienceHash = await sha256Hex(audienceSeedEmails.join(","));
+        const recipientHash = await sha256Hex(recipients.map((item) => item.email_norm).join(","));
+        const previewRecipients = buildAdminEmailPreviewRecipients(recipients);
+        const skippedCount = Math.max(0, audienceCount - recipients.length);
+        const issuedAt = new Date().toISOString();
+        const approvalToken = await createPreviewApprovalToken(
+          env,
+          buildAdminEmailPreviewSeed({
+            mode,
+            filter,
+            city,
+            hd,
+            sd,
+            subject,
+            body: messageBody,
+            limit,
+            sinceHours,
+            audienceCount,
+            audienceHash,
+            recipientCount: recipients.length,
+            recipientHash,
+          }),
+          issuedAt
+        );
+
+        const auditTableReady = await tableExists(env.DB, "admin_email_audit_log");
+        if (auditTableReady !== false) {
+          await insertAdminEmailAuditLog(env.DB, {
+            actorUserId: actor.actorUserId,
+            actorEmail: actor.actorEmail,
+            action: "preview_audience",
+            subject,
+            detailsJson: JSON.stringify({
+              mode,
+              filter,
+              city,
+              hd,
+              sd,
+              limit,
+              sinceHours,
+              audienceCount,
+              recipientCount: recipients.length,
+              skippedCount,
+            }),
+          }).catch(() => {});
+        }
+
+        return json(req, env, {
+          ok: true,
+          dryRun: true,
+          mode,
+          audienceCount,
+          count: recipients.length,
+          skippedCount,
+          previewRecipients,
+          preview: {
+            from: String(env.ADMIN_EMAIL_FROM || "").trim() || null,
+            subject,
+            body: messageBody,
+          },
+          approval: {
+            issuedAt,
+            token: approvalToken,
+            expiresAt: new Date(Date.now() + PREVIEW_TOKEN_TTL_MS).toISOString(),
+          },
+        });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/emails/send") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        const auditTableReady = await tableExists(env.DB, "admin_email_audit_log");
+        const emailConfig = getAdminEmailConfig(env);
+        if (!emailConfig.apiKey) {
+          return json(req, env, { error: "RESEND_API_KEY not configured" }, 503);
+        }
+        if (!emailConfig.from) {
+          return json(req, env, { error: "ADMIN_EMAIL_FROM not configured" }, 503);
+        }
+        if (!emailConfig.enabled) {
+          return json(req, env, { error: "ADMIN_EMAIL_ENABLED is not enabled" }, 503);
+        }
+        if (auditTableReady === false) {
+          return json(req, env, { error: "admin_email_audit_log table missing" }, 503);
+        }
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const filter = String(body.filter || "emailable").trim();
+        const city = normalizeContactFilterValue(body.city || "");
+        const hd = normalizeContactFilterValue(body.hd || "");
+        const sd = normalizeContactFilterValue(body.sd || "");
+        const subject = normalizeAdminEmailSubject(body.subject);
+        const messageBody = normalizeAdminEmailBody(body.body);
+        const limit = positiveInt(body.limit, 250, 250);
+        const sinceHours = positiveInt(body.since_hours, 24, 24 * 30);
+        const requestedRecipients = normalizeRecipientEmails(body.recipients, 251);
+        const hasExplicitRecipientInput = Array.isArray(body.recipients) && body.recipients.length > 0;
+        const useExplicitRecipients = requestedRecipients.length > 0;
+        const mode = useExplicitRecipients ? "explicit" : "filter";
+        const confirmed = body.confirmed === true;
+        const previewToken = String(body.preview_token || "").trim();
+        const previewIssuedAt = normalizePreviewIssuedAt(body.preview_issued_at);
+
+        if (!subject) return json(req, env, { error: "Email subject is required" }, 400);
+        if (!messageBody) return json(req, env, { error: "Email body is required" }, 400);
+        if (subject.length > 180) return json(req, env, { error: "Email subject too long" }, 400);
+        if (messageBody.length > 20000) return json(req, env, { error: "Email body too long" }, 400);
+        if (requestedRecipients.length > 250) {
+          return json(req, env, { error: "Recipient tray is limited to 250 contacts per send." }, 400);
+        }
+        if (hasExplicitRecipientInput && !useExplicitRecipients) {
+          return json(req, env, { error: "Recipient tray did not include any valid email addresses." }, 400);
+        }
+        if (!confirmed) {
+          return json(req, env, { error: "Email send requires confirmed=true" }, 400);
+        }
+        if (!previewToken || !previewIssuedAt) {
+          return json(req, env, { error: "Run Preview again before sending." }, 400);
+        }
+        if (isPreviewExpired(previewIssuedAt)) {
+          return json(req, env, { error: "Preview expired. Run Preview again." }, 409);
+        }
+
+        const audience = useExplicitRecipients
+          ? await queryAdminEmailContactsByAddress(env.DB, requestedRecipients)
+          : await queryAdminEmailContacts(env.DB, {
+              filter,
+              q: "",
+              city,
+              hd,
+              sd,
+              limit,
+              sinceHours,
+            });
+        const recipients = audience.filter((item) => String(item.email_status || "").trim() === "emailable");
+        const audienceSeedEmails = useExplicitRecipients
+          ? requestedRecipients
+          : audience.map((item) => item.email_norm);
+        const audienceCount = audienceSeedEmails.length;
+        const audienceHash = await sha256Hex(audienceSeedEmails.join(","));
+        const recipientHash = await sha256Hex(recipients.map((item) => item.email_norm).join(","));
+        const skippedCount = Math.max(0, audienceCount - recipients.length);
+
+        const expectedPreviewToken = await createPreviewApprovalToken(
+          env,
+          buildAdminEmailPreviewSeed({
+            mode,
+            filter,
+            city,
+            hd,
+            sd,
+            subject,
+            body: messageBody,
+            limit,
+            sinceHours,
+            audienceCount,
+            audienceHash,
+            recipientCount: recipients.length,
+            recipientHash,
+          }),
+          previewIssuedAt
+        );
+        if (!timingSafeEqual(previewToken, expectedPreviewToken)) {
+          return json(req, env, { error: "Preview no longer matches this audience or email. Run Preview again." }, 409);
+        }
+        if (!recipients.length) {
+          return json(req, env, { error: "Preview produced no sendable recipients." }, 409);
+        }
+
+        const batchId = crypto.randomUUID();
+        await insertAdminEmailAuditLog(env.DB, {
+          actorUserId: actor.actorUserId,
+          actorEmail: actor.actorEmail,
+          action: "send_batch_start",
+          subject,
+          detailsJson: JSON.stringify({
+            batchId,
+            mode,
+            filter,
+            city,
+            hd,
+            sd,
+            audienceCount,
+            recipientCount: recipients.length,
+            skippedCount,
+            limit,
+            sinceHours,
+          }),
+        });
+
+        const settled = await mapWithConcurrency(recipients, 5, async (recipient) => {
+          const idempotencyKey = await sha256Hex([
+            "admin_email_send",
+            previewToken,
+            recipient.email_norm,
+          ].join("|"));
+          try {
+            const result = await sendAdminOutreachEmail(
+              env,
+              recipient,
+              subject,
+              messageBody,
+              {
+                batchId,
+                idempotencyKey,
+                replyTo: emailConfig.from,
+              }
+            );
+            await insertAdminEmailAuditLog(env.DB, {
+              actorUserId: actor.actorUserId,
+              actorEmail: actor.actorEmail,
+              action: "send_email",
+              targetEmail: recipient.email,
+              subject,
+              messageId: result.id,
+              detailsJson: JSON.stringify({
+                batchId,
+                email: recipient.email,
+                emailNorm: recipient.email_norm,
+                source: recipient.source || "",
+              }),
+            });
+            return {
+              ok: true,
+              email: recipient.email,
+              messageId: result.id,
+            };
+          } catch (error) {
+            await insertAdminEmailAuditLog(env.DB, {
+              actorUserId: actor.actorUserId,
+              actorEmail: actor.actorEmail,
+              action: "send_email_failed",
+              targetEmail: recipient.email,
+              subject,
+              detailsJson: JSON.stringify({
+                batchId,
+                email: recipient.email,
+                emailNorm: recipient.email_norm,
+                error: String(error?.message || error || "Unknown email error"),
+                status: error?.status || null,
+                body: error?.body || null,
+              }),
+            });
+            return {
+              ok: false,
+              email: recipient.email,
+              error: String(error?.message || error || "Unknown email error"),
+              status: error?.status || null,
+            };
+          }
+        });
+
+        const sent = settled.filter((item) => item?.ok);
+        const failed = settled.filter((item) => item && item.ok === false);
+
+        await insertAdminEmailAuditLog(env.DB, {
+          actorUserId: actor.actorUserId,
+          actorEmail: actor.actorEmail,
+          action: "send_batch_complete",
+          subject,
+          detailsJson: JSON.stringify({
+            batchId,
+            mode,
+            audienceCount,
+            recipientCount: recipients.length,
+            sentCount: sent.length,
+            failedCount: failed.length,
+            skippedCount,
+          }),
+        });
+
+        return json(req, env, {
+          ok: true,
+          batchId,
+          partial: failed.length > 0,
+          audienceCount,
+          attemptedCount: recipients.length,
+          sentCount: sent.length,
+          failedCount: failed.length,
+          skippedCount,
+          sent,
+          failed,
+        });
       }
 
       // ------------- NEWSLETTER EMAIL SIGNUP -------------
