@@ -43,6 +43,7 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
    - Donate SMS opt-in posts to `/api/donate/sms-optin`.
    - Both flows write canonical SMS consent/profile data into `consent_status`.
    - Pulse writes a full mailing address (`address1`, `address2`, `city`, `state`, `zip`, `country`) and keeps nullable district fields ready for later reverse geolocation.
+   - When Pulse includes an opted-in email address, the Worker also upserts `newsletter_subscribers`.
    - Both flows update `contacts`.
 
 2. Telnyx webhooks
@@ -83,7 +84,7 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
 
 | Table | Purpose |
 |---|---|
-| `newsletter_subscribers` | Email-only newsletter signups and consent metadata. |
+| `newsletter_subscribers` | Email consent records for the updates form and Pulse signups that explicitly request campaign emails. |
 | `volunteers` | Volunteer signups and tags. |
 | `rl_submissions` | Rate-limit ledger keyed by hashed IP/timestamps. |
 | `donors` | Donation contact records. |

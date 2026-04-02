@@ -18,6 +18,10 @@ TELNYX_ALLOW_REACTIVATION = "1"
 TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS = "0"
 TEXTING_WELCOME_ENABLED = "0"
 TEXTING_WELCOME_TEXT = ""
+PULSE_EMAIL_ENABLED = "0"
+PULSE_STAFF_NOTIFY_TO = "pulse@grassrootsmvt.org"
+PULSE_EMAIL_FROM = "pulse@grassrootsmvt.org"
+PULSE_EMAIL_CAMPAIGN_NAME = "Skovgard for Senate"
 
 # ---------- Production environment ----------
 [env.production]
@@ -32,6 +36,10 @@ TELNYX_ALLOW_REACTIVATION = "1"
 TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS = "0"
 TEXTING_WELCOME_ENABLED = "0"
 TEXTING_WELCOME_TEXT = ""
+PULSE_EMAIL_ENABLED = "1"
+PULSE_STAFF_NOTIFY_TO = "pulse@grassrootsmvt.org"
+PULSE_EMAIL_FROM = "pulse@grassrootsmvt.org"
+PULSE_EMAIL_CAMPAIGN_NAME = "Skovgard for Senate"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -54,6 +62,10 @@ TELNYX_ALLOW_REACTIVATION = "0"
 TELNYX_ALLOW_INSECURE_LOCAL_WEBHOOKS = "0"
 TEXTING_WELCOME_ENABLED = "0"
 TEXTING_WELCOME_TEXT = ""
+PULSE_EMAIL_ENABLED = "0"
+PULSE_STAFF_NOTIFY_TO = "pulse@grassrootsmvt.org"
+PULSE_EMAIL_FROM = "pulse@grassrootsmvt.org"
+PULSE_EMAIL_CAMPAIGN_NAME = "Skovgard for Senate"
 # Use test key in preview to prevent accidental live charges
 
 [[env.preview.d1_databases]]

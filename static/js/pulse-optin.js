@@ -263,6 +263,8 @@ function resetTurnstile() {
     if (!/^\d{5}$/.test(zip)) return err('Enter a 5-digit Wyoming ZIP.');
     if (!wy_voter)   return err('This SMS list is for registered Wyoming voters only.');
     if (phone10.length !== 10) return err('Enter a valid 10-digit mobile.');
+    if (!consent_sms) return err('Please confirm SMS consent.');
+    if (email && !/.+@.+\..+/.test(email)) return err('Enter a valid email address.');
     if (email && !consent_email) return err('Check the email opt-in to receive emails.');
 
     // token

@@ -1,0 +1,229 @@
+function normalizeText(value) {
+  return String(value ?? "").trim();
+}
+
+function escapeHtml(value) {
+  return normalizeText(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function yesNo(value) {
+  return value ? "Yes" : "No";
+}
+
+function fullName(profile) {
+  const name = [profile.firstName, profile.lastName]
+    .map((value) => normalizeText(value))
+    .filter(Boolean)
+    .join(" ");
+  return name || "Unknown";
+}
+
+function addressLines(profile) {
+  const cityStateZip = [
+    normalizeText(profile.city),
+    normalizeText(profile.state),
+    normalizeText(profile.zip),
+  ]
+    .filter(Boolean)
+    .join(", ")
+    .replace(", ,", ",");
+
+  return [
+    normalizeText(profile.address1),
+    normalizeText(profile.address2),
+    cityStateZip,
+  ].filter(Boolean);
+}
+
+function districtSummary(profile) {
+  const house = normalizeText(profile.stateHouseDistrict);
+  const senate = normalizeText(profile.stateSenateDistrict);
+  if (!house && !senate) return "Not resolved";
+  if (house && senate) return `House ${house}, Senate ${senate}`;
+  if (house) return `House ${house}`;
+  return `Senate ${senate}`;
+}
+
+function buildStaffEmail(config, profile) {
+  const submittedAt = normalizeText(profile.consentedAt || profile.submittedAt || new Date().toISOString());
+  const emailDisplay = profile.email
+    ? `${profile.email} (${profile.consentEmail ? "email consent" : "no email consent"})`
+    : "Not provided";
+  const address = addressLines(profile).join(", ") || "Not provided";
+  const name = fullName(profile);
+  const phone = normalizeText(profile.phoneE164 || profile.phone);
+  const subject = `New Pulse opt-in: ${name}`;
+
+  return {
+    from: config.from,
+    to: [config.staffTo],
+    subject,
+    text: [
+      "A new Pulse opt-in was submitted.",
+      "",
+      `Submitted at: ${submittedAt}`,
+      `Name: ${name}`,
+      `Phone: ${phone || "Not provided"}`,
+      `Email: ${emailDisplay}`,
+      `SMS consent: ${yesNo(profile.consentSms)}`,
+      `Email consent: ${yesNo(profile.consentEmail)}`,
+      `Wyoming voter: ${yesNo(profile.wyVoter)}`,
+      `Address: ${address}`,
+      `Districts: ${districtSummary(profile)}`,
+      `Consent version: ${normalizeText(profile.consentVersion) || "Unknown"}`,
+      `Source: ${normalizeText(profile.sourceDetail || profile.source) || "pulse"}`,
+    ].join("\n"),
+    html: `
+      <h1>New Pulse opt-in</h1>
+      <p>A new Pulse opt-in was submitted.</p>
+      <ul>
+        <li><strong>Submitted at:</strong> ${escapeHtml(submittedAt)}</li>
+        <li><strong>Name:</strong> ${escapeHtml(name)}</li>
+        <li><strong>Phone:</strong> ${escapeHtml(phone || "Not provided")}</li>
+        <li><strong>Email:</strong> ${escapeHtml(emailDisplay)}</li>
+        <li><strong>SMS consent:</strong> ${escapeHtml(yesNo(profile.consentSms))}</li>
+        <li><strong>Email consent:</strong> ${escapeHtml(yesNo(profile.consentEmail))}</li>
+        <li><strong>Wyoming voter:</strong> ${escapeHtml(yesNo(profile.wyVoter))}</li>
+        <li><strong>Address:</strong> ${escapeHtml(address)}</li>
+        <li><strong>Districts:</strong> ${escapeHtml(districtSummary(profile))}</li>
+        <li><strong>Consent version:</strong> ${escapeHtml(normalizeText(profile.consentVersion) || "Unknown")}</li>
+        <li><strong>Source:</strong> ${escapeHtml(normalizeText(profile.sourceDetail || profile.source) || "pulse")}</li>
+      </ul>
+    `,
+    tags: [
+      { name: "source", value: "pulse" },
+      { name: "kind", value: "staff_notification" },
+    ],
+  };
+}
+
+function buildConfirmationEmail(config, profile) {
+  const email = normalizeText(profile.email);
+  if (!email || !profile.consentEmail) return null;
+
+  const firstName = normalizeText(profile.firstName);
+  const greeting = firstName || "there";
+  const phone = normalizeText(profile.phoneE164 || profile.phone);
+  const subject = `Thank you for joining the ${config.campaignName} Pulse list`;
+
+  return {
+    from: config.from,
+    to: [email],
+    subject,
+    text: [
+      `Hi ${greeting},`,
+      "",
+      `Thank you for signing up for Pulse updates from ${config.campaignName}.`,
+      `You're on the list for campaign text updates, and we also recorded your request to receive campaign emails at ${email}.`,
+      "",
+      `Mobile: ${phone || "Not provided"}`,
+      "",
+      "We'll use this contact information for occasional campaign updates.",
+      "",
+      "Reply STOP to any campaign text to stop receiving text messages.",
+      "Reply HELP for help, or email skovgard2026@gmail.com if you need assistance.",
+    ].join("\n"),
+    html: `
+      <p>Hi ${escapeHtml(greeting)},</p>
+      <p>Thank you for signing up for Pulse updates from ${escapeHtml(config.campaignName)}.</p>
+      <p>You're on the list for campaign text updates, and we also recorded your request to receive campaign emails at <strong>${escapeHtml(email)}</strong>.</p>
+      <p><strong>Mobile:</strong> ${escapeHtml(phone || "Not provided")}</p>
+      <p>We'll use this contact information for occasional campaign updates.</p>
+      <p>Reply <strong>STOP</strong> to any campaign text to stop receiving text messages.</p>
+      <p>Reply <strong>HELP</strong> for help, or email <a href="mailto:skovgard2026@gmail.com">skovgard2026@gmail.com</a> if you need assistance.</p>
+    `,
+    tags: [
+      { name: "source", value: "pulse" },
+      { name: "kind", value: "user_confirmation" },
+    ],
+  };
+}
+
+async function sendResendEmail(config, message, idempotencyKey) {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${config.apiKey}`,
+      "content-type": "application/json",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+    },
+    body: JSON.stringify(message),
+  });
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail =
+      body?.message
+      || body?.error?.message
+      || body?.error
+      || `Resend request failed with ${response.status}`;
+    const error = new Error(detail);
+    error.status = response.status;
+    error.body = body;
+    throw error;
+  }
+
+  return body;
+}
+
+export async function sendPulseOptInEmails(env, profile, options = {}) {
+  const config = {
+    enabled: String(env.PULSE_EMAIL_ENABLED || "0") === "1",
+    apiKey: normalizeText(env.RESEND_API_KEY),
+    from: normalizeText(env.PULSE_EMAIL_FROM),
+    staffTo: normalizeText(env.PULSE_STAFF_NOTIFY_TO || "pulse@grassrootsmvt.org"),
+    campaignName: normalizeText(env.PULSE_EMAIL_CAMPAIGN_NAME || "Skovgard for Senate") || "Skovgard for Senate",
+  };
+
+  if (!config.enabled || !config.apiKey || !config.from) {
+    return { sent: false, reason: "disabled_or_missing_config" };
+  }
+
+  const jobs = [];
+
+  if (options.sendStaff !== false && config.staffTo) {
+    const staffMessage = buildStaffEmail(config, profile);
+    jobs.push(
+      sendResendEmail(config, staffMessage, options.staffIdempotencyKey || null).then((data) => ({
+        kind: "staff",
+        id: data?.id || null,
+      }))
+    );
+  }
+
+  if (options.sendConfirmation !== false) {
+    const confirmationMessage = buildConfirmationEmail(config, profile);
+    if (confirmationMessage) {
+      jobs.push(
+        sendResendEmail(config, confirmationMessage, options.confirmationIdempotencyKey || null).then((data) => ({
+          kind: "confirmation",
+          id: data?.id || null,
+        }))
+      );
+    }
+  }
+
+  if (!jobs.length) {
+    return { sent: false, reason: "no_messages" };
+  }
+
+  const settled = await Promise.allSettled(jobs);
+  const failures = settled
+    .filter((result) => result.status === "rejected")
+    .map((result) => String(result.reason?.message || result.reason || "Unknown email error"));
+
+  return {
+    sent: failures.length < settled.length,
+    results: settled.map((result) =>
+      result.status === "fulfilled"
+        ? result.value
+        : { kind: "error", error: String(result.reason?.message || result.reason || "Unknown email error") }
+    ),
+    failures,
+  };
+}

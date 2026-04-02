@@ -11,6 +11,7 @@ import {
   upsertConsentStatus,
   verifyTelnyxSignature,
 } from "./telnyx.js";
+import { sendPulseOptInEmails } from "./pulse-email.js";
 // --- CORS helpers ------------------------------------------------------------
 function allowOrigin(env, req) {
   const origin = req.headers.get("origin") || "";
@@ -209,6 +210,47 @@ function parseAmountToCents(raw) {
 
 function isValidEmail(email) {
   return /.+@.+\..+/.test(String(email || "").trim());
+}
+
+function normalizeEmailForStorage(email) {
+  const raw = normalizeText(email);
+  return {
+    raw,
+    normalized: raw.toLowerCase(),
+  };
+}
+
+async function upsertNewsletterSubscriber(db, input) {
+  const { raw: emailRaw, normalized: email } = normalizeEmailForStorage(input?.email);
+  const consentEmail = input?.consentEmail === true || input?.consentEmail === 1;
+  const consentVersion = normalizeText(input?.consentVersion || "email-v1-2026-02-19");
+  const source = normalizeText(input?.source || "skovgard2026:updates");
+  const userAgent = normalizeText(input?.userAgent);
+  const ipHash = normalizeText(input?.ipHash);
+
+  if (!email || !isValidEmail(email)) {
+    throw new Error("Valid email is required");
+  }
+  if (!consentEmail) {
+    throw new Error("Email consent required");
+  }
+
+  await db.prepare(
+    `INSERT INTO newsletter_subscribers
+       (email, email_norm, consent_email, consent_version, source, active, user_agent, ip_hash, updated_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, ?7, datetime('now'))
+     ON CONFLICT(email_norm) DO UPDATE SET
+       email=excluded.email,
+       consent_email=excluded.consent_email,
+       consent_version=excluded.consent_version,
+       source=excluded.source,
+       active=1,
+       user_agent=excluded.user_agent,
+       ip_hash=excluded.ip_hash,
+       updated_at=datetime('now')`
+  )
+    .bind(emailRaw, email, consentEmail ? 1 : 0, consentVersion, source, userAgent, ipHash)
+    .run();
 }
 
 function normalizeLookupText(value) {
@@ -936,6 +978,10 @@ export default {
             telnyxApiKey: Boolean(String(env.TELNYX_API_KEY || "").trim()),
             telnyxFromNumber: Boolean(String(env.TELNYX_FROM_NUMBER || "").trim()),
             adminExportKey: Boolean(String(env.ADMIN_EXPORT_KEY || "").trim()),
+            resendApiKey: Boolean(String(env.RESEND_API_KEY || "").trim()),
+            pulseEmailEnabled: String(env.PULSE_EMAIL_ENABLED || "0") === "1",
+            pulseEmailFrom: Boolean(String(env.PULSE_EMAIL_FROM || "").trim()),
+            pulseStaffNotifyTo: Boolean(String(env.PULSE_STAFF_NOTIFY_TO || "").trim()),
             d1: Boolean(env.DB),
           },
           tables,
@@ -1311,6 +1357,7 @@ export default {
 
         const phone = String(b.phone || "").replace(/[^\d]/g, "");
         const email = String(b.email || "").trim();
+        const phoneE164 = normalizePhoneNumber(phone);
 
         const consentSMS = b.consent_sms === true || b.consent === 1;
         const consentEmail = b.consent_email === true;
@@ -1360,16 +1407,33 @@ export default {
             { error: "This SMS list is for registered Wyoming voters only." },
             400
           );
-        if (!phone || phone.length < 10)
+        if (!phoneE164)
           return json(
             req,
             env,
             { error: "Valid 10-digit mobile required" },
             400
           );
+        if (!consentSMS) {
+          return json(req, env, { error: "SMS consent required" }, 400);
+        }
+        if (email && !isValidEmail(email)) {
+          return json(req, env, { error: "Email is not valid." }, 400);
+        }
+        if (email && !consentEmail) {
+          return json(req, env, { error: "Email consent required to save email." }, 400);
+        }
         // Bot protections
         const ip = req.headers.get("cf-connecting-ip") || "";
         const ipHash = await sha256Hex(ip);
+        const priorConsent = await env.DB.prepare(
+          `SELECT status, consent_email
+             FROM consent_status
+            WHERE phone_e164 = ?1`
+        )
+          .bind(phoneE164)
+          .first()
+          .catch(() => null);
 
         const origin = req.headers.get("origin") || "";
         const hostHdr = req.headers.get("host") || "";
@@ -1424,10 +1488,10 @@ export default {
         const ua = req.headers.get("user-agent") || "";
         await upsertConsentStatus(env.DB, {
           phone,
-          status: consentSMS ? "opted_in" : null,
+          status: "opted_in",
           source: "web_form",
           sourceDetail: "pulse",
-          consentedAt: consentSMS ? new Date().toISOString() : null,
+          consentedAt: new Date().toISOString(),
           firstName,
           lastName,
           email: email || null,
@@ -1447,7 +1511,18 @@ export default {
           overwriteProfile: true,
         });
 
-        if (consentSMS && ctx?.waitUntil) {
+        if (consentEmail && email) {
+          await upsertNewsletterSubscriber(env.DB, {
+            email,
+            consentEmail: true,
+            consentVersion: consentVer,
+            source: "skovgard2026:pulse",
+            userAgent: req.headers.get("user-agent") || "",
+            ipHash,
+          });
+        }
+
+        if (ctx?.waitUntil) {
           ctx.waitUntil(
             syncSubmittedPhoneToWyVoter(env, {
               phone,
@@ -1475,7 +1550,69 @@ export default {
           );
         }
 
-        if (consentSMS) await maybeSendWelcomeText(env.DB, env, phone);
+        await maybeSendWelcomeText(env.DB, env, phone);
+
+        const currentConsent = await env.DB.prepare(
+          `SELECT phone_e164, status, consented_at, source, source_detail,
+                  first_name, last_name, email, consent_email, wy_voter,
+                  address1, address2, city, state, zip, country,
+                  state_house_district, state_senate_district, consent_version
+             FROM consent_status
+            WHERE phone_e164 = ?1`
+        )
+          .bind(phoneE164)
+          .first()
+          .catch(() => null);
+
+        const wasOptedIn = String(priorConsent?.status || "").trim() === "opted_in";
+        const hadEmailConsent = Number(priorConsent?.consent_email || 0) === 1;
+        const shouldSendStaffEmail = !wasOptedIn;
+        const shouldSendConfirmationEmail = Boolean(email && consentEmail && (!wasOptedIn || !hadEmailConsent));
+
+        if ((shouldSendStaffEmail || shouldSendConfirmationEmail) && currentConsent) {
+          const baseKey = await hmacSha256Hex(
+            consentVer || "pulse-optin",
+            [
+              "pulse",
+              currentConsent.phone_e164 || phoneE164,
+              currentConsent.consented_at || new Date().toISOString(),
+              shouldSendStaffEmail ? "staff" : "no-staff",
+              shouldSendConfirmationEmail ? "confirm" : "no-confirm",
+            ].join("|")
+          );
+
+          const sendEmailWork = sendPulseOptInEmails(env, {
+            firstName: currentConsent.first_name,
+            lastName: currentConsent.last_name,
+            phoneE164: currentConsent.phone_e164,
+            email: currentConsent.email,
+            consentSms: String(currentConsent.status || "").trim() === "opted_in",
+            consentEmail: Number(currentConsent.consent_email || 0) === 1,
+            wyVoter: Number(currentConsent.wy_voter || 0) === 1,
+            address1: currentConsent.address1,
+            address2: currentConsent.address2,
+            city: currentConsent.city,
+            state: currentConsent.state,
+            zip: currentConsent.zip,
+            country: currentConsent.country,
+            stateHouseDistrict: currentConsent.state_house_district,
+            stateSenateDistrict: currentConsent.state_senate_district,
+            consentedAt: currentConsent.consented_at,
+            consentVersion: currentConsent.consent_version,
+            source: currentConsent.source,
+            sourceDetail: currentConsent.source_detail,
+          }, {
+            sendStaff: shouldSendStaffEmail,
+            sendConfirmation: shouldSendConfirmationEmail,
+            staffIdempotencyKey: `${baseKey}:staff`,
+            confirmationIdempotencyKey: `${baseKey}:confirmation`,
+          }).catch((error) => {
+            console.error("[/api/optin] pulse email send failed", String(error?.message || error));
+          });
+
+          if (ctx?.waitUntil) ctx.waitUntil(sendEmailWork);
+          else await sendEmailWork;
+        }
 
         return json(req, env, { ok: true });
       }
@@ -2309,8 +2446,7 @@ export default {
 
         const b = await req.json().catch(() => ({}));
 
-        const emailRaw = String(b.email || "").trim();
-        const email = emailRaw.toLowerCase();
+        const { raw: emailRaw, normalized: email } = normalizeEmailForStorage(b.email);
         const consentEmail = b.consent_email === true || b.consent_email === 1;
         const consentVer = String(b.consent_version || "email-v1-2026-02-19");
 
@@ -2383,22 +2519,14 @@ export default {
         }
 
         const ua = req.headers.get("user-agent") || "";
-        await env.DB.prepare(
-          `INSERT INTO newsletter_subscribers
-             (email, email_norm, consent_email, consent_version, source, active, user_agent, ip_hash, updated_at)
-           VALUES (?1, ?2, ?3, ?4, 'skovgard2026:updates', 1, ?5, ?6, datetime('now'))
-           ON CONFLICT(email_norm) DO UPDATE SET
-             email=excluded.email,
-             consent_email=excluded.consent_email,
-             consent_version=excluded.consent_version,
-             source=excluded.source,
-             active=1,
-             user_agent=excluded.user_agent,
-             ip_hash=excluded.ip_hash,
-             updated_at=datetime('now')`
-        )
-          .bind(emailRaw, email, consentEmail ? 1 : 0, consentVer, ua, ipHash)
-          .run();
+        await upsertNewsletterSubscriber(env.DB, {
+          email: emailRaw,
+          consentEmail,
+          consentVersion: consentVer,
+          source: "skovgard2026:updates",
+          userAgent: ua,
+          ipHash,
+        });
 
         return json(req, env, { ok: true });
       }
