@@ -565,10 +565,63 @@ function contactStatusWhereClause(filter, sinceHours = 24) {
   }
 }
 
-async function queryAudienceContacts(db, { filter = "opted_in", q = "", limit = 250, sinceHours = 24 } = {}) {
+function normalizeContactFilterValue(value) {
+  return String(value || "").trim();
+}
+
+function normalizeRecipientPhones(value, maxRecipients = 250) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const normalized = [];
+  for (const entry of value) {
+    const raw =
+      typeof entry === "string"
+        ? entry
+        : entry?.phone_e164 || entry?.phone || "";
+    const phone = normalizePhoneNumber(raw);
+    if (!phone || seen.has(phone)) continue;
+    seen.add(phone);
+    normalized.push(phone);
+    if (normalized.length >= maxRecipients) break;
+  }
+  return normalized;
+}
+
+const CONTACT_SELECT_SQL = `SELECT c.phone_e164,
+                                   COALESCE(NULLIF(c.first_name, ''), NULLIF(cs.first_name, '')) AS first_name,
+                                   COALESCE(NULLIF(c.last_name, ''), NULLIF(cs.last_name, '')) AS last_name,
+                                   c.tags,
+                                   c.welcome_sent_at,
+                                   cs.status,
+                                   cs.source,
+                                   cs.source_detail,
+                                   cs.consented_at,
+                                   cs.revoked_at,
+                                   cs.last_inbound_keyword,
+                                   cs.city,
+                                   cs.state_house_district,
+                                   cs.state_senate_district
+                              FROM contacts c
+                              LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164`;
+
+async function queryAudienceContacts(
+  db,
+  {
+    filter = "opted_in",
+    q = "",
+    city = "",
+    hd = "",
+    sd = "",
+    limit = 250,
+    sinceHours = 24,
+  } = {}
+) {
   const normalizedFilter = String(filter || "opted_in").trim();
   const statusFilter = contactStatusWhereClause(normalizedFilter, sinceHours);
   const search = String(q || "").trim();
+  const cityFilter = normalizeContactFilterValue(city);
+  const hdFilter = normalizeContactFilterValue(hd);
+  const sdFilter = normalizeContactFilterValue(sd);
   const binds = [];
   let where = statusFilter.clause;
 
@@ -577,20 +630,63 @@ async function queryAudienceContacts(db, { filter = "opted_in", q = "", limit = 
   if (search) {
     binds.push(`%${search}%`);
     const idx = binds.length;
-    where += ` AND (c.phone_e164 LIKE ?${idx} OR c.first_name LIKE ?${idx} OR c.last_name LIKE ?${idx})`;
+    where += ` AND (
+      c.phone_e164 LIKE ?${idx}
+      OR COALESCE(c.first_name, cs.first_name, '') LIKE ?${idx}
+      OR COALESCE(c.last_name, cs.last_name, '') LIKE ?${idx}
+    )`;
+  }
+
+  if (cityFilter) {
+    binds.push(cityFilter);
+    const idx = binds.length;
+    where += ` AND LOWER(TRIM(COALESCE(cs.city, ''))) = LOWER(TRIM(?${idx}))`;
+  }
+
+  if (hdFilter) {
+    binds.push(hdFilter);
+    const idx = binds.length;
+    where += ` AND LOWER(TRIM(COALESCE(cs.state_house_district, ''))) = LOWER(TRIM(?${idx}))`;
+  }
+
+  if (sdFilter) {
+    binds.push(sdFilter);
+    const idx = binds.length;
+    where += ` AND LOWER(TRIM(COALESCE(cs.state_senate_district, ''))) = LOWER(TRIM(?${idx}))`;
   }
 
   binds.push(limit);
   const limitIdx = binds.length;
 
-  const sql = `SELECT c.phone_e164, c.first_name, c.last_name, c.tags, c.welcome_sent_at,
-                      cs.status, cs.source, cs.source_detail, cs.consented_at, cs.revoked_at, cs.last_inbound_keyword
-                 FROM contacts c
-                 LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164
+  const sql = `${CONTACT_SELECT_SQL}
                 WHERE ${where}
                 ORDER BY datetime(COALESCE(cs.updated_at, c.updated_at)) DESC
                 LIMIT ?${limitIdx}`;
   return ((await db.prepare(sql).bind(...binds).all())?.results || []);
+}
+
+async function queryContactsByPhones(db, phoneList = []) {
+  const phones = normalizeRecipientPhones(phoneList);
+  if (!phones.length) return [];
+
+  const placeholders = phones.map((_value, index) => `?${index + 1}`).join(", ");
+  const sql = `${CONTACT_SELECT_SQL}
+                WHERE c.phone_e164 IN (${placeholders})`;
+  const results = ((await db.prepare(sql).bind(...phones).all())?.results || []);
+  const byPhone = new Map(results.map((item) => [item.phone_e164, item]));
+  return phones.map((phone) => byPhone.get(phone)).filter(Boolean);
+}
+
+function buildBatchPreviewRecipients(items) {
+  return items.slice(0, 10).map((item) => ({
+    phone_e164: item.phone_e164,
+    first_name: item.first_name,
+    last_name: item.last_name,
+    city: item.city || "",
+    hd: item.state_house_district || "",
+    sd: item.state_senate_district || "",
+    status: item.status || "unknown",
+  }));
 }
 
 function mustBeAdmin(req, env, url) {
@@ -651,18 +747,30 @@ function buildSingleSendPreviewSeed({ to, text }) {
 }
 
 function buildBatchSendPreviewSeed({
+  mode,
   filter,
+  city,
+  hd,
+  sd,
   text,
   limit,
   sinceHours,
+  audienceCount,
+  audienceHash,
   recipientCount,
   recipientHash,
 }) {
   return [
     "batch_send",
+    mode,
     filter,
+    city,
+    hd,
+    sd,
     String(limit),
     String(sinceHours),
+    String(audienceCount),
+    audienceHash,
     String(recipientCount),
     recipientHash,
     text,
@@ -1524,10 +1632,16 @@ export default {
         const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 200);
         const q = String(url.searchParams.get("q") || "").trim();
         const filter = String(url.searchParams.get("filter") || "all").trim();
+        const city = normalizeContactFilterValue(url.searchParams.get("city") || "");
+        const hd = normalizeContactFilterValue(url.searchParams.get("hd") || "");
+        const sd = normalizeContactFilterValue(url.searchParams.get("sd") || "");
         const sinceHours = positiveInt(url.searchParams.get("since_hours"), 24, 24 * 30);
         const results = await queryAudienceContacts(env.DB, {
           filter,
           q,
+          city,
+          hd,
+          sd,
           limit,
           sinceHours,
         });
@@ -1748,6 +1862,9 @@ export default {
         const actor = getAdminActor(req);
         const body = await req.json().catch(() => ({}));
         const filter = String(body.filter || "opted_in").trim();
+        const city = normalizeContactFilterValue(body.city || "");
+        const hd = normalizeContactFilterValue(body.hd || "");
+        const sd = normalizeContactFilterValue(body.sd || "");
         const text = normalizeMessageText(body.text);
         const dryRun = body.dry_run !== false;
         const confirmed = body.confirmed === true;
@@ -1756,32 +1873,55 @@ export default {
         const batchId = crypto.randomUUID();
         const previewToken = String(body.preview_token || "").trim();
         const previewIssuedAt = normalizePreviewIssuedAt(body.preview_issued_at);
+        const requestedRecipients = normalizeRecipientPhones(body.recipients, 251);
+        const hasExplicitRecipientInput = Array.isArray(body.recipients) && body.recipients.length > 0;
+        const useExplicitRecipients = requestedRecipients.length > 0;
+        const mode = useExplicitRecipients ? "explicit" : "filter";
 
         if (!text) return json(req, env, { error: "Message text is required" }, 400);
+        if (requestedRecipients.length > 250) {
+          return json(req, env, { error: "Recipient tray is limited to 250 contacts per batch." }, 400);
+        }
+        if (hasExplicitRecipientInput && !useExplicitRecipients) {
+          return json(req, env, { error: "Recipient tray did not include any valid phone numbers." }, 400);
+        }
 
-        const audience = await queryAudienceContacts(env.DB, {
-          filter,
-          q: "",
-          limit,
-          sinceHours,
-        });
+        const audience = useExplicitRecipients
+          ? await queryContactsByPhones(env.DB, requestedRecipients)
+          : await queryAudienceContacts(env.DB, {
+              filter,
+              q: "",
+              city,
+              hd,
+              sd,
+              limit,
+              sinceHours,
+            });
         const recipients = audience.filter((item) => String(item.status || "").trim() === "opted_in");
+        const audienceSeedPhones = useExplicitRecipients
+          ? requestedRecipients
+          : audience.map((item) => item.phone_e164);
+        const audienceCount = audienceSeedPhones.length;
+        const audienceHash = await sha256Hex(audienceSeedPhones.join(","));
         const recipientHash = await sha256Hex(recipients.map((item) => item.phone_e164).join(","));
-        const previewRecipients = recipients.slice(0, 10).map((item) => ({
-          phone_e164: item.phone_e164,
-          first_name: item.first_name,
-          last_name: item.last_name,
-        }));
+        const previewRecipients = buildBatchPreviewRecipients(recipients);
+        const skippedCount = Math.max(0, audienceCount - recipients.length);
 
         if (dryRun) {
           const issuedAt = new Date().toISOString();
           const approvalToken = await createPreviewApprovalToken(
             env,
             buildBatchSendPreviewSeed({
+              mode,
               filter,
+              city,
+              hd,
+              sd,
               text,
               limit,
               sinceHours,
+              audienceCount,
+              audienceHash,
               recipientCount: recipients.length,
               recipientHash,
             }),
@@ -1793,8 +1933,14 @@ export default {
             action: "broadcast_preview",
             detailsJson: JSON.stringify({
               batchId,
+              mode,
               filter,
+              city,
+              hd,
+              sd,
+              audienceCount,
               count: recipients.length,
+              skippedCount,
               limit,
             }),
           });
@@ -1802,7 +1948,10 @@ export default {
             ok: true,
             dryRun: true,
             batchId,
+            mode,
+            audienceCount,
             count: recipients.length,
+            skippedCount,
             previewRecipients,
             approval: {
               issuedAt,
@@ -1825,10 +1974,16 @@ export default {
         const expectedPreviewToken = await createPreviewApprovalToken(
           env,
           buildBatchSendPreviewSeed({
+            mode,
             filter,
+            city,
+            hd,
+            sd,
             text,
             limit,
             sinceHours,
+            audienceCount,
+            audienceHash,
             recipientCount: recipients.length,
             recipientHash,
           }),
@@ -1890,7 +2045,13 @@ export default {
           action: "broadcast_execute",
           detailsJson: JSON.stringify({
             batchId,
+            mode,
             filter,
+            city,
+            hd,
+            sd,
+            audienceCount,
+            skippedCount,
             sent,
             failed,
           }),
@@ -1899,7 +2060,10 @@ export default {
         return json(req, env, {
           ok: true,
           batchId,
+          mode,
+          audienceCount,
           sentCount: sent.length,
+          skippedCount,
           failedCount: failed.length,
           sent,
           failed,

@@ -21,6 +21,13 @@ const conversationEl = document.getElementById("admin-texting-conversation");
 const messagesSearchInput = document.getElementById("messages_search");
 const contactsSearchInput = document.getElementById("contacts_search");
 const contactsFilterInput = document.getElementById("contacts_filter");
+const contactsCityInput = document.getElementById("contacts_city");
+const contactsHdInput = document.getElementById("contacts_hd");
+const contactsSdInput = document.getElementById("contacts_sd");
+const contactsSelectAllInput = document.getElementById("contacts_select_all");
+const contactsAddSelectedBtn = document.getElementById("contacts_add_selected");
+const contactsClearSelectionBtn = document.getElementById("contacts_clear_selection");
+const contactsSelectionStatusEl = document.getElementById("contacts-selection-status");
 const suppressionEl = document.getElementById("admin-texting-suppression");
 const downloadContactsBtn = document.getElementById("download-texting-contacts");
 const downloadSuppressedBtn = document.getElementById("download-suppressed-contacts");
@@ -35,6 +42,9 @@ const sendTextInput = document.getElementById("send_text");
 const broadcastFilterSelect = document.getElementById("broadcast_filter");
 const broadcastLimitInput = document.getElementById("broadcast_limit");
 const broadcastTextInput = document.getElementById("broadcast_text");
+const recipientTraySummary = document.getElementById("recipient-tray-summary");
+const recipientTrayList = document.getElementById("recipient-tray-list");
+const recipientTrayClearBtn = document.getElementById("recipient-tray-clear");
 
 const STORAGE_KEY = "skovgard_admin_texting_key";
 const STORAGE_EMAIL = "skovgard_admin_texting_email";
@@ -42,6 +52,10 @@ const STORAGE_EMAIL = "skovgard_admin_texting_email";
 let selectedPhone = "";
 let singlePreviewState = null;
 let broadcastPreviewState = null;
+let visibleContacts = [];
+const selectedContactPhones = new Set();
+const knownContacts = new Map();
+const recipientTray = new Map();
 let lastApiDiagnostic = {
   kind: "idle",
   status: null,
@@ -58,7 +72,12 @@ function returnToAuth(message, { clearStoredKey = false } = {}) {
   shellEl.hidden = true;
   clearSinglePreview();
   clearBroadcastPreview();
+  selectedContactPhones.clear();
+  recipientTray.clear();
+  visibleContacts = [];
   renderConversation({ phone: "", items: [] });
+  renderRecipientTray();
+  updateSelectionUi();
   if (clearStoredKey) {
     localStorage.removeItem(STORAGE_KEY);
     keyInput.value = "";
@@ -190,6 +209,78 @@ function truncatePreview(value, maxLength = 72) {
   return `${normalized.slice(0, Math.max(1, maxLength - 3)).trimEnd()}...`;
 }
 
+function contactDisplayName(item) {
+  return `${item?.first_name || ""} ${item?.last_name || ""}`.trim() || item?.phone_e164 || "Unnamed contact";
+}
+
+function contactLocationText(item) {
+  const parts = [];
+  if (item?.city) parts.push(`City: ${item.city}`);
+  if (item?.state_house_district) parts.push(`HD: ${item.state_house_district}`);
+  if (item?.state_senate_district) parts.push(`SD: ${item.state_senate_district}`);
+  return parts.join(" | ");
+}
+
+function trayRecipientPhones() {
+  return [...recipientTray.keys()];
+}
+
+function invalidateBroadcastPreview(message) {
+  if (!broadcastPreviewState) return;
+  clearBroadcastPreview();
+  if (message) setStatus(broadcastStatusEl, message, false);
+}
+
+function updateBroadcastAudienceControls() {
+  const usingTray = recipientTray.size > 0;
+  if (broadcastFilterSelect) broadcastFilterSelect.disabled = usingTray;
+  if (broadcastLimitInput) broadcastLimitInput.disabled = usingTray;
+}
+
+function updateSelectionUi() {
+  const visiblePhones = visibleContacts.map((item) => item.phone_e164).filter(Boolean);
+  const visibleSelectedCount = visiblePhones.filter((phone) => selectedContactPhones.has(phone)).length;
+  const selectedCount = selectedContactPhones.size;
+  if (contactsSelectionStatusEl) {
+    contactsSelectionStatusEl.classList.remove("is-error");
+    contactsSelectionStatusEl.textContent = visibleSelectedCount !== selectedCount
+      ? `${selectedCount} selected, ${visibleSelectedCount} visible in the current filters.`
+      : `${selectedCount} selected.`;
+  }
+  if (!contactsSelectAllInput) return;
+  contactsSelectAllInput.checked = Boolean(visiblePhones.length) && visibleSelectedCount === visiblePhones.length;
+  contactsSelectAllInput.indeterminate = visibleSelectedCount > 0 && visibleSelectedCount < visiblePhones.length;
+  contactsSelectAllInput.disabled = visiblePhones.length === 0;
+}
+
+function renderRecipientTray() {
+  const items = [...recipientTray.values()];
+  updateBroadcastAudienceControls();
+  if (recipientTraySummary) {
+    recipientTraySummary.textContent = items.length
+      ? `${items.length} recipient${items.length === 1 ? "" : "s"} in tray. Preview/send uses opted-in contacts only.`
+      : "No recipients selected.";
+  }
+  if (!recipientTrayList) return;
+  recipientTrayList.innerHTML = items.length
+    ? items.map((item) => `
+        <article class="list-item tray-item">
+          <div class="row">
+            <div>
+              <strong>${escapeHtml(contactDisplayName(item))}</strong>
+              <div class="meta">${escapeHtml(item.phone_e164)}</div>
+            </div>
+            <div class="tray-actions">
+              ${badge(item.status || "unknown")}
+              <button type="button" class="secondary tray-remove" data-phone="${escapeHtml(item.phone_e164)}">Remove</button>
+            </div>
+          </div>
+          <div class="meta">${escapeHtml(contactLocationText(item) || "City / HD / SD unavailable")}</div>
+        </article>
+      `).join("")
+    : `<p class="empty">Add contacts from the list below to build a recipient tray.</p>`;
+}
+
 function renderEmptyMessage(el, message) {
   if (!el) return;
   el.innerHTML = `<p class="empty">${escapeHtml(message)}</p>`;
@@ -239,10 +330,12 @@ function currentSinglePayload() {
 }
 
 function currentBroadcastPayload() {
+  const recipients = trayRecipientPhones();
   return {
     filter: broadcastFilterSelect?.value || "opted_in",
     text: broadcastTextInput?.value.trim() || "",
     limit: Number(broadcastLimitInput?.value || 100),
+    recipients,
   };
 }
 
@@ -391,18 +484,42 @@ function renderMessages(items) {
 
 function renderContacts(items) {
   const rows = Array.isArray(items) ? items : [];
+  visibleContacts = rows;
+  rows.forEach((item) => {
+    if (!item?.phone_e164) return;
+    knownContacts.set(item.phone_e164, item);
+    if (recipientTray.has(item.phone_e164)) {
+      recipientTray.set(item.phone_e164, item);
+    }
+  });
   contactsEl.innerHTML = rows.length
     ? rows.map((item) => `
-        <button type="button" class="list-item contact-item" data-phone="${escapeHtml(item.phone_e164)}">
+        <article class="list-item contact-item">
           <div class="row">
-            <strong>${escapeHtml(`${item.first_name || ""} ${item.last_name || ""}`.trim() || item.phone_e164)}</strong>
-            ${badge(item.status || "unknown")}
+            <label class="checkbox-inline" for="contact-select-${escapeHtml(item.phone_e164)}">
+              <input
+                id="contact-select-${escapeHtml(item.phone_e164)}"
+                type="checkbox"
+                class="contact-select"
+                data-phone="${escapeHtml(item.phone_e164)}"
+                ${selectedContactPhones.has(item.phone_e164) ? "checked" : ""}
+              />
+              <span>Select</span>
+            </label>
+            <div class="contact-heading">
+              <strong>${escapeHtml(contactDisplayName(item))}</strong>
+              ${badge(item.status || "unknown")}
+            </div>
+            <button type="button" class="secondary contact-thread" data-phone="${escapeHtml(item.phone_e164)}">View thread</button>
           </div>
           <div class="meta">${escapeHtml(item.phone_e164)}</div>
+          <div class="meta">${escapeHtml(contactLocationText(item) || "City / HD / SD unavailable")}</div>
           <div class="meta">Keyword: ${escapeHtml(item.last_inbound_keyword || "none")}</div>
-        </button>
+        </article>
       `).join("")
     : `<p class="empty">No contacts found.</p>`;
+  updateSelectionUi();
+  renderRecipientTray();
 }
 
 function renderSuppression(items) {
@@ -426,11 +543,17 @@ function renderConversation(data) {
   const model = isRecord(data) ? data : {};
   const items = Array.isArray(model.items) ? model.items : [];
   const consent = isRecord(model.consent) ? model.consent : null;
+  const location = contactLocationText({
+    city: consent?.city,
+    state_house_district: consent?.state_house_district,
+    state_senate_district: consent?.state_senate_district,
+  });
   conversationEl.innerHTML = `
     <div class="conversation-summary">
       <strong>${escapeHtml(model.phone || "No contact selected")}</strong>
       <div class="meta">Consent: ${consent ? escapeHtml(consent.status || "unknown") : "unknown"}</div>
       <div class="meta">Last keyword: ${escapeHtml(consent?.last_inbound_keyword || "none")}</div>
+      <div class="meta">${escapeHtml(location || "City / HD / SD unavailable")}</div>
     </div>
     ${items.length
       ? items.map((item) => `
@@ -461,7 +584,12 @@ async function loadMessages() {
 async function loadContacts() {
   const q = encodeURIComponent(String(contactsSearchInput?.value || "").trim());
   const filter = encodeURIComponent(String(contactsFilterInput?.value || "all").trim());
-  const data = await api(`/api/admin/texting/contacts?limit=50&filter=${filter}${q ? `&q=${q}` : ""}`);
+  const city = encodeURIComponent(String(contactsCityInput?.value || "").trim());
+  const hd = encodeURIComponent(String(contactsHdInput?.value || "").trim());
+  const sd = encodeURIComponent(String(contactsSdInput?.value || "").trim());
+  const data = await api(
+    `/api/admin/texting/contacts?limit=50&filter=${filter}${q ? `&q=${q}` : ""}${city ? `&city=${city}` : ""}${hd ? `&hd=${hd}` : ""}${sd ? `&sd=${sd}` : ""}`
+  );
   renderContacts(data.items || []);
 }
 
@@ -592,12 +720,20 @@ function renderBroadcastPreview(data) {
     issuedAt: data?.approval?.issuedAt || "",
   };
   broadcastPreviewBox.hidden = false;
-  broadcastPreviewSummary.textContent = `Audience size: ${data.count}. Batch ID: ${data.batchId}. Previewing first ${items.length} recipients.`;
+  const mode = data?.mode === "explicit" ? "tray" : "audience";
+  broadcastPreviewSummary.textContent = mode === "tray"
+    ? `Recipient tray: ${data.audienceCount}. Sendable now: ${data.count}. Skipped by safeguards: ${data.skippedCount || 0}. Batch ID: ${data.batchId}. Previewing first ${items.length} sendable recipients.`
+    : `Audience size: ${data.audienceCount}. Sendable now: ${data.count}. Skipped by safeguards: ${data.skippedCount || 0}. Batch ID: ${data.batchId}. Previewing first ${items.length} recipients.`;
   broadcastPreviewList.innerHTML = items.length
     ? items.map((item) => `
         <div class="preview-list-item">
-          <strong>${escapeHtml(`${item.first_name || ""} ${item.last_name || ""}`.trim() || item.phone_e164)}</strong>
+          <strong>${escapeHtml(contactDisplayName(item))}</strong>
           <div class="meta">${escapeHtml(item.phone_e164)}</div>
+          <div class="meta">${escapeHtml(contactLocationText({
+            city: item.city,
+            state_house_district: item.hd,
+            state_senate_district: item.sd,
+          }) || "City / HD / SD unavailable")}</div>
         </div>
       `).join("")
     : `<p class="empty">No recipients match the selected audience.</p>`;
@@ -634,6 +770,29 @@ async function downloadCsv(path, fallbackName) {
   triggerDownload(blob, filename);
 }
 
+function addSelectedContactsToTray() {
+  const phones = [...selectedContactPhones];
+  let added = 0;
+  phones.forEach((phone) => {
+    const item = knownContacts.get(phone);
+    if (!item) return;
+    if (!recipientTray.has(phone)) added += 1;
+    recipientTray.set(phone, item);
+  });
+  if (!phones.length) {
+    setStatus(contactsSelectionStatusEl, "Select one or more contacts first.", true);
+    return;
+  }
+  selectedContactPhones.clear();
+  updateSelectionUi();
+  renderRecipientTray();
+  invalidateBroadcastPreview("Broadcast preview cleared because the recipient tray changed.");
+  setStatus(
+    contactsSelectionStatusEl,
+    added ? `${added} contact${added === 1 ? "" : "s"} added to the recipient tray.` : "All selected contacts were already in the recipient tray."
+  );
+}
+
 connectBtn?.addEventListener("click", () => {
   connectPortal().catch((error) => setStatus(authStatusEl, error.message, true));
 });
@@ -646,6 +805,11 @@ clearBtn?.addEventListener("click", () => {
   shellEl.hidden = true;
   clearSinglePreview();
   clearBroadcastPreview();
+  selectedContactPhones.clear();
+  recipientTray.clear();
+  visibleContacts = [];
+  renderRecipientTray();
+  updateSelectionUi();
   setStatus(authStatusEl, "Saved key cleared.");
 });
 
@@ -761,7 +925,10 @@ broadcastForm?.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    setStatus(broadcastStatusEl, `Broadcast ${data.batchId} sent ${data.sentCount} messages with ${data.failedCount} failures.`);
+    setStatus(
+      broadcastStatusEl,
+      `Broadcast ${data.batchId} sent ${data.sentCount} messages with ${data.failedCount} failures and ${data.skippedCount || 0} skipped by safeguards.`
+    );
     clearBroadcastPreview();
     await refreshAll();
   } catch (error) {
@@ -783,6 +950,12 @@ contactsSearchInput?.addEventListener("change", () => {
 
 contactsFilterInput?.addEventListener("change", () => {
   loadContacts().catch((error) => setStatus(authStatusEl, error.message, true));
+});
+
+[contactsCityInput, contactsHdInput, contactsSdInput].forEach((el) => {
+  el?.addEventListener("change", () => {
+    loadContacts().catch((error) => setStatus(authStatusEl, error.message, true));
+  });
 });
 
 [sendToInput, sendTextInput].forEach((el) => {
@@ -807,11 +980,60 @@ broadcastFilterSelect?.addEventListener("change", () => {
   setStatus(broadcastStatusEl, "Broadcast preview cleared because the audience or message changed.", false);
 });
 
-contactsEl?.addEventListener("click", (event) => {
-  const target = event.target.closest("[data-phone]");
+contactsSelectAllInput?.addEventListener("change", (event) => {
+  const checked = Boolean(event.target?.checked);
+  visibleContacts.forEach((item) => {
+    if (!item?.phone_e164) return;
+    if (checked) selectedContactPhones.add(item.phone_e164);
+    else selectedContactPhones.delete(item.phone_e164);
+  });
+  renderContacts(visibleContacts);
+});
+
+contactsAddSelectedBtn?.addEventListener("click", () => {
+  addSelectedContactsToTray();
+});
+
+contactsClearSelectionBtn?.addEventListener("click", () => {
+  selectedContactPhones.clear();
+  renderContacts(visibleContacts);
+  setStatus(contactsSelectionStatusEl, "Selection cleared.");
+});
+
+contactsEl?.addEventListener("change", (event) => {
+  const target = event.target.closest(".contact-select");
   if (!target) return;
-  selectedPhone = target.getAttribute("data-phone") || "";
+  const phone = target.getAttribute("data-phone") || "";
+  if (!phone) return;
+  if (target.checked) selectedContactPhones.add(phone);
+  else selectedContactPhones.delete(phone);
+  updateSelectionUi();
+});
+
+contactsEl?.addEventListener("click", (event) => {
+  const threadButton = event.target.closest(".contact-thread");
+  if (!threadButton) return;
+  const phone = threadButton.getAttribute("data-phone") || "";
+  if (!phone) return;
+  selectedPhone = phone;
   loadConversation(selectedPhone).catch((error) => setStatus(authStatusEl, error.message, true));
+});
+
+recipientTrayList?.addEventListener("click", (event) => {
+  const target = event.target.closest(".tray-remove");
+  if (!target) return;
+  const phone = target.getAttribute("data-phone") || "";
+  if (!phone) return;
+  recipientTray.delete(phone);
+  renderRecipientTray();
+  invalidateBroadcastPreview("Broadcast preview cleared because the recipient tray changed.");
+});
+
+recipientTrayClearBtn?.addEventListener("click", () => {
+  if (!recipientTray.size) return;
+  recipientTray.clear();
+  renderRecipientTray();
+  invalidateBroadcastPreview("Broadcast preview cleared because the recipient tray changed.");
 });
 
 const savedKey = localStorage.getItem(STORAGE_KEY);
@@ -849,3 +1071,6 @@ downloadSuppressedBtn?.addEventListener("click", () => {
       setStatus(authStatusEl, error.message, true);
     });
 });
+
+renderRecipientTray();
+updateSelectionUi();

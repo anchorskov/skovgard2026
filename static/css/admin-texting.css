@@ -147,17 +147,85 @@ main .conversation-summary {
 
 main .contact-item {
   width: 100%;
-  display: block;
+  display: grid;
+  gap: .45rem;
   border: 1px solid #d1d5db;
   background: #fff;
   border-radius: .85rem;
   text-align: left;
   color: inherit;
-  cursor: pointer;
 }
 
 main .contact-item:hover {
   border-color: #2563eb;
+}
+
+main .contact-heading,
+main .tray-actions,
+main .contacts-selection-bar,
+main .checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+main .contact-heading {
+  flex: 1 1 auto;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+main .contacts-selection-bar {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin: .75rem 0 1rem;
+}
+
+main .checkbox-inline {
+  font-size: .94rem;
+  color: #0f172a;
+}
+
+main .checkbox-inline input {
+  margin: 0;
+}
+
+main .recipient-tray {
+  display: grid;
+  gap: .75rem;
+  margin: .75rem 0 1rem;
+  padding: .85rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: .85rem;
+  background: #f8fafc;
+}
+
+main .tray-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+main .contact-thread,
+main .tray-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  margin: 0;
+  padding: .45rem .8rem;
+  border: 1px solid #64748b;
+  border-radius: .7rem;
+  background: #64748b;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+main .contact-thread:hover,
+main .tray-remove:hover {
+  background: #475569;
+  border-color: #475569;
 }
 
 main .meta,

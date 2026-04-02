@@ -93,9 +93,22 @@ summary: "Operational texting portal."
             <input id="broadcast_limit" name="broadcast_limit" type="number" min="1" max="250" value="100" />
           </div>
         </div>
+        <p class="help">If the recipient tray has contacts, preview/send uses the tray instead of the audience filter.</p>
         <div class="field">
           <label for="broadcast_text">Broadcast message</label>
           <textarea id="broadcast_text" name="broadcast_text" rows="4" placeholder="Write the broadcast message" required></textarea>
+        </div>
+        <div class="recipient-tray">
+          <div class="row">
+            <div>
+              <h3>Recipient Tray</h3>
+              <p id="recipient-tray-summary" class="help">No recipients selected.</p>
+            </div>
+            <div class="button-row">
+              <button type="button" id="recipient-tray-clear" class="secondary">Clear tray</button>
+            </div>
+          </div>
+          <div id="recipient-tray-list" class="list-stack"></div>
         </div>
         <div id="broadcast-preview-box" class="preview-box" hidden>
           <h3>Broadcast Review</h3>
@@ -136,7 +149,7 @@ summary: "Operational texting portal."
       <div class="card-head">
         <div>
           <h2>Contacts</h2>
-          <p class="help">Search the operational contact list and select a contact to inspect history.</p>
+          <p class="help">Filter contacts, select visible rows, and add recipients to the tray without showing county data.</p>
         </div>
         <div class="card-controls">
           <select id="contacts_filter">
@@ -148,7 +161,21 @@ summary: "Operational texting portal."
             <option value="new_opt_ins">New opt-ins</option>
           </select>
           <input id="contacts_search" type="search" placeholder="Search phone or name" />
+          <input id="contacts_city" type="search" placeholder="City" />
+          <input id="contacts_hd" type="search" placeholder="HD" />
+          <input id="contacts_sd" type="search" placeholder="SD" />
         </div>
+      </div>
+      <div class="contacts-selection-bar">
+        <label class="checkbox-inline" for="contacts_select_all">
+          <input id="contacts_select_all" type="checkbox" />
+          <span>Select visible rows</span>
+        </label>
+        <div class="button-row">
+          <button type="button" id="contacts_add_selected">Add selected to tray</button>
+          <button type="button" id="contacts_clear_selection" class="secondary">Clear selection</button>
+        </div>
+        <p id="contacts-selection-status" class="help">0 selected.</p>
       </div>
       <div id="admin-texting-contacts" class="list-stack"></div>
     </section>
