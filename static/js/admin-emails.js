@@ -777,12 +777,15 @@ async function runSend() {
     clearPreview();
     const failedCount = Number(data?.failedCount || 0);
     const sentCount = Number(data?.sentCount || 0);
+    const stagedNote = data?.deliveryMode === "staged"
+      ? ` Staged in waves of ${Number(data?.batchSize || 0) || "n/a"}.`
+      : "";
     const failureSummary = failedCount
       ? ` ${failedCount} failed${Array.isArray(data?.failed) && data.failed[0]?.error ? `: ${data.failed[0].error}` : "."}`
       : "";
     setStatus(
       composeStatusEl,
-      `Sent ${sentCount} email${sentCount === 1 ? "" : "s"}.${failureSummary}`
+      `Sent ${sentCount} email${sentCount === 1 ? "" : "s"}.${stagedNote}${failureSummary}`
     );
   } catch (error) {
     if (shouldReturnToAuth(error)) {

@@ -24,6 +24,7 @@ export async function sendResendEmail(apiKey, message, idempotencyKey = null) {
     const error = new Error(detail);
     error.status = response.status;
     error.body = body;
+    error.headers = Object.fromEntries(response.headers.entries());
     throw error;
   }
 

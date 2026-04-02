@@ -1048,6 +1048,61 @@ async function mapWithConcurrency(items, limit, worker) {
   return results;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+async function mapInBatches(items, batchSize, pauseMs, worker) {
+  const size = Math.max(1, Number(batchSize) || 1);
+  const results = [];
+
+  for (let start = 0; start < items.length; start += size) {
+    const batch = items.slice(start, start + size);
+    const batchResults = await Promise.all(
+      batch.map((item, index) => worker(item, start + index))
+    );
+    results.push(...batchResults);
+    if (start + size < items.length) {
+      await sleep(pauseMs);
+    }
+  }
+
+  return results;
+}
+
+function parseRetryAfterMs(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return 0;
+
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.round(seconds * 1000);
+  }
+
+  const dateMs = Date.parse(raw);
+  if (Number.isFinite(dateMs)) {
+    return Math.max(0, dateMs - Date.now());
+  }
+
+  return 0;
+}
+
+function resolveResendRetryDelayMs(error, fallbackMs = ADMIN_EMAIL_RATE_LIMIT_FALLBACK_MS) {
+  const headers = error?.headers && typeof error.headers === "object" ? error.headers : {};
+
+  const retryAfterMs = parseRetryAfterMs(headers["retry-after"]);
+  if (retryAfterMs > 0) return retryAfterMs;
+
+  const resetHeader = headers["x-ratelimit-reset"] || headers["ratelimit-reset"] || "";
+  const resetValue = Number(resetHeader);
+  if (Number.isFinite(resetValue) && resetValue > 0) {
+    const resetMs = resetValue > 1e12 ? resetValue : resetValue * 1000;
+    return Math.max(0, resetMs - Date.now());
+  }
+
+  return fallbackMs;
+}
+
 async function deleteMessageRowsByIds(db, tableName, rowIds = []) {
   const ids = [...new Set((Array.isArray(rowIds) ? rowIds : [])
     .map((value) => positiveInt(value, 0, Number.MAX_SAFE_INTEGER))
@@ -1164,6 +1219,10 @@ async function buildIdempotencyKey({ email, amountCents, address1, zip }) {
 }
 
 const PREVIEW_TOKEN_TTL_MS = 15 * 60 * 1000;
+const ADMIN_EMAIL_SEND_BATCH_SIZE = 4;
+const ADMIN_EMAIL_SEND_BATCH_DELAY_MS = 1250;
+const ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT = 2;
+const ADMIN_EMAIL_RATE_LIMIT_FALLBACK_MS = 1500;
 
 function normalizePreviewIssuedAt(value) {
   const date = new Date(value || "");
@@ -3097,67 +3156,116 @@ export default {
           }),
         });
 
-        const settled = await mapWithConcurrency(recipients, 5, async (recipient) => {
-          const idempotencyKey = await sha256Hex([
-            "admin_email_send",
-            previewToken,
-            recipient.email_norm,
-          ].join("|"));
-          try {
-            const result = await sendAdminOutreachEmail(
-              env,
-              recipient,
-              subject,
-              messageBody,
-              {
-                batchId,
-                idempotencyKey,
-                replyTo: emailConfig.from,
+        const settled = await mapInBatches(
+          recipients,
+          ADMIN_EMAIL_SEND_BATCH_SIZE,
+          ADMIN_EMAIL_SEND_BATCH_DELAY_MS,
+          async (recipient) => {
+            const idempotencyKey = await sha256Hex([
+              "admin_email_send",
+              previewToken,
+              recipient.email_norm,
+            ].join("|"));
+
+            let attempt = 0;
+            while (attempt <= ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT) {
+              attempt += 1;
+              try {
+                const result = await sendAdminOutreachEmail(
+                  env,
+                  recipient,
+                  subject,
+                  messageBody,
+                  {
+                    batchId,
+                    idempotencyKey,
+                    replyTo: emailConfig.from,
+                  }
+                );
+                await insertAdminEmailAuditLog(env.DB, {
+                  actorUserId: actor.actorUserId,
+                  actorEmail: actor.actorEmail,
+                  action: "send_email",
+                  targetEmail: recipient.email,
+                  subject,
+                  messageId: result.id,
+                  detailsJson: JSON.stringify({
+                    batchId,
+                    email: recipient.email,
+                    emailNorm: recipient.email_norm,
+                    source: recipient.source || "",
+                    attempt,
+                  }),
+                });
+                return {
+                  ok: true,
+                  email: recipient.email,
+                  messageId: result.id,
+                  attempt,
+                };
+              } catch (error) {
+                const rateLimited = Number(error?.status || 0) === 429;
+                const shouldRetry = rateLimited && attempt <= ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT;
+                const retryDelayMs = shouldRetry
+                  ? resolveResendRetryDelayMs(error)
+                  : 0;
+
+                if (shouldRetry) {
+                  await insertAdminEmailAuditLog(env.DB, {
+                    actorUserId: actor.actorUserId,
+                    actorEmail: actor.actorEmail,
+                    action: "send_email_rate_limited",
+                    targetEmail: recipient.email,
+                    subject,
+                    detailsJson: JSON.stringify({
+                      batchId,
+                      email: recipient.email,
+                      emailNorm: recipient.email_norm,
+                      attempt,
+                      retryDelayMs,
+                      error: String(error?.message || error || "Unknown email error"),
+                      status: error?.status || null,
+                    }),
+                  });
+                  await sleep(retryDelayMs);
+                  continue;
+                }
+
+                await insertAdminEmailAuditLog(env.DB, {
+                  actorUserId: actor.actorUserId,
+                  actorEmail: actor.actorEmail,
+                  action: "send_email_failed",
+                  targetEmail: recipient.email,
+                  subject,
+                  detailsJson: JSON.stringify({
+                    batchId,
+                    email: recipient.email,
+                    emailNorm: recipient.email_norm,
+                    attempt,
+                    error: String(error?.message || error || "Unknown email error"),
+                    status: error?.status || null,
+                    body: error?.body || null,
+                  }),
+                });
+                return {
+                  ok: false,
+                  email: recipient.email,
+                  error: String(error?.message || error || "Unknown email error"),
+                  status: error?.status || null,
+                  attempt,
+                };
               }
-            );
-            await insertAdminEmailAuditLog(env.DB, {
-              actorUserId: actor.actorUserId,
-              actorEmail: actor.actorEmail,
-              action: "send_email",
-              targetEmail: recipient.email,
-              subject,
-              messageId: result.id,
-              detailsJson: JSON.stringify({
-                batchId,
-                email: recipient.email,
-                emailNorm: recipient.email_norm,
-                source: recipient.source || "",
-              }),
-            });
-            return {
-              ok: true,
-              email: recipient.email,
-              messageId: result.id,
-            };
-          } catch (error) {
-            await insertAdminEmailAuditLog(env.DB, {
-              actorUserId: actor.actorUserId,
-              actorEmail: actor.actorEmail,
-              action: "send_email_failed",
-              targetEmail: recipient.email,
-              subject,
-              detailsJson: JSON.stringify({
-                batchId,
-                email: recipient.email,
-                emailNorm: recipient.email_norm,
-                error: String(error?.message || error || "Unknown email error"),
-                status: error?.status || null,
-                body: error?.body || null,
-              }),
-            });
+            }
+
             return {
               ok: false,
               email: recipient.email,
-              error: String(error?.message || error || "Unknown email error"),
-              status: error?.status || null,
+              error: "Email send exhausted retries.",
+              status: 429,
+              attempt: ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT + 1,
             };
           }
-        });
+        );
 
         const sent = settled.filter((item) => item?.ok);
         const failed = settled.filter((item) => item && item.ok === false);
@@ -3175,6 +3283,9 @@ export default {
             sentCount: sent.length,
             failedCount: failed.length,
             skippedCount,
+            deliveryMode: "staged",
+            batchSize: ADMIN_EMAIL_SEND_BATCH_SIZE,
+            batchDelayMs: ADMIN_EMAIL_SEND_BATCH_DELAY_MS,
           }),
         });
 
@@ -3187,6 +3298,9 @@ export default {
           sentCount: sent.length,
           failedCount: failed.length,
           skippedCount,
+          deliveryMode: "staged",
+          batchSize: ADMIN_EMAIL_SEND_BATCH_SIZE,
+          batchDelayMs: ADMIN_EMAIL_SEND_BATCH_DELAY_MS,
           sent,
           failed,
         });
