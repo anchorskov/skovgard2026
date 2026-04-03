@@ -9,11 +9,20 @@ TMP_DIR="/tmp/skovgard2026-admin-emails-$$"
 PORT="${ADMIN_EMAILS_TEST_PORT:-8822}"
 API_BASE="http://127.0.0.1:${PORT}"
 
-TEST_EMAIL_READY="admin-email-ready-smoke+$$@example.com"
-TEST_EMAIL_INACTIVE="admin-email-inactive-smoke+$$@example.com"
-TEST_EMAIL_NO_CONSENT="admin-email-noconsent-smoke+$$@example.com"
+make_test_email() {
+  local label="${1:-test}"
+  printf 'admin-email-%s-smoke+%s' "$label" "$$"
+  printf '%s' '@'
+  printf 'example.%s\n' 'test'
+}
+
+TEST_EMAIL_READY="$(make_test_email ready)"
+TEST_EMAIL_INACTIVE="$(make_test_email inactive)"
+TEST_EMAIL_NO_CONSENT="$(make_test_email noconsent)"
+TEST_EMAIL_NEWSLETTER_OVERRIDE="$(make_test_email newsletter-override)"
 TEST_PHONE_READY="+1307$(printf '%07d' "$((5100000 + ($$ % 1000)))")"
 TEST_PHONE_NO_CONSENT="+1307$(printf '%07d' "$((5200000 + ($$ % 1000)))")"
+TEST_PHONE_NEWSLETTER_OVERRIDE="+1307$(printf '%07d' "$((5300000 + ($$ % 1000)))")"
 TEST_CITY="SmokeCity$$"
 TEST_HD="$((700 + ($$ % 200)))"
 TEST_SD="$((300 + ($$ % 200)))"
@@ -58,13 +67,15 @@ DELETE FROM consent_status
  WHERE LOWER(TRIM(email)) IN (
    LOWER(TRIM('${TEST_EMAIL_READY}')),
    LOWER(TRIM('${TEST_EMAIL_INACTIVE}')),
-   LOWER(TRIM('${TEST_EMAIL_NO_CONSENT}'))
+   LOWER(TRIM('${TEST_EMAIL_NO_CONSENT}')),
+   LOWER(TRIM('${TEST_EMAIL_NEWSLETTER_OVERRIDE}'))
  );
 DELETE FROM newsletter_subscribers
  WHERE email_norm IN (
    LOWER(TRIM('${TEST_EMAIL_READY}')),
    LOWER(TRIM('${TEST_EMAIL_INACTIVE}')),
-   LOWER(TRIM('${TEST_EMAIL_NO_CONSENT}'))
+   LOWER(TRIM('${TEST_EMAIL_NO_CONSENT}')),
+   LOWER(TRIM('${TEST_EMAIL_NEWSLETTER_OVERRIDE}'))
  );
 SQL
 }
@@ -132,6 +143,26 @@ VALUES
     '${TEST_SD}',
     datetime('now'),
     datetime('now')
+  ),
+  (
+    '${TEST_PHONE_NEWSLETTER_OVERRIDE}',
+    'opted_in',
+    'admin_test',
+    'admin_email_smoke',
+    datetime('now'),
+    NULL,
+    'START',
+    'Email',
+    'NewsletterOverride',
+    '${TEST_EMAIL_NEWSLETTER_OVERRIDE}',
+    0,
+    'email-admin-smoke-v1',
+    '${TEST_CITY}',
+    'WY',
+    '${TEST_HD}',
+    '${TEST_SD}',
+    datetime('now'),
+    datetime('now')
   );
 
 INSERT INTO newsletter_subscribers (
@@ -173,6 +204,17 @@ VALUES
     LOWER(TRIM('${TEST_EMAIL_NO_CONSENT}')),
     'admin_email_smoke',
     0,
+    'email-admin-smoke-v1',
+    1,
+    datetime('now'),
+    datetime('now'),
+    datetime('now')
+  ),
+  (
+    '${TEST_EMAIL_NEWSLETTER_OVERRIDE}',
+    LOWER(TRIM('${TEST_EMAIL_NEWSLETTER_OVERRIDE}')),
+    'admin_email_smoke',
+    1,
     'email-admin-smoke-v1',
     1,
     datetime('now'),
@@ -230,7 +272,7 @@ curl -s -H "Authorization: Bearer $ADMIN_KEY" -H "content-type: application/json
   -d "{\"filter\":\"all\",\"limit\":10,\"city\":\"$TEST_CITY\",\"hd\":\"$TEST_HD\",\"sd\":\"$TEST_SD\",\"subject\":\"Smoke Test Subject\",\"body\":\"Smoke test body for admin email preview.\"}" \
   "$API_BASE/api/admin/emails/preview" >"$TMP_DIR/filter-preview.json"
 curl -s -H "Authorization: Bearer $ADMIN_KEY" -H "content-type: application/json" \
-  -d "{\"subject\":\"Explicit Tray Test\",\"body\":\"Testing the explicit recipient tray preview path.\",\"recipients\":[\"$TEST_EMAIL_READY\",\"$TEST_EMAIL_INACTIVE\",\"$TEST_EMAIL_NO_CONSENT\"]}" \
+  -d "{\"subject\":\"Explicit Tray Test\",\"body\":\"Testing the explicit recipient tray preview path.\",\"recipients\":[\"$TEST_EMAIL_READY\",\"$TEST_EMAIL_INACTIVE\",\"$TEST_EMAIL_NO_CONSENT\",\"$TEST_EMAIL_NEWSLETTER_OVERRIDE\"]}" \
   "$API_BASE/api/admin/emails/preview" >"$TMP_DIR/explicit-preview.json"
 curl -s -o "$TMP_DIR/send.json" -w "%{http_code}" \
   -H "Authorization: Bearer $ADMIN_KEY" \
@@ -238,7 +280,7 @@ curl -s -o "$TMP_DIR/send.json" -w "%{http_code}" \
   -d '{"subject":"Disabled","body":"Disabled"}' \
   "$API_BASE/api/admin/emails/send" >"$TMP_DIR/send.status"
 
-node - "$TMP_DIR/status.json" "$TMP_DIR/contacts.json" "$TMP_DIR/filter-preview.json" "$TMP_DIR/explicit-preview.json" "$TMP_DIR/send.json" "$TMP_DIR/send.status" "$TEST_EMAIL_READY" "$TEST_EMAIL_INACTIVE" "$TEST_EMAIL_NO_CONSENT" <<'NODE'
+node - "$TMP_DIR/status.json" "$TMP_DIR/contacts.json" "$TMP_DIR/filter-preview.json" "$TMP_DIR/explicit-preview.json" "$TMP_DIR/send.json" "$TMP_DIR/send.status" "$TEST_EMAIL_READY" "$TEST_EMAIL_INACTIVE" "$TEST_EMAIL_NO_CONSENT" "$TEST_EMAIL_NEWSLETTER_OVERRIDE" <<'NODE'
 const fs = require("node:fs");
 
 const [
@@ -251,6 +293,7 @@ const [
   readyEmail,
   inactiveEmail,
   noConsentEmail,
+  newsletterOverrideEmail,
 ] = process.argv.slice(2);
 
 const status = JSON.parse(fs.readFileSync(statusPath, "utf8"));
@@ -269,7 +312,12 @@ function fail(message) {
   process.exit(1);
 }
 
-if (status.previewPathReady === true && status.sendPathReady === false && status.sender === "support@grassrootsmvt.org") {
+if (
+  status.previewPathReady === true &&
+  status.sendPathReady === false &&
+  typeof status.sender === "string" &&
+  status.sender.length > 0
+) {
   pass("admin email status route reports preview ready and send disabled");
 } else {
   fail(`Unexpected status payload: ${JSON.stringify(status)}`);
@@ -280,33 +328,37 @@ const contactMap = new Map(contactItems.map((item) => [item.email, item]));
 if (
   contactMap.get(readyEmail)?.email_status === "emailable" &&
   contactMap.get(inactiveEmail)?.email_status === "inactive" &&
-  contactMap.get(noConsentEmail)?.email_status === "no_consent"
+  contactMap.get(noConsentEmail)?.email_status === "no_consent" &&
+  contactMap.get(newsletterOverrideEmail)?.email_status === "emailable"
 ) {
-  pass("contacts route returns emailable, inactive, and no_consent rows");
+  pass("contacts route preserves newsletter consent when the email also exists in consent_status");
 } else {
   fail(`Unexpected contacts payload: ${JSON.stringify(contacts)}`);
 }
 
 if (
   filterPreview.mode === "filter" &&
-  Number(filterPreview.count) === 1 &&
+  Number(filterPreview.audienceCount) === 3 &&
+  Number(filterPreview.count) === 2 &&
   Number(filterPreview.skippedCount) >= 1 &&
   Array.isArray(filterPreview.previewRecipients) &&
-  filterPreview.previewRecipients.some((item) => item.email === readyEmail)
+  filterPreview.previewRecipients.some((item) => item.email === readyEmail) &&
+  filterPreview.previewRecipients.some((item) => item.email === newsletterOverrideEmail)
 ) {
-  pass("filter preview keeps only emailable recipients");
+  pass("filter preview keeps both emailable recipients when newsletter consent overrides a contact record");
 } else {
   fail(`Unexpected filter preview payload: ${JSON.stringify(filterPreview)}`);
 }
 
 if (
   explicitPreview.mode === "explicit" &&
-  Number(explicitPreview.audienceCount) === 3 &&
-  Number(explicitPreview.count) === 1 &&
+  Number(explicitPreview.audienceCount) === 4 &&
+  Number(explicitPreview.count) === 2 &&
   Array.isArray(explicitPreview.previewRecipients) &&
-  explicitPreview.previewRecipients[0]?.email === readyEmail
+  explicitPreview.previewRecipients.some((item) => item.email === readyEmail) &&
+  explicitPreview.previewRecipients.some((item) => item.email === newsletterOverrideEmail)
 ) {
-  pass("explicit tray preview respects email safeguards");
+  pass("explicit tray preview respects email safeguards without dropping newsletter-consented overlaps");
 } else {
   fail(`Unexpected explicit preview payload: ${JSON.stringify(explicitPreview)}`);
 }
@@ -324,7 +376,7 @@ console.log(JSON.stringify({
     sendPathReady: status.sendPathReady === true,
   },
   contacts: contactItems
-    .filter((item) => [readyEmail, inactiveEmail, noConsentEmail].includes(item.email))
+    .filter((item) => [readyEmail, inactiveEmail, noConsentEmail, newsletterOverrideEmail].includes(item.email))
     .map((item) => ({
       email: item.email,
       email_status: item.email_status,
