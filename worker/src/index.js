@@ -530,6 +530,165 @@ function pulseExportName(row) {
     .join(" ");
 }
 
+function legacySmsOptinPhoneSql(alias = "sms_optins") {
+  const phoneExpr = `REPLACE(TRIM(${alias}.phone), '+', '')`;
+  return `CASE
+    WHEN ${alias}.phone IS NULL OR TRIM(${alias}.phone) = '' THEN NULL
+    WHEN LENGTH(${phoneExpr}) = 10 THEN '+1' || ${phoneExpr}
+    WHEN LENGTH(${phoneExpr}) = 11 AND SUBSTR(${phoneExpr}, 1, 1) = '1' THEN '+' || ${phoneExpr}
+    ELSE '+' || ${phoneExpr}
+  END`;
+}
+
+function normalizeLegacySmsOptinPhone(raw) {
+  const phone = normalizePhoneNumber(raw);
+  return phone ? phoneDigitsOnly(phone) : "";
+}
+
+async function lookupLegacySmsOptinByPhone(db, phone) {
+  const phoneE164 = normalizePhoneNumber(phone);
+  if (!phoneE164) return null;
+
+  return db.prepare(
+    `SELECT id, phone
+       FROM sms_optins
+      WHERE ${legacySmsOptinPhoneSql("sms_optins")} = ?1
+      ORDER BY datetime(created_at) DESC, id DESC
+      LIMIT 1`
+  )
+    .bind(phoneE164)
+    .first()
+    .catch(() => null);
+}
+
+async function setLegacySmsOptinVolunteerByPhone(db, phone, isVolunteer) {
+  const existing = await lookupLegacySmsOptinByPhone(db, phone);
+  if (!existing?.id) return null;
+
+  await db.prepare(
+    `UPDATE sms_optins
+        SET is_volunteer = ?1
+      WHERE id = ?2`
+  )
+    .bind(isVolunteer ? 1 : 0, existing.id)
+    .run();
+
+  return { id: existing.id, result: "updated" };
+}
+
+async function upsertLegacySmsOptin(db, input = {}) {
+  const phoneE164 = normalizePhoneNumber(input?.phoneE164 || input?.phone || "");
+  const phone = normalizeLegacySmsOptinPhone(phoneE164);
+  if (!phoneE164 || !phone) throw new Error("Valid phone required");
+
+  const firstName = normalizeText(input?.firstName ?? input?.first_name) || null;
+  const lastName = normalizeText(input?.lastName ?? input?.last_name) || null;
+  const name = [firstName, lastName].filter(Boolean).join(" ") || null;
+  const email = normalizeText(input?.email) || null;
+  const consent = isAffirmative(input?.consent ?? 1) ? 1 : 0;
+  const consentEmail = isAffirmative(input?.consentEmail ?? input?.consent_email) ? 1 : 0;
+  const wyVoter = isAffirmative(input?.wyVoter ?? input?.wy_voter) ? 1 : 0;
+  const zip = normalizeText(input?.zip) || null;
+  const consentVersion =
+    normalizeText(input?.consentVersion ?? input?.consent_version)
+    || `admin-texting-v1-${new Date().toISOString().slice(0, 10)}`;
+  const source = normalizeText(input?.source) || "skovgard2026:admin_texting";
+  const userAgent = normalizeText(input?.userAgent ?? input?.user_agent) || null;
+  const ipHash = normalizeText(input?.ipHash ?? input?.ip_hash) || null;
+  const isVolunteer = isAffirmative(input?.isVolunteer ?? input?.is_volunteer) ? 1 : 0;
+
+  const existing = await lookupLegacySmsOptinByPhone(db, phoneE164);
+  if (existing?.id) {
+    await db.prepare(
+      `UPDATE sms_optins
+          SET name = ?1,
+              phone = ?2,
+              consent = ?3,
+              consent_version = ?4,
+              source = ?5,
+              user_agent = COALESCE(?6, user_agent),
+              ip_hash = COALESCE(?7, ip_hash),
+              email = COALESCE(?8, email),
+              consent_email = ?9,
+              wy_voter = ?10,
+              zip = COALESCE(?11, zip),
+              first_name = ?12,
+              last_name = ?13,
+              is_volunteer = ?14
+        WHERE id = ?15`
+    )
+      .bind(
+        name,
+        phone,
+        consent,
+        consentVersion,
+        source,
+        userAgent,
+        ipHash,
+        email,
+        consentEmail,
+        wyVoter,
+        zip,
+        firstName,
+        lastName,
+        isVolunteer,
+        existing.id
+      )
+      .run();
+
+    return { id: existing.id, result: "updated" };
+  }
+
+  const inserted = await db.prepare(
+    `INSERT INTO sms_optins
+       (name, phone, consent, consent_version, source, user_agent, ip_hash,
+        email, consent_email, wy_voter, zip, first_name, last_name, is_volunteer)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)`
+  )
+    .bind(
+      name,
+      phone,
+      consent,
+      consentVersion,
+      source,
+      userAgent,
+      ipHash,
+      email,
+      consentEmail,
+      wyVoter,
+      zip,
+      firstName,
+      lastName,
+      isVolunteer
+    )
+    .run();
+
+  return { id: inserted?.meta?.last_row_id || null, result: "created" };
+}
+
+async function loadContactVolunteerSeed(db, phone) {
+  const phoneE164 = normalizePhoneNumber(phone);
+  if (!phoneE164) return null;
+
+  return db.prepare(
+    `SELECT c.phone_e164,
+            COALESCE(NULLIF(c.first_name, ''), NULLIF(cs.first_name, '')) AS first_name,
+            COALESCE(NULLIF(c.last_name, ''), NULLIF(cs.last_name, '')) AS last_name,
+            cs.status,
+            cs.email,
+            cs.consent_email,
+            cs.wy_voter,
+            cs.consent_version
+       FROM contacts c
+       LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164
+      WHERE c.phone_e164 = ?1
+      LIMIT 1`
+  )
+    .bind(phoneE164)
+    .first()
+    .catch(() => null);
+}
+
 function mapPulseExportRows(rows) {
   return (Array.isArray(rows) ? rows : [])
     .map((row) => ({
@@ -647,7 +806,14 @@ const CONTACT_SELECT_SQL = `SELECT c.phone_e164,
                                    cs.last_inbound_keyword,
                                    cs.city,
                                    cs.state_house_district,
-                                   cs.state_senate_district
+                                   cs.state_senate_district,
+                                   COALESCE((
+                                     SELECT so.is_volunteer
+                                       FROM sms_optins so
+                                      WHERE ${legacySmsOptinPhoneSql("so")} = c.phone_e164
+                                      ORDER BY datetime(so.created_at) DESC, so.id DESC
+                                      LIMIT 1
+                                   ), 0) AS is_volunteer
                               FROM contacts c
                               LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164`;
 
@@ -772,6 +938,7 @@ function normalizeRecipientEmails(value, maxRecipients = 250) {
 const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                     SELECT LOWER(TRIM(cs.email)) AS email_norm,
                                            TRIM(cs.email) AS email,
+                                           COALESCE(TRIM(cs.phone_e164), '') AS phone_e164,
                                            COALESCE(NULLIF(cs.first_name, ''), '') AS first_name,
                                            COALESCE(NULLIF(cs.last_name, ''), '') AS last_name,
                                            COALESCE(TRIM(cs.city), '') AS city,
@@ -783,6 +950,13 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                            COALESCE(ns.consent_version, cs.consent_version, '') AS consent_version,
                                            COALESCE(ns.created_at, cs.consented_at, cs.created_at) AS created_at,
                                            COALESCE(ns.updated_at, cs.updated_at, cs.created_at) AS updated_at,
+                                           COALESCE((
+                                             SELECT so.is_volunteer
+                                               FROM sms_optins so
+                                              WHERE ${legacySmsOptinPhoneSql("so")} = cs.phone_e164
+                                              ORDER BY datetime(so.created_at) DESC, so.id DESC
+                                              LIMIT 1
+                                           ), 0) AS is_volunteer,
                                            CASE
                                              WHEN COALESCE(
                                                NULLIF(cs.first_name, ''),
@@ -802,6 +976,7 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
 
                                     SELECT ns.email_norm AS email_norm,
                                            TRIM(ns.email) AS email,
+                                           '' AS phone_e164,
                                            '' AS first_name,
                                            '' AS last_name,
                                            '' AS city,
@@ -813,6 +988,7 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                            COALESCE(ns.consent_version, '') AS consent_version,
                                            ns.created_at AS created_at,
                                            COALESCE(ns.updated_at, ns.created_at) AS updated_at,
+                                           0 AS is_volunteer,
                                            0 AS has_profile
                                       FROM newsletter_subscribers ns
                                      WHERE NOT EXISTS (
@@ -824,6 +1000,7 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                   ranked_email_contacts AS (
                                     SELECT email_norm,
                                            email,
+                                           phone_e164,
                                            first_name,
                                            last_name,
                                            city,
@@ -835,6 +1012,7 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                            consent_version,
                                            created_at,
                                            updated_at,
+                                           is_volunteer,
                                            CASE
                                              WHEN COALESCE(consent_email, 0) != 1 THEN 'no_consent'
                                              WHEN COALESCE(active, 0) != 1 THEN 'inactive'
@@ -909,6 +1087,7 @@ async function queryAdminEmailContacts(
   const sql = `${ADMIN_EMAIL_CONTACTS_CTE}
                 SELECT email_norm,
                        email,
+                       phone_e164,
                        first_name,
                        last_name,
                        city,
@@ -920,6 +1099,7 @@ async function queryAdminEmailContacts(
                        consent_version,
                        created_at,
                        updated_at,
+                       is_volunteer,
                        email_status
                   FROM ranked_email_contacts
                  WHERE ${where}
@@ -936,6 +1116,7 @@ async function queryAdminEmailContactsByAddress(db, emailList = []) {
   const sql = `${ADMIN_EMAIL_CONTACTS_CTE}
                 SELECT email_norm,
                        email,
+                       phone_e164,
                        first_name,
                        last_name,
                        city,
@@ -947,6 +1128,7 @@ async function queryAdminEmailContactsByAddress(db, emailList = []) {
                        consent_version,
                        created_at,
                        updated_at,
+                       is_volunteer,
                        email_status
                   FROM ranked_email_contacts
                  WHERE rn = 1
@@ -2317,6 +2499,181 @@ export default {
         });
 
         return json(req, env, { ok: true, items: results });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/texting/optins") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const firstName = normalizeText(body?.first_name);
+        const lastName = normalizeText(body?.last_name);
+        const phoneRaw = normalizeText(body?.phone);
+        const phoneE164 = normalizePhoneNumber(phoneRaw);
+        const email = normalizeText(body?.email);
+        const consentEmail = isAffirmative(body?.consent_email) ? 1 : 0;
+        const wyVoter = isAffirmative(body?.wy_voter) ? 1 : 0;
+        const isVolunteer = isAffirmative(body?.is_volunteer) ? 1 : 0;
+        const consentVersion =
+          normalizeText(body?.consent_version)
+          || `admin-texting-v1-${new Date().toISOString().slice(0, 10)}`;
+
+        if (!firstName) {
+          return json(req, env, { error: "First name is required." }, 400);
+        }
+        if (!lastName) {
+          return json(req, env, { error: "Last name is required." }, 400);
+        }
+        if (!phoneE164) {
+          return json(req, env, { error: "Valid 10-digit mobile required." }, 400);
+        }
+        if (email && !isValidEmail(email)) {
+          return json(req, env, { error: "Email is not valid." }, 400);
+        }
+
+        const existingConsent = await env.DB.prepare(
+          `SELECT phone_e164, status
+             FROM consent_status
+            WHERE phone_e164 = ?1`
+        )
+          .bind(phoneE164)
+          .first()
+          .catch(() => null);
+
+        const ip = req.headers.get("cf-connecting-ip") || "";
+        const ipHash = ip ? await sha256Hex(ip) : null;
+        const userAgent = req.headers.get("user-agent") || "";
+        const result = existingConsent?.phone_e164 ? "updated" : "created";
+
+        await upsertConsentStatus(env.DB, {
+          phoneE164,
+          status: "opted_in",
+          source: "admin",
+          sourceDetail: "texting_portal",
+          consentedAt: new Date().toISOString(),
+          firstName,
+          lastName,
+          email: email || null,
+          consentEmail,
+          wyVoter,
+          consentVersion,
+          userAgent,
+          ipHash,
+          overwriteProfile: false,
+        });
+
+        if (email && consentEmail) {
+          await upsertNewsletterSubscriber(env.DB, {
+            email,
+            consentEmail: true,
+            consentVersion,
+            source: "skovgard2026:admin_texting",
+            userAgent,
+            ipHash: ipHash || "",
+          });
+        }
+
+        const legacyOptin = await upsertLegacySmsOptin(env.DB, {
+          phoneE164,
+          firstName,
+          lastName,
+          email: email || null,
+          consent: 1,
+          consentEmail,
+          wyVoter,
+          consentVersion,
+          source: "skovgard2026:admin_texting",
+          userAgent,
+          ipHash,
+          isVolunteer,
+        });
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail,
+          actorUserId: actor.actorUserId,
+          action: result === "created" ? "admin_create_optin" : "admin_update_optin",
+          targetPhone: phoneE164,
+          detailsJson: JSON.stringify({
+            result,
+            legacyOptinId: legacyOptin.id,
+            legacyOptinResult: legacyOptin.result,
+            consentEmail,
+            wyVoter,
+            isVolunteer,
+            email: email || null,
+          }),
+        });
+
+        const item = (await queryContactsByPhones(env.DB, [phoneE164]))[0] || null;
+        return json(req, env, {
+          ok: true,
+          result,
+          phoneE164,
+          isVolunteer,
+          item,
+        });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/texting/contacts/volunteer") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const phoneE164 = normalizePhoneNumber(body?.phone || "");
+        const isVolunteer = isAffirmative(body?.is_volunteer) ? 1 : 0;
+
+        if (!phoneE164) {
+          return json(req, env, { error: "Valid phone required." }, 400);
+        }
+
+        const seed = await loadContactVolunteerSeed(env.DB, phoneE164);
+        if (!seed?.phone_e164) {
+          return json(req, env, { error: "Contact not found." }, 404);
+        }
+
+        let legacyOptin = await setLegacySmsOptinVolunteerByPhone(env.DB, phoneE164, isVolunteer);
+        if (!legacyOptin) {
+          if (String(seed.status || "").trim() !== "opted_in") {
+            return json(req, env, { error: "Only opted-in contacts can be marked as volunteers." }, 409);
+          }
+
+          legacyOptin = await upsertLegacySmsOptin(env.DB, {
+            phoneE164,
+            firstName: seed.first_name,
+            lastName: seed.last_name,
+            email: seed.email,
+            consent: 1,
+            consentEmail: Number(seed.consent_email || 0) === 1,
+            wyVoter: Number(seed.wy_voter || 0) === 1,
+            consentVersion: seed.consent_version,
+            source: "skovgard2026:admin_texting",
+            isVolunteer,
+          });
+        }
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail,
+          actorUserId: actor.actorUserId,
+          action: "admin_set_contact_volunteer",
+          targetPhone: phoneE164,
+          detailsJson: JSON.stringify({
+            isVolunteer,
+            legacyOptinId: legacyOptin.id,
+            legacyOptinResult: legacyOptin.result,
+          }),
+        });
+
+        const item = (await queryContactsByPhones(env.DB, [phoneE164]))[0] || null;
+        return json(req, env, {
+          ok: true,
+          phoneE164,
+          isVolunteer,
+          item,
+        });
       }
 
       if (req.method === "GET" && path === "/api/admin/texting/suppression") {

@@ -32,11 +32,14 @@ main .admin-texting-actions {
   flex: 0 0 auto;
   justify-content: flex-end;
   align-items: flex-start;
+  flex-wrap: wrap;
+  gap: .75rem;
   margin-left: auto;
   min-width: max-content;
 }
 
-main #admin-texting-refresh {
+main #admin-texting-refresh,
+main #admin-texting-start-optin {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -54,12 +57,14 @@ main #admin-texting-refresh {
   transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;
 }
 
-main #admin-texting-refresh:hover {
+main #admin-texting-refresh:hover,
+main #admin-texting-start-optin:hover {
   background: #dbeafe;
   border-color: #1d4ed8;
 }
 
-main #admin-texting-refresh:focus-visible {
+main #admin-texting-refresh:focus-visible,
+main #admin-texting-start-optin:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
@@ -168,6 +173,7 @@ main .contact-item:hover {
 
 main .message-heading,
 main .contact-heading,
+main .contact-badges,
 main .contact-actions,
 main .tray-actions,
 main .contacts-selection-bar,
@@ -187,9 +193,19 @@ main .contact-heading {
   flex-wrap: wrap;
 }
 
+main .contact-badges {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 main .contact-actions {
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+main .contact-volunteer-row {
+  display: flex;
+  align-items: center;
 }
 
 main .contacts-selection-bar {
@@ -303,6 +319,13 @@ main .preview-list-item {
   flex-wrap: wrap;
   gap: .75rem;
   align-items: center;
+}
+
+#admin-texting-shell .checkbox-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 1rem;
+  margin: .5rem 0 1rem;
 }
 
 #admin-texting-auth .button-row button,

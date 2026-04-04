@@ -39,6 +39,7 @@ summary: "Operational texting portal."
       <p class="help">Send single texts from the production Worker, review replies, and check webhook health without relying on localhost.</p>
     </div>
     <div class="admin-texting-actions">
+      <button type="button" id="admin-texting-start-optin">Add opt-in</button>
       <button type="button" id="admin-texting-refresh">Refresh</button>
     </div>
   </section>
@@ -134,6 +135,59 @@ summary: "Operational texting portal."
   </section>
 
   <section class="admin-texting-stack">
+    <section class="admin-card admin-card-full">
+      <div class="card-head">
+        <div>
+          <h2>Add Opt-In</h2>
+          <p class="help">Create or update an opted-in contact in the existing texting system and legacy opt-in backup.</p>
+        </div>
+      </div>
+      <form id="admin-texting-optin" class="optin-form" novalidate>
+        <div class="field-inline">
+          <div class="field">
+            <label for="admin_optin_first_name">First name</label>
+            <input id="admin_optin_first_name" name="admin_optin_first_name" type="text" autocomplete="given-name" required />
+          </div>
+          <div class="field">
+            <label for="admin_optin_last_name">Last name</label>
+            <input id="admin_optin_last_name" name="admin_optin_last_name" type="text" autocomplete="family-name" required />
+          </div>
+        </div>
+        <div class="field-inline">
+          <div class="field">
+            <label for="admin_optin_phone">Phone</label>
+            <input id="admin_optin_phone" name="admin_optin_phone" type="tel" autocomplete="tel" placeholder="+1307..." required />
+          </div>
+          <div class="field">
+            <label for="admin_optin_email">Email <span class="help">(optional)</span></label>
+            <input id="admin_optin_email" name="admin_optin_email" type="email" autocomplete="email" placeholder="name@example.com" />
+          </div>
+        </div>
+        <div class="field">
+          <span class="help">Saving marks the contact as opted in. Re-using an existing phone updates that contact instead of creating a second record.</span>
+        </div>
+        <div class="checkbox-stack">
+          <label class="checkbox-inline" for="admin_optin_consent_email">
+            <input id="admin_optin_consent_email" name="admin_optin_consent_email" type="checkbox" />
+            <span>Email consent</span>
+          </label>
+          <label class="checkbox-inline" for="admin_optin_wy_voter">
+            <input id="admin_optin_wy_voter" name="admin_optin_wy_voter" type="checkbox" />
+            <span>Wyoming voter</span>
+          </label>
+          <label class="checkbox-inline" for="admin_optin_is_volunteer">
+            <input id="admin_optin_is_volunteer" name="admin_optin_is_volunteer" type="checkbox" />
+            <span>Volunteer</span>
+          </label>
+        </div>
+        <div class="button-row">
+          <button type="submit" id="admin-optin-save">Save opt-in</button>
+          <button type="button" id="admin-optin-go-emails" class="secondary">Emails</button>
+        </div>
+        <p id="admin-texting-optin-status" class="help" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
     <section class="admin-card admin-card-full">
       <div class="card-head">
         <div>

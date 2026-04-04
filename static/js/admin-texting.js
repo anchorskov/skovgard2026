@@ -8,7 +8,11 @@ const keyInput = document.getElementById("admin_texting_key");
 const actorEmailInput = document.getElementById("admin_actor_email");
 const connectBtn = document.getElementById("admin-texting-connect");
 const clearBtn = document.getElementById("admin-texting-clear");
+const startOptInBtn = document.getElementById("admin-texting-start-optin");
 const refreshBtn = document.getElementById("admin-texting-refresh");
+const optInForm = document.getElementById("admin-texting-optin");
+const optInStatusEl = document.getElementById("admin-texting-optin-status");
+const optInGoEmailsBtn = document.getElementById("admin-optin-go-emails");
 const sendForm = document.getElementById("admin-texting-send");
 const sendStatusEl = document.getElementById("admin-texting-send-status");
 const previewBtn = document.getElementById("text-preview");
@@ -52,6 +56,8 @@ const recipientTrayClearBtn = document.getElementById("recipient-tray-clear");
 
 const STORAGE_KEY = "skovgard_admin_texting_key";
 const STORAGE_EMAIL = "skovgard_admin_texting_email";
+const EMAILS_STORAGE_KEY = "skovgard_admin_emails_key";
+const EMAILS_STORAGE_EMAIL = "skovgard_admin_emails_email";
 
 let selectedPhone = "";
 let singlePreviewState = null;
@@ -75,6 +81,19 @@ function setStatus(el, message, isError = false) {
   el.classList.toggle("is-error", isError);
 }
 
+function hasManualOptInHash() {
+  return window.location.hash === "#admin-texting-optin";
+}
+
+function startManualOptInFlow({ smooth = true, updateHash = true } = {}) {
+  if (!optInForm || shellEl?.hidden) return;
+  if (updateHash) window.history.replaceState(null, "", "#admin-texting-optin");
+  optInForm.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
+  window.setTimeout(() => {
+    document.getElementById("admin_optin_first_name")?.focus();
+  }, smooth ? 180 : 0);
+}
+
 function returnToAuth(message, { clearStoredKey = false } = {}) {
   shellEl.hidden = true;
   clearSinglePreview();
@@ -89,6 +108,7 @@ function returnToAuth(message, { clearStoredKey = false } = {}) {
   renderMessages([]);
   renderRecipientTray();
   updateSelectionUi();
+  setStatus(optInStatusEl, "");
   setStatus(messagesActionStatusEl, "");
   setStatus(conversationActionStatusEl, "");
   if (clearStoredKey) {
@@ -628,7 +648,10 @@ function renderContacts(items) {
             </label>
             <div class="contact-heading">
               <strong>${escapeHtml(contactDisplayName(item))}</strong>
-              ${badge(item.status || "unknown")}
+              <div class="contact-badges">
+                ${badge(item.status || "unknown")}
+                ${Number(item?.is_volunteer || 0) === 1 ? statusChip("Volunteer", "accepted") : ""}
+              </div>
             </div>
             <div class="contact-actions">
               <button
@@ -642,12 +665,49 @@ function renderContacts(items) {
           <div class="meta">${escapeHtml(item.phone_e164)}</div>
           <div class="meta">City: ${escapeHtml(normalizeFacetText(item?.city) || "\u2014")}</div>
           <div class="meta">${escapeHtml(districtText(item) || "HD / SD unavailable")}</div>
+          <div class="meta contact-volunteer-row">
+            <label class="checkbox-inline" for="contact-volunteer-${escapeHtml(item.phone_e164)}">
+              <input
+                id="contact-volunteer-${escapeHtml(item.phone_e164)}"
+                type="checkbox"
+                class="contact-volunteer-toggle"
+                data-phone="${escapeHtml(item.phone_e164)}"
+                ${Number(item?.is_volunteer || 0) === 1 ? "checked" : ""}
+              />
+              <span>Volunteer</span>
+            </label>
+          </div>
           <div class="meta">Keyword: ${escapeHtml(item.last_inbound_keyword || "none")}</div>
         </article>
       `).join("")
     : `<p class="empty">No contacts found.</p>`;
   updateSelectionUi();
   renderRecipientTray();
+}
+
+async function updateContactVolunteer(phone, isVolunteer) {
+  try {
+    const data = await api("/api/admin/texting/contacts/volunteer", {
+      method: "POST",
+      body: JSON.stringify({
+        phone,
+        is_volunteer: isVolunteer,
+      }),
+    });
+    await loadContacts();
+    const item = data?.item || knownContacts.get(phone);
+    setStatus(
+      contactsSelectionStatusEl,
+      `${contactDisplayName(item)} volunteer ${data?.isVolunteer ? "enabled" : "cleared"}.`
+    );
+  } catch (error) {
+    await loadContacts().catch(() => {});
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
+    setStatus(contactsSelectionStatusEl, error.message, true);
+  }
 }
 
 function renderSuppression(items) {
@@ -937,6 +997,9 @@ async function connectPortal() {
     shellEl.hidden = false;
     renderConversation({ phone: "", items: [] });
     const failures = await refreshAll({ includeStatus: false });
+    if (hasManualOptInHash()) {
+      startManualOptInFlow({ smooth: false, updateHash: false });
+    }
     if (!failures.length) {
       setStatus(authStatusEl, "Portal loaded.");
     }
@@ -1039,6 +1102,19 @@ connectBtn?.addEventListener("click", () => {
   connectPortal().catch((error) => setStatus(authStatusEl, error.message, true));
 });
 
+startOptInBtn?.addEventListener("click", () => {
+  startManualOptInFlow();
+});
+
+optInGoEmailsBtn?.addEventListener("click", () => {
+  const key = getAdminKey();
+  const actorEmail = getActorEmail();
+  if (key) localStorage.setItem(EMAILS_STORAGE_KEY, key);
+  if (actorEmail) localStorage.setItem(EMAILS_STORAGE_EMAIL, actorEmail);
+  else localStorage.removeItem(EMAILS_STORAGE_EMAIL);
+  window.location.assign("/admin/emails/");
+});
+
 clearBtn?.addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(STORAGE_EMAIL);
@@ -1057,6 +1133,7 @@ clearBtn?.addEventListener("click", () => {
   renderMessages([]);
   renderConversation({ phone: "", items: [] });
   updateSelectionUi();
+  setStatus(optInStatusEl, "");
   setStatus(messagesActionStatusEl, "");
   setStatus(conversationActionStatusEl, "");
   setStatus(authStatusEl, "Saved key cleared.");
@@ -1131,6 +1208,42 @@ sendForm?.addEventListener("submit", async (event) => {
       return;
     }
     setStatus(sendStatusEl, error.message, true);
+  }
+});
+
+optInForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const formData = new FormData(optInForm);
+  const payload = {
+    first_name: String(formData.get("admin_optin_first_name") || "").trim(),
+    last_name: String(formData.get("admin_optin_last_name") || "").trim(),
+    phone: String(formData.get("admin_optin_phone") || "").trim(),
+    email: String(formData.get("admin_optin_email") || "").trim(),
+    consent_email: formData.get("admin_optin_consent_email") === "on",
+    wy_voter: formData.get("admin_optin_wy_voter") === "on",
+    is_volunteer: formData.get("admin_optin_is_volunteer") === "on",
+  };
+
+  try {
+    const data = await api("/api/admin/texting/optins", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    optInForm.reset();
+    setStatus(
+      optInStatusEl,
+      data?.result === "updated"
+        ? `Updated opted-in contact for ${data.phoneE164}.`
+        : `Created opted-in contact for ${data.phoneE164}.`
+    );
+    selectedPhone = data?.phoneE164 || selectedPhone;
+    await refreshAll();
+  } catch (error) {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
+    setStatus(optInStatusEl, error.message, true);
   }
 });
 
@@ -1254,6 +1367,13 @@ contactsClearSelectionBtn?.addEventListener("click", () => {
 });
 
 contactsEl?.addEventListener("change", (event) => {
+  const volunteerToggle = event.target.closest(".contact-volunteer-toggle");
+  if (volunteerToggle) {
+    const phone = volunteerToggle.getAttribute("data-phone") || "";
+    if (!phone) return;
+    updateContactVolunteer(phone, volunteerToggle.checked);
+    return;
+  }
   const target = event.target.closest(".contact-select");
   if (!target) return;
   const phone = target.getAttribute("data-phone") || "";

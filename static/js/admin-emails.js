@@ -8,6 +8,7 @@ const keyInput = document.getElementById("admin_emails_key");
 const actorEmailInput = document.getElementById("admin_emails_actor_email");
 const connectBtn = document.getElementById("admin-emails-connect");
 const clearBtn = document.getElementById("admin-emails-clear");
+const startOptInBtn = document.getElementById("admin-emails-start-optin");
 const refreshBtn = document.getElementById("admin-emails-refresh");
 const composeForm = document.getElementById("admin-emails-compose");
 const composeStatusEl = document.getElementById("admin-emails-compose-status");
@@ -280,6 +281,10 @@ function contactDisplayName(item) {
   return `${item?.first_name || ""} ${item?.last_name || ""}`.trim() || item?.email || "Unnamed contact";
 }
 
+function hasVolunteerPhone(item) {
+  return Boolean(String(item?.phone_e164 || "").trim());
+}
+
 function trayRecipientEmails() {
   return [...recipientTray.keys()];
 }
@@ -470,7 +475,10 @@ function renderContacts(items) {
             </label>
             <div class="contact-heading">
               <strong>${escapeHtml(contactDisplayName(item))}</strong>
-              ${badge(item.email_status || "unknown")}
+              <div class="contact-badges">
+                ${badge(item.email_status || "unknown")}
+                ${Number(item?.is_volunteer || 0) === 1 ? statusChip("Volunteer", "accepted") : ""}
+              </div>
             </div>
             <div class="contact-actions">
               <button
@@ -482,6 +490,19 @@ function renderContacts(items) {
           </div>
           <div class="meta">${escapeHtml(item.email || "No email")}</div>
           <div class="meta">${escapeHtml(contactLocationText(item) || "City / HD / SD unavailable")}</div>
+          <div class="meta contact-volunteer-row">
+            <label class="checkbox-inline" for="email-contact-volunteer-${escapeHtml(item.email_norm)}">
+              <input
+                id="email-contact-volunteer-${escapeHtml(item.email_norm)}"
+                type="checkbox"
+                class="contact-volunteer-toggle"
+                data-phone="${escapeHtml(item.phone_e164 || "")}"
+                ${Number(item?.is_volunteer || 0) === 1 ? "checked" : ""}
+                ${hasVolunteerPhone(item) ? "" : "disabled"}
+              />
+              <span>${hasVolunteerPhone(item) ? "Volunteer" : "Volunteer requires SMS phone"}</span>
+            </label>
+          </div>
           <div class="meta">Source: ${escapeHtml(item.source || "unknown")}</div>
           <div class="meta">Consent version: ${escapeHtml(item.consent_version || "unknown")}</div>
         </article>
@@ -570,6 +591,32 @@ async function loadContacts() {
   contactsDataset = Array.isArray(data?.items) ? data.items : [];
   syncContactFacetOptions(contactsDataset);
   renderContacts(contactsDataset.filter(contactMatchesLocalFilters));
+}
+
+async function updateContactVolunteer(phone, isVolunteer) {
+  const previousItem = contactsDataset.find((item) => item?.phone_e164 === phone) || null;
+  try {
+    const data = await api("/api/admin/texting/contacts/volunteer", {
+      method: "POST",
+      body: JSON.stringify({
+        phone,
+        is_volunteer: isVolunteer,
+      }),
+    });
+    await loadContacts();
+    const nextItem = contactsDataset.find((item) => item?.phone_e164 === phone) || previousItem || data?.item || null;
+    setStatus(
+      contactsSelectionStatusEl,
+      `${contactDisplayName(nextItem)} volunteer ${data?.isVolunteer ? "enabled" : "cleared"}.`
+    );
+  } catch (error) {
+    await loadContacts().catch(() => {});
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
+    setStatus(contactsSelectionStatusEl, error.message, true);
+  }
 }
 
 async function loadSection(name, loader, onError, failures) {
@@ -808,6 +855,10 @@ connectBtn?.addEventListener("click", () => {
   connectPortal().catch((error) => setStatus(authStatusEl, error.message, true));
 });
 
+startOptInBtn?.addEventListener("click", () => {
+  window.location.assign("/admin/texting/#admin-texting-optin");
+});
+
 clearBtn?.addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(STORAGE_EMAIL);
@@ -899,6 +950,18 @@ contactsClearSelectionBtn?.addEventListener("click", () => {
 });
 
 contactsEl?.addEventListener("change", (event) => {
+  const volunteerToggle = event.target.closest(".contact-volunteer-toggle");
+  if (volunteerToggle) {
+    const phone = volunteerToggle.getAttribute("data-phone") || "";
+    if (!phone) {
+      volunteerToggle.checked = false;
+      setStatus(contactsSelectionStatusEl, "Volunteer can only be set for contacts with an SMS phone.", true);
+      return;
+    }
+    updateContactVolunteer(phone, volunteerToggle.checked);
+    return;
+  }
+
   const target = event.target.closest(".contact-select");
   if (!target) return;
   const email = target.getAttribute("data-email") || "";
