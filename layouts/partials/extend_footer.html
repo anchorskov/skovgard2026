@@ -26,3 +26,11 @@
 {{- if eq .Type "donate-router" }}
 <script src='{{ "js/donate/donate-router.js" | relURL }}' defer></script>
 {{- end }}
+{{- with .Params.extraJs }}
+  {{- range . }}
+    {{- $sourcePath := printf "static/js/%s" . }}
+    {{- $targetPath := printf "assets/page-js/%s" . }}
+    {{- $script := resources.FromString $targetPath (readFile $sourcePath) | fingerprint }}
+<script type="module" src="{{ $script.RelPermalink }}" integrity="{{ $script.Data.Integrity }}" crossorigin="anonymous"></script>
+  {{- end }}
+{{- end }}

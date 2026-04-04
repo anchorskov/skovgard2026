@@ -4,10 +4,12 @@ url: "/admin/emails/"
 draft: false
 description: "Admin-only email outreach review portal."
 summary: "Operational email outreach portal."
+extraCss:
+  - "admin-emails.css"
+extraJs:
+  - "admin-emails.js"
 ---
 <!-- content/admin/emails/index.html -->
-
-<link rel="stylesheet" href="/css/admin-emails.css">
 
 <p class="notice">
   This operational email page is for campaign admins only. Enter the admin key to review email-ready contacts and preview outreach from the production Worker.
@@ -39,7 +41,7 @@ summary: "Operational email outreach portal."
       <p class="help">Review email-eligible contacts, build a recipient tray, and preview campaign email outreach without sending yet.</p>
     </div>
     <div class="admin-emails-actions">
-      <button type="button" id="admin-emails-start-optin">Add opt-in</button>
+      <a href="/admin/texting/#admin-texting-optin" id="admin-emails-start-optin">Add opt-in</a>
       <button type="button" id="admin-emails-refresh">Refresh</button>
     </div>
   </section>
@@ -145,5 +147,3 @@ summary: "Operational email outreach portal."
     <div id="admin-emails-contacts" class="list-stack"></div>
   </section>
 </section>
-
-<script type="module" src="/js/admin-emails.js" defer></script>

@@ -4,10 +4,12 @@ url: "/admin/texting/"
 draft: false
 description: "Admin-only texting operations portal."
 summary: "Operational texting portal."
+extraCss:
+  - "admin-texting.css"
+extraJs:
+  - "admin-texting.js"
 ---
 <!-- content/admin/texting/index.html -->
-
-<link rel="stylesheet" href="/css/admin-texting.css">
 
 <p class="notice">
   This operational texting page is for campaign admins only. Enter the admin key to load messaging data and send texts from the production Worker.
@@ -259,5 +261,3 @@ summary: "Operational texting portal."
     </section>
   </section>
 </section>
-
-<script type="module" src="/js/admin-texting.js" defer></script>

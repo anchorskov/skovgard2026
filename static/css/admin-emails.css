@@ -52,6 +52,7 @@ main #admin-emails-start-optin {
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
+  text-decoration: none;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(37, 99, 235, 0.08);
   transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;

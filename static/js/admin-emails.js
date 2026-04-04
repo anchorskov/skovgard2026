@@ -8,7 +8,6 @@ const keyInput = document.getElementById("admin_emails_key");
 const actorEmailInput = document.getElementById("admin_emails_actor_email");
 const connectBtn = document.getElementById("admin-emails-connect");
 const clearBtn = document.getElementById("admin-emails-clear");
-const startOptInBtn = document.getElementById("admin-emails-start-optin");
 const refreshBtn = document.getElementById("admin-emails-refresh");
 const composeForm = document.getElementById("admin-emails-compose");
 const composeStatusEl = document.getElementById("admin-emails-compose-status");
@@ -853,10 +852,6 @@ authForm?.addEventListener("submit", (event) => {
 
 connectBtn?.addEventListener("click", () => {
   connectPortal().catch((error) => setStatus(authStatusEl, error.message, true));
-});
-
-startOptInBtn?.addEventListener("click", () => {
-  window.location.assign("/admin/texting/#admin-texting-optin");
 });
 
 clearBtn?.addEventListener("click", () => {
