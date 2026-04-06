@@ -766,6 +766,12 @@ function contactStatusWhereClause(filter, sinceHours = 24) {
         clause: "COALESCE(cs.status, 'unknown') = 'opted_in' AND datetime(cs.consented_at) >= datetime('now', ?1)",
         bind: [`-${sinceHours} hours`],
       };
+    case "volunteer":
+    case "volunteers":
+      return {
+        clause: `${CONTACT_IS_VOLUNTEER_SQL} = 1`,
+        bind: [],
+      };
     default:
       return { clause: "1=1", bind: [] };
   }
@@ -793,6 +799,14 @@ function normalizeRecipientPhones(value, maxRecipients = 250) {
   return normalized;
 }
 
+const CONTACT_IS_VOLUNTEER_SQL = `COALESCE((
+                                     SELECT so.is_volunteer
+                                       FROM sms_optins so
+                                      WHERE ${legacySmsOptinPhoneSql("so")} = c.phone_e164
+                                      ORDER BY datetime(so.created_at) DESC, so.id DESC
+                                      LIMIT 1
+                                   ), 0)`;
+
 const CONTACT_SELECT_SQL = `SELECT c.phone_e164,
                                    COALESCE(NULLIF(c.first_name, ''), NULLIF(cs.first_name, '')) AS first_name,
                                    COALESCE(NULLIF(c.last_name, ''), NULLIF(cs.last_name, '')) AS last_name,
@@ -807,13 +821,7 @@ const CONTACT_SELECT_SQL = `SELECT c.phone_e164,
                                    cs.city,
                                    cs.state_house_district,
                                    cs.state_senate_district,
-                                   COALESCE((
-                                     SELECT so.is_volunteer
-                                       FROM sms_optins so
-                                      WHERE ${legacySmsOptinPhoneSql("so")} = c.phone_e164
-                                      ORDER BY datetime(so.created_at) DESC, so.id DESC
-                                      LIMIT 1
-                                   ), 0) AS is_volunteer
+                                   ${CONTACT_IS_VOLUNTEER_SQL} AS is_volunteer
                               FROM contacts c
                               LEFT JOIN consent_status cs ON cs.phone_e164 = c.phone_e164`;
 
@@ -911,6 +919,12 @@ function emailContactStatusWhereClause(filter, sinceHours = 24) {
       return {
         clause: "email_status = 'emailable' AND datetime(COALESCE(updated_at, created_at)) >= datetime('now', ?1)",
         bind: [`-${sinceHours} hours`],
+      };
+    case "volunteer":
+    case "volunteers":
+      return {
+        clause: "COALESCE(is_volunteer, 0) = 1",
+        bind: [],
       };
     default:
       return { clause: "1=1", bind: [] };
@@ -1345,6 +1359,51 @@ async function clearMessagesBySearch(db, q = "") {
   return {
     inboundDeleted: Number(inboundResult?.meta?.changes || 0),
     outboundDeleted: Number(outboundResult?.meta?.changes || 0),
+  };
+}
+
+async function deleteTextingContactRecord(db, phone) {
+  const phoneE164 = normalizePhoneNumber(phone);
+  if (!phoneE164) {
+    return {
+      phoneE164: "",
+      contactsDeleted: 0,
+      consentStatusDeleted: 0,
+      smsOptinsDeleted: 0,
+      deletedCount: 0,
+    };
+  }
+
+  const contactResult = await db.prepare(
+    `DELETE FROM contacts
+      WHERE phone_e164 = ?1`
+  ).bind(phoneE164).run();
+
+  const consentResult = await db.prepare(
+    `DELETE FROM consent_status
+      WHERE phone_e164 = ?1`
+  ).bind(phoneE164).run();
+
+  let smsOptinsDeleted = 0;
+  const legacyPhone = normalizeLegacySmsOptinPhone(phoneE164);
+  if (legacyPhone) {
+    const smsResult = await db.prepare(
+      `DELETE FROM sms_optins
+        WHERE phone = ?1
+           OR ${legacySmsOptinPhoneSql("sms_optins")} = ?2`
+    ).bind(legacyPhone, phoneE164).run();
+    smsOptinsDeleted = Number(smsResult?.meta?.changes || 0);
+  }
+
+  const contactsDeleted = Number(contactResult?.meta?.changes || 0);
+  const consentStatusDeleted = Number(consentResult?.meta?.changes || 0);
+
+  return {
+    phoneE164,
+    contactsDeleted,
+    consentStatusDeleted,
+    smsOptinsDeleted,
+    deletedCount: contactsDeleted + consentStatusDeleted + smsOptinsDeleted,
   };
 }
 
@@ -2673,6 +2732,57 @@ export default {
           phoneE164,
           isVolunteer,
           item,
+        });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/texting/contacts/delete") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const phoneE164 = normalizePhoneNumber(body?.phone || "");
+
+        if (!phoneE164) {
+          return json(req, env, { error: "Valid phone required." }, 400);
+        }
+
+        const seed = await loadContactVolunteerSeed(env.DB, phoneE164);
+        if (!seed?.phone_e164) {
+          return json(req, env, { error: "Contact not found." }, 404);
+        }
+
+        const deleted = await deleteTextingContactRecord(env.DB, phoneE164);
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail,
+          actorUserId: actor.actorUserId,
+          action: "admin_delete_contact_record",
+          targetPhone: phoneE164,
+          detailsJson: JSON.stringify({
+            firstName: seed.first_name || null,
+            lastName: seed.last_name || null,
+            contactsDeleted: deleted.contactsDeleted,
+            consentStatusDeleted: deleted.consentStatusDeleted,
+            smsOptinsDeleted: deleted.smsOptinsDeleted,
+            deletedCount: deleted.deletedCount,
+            messageHistoryDeleted: false,
+            newsletterDeleted: false,
+            volunteersDeleted: false,
+          }),
+        });
+
+        return json(req, env, {
+          ok: true,
+          phoneE164,
+          contactsDeleted: deleted.contactsDeleted,
+          consentStatusDeleted: deleted.consentStatusDeleted,
+          smsOptinsDeleted: deleted.smsOptinsDeleted,
+          deletedCount: deleted.deletedCount,
+          messageHistoryDeleted: false,
+          newsletterDeleted: false,
+          volunteersDeleted: false,
         });
       }
 

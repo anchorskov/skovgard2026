@@ -1,6 +1,7 @@
+<!-- docs/db/README.md -->
 # Skovgard2026 Database Notes
 
-Last updated: 2026-03-31
+Last updated: 2026-04-05
 
 Purpose: document the current D1 data model, the operational source of truth for opt-ins and texting, and the local mirror/export paths used by the project.
 
@@ -8,31 +9,40 @@ Source of truth: Cloudflare D1 in production. Local SQLite files are mirrors for
 
 ## Environments
 
-- Master DB: `ballot_sources`
-  Bound as `DB` in [wrangler.toml](/home/anchor/projects/skovgard2026/worker/wrangler.toml).
-- Secondary DBs:
-  - `events_db`
-  - `events_db_preview`
+- Primary application DB: `ballot_sources`
+  - Bound as `DB` in [worker/wrangler.toml](/home/anchor/projects/skovgard2026/worker/wrangler.toml).
+  - Holds the site/app tables managed by this repo's Worker migrations.
+- Wyoming voter DB:
+  - `wy` for default and production.
+  - `wy_preview` for preview.
+  - Bound as `WY_DB` in [worker/wrangler.toml](/home/anchor/projects/skovgard2026/worker/wrangler.toml).
+  - Used for Wyoming voter matching and phone mirroring (`v_voter_targeting`, `voter_phones`, `v_best_phone`).
+- Important distinction:
+  - `wy_address_district_lookup` and `wy_district_coverage` live in `ballot_sources`, not `WY_DB`.
+  - `WY_DB` is separate and is not the canonical opt-in/texting store.
 
 ## Current opt-in and texting model
 
-As of 2026-03-31, the canonical record for SMS consent is `consent_status`.
+As of 2026-04-05, the canonical record for SMS consent is `consent_status`.
 
-- `consent_status` stores the live consent state for each phone number.
+- `consent_status` stores the live consent state and profile fields for each phone number.
 - `contacts` stores the texting-facing contact record keyed by `phone_e164`.
-- `sms_optins` is now legacy backup data, kept temporarily for rollback and verification. New web opt-ins and texting updates should not rely on it.
+- `newsletter_subscribers` stores email consent records used by admin email, newsletter export, and opted-in campaign email flows.
+- `sms_optins` is a legacy compatibility table. It is not canonical, but it is still retained for rollback, volunteer-flag compatibility, and older admin/texting helper queries.
 
 This is the important split:
 
 - Pulse and donate web forms write the canonical consent/profile record into `consent_status`.
 - The same flows keep `contacts` in sync for texting UI and send-path behavior.
+- Pulse and admin texting flows upsert `newsletter_subscribers` when email consent is present.
+- Pulse attempts to mirror the submitted phone into `WY_DB` when the required voter tables/views exist.
 - Telnyx inbound STOP/START/HELP updates `consent_status`.
 - Admin Pulse export reads from `consent_status`.
-- Pulse now captures street address, city, state, and ZIP in the canonical consent record so district lookup can be layered on later.
-- District assignment now uses a two-stage lookup:
-  - first the mirrored Wyoming address tables loaded from `grassrootsmvt`
-  - then the US Census geocoder as fallback when the local mirror does not resolve House/Senate districts
-- `sms_optins` remains in D1 only as historical backup while production verifies cleanly after the 2026-03-31 refactor.
+- Texting and admin-email audience queries still derive `is_volunteer` from the latest matching row in `sms_optins`.
+- District assignment now uses a three-stage lookup:
+  - exact/local lookup in `wy_address_district_lookup`
+  - US Census geocoder fallback
+  - `wy_district_coverage` only when city coverage is unambiguous
 
 ## Data flow overview
 
@@ -42,9 +52,10 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
    - Pulse signup posts to `/api/optin`.
    - Donate SMS opt-in posts to `/api/donate/sms-optin`.
    - Both flows write canonical SMS consent/profile data into `consent_status`.
-   - Pulse writes a full mailing address (`address1`, `address2`, `city`, `state`, `zip`, `country`) and keeps nullable district fields ready for later reverse geolocation.
-   - When Pulse includes an opted-in email address, the Worker also upserts `newsletter_subscribers`.
    - Both flows update `contacts`.
+   - Pulse writes a full mailing address (`address1`, `address2`, `city`, `state`, `zip`, `country`) and keeps district fields on `consent_status`.
+   - When email consent is present, the Worker upserts `newsletter_subscribers`.
+   - Pulse also attempts an async phone mirror into `WY_DB` (`voter_phones` and `v_best_phone`) after a unique voter match.
 
 2. Telnyx webhooks
    - Incoming STOP/START/HELP and delivery events arrive at the Worker.
@@ -52,21 +63,24 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
    - Current consent state is updated in `consent_status`.
 
 3. Admin tools
-   - `/admin/texting/` reads `contacts`, `consent_status`, `inbound_messages`, `outbound_messages`, `telnyx_events`, and `texting_audit_log`.
-   - `/admin/exports/` Pulse CSV now reads from `consent_status`.
+   - `/admin/texting/` and its API endpoints read `contacts`, `consent_status`, `inbound_messages`, `outbound_messages`, `telnyx_events`, and `texting_audit_log`.
+   - Admin texting compatibility paths still write/query `sms_optins` for volunteer tagging.
+   - `/admin/emails/` reads `newsletter_subscribers` plus `consent_status`, and send actions write `admin_email_audit_log`.
+   - `/admin/exports/` Pulse CSV reads from `consent_status`.
 
 4. Local mirrors and backups
    - `scripts/pulse-sync.sh` mirrors `consent_status` into local SQLite and emits Pulse CSV snapshots.
+   - `scripts/sync-wy-district-lookup.mjs` rebuilds the local district lookup tables inside `ballot_sources`.
    - Local mirror DBs and backup CSV/SQL files are not committed.
 
-## Master DB tables
+## `ballot_sources` tables
 
 ### Canonical opt-in and texting tables
 
 | Table | Purpose |
 |---|---|
 | `contacts` | Texting-facing contact identity keyed by `phone_e164`. Holds names plus texting helper fields like `tags` and `welcome_sent_at`. |
-| `consent_status` | Canonical SMS consent record keyed by `phone_e164`. Stores live status (`opted_in`, `opted_out`, `unknown`, etc.), consent timestamps, inbound keyword metadata, and Pulse/donate profile fields such as name, email, ZIP, full mailing address, voter flag, consent version, user agent, and IP hash. The `county` column remains for legacy data but is no longer collected by the Pulse form. |
+| `consent_status` | Canonical SMS consent record keyed by `phone_e164`. Stores live status (`opted_in`, `opted_out`, `unknown`, etc.), consent timestamps, inbound keyword metadata, and Pulse/donate/admin profile fields such as name, email, ZIP, full mailing address, voter flag, consent version, user agent, and IP hash. The `county` column remains for legacy data but is no longer collected by the Pulse form. |
 | `wy_address_district_lookup` | Exact Wyoming address-to-district lookup table derived from the normalized Grassroots voter-address dataset. This is the primary local mirror used to assign `state_house_district`, `state_senate_district`, and derived `county` during opt-in writes and backfills. |
 | `wy_district_coverage` | City/county-to-district coverage table mirrored from Grassroots for safe fallback when a city maps to exactly one House or Senate district. |
 | `inbound_messages` | Raw inbound SMS records from Telnyx webhooks. |
@@ -78,13 +92,14 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
 
 | Table | Purpose |
 |---|---|
-| `sms_optins` | Legacy backup of older SMS opt-in data. Historical only as of 2026-03-31; no longer the canonical source for current opt-in/export behavior. |
+| `sms_optins` | Legacy backup/compatibility opt-in table. It is no longer the canonical source for consent state or Pulse export behavior, but it is still written/read by compatibility paths and currently carries the volunteer flag used by audience queries. |
 
 ### Other operational tables in `ballot_sources`
 
 | Table | Purpose |
 |---|---|
-| `newsletter_subscribers` | Email consent records for the updates form and Pulse signups that explicitly request campaign emails. |
+| `newsletter_subscribers` | Email consent records used by updates signup, Pulse opt-ins with email consent, admin texting contact creation, admin email audience building, and newsletter CSV exports. |
+| `admin_email_audit_log` | Audit log for admin email preview/send activity. |
 | `volunteers` | Volunteer signups and tags. |
 | `rl_submissions` | Rate-limit ledger keyed by hashed IP/timestamps. |
 | `donors` | Donation contact records. |
@@ -94,6 +109,16 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
 | `ballot_sources` | Election-resource reference links/labels used by site and admin tooling. |
 | `d1_migrations` | Cloudflare D1 migration ledger. |
 | `_cf_KV` | Cloudflare-managed system table. |
+
+## `WY_DB` objects used by the Worker
+
+These objects are not managed by this repo's `worker/migrations/` files. The Worker only depends on them when the `WY_DB` binding is present and the objects exist.
+
+| Object | Purpose |
+|---|---|
+| `v_voter_targeting` | View used to attempt a unique Wyoming voter match from submitted name/address/city/zip data. |
+| `voter_phones` | Mirror table of observed phone numbers keyed by voter and normalized phone. |
+| `v_best_phone` | Current preferred/best phone per voter. |
 
 ## Consent field conventions
 
@@ -106,6 +131,7 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
   - `consent_status.consented_at` records affirmative opt-in timing.
   - `consent_status.revoked_at` records opt-out timing.
   - `consent_status.last_inbound_keyword` tracks STOP/START/HELP when present.
+  - `consent_status.source` / `source_detail` distinguish paths such as `web_form` + `pulse`, `web_form` + `donate`, `admin` + `texting_portal`, or `inbound_sms`.
 - Export-oriented profile fields:
   - `first_name`
   - `last_name`
@@ -127,10 +153,14 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
 
 - District placeholders:
   - `state_house_district` and `state_senate_district` live on `consent_status`.
-  - As of 2026-03-31, those fields are populated from `wy_address_district_lookup` when the mirrored Grassroots lookup tables have been loaded into D1.
-  - `county` is now derivable from the same lookup even though the Pulse form no longer asks the user to choose a county.
+  - Those fields are populated from `wy_address_district_lookup` when the mirrored Grassroots lookup tables have been loaded into `ballot_sources`.
+  - `county` is derivable from the same lookup even though the Pulse form no longer asks the user to choose a county.
 
 ## District lookup mirror
+
+- Target database in this repo:
+  - `ballot_sources` via the `DB` binding.
+  - The lookup tables are separate from `WY_DB`.
 
 - Source of truth for the mirror:
   - `/home/anchor/projects/grassrootsmvt/worker/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite`
@@ -173,7 +203,7 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
 ## Scripts and local mirrors
 
 - [pulse-sync.sh](/home/anchor/projects/skovgard2026/scripts/pulse-sync.sh)
-  - Exports `consent_status` from D1.
+  - Exports `consent_status` from `ballot_sources`.
   - Rebuilds the local Pulse mirror SQLite file.
   - Emits a Pulse CSV snapshot from canonical consent data.
 
@@ -185,8 +215,8 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
 
 ## Notes for future cleanup
 
-- `sms_optins` should remain available until production verification and rollback confidence are complete.
-- After that verification window, the remaining legacy references to `sms_optins` can be removed entirely.
+- `sms_optins` should remain available until volunteer-tag compatibility and rollback confidence are no longer needed.
+- After that, migrate `is_volunteer` off `sms_optins` and remove the remaining compatibility queries/writes.
 - `contacts` still exists separately because the texting portal and send-path logic already rely on it; this refactor moved canonical consent/profile data into `consent_status` without rewriting the whole texting model.
 
 ## Do not commit local data

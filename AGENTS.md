@@ -61,11 +61,64 @@ When creating audio/video files with `ffmpeg`, review `how_to_mp4.md` first. If 
 - Suggest cleanup of odd or stray files created in the project root when you notice them.
 - Keep edits scoped to the user request. Do not fold in unrelated cleanup or cross-project standardization unless asked.
 
+## CSV Import Workflow
+
+- For signup-sheet and opt-in CSV import work, follow [docs/UpsertOptinData.md](/home/anchor/projects/skovgard2026/docs/UpsertOptinData.md).
+- Never commit raw `.csv` signup data files to the git repo.
+- Standard working folder for raw or generated CSV import artifacts: `/home/anchor/projects/skovgard2026/docs/db/data/optin-import/`
+- That folder lives under `docs/db/data/`, which is already ignored by `.gitignore`.
+
 ## Local Testing Servers
 
 - When starting local servers for testing, treat them as temporary and close them when the test is complete.
 - Before finishing a task that used `wrangler dev` or another local server, verify that the listener has been shut down.
 - Do not leave background test servers running after validation unless the user explicitly asks to keep one open.
+
+## Hugo Asset Loading Rules
+
+### Never place `<link>` or `<script>` tags inside content files
+
+Hugo content files (`.html`, `.md` in `content/`) render inside `<main>`, not `<head>`. A `<link rel="stylesheet">` written in a content file ends up in `<body>`, which browsers accept but which causes:
+
+- CSS is applied out of cascade order — `forms.css` (loaded in `<head>`) wins over admin page styles even when the admin CSS has higher specificity.
+- Stale-cache bugs: if the content file loads a plain `/css/admin-foo.css` path, browsers cache aggressively and may serve an old version after a deploy.
+
+**Correct pattern for admin pages:** use a dedicated layout partial that conditionally emits the page-specific `<link>` and `<script>` inside `<head>`. Specifically:
+
+- Per-page CSS → emit from `layouts/partials/extend_head.html` gated on `.Page.File.Path` or page type.
+- Per-page JS → emit from `layouts/partials/extend_footer.html` (or a `foot.html` hook) for the same reason.
+- Use Hugo's `resources.Get | fingerprint` on admin CSS/JS so that each deploy emits a hash-stamped URL. This eliminates stale-cache mismatches after pushes.
+
+```html
+{{/* layouts/partials/extend_head.html — correct approach */}}
+{{- if eq .File.Path "admin/texting/index.html" }}
+{{- $css := resources.Get "css/admin-texting.css" | fingerprint }}
+<link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}" crossorigin="anonymous">
+{{- end }}
+```
+
+- Never add a bare `<link rel="stylesheet" href="/css/admin-*.css">` directly to a content file. If you need to attach CSS to a content page, move it to the appropriate layout partial.
+
+### Local dev server requires config merge
+
+Always start the local Hugo server with both configs merged, either via:
+
+```
+npm run dev        # uses package.json script
+./startDev.sh
+```
+
+Running plain `hugo server` without the development config merge can cause the PaperMod stylesheet fingerprint to not resolve, breaking the page chrome while admin CSS still loads (visible as a broken layout on localhost only). This is a local-only symptom — production uses the built `public/` output.
+
+### Cross-admin navigation: use `<a>`, not `<button>`
+
+When a control navigates to another admin page (e.g. "Go to Emails"), use a styled `<a href="...">` tag rather than a `<button>` with a JS `location.assign`. Reasons:
+
+- Avoids the button-reset+specificity fight described below.
+- Correct semantic element for navigation.
+- No JS event listener needed.
+
+Style it to match the secondary button variant using the same ID-targeted rule pattern described in the Button CSS Rules section.
 
 ## Button CSS Rules (admin pages)
 

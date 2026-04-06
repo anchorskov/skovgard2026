@@ -23,6 +23,9 @@ TEST_EMAIL_NEWSLETTER_OVERRIDE="$(make_test_email newsletter-override)"
 TEST_PHONE_READY="+1307$(printf '%07d' "$((5100000 + ($$ % 1000)))")"
 TEST_PHONE_NO_CONSENT="+1307$(printf '%07d' "$((5200000 + ($$ % 1000)))")"
 TEST_PHONE_NEWSLETTER_OVERRIDE="+1307$(printf '%07d' "$((5300000 + ($$ % 1000)))")"
+TEST_PHONE_READY_DIGITS="${TEST_PHONE_READY#+}"
+TEST_PHONE_NO_CONSENT_DIGITS="${TEST_PHONE_NO_CONSENT#+}"
+TEST_PHONE_NEWSLETTER_OVERRIDE_DIGITS="${TEST_PHONE_NEWSLETTER_OVERRIDE#+}"
 TEST_CITY="SmokeCity$$"
 TEST_HD="$((700 + ($$ % 200)))"
 TEST_SD="$((300 + ($$ % 200)))"
@@ -76,6 +79,12 @@ DELETE FROM newsletter_subscribers
    LOWER(TRIM('${TEST_EMAIL_INACTIVE}')),
    LOWER(TRIM('${TEST_EMAIL_NO_CONSENT}')),
    LOWER(TRIM('${TEST_EMAIL_NEWSLETTER_OVERRIDE}'))
+ );
+DELETE FROM sms_optins
+ WHERE phone IN (
+   '${TEST_PHONE_READY_DIGITS}',
+   '${TEST_PHONE_NO_CONSENT_DIGITS}',
+   '${TEST_PHONE_NEWSLETTER_OVERRIDE_DIGITS}'
  );
 SQL
 }
@@ -221,6 +230,47 @@ VALUES
     datetime('now'),
     datetime('now')
   );
+
+INSERT INTO sms_optins (
+  name,
+  phone,
+  consent,
+  consent_version,
+  source,
+  created_at,
+  email,
+  consent_email,
+  first_name,
+  last_name,
+  is_volunteer
+)
+VALUES
+  (
+    'Email Ready',
+    '${TEST_PHONE_READY_DIGITS}',
+    1,
+    'email-admin-smoke-v1',
+    'admin_email_smoke',
+    datetime('now'),
+    '${TEST_EMAIL_READY}',
+    1,
+    'Email',
+    'Ready',
+    1
+  ),
+  (
+    'Email NoConsent',
+    '${TEST_PHONE_NO_CONSENT_DIGITS}',
+    1,
+    'email-admin-smoke-v1',
+    'admin_email_smoke',
+    datetime('now'),
+    '${TEST_EMAIL_NO_CONSENT}',
+    0,
+    'Email',
+    'NoConsent',
+    1
+  );
 SQL
 }
 
@@ -268,9 +318,13 @@ fi
 
 curl -s -H "Authorization: Bearer $ADMIN_KEY" "$API_BASE/api/admin/emails/status" >"$TMP_DIR/status.json"
 curl -s -H "Authorization: Bearer $ADMIN_KEY" "$API_BASE/api/admin/emails/contacts?filter=all&limit=10" >"$TMP_DIR/contacts.json"
+curl -s -H "Authorization: Bearer $ADMIN_KEY" "$API_BASE/api/admin/emails/contacts?filter=volunteers&city=$TEST_CITY&hd=$TEST_HD&sd=$TEST_SD&limit=10" >"$TMP_DIR/volunteer-contacts.json"
 curl -s -H "Authorization: Bearer $ADMIN_KEY" -H "content-type: application/json" \
   -d "{\"filter\":\"all\",\"limit\":10,\"city\":\"$TEST_CITY\",\"hd\":\"$TEST_HD\",\"sd\":\"$TEST_SD\",\"subject\":\"Smoke Test Subject\",\"body\":\"Smoke test body for admin email preview.\"}" \
   "$API_BASE/api/admin/emails/preview" >"$TMP_DIR/filter-preview.json"
+curl -s -H "Authorization: Bearer $ADMIN_KEY" -H "content-type: application/json" \
+  -d "{\"filter\":\"volunteers\",\"limit\":10,\"city\":\"$TEST_CITY\",\"hd\":\"$TEST_HD\",\"sd\":\"$TEST_SD\",\"subject\":\"Volunteer Smoke Test\",\"body\":\"Volunteer-only preview.\"}" \
+  "$API_BASE/api/admin/emails/preview" >"$TMP_DIR/volunteer-preview.json"
 curl -s -H "Authorization: Bearer $ADMIN_KEY" -H "content-type: application/json" \
   -d "{\"subject\":\"Explicit Tray Test\",\"body\":\"Testing the explicit recipient tray preview path.\",\"recipients\":[\"$TEST_EMAIL_READY\",\"$TEST_EMAIL_INACTIVE\",\"$TEST_EMAIL_NO_CONSENT\",\"$TEST_EMAIL_NEWSLETTER_OVERRIDE\"]}" \
   "$API_BASE/api/admin/emails/preview" >"$TMP_DIR/explicit-preview.json"
@@ -280,13 +334,15 @@ curl -s -o "$TMP_DIR/send.json" -w "%{http_code}" \
   -d '{"subject":"Disabled","body":"Disabled"}' \
   "$API_BASE/api/admin/emails/send" >"$TMP_DIR/send.status"
 
-node - "$TMP_DIR/status.json" "$TMP_DIR/contacts.json" "$TMP_DIR/filter-preview.json" "$TMP_DIR/explicit-preview.json" "$TMP_DIR/send.json" "$TMP_DIR/send.status" "$TEST_EMAIL_READY" "$TEST_EMAIL_INACTIVE" "$TEST_EMAIL_NO_CONSENT" "$TEST_EMAIL_NEWSLETTER_OVERRIDE" <<'NODE'
+node - "$TMP_DIR/status.json" "$TMP_DIR/contacts.json" "$TMP_DIR/volunteer-contacts.json" "$TMP_DIR/filter-preview.json" "$TMP_DIR/volunteer-preview.json" "$TMP_DIR/explicit-preview.json" "$TMP_DIR/send.json" "$TMP_DIR/send.status" "$TEST_EMAIL_READY" "$TEST_EMAIL_INACTIVE" "$TEST_EMAIL_NO_CONSENT" "$TEST_EMAIL_NEWSLETTER_OVERRIDE" <<'NODE'
 const fs = require("node:fs");
 
 const [
   statusPath,
   contactsPath,
+  volunteerContactsPath,
   filterPreviewPath,
+  volunteerPreviewPath,
   explicitPreviewPath,
   sendPath,
   sendStatusPath,
@@ -298,7 +354,9 @@ const [
 
 const status = JSON.parse(fs.readFileSync(statusPath, "utf8"));
 const contacts = JSON.parse(fs.readFileSync(contactsPath, "utf8"));
+const volunteerContacts = JSON.parse(fs.readFileSync(volunteerContactsPath, "utf8"));
 const filterPreview = JSON.parse(fs.readFileSync(filterPreviewPath, "utf8"));
+const volunteerPreview = JSON.parse(fs.readFileSync(volunteerPreviewPath, "utf8"));
 const explicitPreview = JSON.parse(fs.readFileSync(explicitPreviewPath, "utf8"));
 const send = JSON.parse(fs.readFileSync(sendPath, "utf8"));
 const sendStatus = Number(fs.readFileSync(sendStatusPath, "utf8"));
@@ -336,6 +394,19 @@ if (
   fail(`Unexpected contacts payload: ${JSON.stringify(contacts)}`);
 }
 
+const volunteerItems = Array.isArray(volunteerContacts.items) ? volunteerContacts.items : [];
+const volunteerEmails = volunteerItems.map((item) => item.email).sort();
+if (
+  volunteerEmails.length === 2 &&
+  volunteerEmails.includes(readyEmail) &&
+  volunteerEmails.includes(noConsentEmail) &&
+  volunteerItems.every((item) => Number(item?.is_volunteer || 0) === 1)
+) {
+  pass("volunteer contacts filter returns volunteer-tagged email records only");
+} else {
+  fail(`Unexpected volunteer contacts payload: ${JSON.stringify(volunteerContacts)}`);
+}
+
 if (
   filterPreview.mode === "filter" &&
   Number(filterPreview.audienceCount) === 3 &&
@@ -348,6 +419,20 @@ if (
   pass("filter preview keeps both emailable recipients when newsletter consent overrides a contact record");
 } else {
   fail(`Unexpected filter preview payload: ${JSON.stringify(filterPreview)}`);
+}
+
+if (
+  volunteerPreview.mode === "filter" &&
+  Number(volunteerPreview.audienceCount) === 2 &&
+  Number(volunteerPreview.count) === 1 &&
+  Number(volunteerPreview.skippedCount) >= 1 &&
+  Array.isArray(volunteerPreview.previewRecipients) &&
+  volunteerPreview.previewRecipients.length === 1 &&
+  volunteerPreview.previewRecipients[0]?.email === readyEmail
+) {
+  pass("volunteer email preview keeps volunteer audience filtering while preserving emailable safeguards");
+} else {
+  fail(`Unexpected volunteer preview payload: ${JSON.stringify(volunteerPreview)}`);
 }
 
 if (

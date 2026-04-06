@@ -660,6 +660,7 @@ function renderContacts(items) {
                 data-phone="${escapeHtml(item.phone_e164)}"
               >${recipientTray.has(item.phone_e164) ? "Remove from tray" : "Add to tray"}</button>
               <button type="button" class="secondary contact-thread" data-phone="${escapeHtml(item.phone_e164)}">View thread</button>
+              <button type="button" class="danger-action contact-delete" data-phone="${escapeHtml(item.phone_e164)}">Delete record</button>
             </div>
           </div>
           <div class="meta">${escapeHtml(item.phone_e164)}</div>
@@ -702,6 +703,67 @@ async function updateContactVolunteer(phone, isVolunteer) {
     );
   } catch (error) {
     await loadContacts().catch(() => {});
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
+    setStatus(contactsSelectionStatusEl, error.message, true);
+  }
+}
+
+async function deleteContactRecord(phone) {
+  const phoneE164 = String(phone || "").trim();
+  if (!phoneE164) {
+    setStatus(contactsSelectionStatusEl, "Valid phone required.", true);
+    return;
+  }
+
+  const item = knownContacts.get(phoneE164) || visibleContacts.find((entry) => entry?.phone_e164 === phoneE164) || null;
+  const label = item ? `${contactDisplayName(item)} (${phoneE164})` : phoneE164;
+  const confirmation = window.prompt(
+    `Type DELETE to remove the texting record for ${label}. This deletes rows from contacts, consent_status, and sms_optins only. It does not delete newsletter, volunteer intake, or message history.`
+  );
+  if (confirmation !== "DELETE") {
+    setStatus(contactsSelectionStatusEl, "Deletion cancelled. Type DELETE exactly to confirm.", true);
+    return;
+  }
+
+  try {
+    const data = await api("/api/admin/texting/contacts/delete", {
+      method: "POST",
+      body: JSON.stringify({ phone: phoneE164 }),
+    });
+
+    selectedContactPhones.delete(phoneE164);
+    recipientTray.delete(phoneE164);
+    knownContacts.delete(phoneE164);
+
+    if (selectedPhone === phoneE164) {
+      selectedPhone = "";
+      renderConversation({ phone: "", items: [] });
+      setStatus(
+        conversationActionStatusEl,
+        "Deleted the contact record. Message history remains available in the Messages section.",
+        false
+      );
+    }
+
+    renderRecipientTray();
+    invalidateBroadcastPreview("Broadcast preview cleared because a contact record was deleted.");
+    await Promise.all([
+      loadContacts(),
+      loadSuppression(),
+    ]);
+
+    setStatus(
+      contactsSelectionStatusEl,
+      `${label} deleted from contacts (${Number(data?.contactsDeleted || 0)}), consent_status (${Number(data?.consentStatusDeleted || 0)}), and sms_optins (${Number(data?.smsOptinsDeleted || 0)}).`
+    );
+  } catch (error) {
+    await Promise.allSettled([
+      loadContacts(),
+      loadSuppression(),
+    ]);
     if (shouldReturnToAuth(error)) {
       returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
       return;
@@ -1018,6 +1080,34 @@ function updatePreview() {
   return ready;
 }
 
+function selectHasOption(select, value) {
+  if (!select) return false;
+  return Array.from(select.options || []).some((option) => option?.value === value);
+}
+
+function syncTextingAudienceFilter(value, source = "contacts") {
+  const normalized = String(value || "").trim();
+  if (!normalized) return { contactsChanged: false, broadcastChanged: false };
+
+  let contactsChanged = false;
+  let broadcastChanged = false;
+
+  if (source === "broadcast") {
+    if (contactsFilterInput && selectHasOption(contactsFilterInput, normalized) && contactsFilterInput.value !== normalized) {
+      contactsFilterInput.value = normalized;
+      contactsChanged = true;
+    }
+    return { contactsChanged, broadcastChanged };
+  }
+
+  if (broadcastFilterSelect && selectHasOption(broadcastFilterSelect, normalized) && broadcastFilterSelect.value !== normalized) {
+    broadcastFilterSelect.value = normalized;
+    broadcastChanged = true;
+  }
+
+  return { contactsChanged, broadcastChanged };
+}
+
 function renderBroadcastPreview(data) {
   const items = data?.previewRecipients || [];
   broadcastPreviewState = {
@@ -1315,6 +1405,11 @@ contactsSearchInput?.addEventListener("change", () => {
 });
 
 contactsFilterInput?.addEventListener("change", () => {
+  const { broadcastChanged } = syncTextingAudienceFilter(contactsFilterInput.value, "contacts");
+  if (broadcastChanged && broadcastPreviewState) {
+    clearBroadcastPreview();
+    setStatus(broadcastStatusEl, "Broadcast preview cleared because the audience or message changed.", false);
+  }
   loadContacts().catch((error) => setStatus(authStatusEl, error.message, true));
 });
 
@@ -1341,9 +1436,12 @@ contactsFilterInput?.addEventListener("change", () => {
 });
 
 broadcastFilterSelect?.addEventListener("change", () => {
-  if (!broadcastPreviewState) return;
-  clearBroadcastPreview();
-  setStatus(broadcastStatusEl, "Broadcast preview cleared because the audience or message changed.", false);
+  syncTextingAudienceFilter(broadcastFilterSelect.value, "broadcast");
+  if (broadcastPreviewState) {
+    clearBroadcastPreview();
+    setStatus(broadcastStatusEl, "Broadcast preview cleared because the audience or message changed.", false);
+  }
+  loadContacts().catch((error) => setStatus(authStatusEl, error.message, true));
 });
 
 contactsSelectAllInput?.addEventListener("change", (event) => {
@@ -1401,6 +1499,13 @@ contactsEl?.addEventListener("click", (event) => {
     renderContacts(visibleContacts);
     invalidateBroadcastPreview("Broadcast preview cleared because the recipient tray changed.");
     setStatus(contactsSelectionStatusEl, `Added ${contactDisplayName(item)} to the recipient tray.`);
+    return;
+  }
+  const deleteButton = event.target.closest(".contact-delete");
+  if (deleteButton) {
+    const phone = deleteButton.getAttribute("data-phone") || "";
+    if (!phone) return;
+    deleteContactRecord(phone);
     return;
   }
   const threadButton = event.target.closest(".contact-thread");

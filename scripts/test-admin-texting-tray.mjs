@@ -37,6 +37,8 @@ const TEST_SD = `SD${(process.pid + 1) % 1000}`;
 const TEST_SD_ALT = `SD${(process.pid + 2) % 1000}`;
 const ELIGIBLE_PHONE = `+1307${String(3000000 + (process.pid % 1000)).padStart(7, "0")}`;
 const BLOCKED_PHONE = `+1307${String(4000000 + (process.pid % 1000)).padStart(7, "0")}`;
+const ELIGIBLE_PHONE_DIGITS = ELIGIBLE_PHONE.replace(/\D/g, "");
+const BLOCKED_PHONE_DIGITS = BLOCKED_PHONE.replace(/\D/g, "");
 
 let wranglerProcess = null;
 let failures = 0;
@@ -101,11 +103,22 @@ function sqlString(value) {
 }
 
 function localDbPath() {
-  const entry = readdirSync(LOCAL_D1_DIR).find((name) => name.endsWith(".sqlite"));
-  if (!entry) {
-    throw new Error(`No local D1 sqlite database found in ${LOCAL_D1_DIR}`);
+  const entries = readdirSync(LOCAL_D1_DIR).filter((name) => name.endsWith(".sqlite")).sort();
+  for (const entry of entries) {
+    const candidate = path.join(LOCAL_D1_DIR, entry);
+    const result = spawnSync(
+      "sqlite3",
+      [candidate, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('contacts','consent_status','sms_optins');"],
+      {
+        cwd: ROOT_DIR,
+        encoding: "utf8",
+      }
+    );
+    if (result.status === 0 && Number(String(result.stdout || "").trim()) >= 3) {
+      return candidate;
+    }
   }
-  return path.join(LOCAL_D1_DIR, entry);
+  throw new Error(`No local D1 sqlite database with texting tables found in ${LOCAL_D1_DIR}`);
 }
 
 function runSqlite(sql) {
@@ -116,6 +129,17 @@ function runSqlite(sql) {
   if (result.status !== 0) {
     throw new Error(`sqlite3 failed:\n${result.stderr || result.stdout}`);
   }
+}
+
+function querySqliteValue(sql) {
+  const result = spawnSync("sqlite3", [localDbPath(), sql], {
+    cwd: ROOT_DIR,
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    throw new Error(`sqlite3 query failed:\n${result.stderr || result.stdout}`);
+  }
+  return String(result.stdout || "").trim();
 }
 
 async function fetchJson(url, options = {}) {
@@ -146,6 +170,7 @@ function cleanupSql() {
   return `
     DELETE FROM consent_status WHERE phone_e164 IN ('${sqlString(ELIGIBLE_PHONE)}', '${sqlString(BLOCKED_PHONE)}');
     DELETE FROM contacts WHERE phone_e164 IN ('${sqlString(ELIGIBLE_PHONE)}', '${sqlString(BLOCKED_PHONE)}');
+    DELETE FROM sms_optins WHERE phone IN ('${sqlString(ELIGIBLE_PHONE_DIGITS)}', '${sqlString(BLOCKED_PHONE_DIGITS)}');
   `;
 }
 
@@ -209,6 +234,30 @@ function seedSql() {
         '${sqlString(TEST_SD_ALT)}',
         datetime('now'),
         datetime('now')
+      );
+
+    INSERT INTO sms_optins (
+      name,
+      phone,
+      consent,
+      consent_version,
+      source,
+      created_at,
+      first_name,
+      last_name,
+      is_volunteer
+    )
+    VALUES
+      (
+        'Tray Eligible',
+        '${sqlString(ELIGIBLE_PHONE_DIGITS)}',
+        1,
+        'tray-smoke-volunteer',
+        'admin_test',
+        datetime('now'),
+        'Tray',
+        'Eligible',
+        1
       );
   `;
 }
@@ -323,6 +372,63 @@ async function testSdFilter(adminKey) {
   }
 }
 
+async function testVolunteerFilter(adminKey) {
+  const url = `${API_BASE}/api/admin/texting/contacts?key=${encodeURIComponent(adminKey)}&filter=volunteers&city=${encodeURIComponent(TEST_CITY)}&hd=${encodeURIComponent(TEST_HD)}&limit=10`;
+  const { response, data, text } = await fetchJson(url);
+  if (!response.ok) {
+    fail(`Volunteer filter request failed (${response.status}): ${text}`);
+    return;
+  }
+
+  const items = Array.isArray(data?.items) ? data.items : [];
+  if (
+    items.length === 1 &&
+    items[0]?.phone_e164 === ELIGIBLE_PHONE &&
+    Number(items[0]?.is_volunteer || 0) === 1
+  ) {
+    pass("volunteer filter isolates volunteer contacts in the texting tray list");
+  } else {
+    fail(`Unexpected volunteer filter result: ${JSON.stringify(items)}`);
+  }
+}
+
+async function testVolunteerAudiencePreview(adminKey) {
+  const { response, data, text } = await fetchJson(
+    `${API_BASE}/api/admin/texting/send-batch?key=${encodeURIComponent(adminKey)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        dry_run: true,
+        filter: "volunteers",
+        city: TEST_CITY,
+        hd: TEST_HD,
+        text: "Volunteer preview smoke test",
+        limit: 10,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    fail(`Volunteer audience preview failed (${response.status}): ${text}`);
+    return;
+  }
+
+  const previewPhone = data?.previewRecipients?.[0]?.phone_e164 || "";
+  if (
+    data?.mode === "filter" &&
+    data?.audienceCount === 1 &&
+    data?.count === 1 &&
+    data?.skippedCount === 0 &&
+    previewPhone === ELIGIBLE_PHONE &&
+    data?.approval?.token
+  ) {
+    pass("volunteer audience preview sends only to opted-in volunteer contacts");
+  } else {
+    fail(`Unexpected volunteer audience preview result: ${JSON.stringify(data)}`);
+  }
+}
+
 async function testExplicitRecipientPreview(adminKey) {
   const { response, data, text } = await fetchJson(
     `${API_BASE}/api/admin/texting/send-batch?key=${encodeURIComponent(adminKey)}`,
@@ -357,6 +463,54 @@ async function testExplicitRecipientPreview(adminKey) {
   }
 }
 
+async function testDeleteContactRecord(adminKey) {
+  const { response, data, text } = await fetchJson(
+    `${API_BASE}/api/admin/texting/contacts/delete?key=${encodeURIComponent(adminKey)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ phone: ELIGIBLE_PHONE }),
+    }
+  );
+
+  if (!response.ok) {
+    fail(`Delete contact request failed (${response.status}): ${text}`);
+    return;
+  }
+
+  const postDeleteList = await fetchJson(
+    `${API_BASE}/api/admin/texting/contacts?key=${encodeURIComponent(adminKey)}&filter=all&city=${encodeURIComponent(TEST_CITY)}&hd=${encodeURIComponent(TEST_HD)}&limit=10`
+  );
+  if (!postDeleteList.response.ok) {
+    fail(`Post-delete contacts request failed (${postDeleteList.response.status}): ${postDeleteList.text}`);
+    return;
+  }
+
+  const remainingPhones = Array.isArray(postDeleteList.data?.items)
+    ? postDeleteList.data.items.map((item) => item.phone_e164)
+    : [];
+  const contactsCount = Number(querySqliteValue(`SELECT COUNT(*) FROM contacts WHERE phone_e164 = '${sqlString(ELIGIBLE_PHONE)}';`));
+  const consentCount = Number(querySqliteValue(`SELECT COUNT(*) FROM consent_status WHERE phone_e164 = '${sqlString(ELIGIBLE_PHONE)}';`));
+  const legacyCount = Number(querySqliteValue(`SELECT COUNT(*) FROM sms_optins WHERE phone = '${sqlString(ELIGIBLE_PHONE_DIGITS)}';`));
+
+  if (
+    Number(data?.contactsDeleted || 0) === 1 &&
+    Number(data?.consentStatusDeleted || 0) === 1 &&
+    Number(data?.smsOptinsDeleted || 0) === 1 &&
+    !remainingPhones.includes(ELIGIBLE_PHONE) &&
+    contactsCount === 0 &&
+    consentCount === 0 &&
+    legacyCount === 0 &&
+    data?.messageHistoryDeleted === false &&
+    data?.newsletterDeleted === false &&
+    data?.volunteersDeleted === false
+  ) {
+    pass("contact delete removed the texting-side record and left non-texting stores untouched");
+  } else {
+    fail(`Unexpected delete contact result: ${JSON.stringify({ data, remainingPhones, contactsCount, consentCount, legacyCount })}`);
+  }
+}
+
 async function main() {
   const adminKey = loadDevVars().ADMIN_EXPORT_KEY;
   if (!adminKey) {
@@ -370,7 +524,10 @@ async function main() {
   try {
     await testCityAndHdFilter(adminKey);
     await testSdFilter(adminKey);
+    await testVolunteerFilter(adminKey);
+    await testVolunteerAudiencePreview(adminKey);
     await testExplicitRecipientPreview(adminKey);
+    await testDeleteContactRecord(adminKey);
   } finally {
     await stopWrangler();
     cleanupLocalData();
