@@ -7,7 +7,7 @@ workers_dev = true
 # ---------- Shared defaults ----------
 [vars]
 # Browsers allowed to call our API
-CORS_ORIGINS = "http://localhost:1313,https://skovgard2026.org,https://skovgard2026.pages.dev"
+CORS_ORIGINS = "http://localhost:1313,http://localhost:4321,https://skovgard2026.org,https://skovgard2026.pages.dev"
 # Hostnames accepted from Turnstile Siteverify
 TS_ALLOWED_HOSTNAMES = "localhost,127.0.0.1,skovgard2026.org,www.skovgard2026.org,skovgard2026.pages.dev"
 # Public media CDN for podcasts/audio assets

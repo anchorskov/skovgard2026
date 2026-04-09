@@ -1,0 +1,161 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+
+const TURNSTILE_KEY = '0x4AAAAAACMCTeRx-deO9TQh';
+---
+<Base
+  title="Sign Up for Text Updates — Skovgard 2026"
+  description="Opt in to receive official campaign text updates from Skovgard for Senate. Wyoming voters only."
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4">
+    <div class="max-w-xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">SMS Opt-In</p>
+      <h1 class="text-4xl font-serif font-bold text-wy-navy mb-3">Sign Up for Text Updates</h1>
+      <p class="text-gray-600 mb-8">
+        Not a volunteer form. This page is only for opting in to receive campaign text messages.
+        Open to all Wyoming voters: Republican, Democrat, and undecided.
+      </p>
+
+      <noscript>
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-amber-800 text-sm">
+          JavaScript is required to submit this form securely. Please email
+          <a href="mailto:skovgard2026@gmail.com?subject=Pulse%20Opt-in" class="underline">skovgard2026@gmail.com</a>
+          with the subject "Pulse Opt-in" and include your name, street address, ZIP, and mobile number.
+        </div>
+      </noscript>
+
+      <form id="optin-form" class="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 space-y-5" method="post" novalidate>
+
+        <!-- Name row -->
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">First name <span class="text-red-500">*</span></label>
+            <input id="first_name" name="first_name" type="text" autocomplete="given-name" required
+              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+          </div>
+          <div>
+            <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Last name <span class="text-red-500">*</span></label>
+            <input id="last_name" name="last_name" type="text" autocomplete="family-name" required
+              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div>
+          <label for="address1" class="block text-sm font-medium text-gray-700 mb-1">Street address <span class="text-red-500">*</span></label>
+          <input id="address1" name="address1" type="text" autocomplete="address-line1" required
+            class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+        </div>
+        <div>
+          <label for="address2" class="block text-sm font-medium text-gray-700 mb-1">Address line 2 <span class="text-gray-400 font-normal">(optional)</span></label>
+          <input id="address2" name="address2" type="text" autocomplete="address-line2"
+            class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+        </div>
+
+        <!-- City / State row -->
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
+            <input id="city" name="city" type="text" autocomplete="address-level2" required
+              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+          </div>
+          <div>
+            <label for="state" class="block text-sm font-medium text-gray-700 mb-1">State <span class="text-red-500">*</span></label>
+            <input id="state" name="state" type="text" value="WY" maxlength="2" autocomplete="address-level1" required
+              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none uppercase" />
+          </div>
+        </div>
+
+        <!-- ZIP / Phone row -->
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="zip" class="block text-sm font-medium text-gray-700 mb-1">ZIP code (WY) <span class="text-red-500">*</span></label>
+            <input id="zip" name="zip" type="text" inputmode="numeric" pattern="[0-9]{5}" placeholder="82001" required
+              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+          </div>
+          <div>
+            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Mobile number (US) <span class="text-red-500">*</span></label>
+            <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="307-555-1234" required
+              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+            <p class="text-xs text-gray-400 mt-1">We format as +1XXXXXXXXXX. Standard rates may apply.</p>
+          </div>
+        </div>
+
+        <!-- Required consent checkboxes -->
+        <div class="space-y-3 pt-2">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" id="wy_voter" name="wy_voter" required class="mt-1 accent-wy-gold w-4 h-4 shrink-0" />
+            <span class="text-sm text-gray-700">I am a registered voter in the state of Wyoming.</span>
+          </label>
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" id="consent_sms" name="consent_sms" required class="mt-1 accent-wy-gold w-4 h-4 shrink-0" />
+            <span class="text-sm text-gray-700">
+              I agree to receive recurring campaign and marketing texts from Skovgard for Senate.
+              Consent is not a condition of purchase. Donations may be solicited. Message frequency varies.
+              Reply STOP to cancel, HELP for help. Message and data rates may apply.
+              <a href="/privacy/" class="text-wy-gold underline">Privacy Policy</a>
+            </span>
+          </label>
+        </div>
+
+        <hr class="border-gray-100" />
+
+        <!-- Optional email -->
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-gray-400 font-normal">(optional)</span></label>
+          <input id="email" name="email" type="email" inputmode="email" placeholder="you@example.com"
+            class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+          <p class="text-xs text-gray-400 mt-1">If you provide an email, please also confirm the newsletter opt-in below.</p>
+        </div>
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" id="consent_email" name="consent_email" class="mt-1 accent-wy-gold w-4 h-4 shrink-0" />
+          <span class="text-sm text-gray-700">Yes, email me the campaign newsletter and updates.</span>
+        </label>
+
+        <!-- Honeypot (hidden by JS at runtime) -->
+        <div class="hp-field" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;pointer-events:none;">
+          <label for="website">Website</label>
+          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+        </div>
+        <!-- Time trap -->
+        <input type="hidden" id="ts_start" name="ts_start" value="" />
+
+        <!-- Turnstile slot (explicit render) -->
+        <div id="ts-slot" aria-live="polite"></div>
+
+        <button type="submit" id="optin-submit"
+          class="w-full bg-wy-gold text-wy-navy font-bold py-4 rounded-lg text-lg hover:bg-amber-400 transition-colors">
+          Click to Confirm Opt-In
+        </button>
+
+        <p class="text-xs text-center text-gray-400">
+          Not a Wyoming voter?
+          <a href="/donate/" class="text-wy-gold hover:underline">Donate here</a> or
+          <a href="/updates/" class="text-wy-gold hover:underline">join our email list</a>.
+        </p>
+
+        <div id="form-message" class="hidden mt-2 text-center text-sm"></div>
+      </form>
+
+      <!-- Privacy note -->
+      <div class="mt-8 bg-white rounded-xl p-6 border border-gray-100 text-sm text-gray-500">
+        <h3 class="font-semibold text-wy-navy mb-2">How we protect your information</h3>
+        <p>
+          We collect only what we need to send updates and place you in the right district, usually your name,
+          mailing address, phone, and optional email. We protect data in transit with HTTPS and store it securely.
+          We never sell your personal information. We keep an audit log of consent. You can unsubscribe by replying
+          STOP or request deletion by emailing us.
+        </p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<!-- Turnstile (explicit mode) -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<!-- Form logic -->
+<script type="module" src="/js/pulse-optin.js"></script>

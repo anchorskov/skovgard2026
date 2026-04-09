@@ -1,0 +1,121 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+<Base
+  title='Civ-Tech — Skovgard 2026'
+  description='Harnessing secure, open-source tools to amplify Wyoming voices in Washington.'
+>
+  <Nav />
+  <main class='pt-20'>
+
+    <!-- Hero -->
+    <div class='bg-wy-navy py-20 px-4'>
+      <div class='max-w-4xl mx-auto text-center'>
+        <p class='text-wy-gold font-semibold uppercase tracking-widest text-sm mb-3'>Technology for the People</p>
+        <h1 class='text-5xl font-serif font-bold text-white mb-6'>Civ-Tech: Empowering Our Voices</h1>
+        <p class='text-white/75 text-xl max-w-2xl mx-auto'>
+          Not a slogan. A commitment. Secure, open-source tools that bring Wyoming to Washington, not the other way around.
+        </p>
+      </div>
+    </div>
+
+    <!-- Why -->
+    <section class='bg-white py-20 px-4'>
+      <div class='max-w-4xl mx-auto'>
+        <h2 class='text-4xl font-serif font-bold text-wy-navy mb-4'>Why Civ-Tech</h2>
+        <p class='text-gray-600 text-lg mb-10'>Congress listens to the loudest. We are leveling the playing field.</p>
+        <div class='grid sm:grid-cols-2 gap-6'>
+          {[
+            { title: 'Open-Source', desc: 'Anyone can inspect it, audit it, and improve it. No black boxes.' },
+            { title: 'Accessible', desc: 'Built for students, veterans, and seniors, not just the tech-savvy.' },
+            { title: 'Real-Time', desc: 'Responsive to feedback, not quarterly town halls.' },
+            { title: 'Verifiable', desc: 'Every record is transparent. Trust is built on receipts.' },
+          ].map(item => (
+            <div class='bg-wy-stone rounded-xl p-6 border-l-4 border-wy-gold'>
+              <h3 class='font-serif font-bold text-wy-navy text-xl mb-2'>{item.title}</h3>
+              <p class='text-gray-600'>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Who benefits -->
+    <section class='bg-wy-stone py-20 px-4'>
+      <div class='max-w-4xl mx-auto'>
+        <h2 class='text-4xl font-serif font-bold text-wy-navy mb-4'>Who Benefits</h2>
+        <p class='text-gray-600 text-lg mb-8'>This is our movement. This Is Us.</p>
+        <ul class='space-y-4'>
+          {[
+            'Voters who feel unheard',
+            'Teachers seeking real-world civic examples',
+            'Citizens who have written their representatives without reply',
+            'Public servants committed to transparency',
+            'Future generations watching how we act',
+          ].map(item => (
+            <li class='flex gap-3 items-center'>
+              <span class='w-2 h-2 rounded-full bg-wy-gold shrink-0'></span>
+              <span class='text-gray-700 text-lg'>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <!-- Principles -->
+    <section class='bg-wy-navy py-20 px-4'>
+      <div class='max-w-4xl mx-auto'>
+        <h2 class='text-4xl font-serif font-bold text-white mb-10 text-center'>Our Principles</h2>
+        <div class='grid sm:grid-cols-2 gap-8'>
+          <div>
+            <h3 class='text-wy-gold font-bold uppercase tracking-wider text-sm mb-4'>We Believe</h3>
+            <ul class='space-y-3'>
+              {[
+                'Truth matters: combat disinformation',
+                'Term limits matter: end career politicians',
+                'Discourse matters: civil debate builds progress',
+                'Local voices matter: Wyoming guides national choices',
+              ].map(p => (
+                <li class='flex gap-3 text-white/80'><span class='text-wy-gold'>&#10003;</span>{p}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 class='text-red-400 font-bold uppercase tracking-wider text-sm mb-4'>We Reject</h3>
+            <ul class='space-y-3'>
+              {[
+                'Authoritarian shortcuts',
+                'Surveillance disguised as safety',
+                'Political theater over genuine representation',
+              ].map(p => (
+                <li class='flex gap-3 text-white/80'><span class='text-red-400'>&#10007;</span>{p}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class='bg-white py-16 px-4 text-center'>
+      <h2 class='text-3xl font-serif font-bold text-wy-navy mb-4'>Join Us</h2>
+      <p class='text-gray-600 text-lg mb-8 max-w-xl mx-auto'>
+        In Wyoming, when we need it, we go to the shop and build it.
+      </p>
+      <div class='flex flex-col sm:flex-row gap-4 justify-center'>
+        <a href='https://grassrootsmvt.org' target='_blank' rel='noopener'
+           class='bg-wy-navy text-white font-bold px-8 py-3 rounded hover:bg-wy-sky transition-colors'>
+          Try the Platform
+        </a>
+        <a href='/feedback'
+           class='border-2 border-wy-navy text-wy-navy font-bold px-8 py-3 rounded hover:bg-wy-navy hover:text-white transition-colors'>
+          Share Feedback
+        </a>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>

@@ -1,0 +1,152 @@
+---
+// src/pages/index.astro
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+const mediaBase = 'https://media.this-is-us.org';
+---
+<Base
+  title="Jimmy Skovgard — U.S. Senate 2026"
+  description="Wyoming deserves a Senator who actually shows up. Five generations deep. Jimmy Skovgard for U.S. Senate 2026."
+>
+  <Nav />
+
+  <!-- HERO -->
+  <section
+    class="relative min-h-screen flex items-center justify-center overflow-hidden"
+    style="background-image: url('/images/wyoming-mountains.jpg'); background-size: cover; background-position: center top;"
+  >
+    <!-- Overlay -->
+    <div class="absolute inset-0 bg-wy-navy/55"></div>
+
+    <!-- Hero content -->
+    <div class="relative z-10 text-center px-4 max-w-4xl mx-auto">
+      <p class="text-wy-gold font-semibold tracking-widest uppercase text-sm mb-4">
+        Five Generations Wyoming Strong
+      </p>
+      <h1 class="text-5xl sm:text-7xl font-serif font-bold text-white leading-tight mb-6">
+        Wyoming Deserves a Senator<br/>
+        <span class="text-wy-gold">Who Actually Shows Up.</span>
+      </h1>
+      <p class="text-white/80 text-xl mb-10 max-w-2xl mx-auto">
+        Civic infrastructure, rural sovereignty, and the Wyoming way of life. Not talking points. Action.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/donate" class="bg-wy-gold text-wy-navy font-bold px-8 py-4 rounded text-lg hover:bg-amber-400 transition-colors">
+          Support Jimmy
+        </a>
+        <a href="/volunteer" class="border-2 border-white text-white font-bold px-8 py-4 rounded text-lg hover:bg-white/10 transition-colors">
+          Volunteer
+        </a>
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+      <svg class="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
+  </section>
+
+  <!-- ABOUT STRIP -->
+  <section class="bg-white py-20 px-4">
+    <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+      <div>
+        <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-3">About Jimmy</p>
+        <h2 class="text-4xl font-serif font-bold text-wy-navy mb-6">In Service to Wyoming</h2>
+        <p class="text-gray-600 text-lg leading-relaxed mb-4">
+          Jimmy Skovgard rises as a fourth-generation Wyomingite, ready to serve, elevate your voice, and help lead Wyoming back to its true conservative center. As a small businessman and neighbor, he understands our communities because this is home.
+        </p>
+        <p class="text-gray-600 text-lg leading-relaxed mb-6">
+          He is running to bring integrity, accountability, and a clear Wyoming voice to the United States Senate.
+        </p>
+        <a href="/about" class="text-wy-gold font-semibold hover:underline">Read Jimmy's Story →</a>
+      </div>
+      <div class="rounded-xl overflow-hidden shadow-2xl">
+        <img src="/images/jimmy.png" alt="Jimmy Skovgard" class="w-full h-80 object-cover object-top" />
+      </div>
+    </div>
+  </section>
+
+  <!-- TOWNHALL VIDEO -->
+  <section class="bg-wy-navy py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-3">Town Hall</p>
+      <h2 class="text-4xl font-serif font-bold text-white mb-4">Hear Jimmy Directly</h2>
+      <p class="text-white/70 text-lg mb-10 max-w-xl">
+        A recent town hall conversation: unscripted, unfiltered, Wyoming straight talk on the issues that matter.
+      </p>
+      <div class="flex flex-col md:flex-row gap-10 items-start">
+        <!-- Portrait video constrained so 9:16 displays naturally -->
+        <div class="w-full md:w-64 flex-shrink-0 mx-auto md:mx-0">
+          <video
+            controls
+            preload="none"
+            class="w-full rounded-2xl shadow-2xl bg-black"
+            style="max-height: 456px;"
+          >
+            <source src="https://media.this-is-us.org/townhall/intro_townhall.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <!-- Context + CTA -->
+        <div class="flex-1 pt-2">
+          <p class="text-wy-gold font-bold text-sm uppercase tracking-wider mb-2">April 2026 · Part 1 · 4:45</p>
+          <h3 class="text-2xl font-serif font-bold text-white mb-4">Opening: Why I'm Running</h3>
+          <p class="text-white/70 mb-4 leading-relaxed">
+            Jimmy opens the town hall with a direct answer to the question voters keep asking: why now, why you, and what's actually broken in Washington. No teleprompter. No handlers.
+          </p>
+          <p class="text-white/70 mb-8 leading-relaxed">
+            Five generations of Wyoming land. A neighbor who shows up. Real answers on water rights, federal overreach, rural healthcare, and what sovereignty actually means.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <a href="/podcast" class="inline-block bg-wy-gold text-wy-navy font-bold px-6 py-3 rounded hover:bg-amber-400 transition-colors">
+              All Episodes →
+            </a>
+            <a href="/volunteer" class="inline-block border-2 border-white/40 text-white font-bold px-6 py-3 rounded hover:border-white transition-colors">
+              Get Involved
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LATEST PODCAST -->
+  <section class="bg-wy-stone py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-3">On the Record</p>
+      <h2 class="text-4xl font-serif font-bold text-wy-navy mb-10">Listen to Jimmy</h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- Featured episode card -->
+        <div class="bg-white rounded-xl p-6 shadow-md border border-gray-100">
+          <p class="text-sm text-gray-400 mb-2">Jan 25, 2026 · 38 min</p>
+          <h3 class="font-serif font-bold text-wy-navy text-xl mb-3">Jack Daniels &amp; Jimmy: Wyoming Politics</h3>
+          <p class="text-gray-600 mb-4">An unscripted conversation about what's really going on in Cheyenne and Washington.</p>
+          <audio controls class="w-full rounded" preload="none">
+            <source src="https://media.this-is-us.org/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3" type="audio/mpeg" />
+          </audio>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-md border border-gray-100 flex flex-col justify-between">
+          <div>
+            <p class="text-sm text-gray-400 mb-2">Mar 20, 2026 · YouTube</p>
+            <h3 class="font-serif font-bold text-wy-navy text-xl mb-3">Jimmy &amp; Kevin: Real Wyoming Issues</h3>
+            <p class="text-gray-600 mb-4">Live conversation diving into water rights, federal land use, and rural healthcare.</p>
+          </div>
+          <a href="https://youtu.be/yiqVj_xtO7Q?t=156" target="_blank" rel="noopener"
+             class="inline-flex items-center gap-2 text-wy-gold font-semibold hover:underline">
+            Watch on YouTube →
+          </a>
+        </div>
+      </div>
+      <div class="mt-8 text-center">
+        <a href="/podcast" class="text-wy-navy font-semibold border-b-2 border-wy-gold pb-1 hover:text-wy-gold transition-colors">
+          All Episodes →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <Footer />
+</Base>

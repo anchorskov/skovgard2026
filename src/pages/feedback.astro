@@ -1,0 +1,32 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+<Base
+  title="Feedback — Skovgard 2026"
+  description="Share your feedback with the Skovgard 2026 campaign."
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4">
+    <div class="max-w-3xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Your Voice Matters</p>
+      <h1 class="text-5xl font-serif font-bold text-wy-navy mb-4">We'd Love Your Feedback</h1>
+      <p class="text-gray-600 text-lg mb-8">Tell us what's working, what isn't, and what you'd like to see.</p>
+      <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+        <iframe
+          src="https://docs.google.com/forms/d/e/1FAIpQLSdWo3pG9cF3lfGorLQECrmoSQca3ZKuBdZGr1hkgTZgWQQLpQ/viewform?embedded=true"
+          width="100%"
+          height="927"
+          frameborder="0"
+          marginheight="0"
+          marginwidth="0"
+          title="Campaign Feedback Form"
+        >
+          Loading&hellip;
+        </iframe>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Base>

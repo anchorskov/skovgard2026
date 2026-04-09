@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base title="Payment Canceled — Skovgard 2026" description="">
+  <Nav />
+  <main class="pt-24 pb-20 px-4 min-h-screen">
+    <div class="max-w-xl mx-auto text-center">
+      <div class="text-5xl mb-6">↩</div>
+      <h1 class="text-4xl font-serif font-bold text-wy-navy mb-4">Payment Canceled</h1>
+      <p class="text-gray-600 text-lg mb-8">
+        Your payment was canceled. You can return to the donation form and try again. Every dollar helps.
+      </p>
+      <a
+        href="/donate/"
+        class="inline-block bg-wy-gold text-wy-navy font-bold px-8 py-4 rounded text-lg hover:bg-amber-400 transition-colors"
+      >
+        Return to Donate
+      </a>
+    </div>
+  </main>
+  <Footer />
+</Base>

@@ -1,0 +1,430 @@
+---
+// src/pages/my-path/index.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="My Path — Skovgard 2026"
+  description="How Jimmy Skovgard and Kevin built this campaign website from scratch — every step, every tool, every command. A replicable guide for the next candidate."
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4">
+    <div class="max-w-3xl mx-auto">
+
+      <!-- Header -->
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Open Playbook</p>
+      <h1 class="text-5xl font-serif font-bold text-wy-navy mb-6">My Path</h1>
+      <p class="text-xl text-gray-600 mb-4">
+        This is how we built this website: a U.S. Senate candidate and a neighbor, no agency, no budget,
+        no prior web experience. Every step is documented so the next Wyoming candidate can replicate it
+        in a weekend.
+      </p>
+      <p class="text-gray-500 text-sm mb-10">
+        Want help getting started? See <a href="/support/" class="text-wy-gold hover:underline">Campaign-to-Campaign Support</a> or
+        email <a href="mailto:jimmy@grassrootsmvt.org?subject=Website%20Help%20Please" class="text-wy-gold hover:underline">jimmy@grassrootsmvt.org</a>.
+      </p>
+
+      <!-- Table of Contents -->
+      <nav class="bg-wy-stone border border-amber-200 rounded-xl p-6 mb-12">
+        <h2 class="font-bold text-wy-navy mb-3">Steps</h2>
+        <ol class="space-y-1 text-sm">
+          <li><a href="#step-1" class="text-wy-gold hover:underline">1. Choose and Register a Domain Name</a></li>
+          <li><a href="#step-2" class="text-wy-gold hover:underline">2. Create a Free Cloudflare Account for Hosting and DNS</a></li>
+          <li><a href="#step-3" class="text-wy-gold hover:underline">3. Point the Domain's Nameservers to Cloudflare</a></li>
+          <li><a href="#step-4" class="text-wy-gold hover:underline">4. Create a GitHub Account and a New Repository</a></li>
+          <li><a href="#step-5" class="text-wy-gold hover:underline">5. Choose a Development Setup (WSL + Ubuntu + VS Code)</a></li>
+          <li><a href="#step-6" class="text-wy-gold hover:underline">6. Scaffold the Website From the Skovgard2026 Template</a></li>
+          <li><a href="#step-7" class="text-wy-gold hover:underline">7. Publish the Site With Cloudflare Pages</a></li>
+          <li><a href="#step-8" class="text-wy-gold hover:underline">8. Connect the Custom Domain to Cloudflare Pages</a></li>
+          <li><a href="#step-9" class="text-wy-gold hover:underline">9. Document Everything So the Next Candidate Can Repeat It</a></li>
+        </ol>
+      </nav>
+
+      <!-- STEP 1 -->
+      <section id="step-1" class="mb-14 scroll-mt-28">
+        <div class="flex items-start gap-4 mb-4">
+          <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg mt-1">1</span>
+          <h2 class="text-3xl font-serif font-bold text-wy-navy">Choose and Register a Domain Name</h2>
+        </div>
+
+        <div class="prose prose-lg text-gray-600 mb-6">
+          <p>
+            Your domain is your address on the internet. <code>skovgard2026.com</code> is an example. Pick something
+            simple, predictable, and easy to say out loud. Avoid hyphens. Include the year if your name is common.
+          </p>
+          <p>
+            We used <strong>Namecheap</strong>. Porkbun is another solid option. Both offer free WHOIS privacy
+            (so your home address doesn't appear in public records) and cost around $10–15 per year for a <code>.com</code>.
+          </p>
+          <h3>What to do</h3>
+          <ol>
+            <li>Go to <a href="https://www.namecheap.com" target="_blank" rel="noopener" class="text-wy-gold hover:underline">namecheap.com</a> and search for your domain.</li>
+            <li>Add it to your cart and check out. Enable WHOIS privacy (usually free).</li>
+            <li>Save your login credentials somewhere safe. You will need them in Step 3.</li>
+          </ol>
+        </div>
+
+        <div class="bg-wy-stone border-l-4 border-wy-gold rounded-r-xl p-4 text-sm text-gray-700">
+          <strong>Prompt A</strong>: Ask an AI assistant: <em>"I'm a first-time candidate registering a domain name on Namecheap. Walk me through the checkout process step by step, including enabling WHOIS privacy."</em>
+        </div>
+      </section>
+
+      <!-- STEP 2 -->
+      <section id="step-2" class="mb-14 scroll-mt-28">
+        <div class="flex items-start gap-4 mb-4">
+          <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg mt-1">2</span>
+          <h2 class="text-3xl font-serif font-bold text-wy-navy">Create a Free Cloudflare Account for Hosting and DNS</h2>
+        </div>
+
+        <div class="prose prose-lg text-gray-600 mb-6">
+          <p>
+            Cloudflare does two things for us: it manages our DNS (the system that connects your domain to your
+            website) and it hosts the site for free through Cloudflare Pages.
+          </p>
+          <p>
+            The free tier is generous: unlimited bandwidth, global CDN, automatic HTTPS, and 500 builds per month.
+            You will never pay a hosting bill.
+          </p>
+          <h3>What to do</h3>
+          <ol>
+            <li>Go to <a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener" class="text-wy-gold hover:underline">dash.cloudflare.com/sign-up</a> and create a free account.</li>
+            <li>Verify your email address.</li>
+            <li>Click <strong>Add a Site</strong> and enter your domain name.</li>
+            <li>Select the <strong>Free plan</strong>.</li>
+            <li>Cloudflare will scan your existing DNS records. Note the two nameservers it gives you. You will need them in Step 3.</li>
+          </ol>
+        </div>
+
+        <div class="bg-wy-stone border-l-4 border-wy-gold rounded-r-xl p-4 text-sm text-gray-700">
+          <strong>Prompt A</strong>: Ask an AI: <em>"I just created a Cloudflare account and added my domain. It gave me two nameservers. What do I do with them, and how long will it take for DNS to propagate?"</em>
+        </div>
+      </section>
+
+      <!-- STEP 3 -->
+      <section id="step-3" class="mb-14 scroll-mt-28">
+        <div class="flex items-start gap-4 mb-4">
+          <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg mt-1">3</span>
+          <h2 class="text-3xl font-serif font-bold text-wy-navy">Point the Domain's Nameservers to Cloudflare</h2>
+        </div>
+
+        <div class="prose prose-lg text-gray-600 mb-6">
+          <p>
+            Your domain registrar (Namecheap) controls which DNS provider handles your domain. Right now it uses
+            Namecheap's own nameservers. You need to switch them to Cloudflare's.
+          </p>
+          <p>
+            This is a one-time change and takes 5–30 minutes to propagate. Once done, Cloudflare is in charge of
+            your DNS and can point your domain at your Cloudflare Pages site.
+          </p>
+          <h3>What to do on Namecheap</h3>
+          <ol>
+            <li>Log in to Namecheap and go to your domain list.</li>
+            <li>Click <strong>Manage</strong> next to your domain.</li>
+            <li>Under <strong>Nameservers</strong>, choose <strong>Custom DNS</strong>.</li>
+            <li>Enter the two nameservers Cloudflare gave you (e.g., <code>lara.ns.cloudflare.com</code>).</li>
+            <li>Save. Wait 15–30 minutes, then check Cloudflare's dashboard. It will say "Active" when propagation is complete.</li>
+          </ol>
+        </div>
+
+        <div class="bg-wy-stone border-l-4 border-wy-gold rounded-r-xl p-4 text-sm text-gray-700">
+          <strong>Prompt A</strong>: Ask an AI: <em>"On Namecheap, how do I update my domain's nameservers to use Cloudflare's nameservers? Show me the exact steps in the Namecheap dashboard."</em>
+        </div>
+      </section>
+
+      <!-- STEP 4 -->
+      <section id="step-4" class="mb-14 scroll-mt-28">
+        <div class="flex items-start gap-4 mb-4">
+          <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg mt-1">4</span>
+          <h2 class="text-3xl font-serif font-bold text-wy-navy">Create a GitHub Account and a New Repository</h2>
+        </div>
+
+        <div class="prose prose-lg text-gray-600 mb-6">
+          <p>
+            GitHub stores your website's code. Every time you push a change, Cloudflare Pages detects it and
+            automatically rebuilds and republishes your site. This is the core workflow.
+          </p>
+          <p>
+            A repository (repo) is just a folder that tracks changes over time. Think of it as a shared folder
+            with a detailed history of every edit ever made.
+          </p>
+          <h3>What to do</h3>
+          <ol>
+            <li>Go to <a href="https://github.com" target="_blank" rel="noopener" class="text-wy-gold hover:underline">github.com</a> and create a free account.</li>
+            <li>Click <strong>New repository</strong>. Name it something like <code>yourname2026</code>.</li>
+            <li>Set visibility to <strong>Public</strong> (required for the free Cloudflare Pages integration) or Private (paid plan).</li>
+            <li>Do NOT initialize with a README. You will push your own code in Step 6.</li>
+            <li>Note your repo URL: <code>https://github.com/yourusername/yourname2026</code>.</li>
+          </ol>
+        </div>
+
+        <div class="space-y-3">
+          <div class="bg-wy-stone border-l-4 border-wy-gold rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt A</strong>: Ask an AI: <em>"I'm new to GitHub. Walk me through creating a new public repository for my campaign website, including setting up Git on my computer for the first time."</em>
+          </div>
+          <div class="bg-wy-stone border-l-4 border-wy-sky rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt B</strong>: Ask an AI: <em>"What's the difference between git commit and git push? Explain it like I'm not a developer."</em>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 5 -->
+      <section id="step-5" class="mb-14 scroll-mt-28">
+        <div class="flex items-start gap-4 mb-4">
+          <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg mt-1">5</span>
+          <h2 class="text-3xl font-serif font-bold text-wy-navy">Choose a Development Setup (WSL + Ubuntu + VS Code)</h2>
+        </div>
+
+        <div class="prose prose-lg text-gray-600 mb-6">
+          <p>
+            We used a Windows laptop with WSL (Windows Subsystem for Linux). WSL lets you run a full Linux
+            environment inside Windows with no separate machine needed. Ubuntu is the Linux distribution we chose,
+            and VS Code is the code editor.
+          </p>
+          <p>
+            This combination is free, well-documented, and the same setup used by professional developers worldwide.
+            If you're on a Mac, you can skip WSL and use your Terminal app directly.
+          </p>
+          <h3>Windows setup</h3>
+          <ol>
+            <li>Open PowerShell as Administrator and run: <code>wsl --install</code>. Restart when prompted.</li>
+            <li>Open the Microsoft Store, search <strong>Ubuntu 22.04</strong>, and install it.</li>
+            <li>Launch Ubuntu, create a username and password when prompted.</li>
+            <li>Install Node.js via nvm: follow the instructions at <a href="https://github.com/nvm-sh/nvm" target="_blank" rel="noopener" class="text-wy-gold hover:underline">github.com/nvm-sh/nvm</a>.</li>
+            <li>Install VS Code from <a href="https://code.visualstudio.com" target="_blank" rel="noopener" class="text-wy-gold hover:underline">code.visualstudio.com</a>. Add the <strong>WSL</strong> extension.</li>
+            <li>From Ubuntu, run <code>code .</code> in your project folder to open VS Code connected to WSL.</li>
+          </ol>
+          <h3>Mac setup</h3>
+          <ol>
+            <li>Open Terminal. Install Homebrew: <code>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code></li>
+            <li>Install nvm: <code>brew install nvm</code> and follow the shell config steps.</li>
+            <li>Install Node 22: <code>nvm install 22 && nvm use 22</code></li>
+            <li>Install VS Code from the website.</li>
+          </ol>
+        </div>
+
+        <div class="space-y-3">
+          <div class="bg-wy-stone border-l-4 border-wy-gold rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt A</strong>: Ask an AI: <em>"I installed WSL and Ubuntu on Windows. Walk me through installing nvm and Node.js 22 inside Ubuntu, and verifying the installation works."</em>
+          </div>
+          <div class="bg-wy-stone border-l-4 border-wy-sky rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt B</strong>: Ask an AI: <em>"I'm using VS Code with the WSL extension. How do I open a project folder from my Ubuntu filesystem in VS Code?"</em>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 6 -->
+      <section id="step-6" class="mb-14 scroll-mt-28">
+        <div class="flex items-start gap-4 mb-4">
+          <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg mt-1">6</span>
+          <h2 class="text-3xl font-serif font-bold text-wy-navy">Scaffold the Website From the Skovgard2026 Template</h2>
+        </div>
+
+        <div class="prose prose-lg text-gray-600 mb-6">
+          <p>
+            This site uses <strong>Astro</strong>, a modern static site generator, with <strong>Tailwind CSS</strong>
+            for styling. Astro compiles your pages into plain HTML, CSS, and JavaScript, which means the site loads
+            fast and has no server to maintain.
+          </p>
+          <p>
+            You can fork our GitHub repository and replace the content with your own. Or start a fresh Astro project
+            and copy our component patterns.
+          </p>
+          <h3>Fork approach (recommended)</h3>
+          <ol>
+            <li>Go to our GitHub repo (link on request: email jimmy@grassrootsmvt.org).</li>
+            <li>Click <strong>Fork</strong> to copy it to your account.</li>
+            <li>Clone it to your local machine: <code>git clone https://github.com/yourusername/yourfork</code></li>
+            <li>In your project folder: <code>npm install</code> then <code>npm run dev</code></li>
+            <li>Open <code>http://localhost:4321</code> in your browser. You should see the site.</li>
+            <li>Edit <code>src/pages/index.astro</code> to start customizing content.</li>
+          </ol>
+          <h3>Key files to change</h3>
+          <ul>
+            <li><code>src/layouts/Base.astro</code>: site-wide title, meta tags, fonts</li>
+            <li><code>src/components/Nav.astro</code>: navigation links and logo</li>
+            <li><code>src/components/Footer.astro</code>: footer content and links</li>
+            <li><code>tailwind.config.mjs</code>: brand colors</li>
+            <li><code>public/</code>: images, PDFs, and other static files</li>
+          </ul>
+        </div>
+
+        <div class="space-y-3">
+          <div class="bg-wy-stone border-l-4 border-wy-gold rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt A</strong>: Ask an AI: <em>"I forked an Astro repository and cloned it locally. I ran npm install and npm run dev. The dev server is running. How do I change the site title, colors, and navigation links?"</em>
+          </div>
+          <div class="bg-wy-stone border-l-4 border-wy-sky rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt B</strong>: Ask an AI: <em>"In Tailwind CSS v4, how do I define custom brand colors so I can use them as class names like bg-my-navy or text-my-gold?"</em>
+          </div>
+          <div class="bg-wy-stone border-l-4 border-amber-300 rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt C</strong>: Ask an AI: <em>"I'm building a campaign website in Astro. Help me create a reusable Nav component with a logo on the left and navigation links on the right, with a mobile hamburger menu."</em>
+          </div>
+          <div class="bg-wy-stone border-l-4 border-gray-400 rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt D</strong>: Ask an AI: <em>"My Astro site is working locally. How do I commit my changes to git and push them to GitHub?"</em>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 7 -->
+      <section id="step-7" class="mb-14 scroll-mt-28">
+        <div class="flex items-start gap-4 mb-4">
+          <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg mt-1">7</span>
+          <h2 class="text-3xl font-serif font-bold text-wy-navy">Publish the Site With Cloudflare Pages</h2>
+        </div>
+
+        <div class="prose prose-lg text-gray-600 mb-6">
+          <p>
+            Cloudflare Pages connects directly to your GitHub repository. Every time you push a commit, Cloudflare
+            automatically runs your build command and publishes the result. There's no FTP, no server config, no
+            manual upload.
+          </p>
+          <h3>What to do</h3>
+          <ol>
+            <li>In the Cloudflare dashboard, go to <strong>Pages</strong> and click <strong>Create a project</strong>.</li>
+            <li>Choose <strong>Connect to Git</strong> and authorize Cloudflare to access your GitHub account.</li>
+            <li>Select your campaign repository.</li>
+            <li>Set the build configuration:
+              <ul>
+                <li><strong>Framework preset:</strong> Astro</li>
+                <li><strong>Build command:</strong> <code>npm run build</code></li>
+                <li><strong>Build output directory:</strong> <code>dist</code></li>
+              </ul>
+            </li>
+            <li>Click <strong>Save and Deploy</strong>. The first build takes about 2 minutes.</li>
+            <li>Cloudflare gives you a URL like <code>yourrepo.pages.dev</code>. Visit it. Your site is live.</li>
+          </ol>
+        </div>
+
+        <div class="space-y-3">
+          <div class="bg-wy-stone border-l-4 border-wy-gold rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt A</strong>: Ask an AI: <em>"My Cloudflare Pages build failed. Here is the build log: [paste log here]. What went wrong and how do I fix it?"</em>
+          </div>
+          <div class="bg-wy-stone border-l-4 border-wy-sky rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt B</strong>: Ask an AI: <em>"How do I set environment variables in Cloudflare Pages for my Astro site?"</em>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 8 -->
+      <section id="step-8" class="mb-14 scroll-mt-28">
+        <div class="flex items-start gap-4 mb-4">
+          <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg mt-1">8</span>
+          <h2 class="text-3xl font-serif font-bold text-wy-navy">Connect the Custom Domain to Cloudflare Pages</h2>
+        </div>
+
+        <div class="prose prose-lg text-gray-600 mb-6">
+          <p>
+            Right now your site is live at a <code>.pages.dev</code> URL. This step connects your real domain
+            (<code>yourname2026.com</code>) so voters can find you at the address on your flyers.
+          </p>
+          <p>
+            Because your domain is already managed by Cloudflare (from Step 3), this is almost instant. No
+            waiting for DNS propagation.
+          </p>
+          <h3>What to do</h3>
+          <ol>
+            <li>In your Cloudflare Pages project, go to <strong>Custom Domains</strong>.</li>
+            <li>Click <strong>Set up a custom domain</strong>.</li>
+            <li>Enter your domain: <code>yourname2026.com</code></li>
+            <li>Cloudflare automatically adds the necessary DNS records since it manages your domain.</li>
+            <li>Click <strong>Activate domain</strong>.</li>
+            <li>Wait 1–5 minutes. Visit your domain. Your site should appear with a valid HTTPS certificate.</li>
+          </ol>
+          <p>
+            Also add <code>www.yourname2026.com</code> as a second custom domain and set up a redirect from
+            <code>www</code> to the root domain (or vice versa).
+          </p>
+        </div>
+
+        <div class="bg-wy-stone border-l-4 border-wy-gold rounded-r-xl p-4 text-sm text-gray-700">
+          <strong>Prompt A</strong>: Ask an AI: <em>"I've added my custom domain to Cloudflare Pages but it's showing a certificate error. The domain is managed by Cloudflare. What could cause this and how do I fix it?"</em>
+        </div>
+      </section>
+
+      <!-- STEP 9 -->
+      <section id="step-9" class="mb-14 scroll-mt-28">
+        <div class="flex items-start gap-4 mb-4">
+          <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg mt-1">9</span>
+          <h2 class="text-3xl font-serif font-bold text-wy-navy">Document Everything So the Next Candidate Can Repeat It</h2>
+        </div>
+
+        <div class="prose prose-lg text-gray-600 mb-6">
+          <p>
+            This is the step most people skip. Don't skip it.
+          </p>
+          <p>
+            While everything is fresh, right after you finish a step, write down exactly what you did. Not a
+            summary. The actual steps, the actual commands, the actual settings. What confused you. What you had
+            to Google. What worked and what didn't.
+          </p>
+          <p>
+            You are not just building a campaign website. You are building a movement's infrastructure. The next
+            candidate in your county, the one who can't afford to hire a web agency, the one who's never done
+            this before, is going to follow your notes.
+          </p>
+          <h3>What to document</h3>
+          <ul>
+            <li>Every account you created and what email you used</li>
+            <li>Every setting that wasn't obvious</li>
+            <li>The exact build command and Node version that worked</li>
+            <li>Any errors you hit and how you fixed them</li>
+            <li>How to update content after launch</li>
+            <li>Login credentials (stored securely, using a password manager like Bitwarden)</li>
+          </ul>
+          <h3>Where to keep it</h3>
+          <p>
+            A simple Google Doc or Notion page works fine. Share it with the campaign's email account so it
+            doesn't live only on your personal computer. When you hand off the campaign, hand off the document.
+          </p>
+        </div>
+
+        <div class="space-y-3">
+          <div class="bg-wy-stone border-l-4 border-wy-gold rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt A</strong>: Ask an AI: <em>"Help me write a handoff document for a campaign website built on Astro and Cloudflare Pages. The next person has no technical background. What should I include?"</em>
+          </div>
+          <div class="bg-wy-stone border-l-4 border-wy-sky rounded-r-xl p-4 text-sm text-gray-700">
+            <strong>Prompt B</strong>: Ask an AI: <em>"What's the minimum I need to document so that someone else could take over managing this website without my help?"</em>
+          </div>
+        </div>
+      </section>
+
+      <!-- Call to Action -->
+      <section class="bg-wy-navy text-white rounded-2xl p-10 mt-4">
+        <h2 class="text-3xl font-serif font-bold mb-4 text-wy-gold">The Citizen's Oath</h2>
+        <div class="prose prose-lg prose-invert text-gray-300 mb-6">
+          <p>
+            We built this to prove it's possible. A Senate campaign, two guys, a laptop, and a weekend.
+            No agency. No budget. No gatekeepers.
+          </p>
+          <p>
+            If you run for office in Wyoming, or anywhere, you deserve a platform that looks professional
+            and costs you nothing. Democracy should not have a paywall.
+          </p>
+          <p>
+            So here's the deal: if we help you build your site, you help the next person build theirs.
+            Document your steps. Share what you learned. Pass the playbook forward.
+          </p>
+          <p class="text-white font-semibold text-lg mt-4">
+            That's how citizens take their government back.
+          </p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a
+            href="/support/"
+            class="inline-block bg-wy-gold text-wy-navy font-bold px-8 py-4 rounded text-lg hover:bg-amber-400 transition-colors text-center"
+          >
+            Get Help From Jimmy →
+          </a>
+          <a
+            href="mailto:jimmy@grassrootsmvt.org?subject=Website%20Help%20Please"
+            class="inline-block border-2 border-wy-gold text-wy-gold font-bold px-8 py-4 rounded text-lg hover:bg-wy-gold hover:text-wy-navy transition-colors text-center"
+          >
+            Email Directly →
+          </a>
+        </div>
+      </section>
+
+    </div>
+  </main>
+  <Footer />
+</Base>

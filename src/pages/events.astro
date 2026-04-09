@@ -1,0 +1,49 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+const GCAL_EMBED = 'https://calendar.google.com/calendar/embed?src=38a0e5d50371ca9fd7f5c39451b12f3fcc571e8465dd8a8a092f0ca8ca587512%40group.calendar.google.com&ctz=America%2FDenver&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=0&showCalendars=0&mode=AGENDA';
+const EVENT_REQUEST_URL = 'https://mail.google.com/mail/?view=cm&fs=1&to=jimmy@grassrootsmvt.org&su=Requested%20Event&body=Name%3A%0APhone%3A%0APreferred%20date%2Ftime%3A%0ACity%3A%0AEvent%20details%3A';
+---
+<Base title='Events — Skovgard 2026' description='Upcoming campaign events across Wyoming. Come meet Jimmy Skovgard.'>
+  <Nav />
+  <main class='pt-24 pb-20 px-4'>
+    <div class='max-w-5xl mx-auto'>
+      <p class='text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2'>On the Ground</p>
+      <h1 class='text-5xl font-serif font-bold text-wy-navy mb-4'>Events</h1>
+      <p class='text-gray-600 text-lg mb-10'>Our confirmed public schedule. Click any event for location and details.</p>
+
+      <!-- Calendar embed -->
+      <div class='bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 mb-10'>
+        <iframe
+          src={GCAL_EMBED}
+          style='border:0'
+          width='100%'
+          height='600'
+          frameborder='0'
+          scrolling='no'
+          title='Campaign Events Calendar'
+        ></iframe>
+      </div>
+
+      <!-- Request an event -->
+      <div class='bg-wy-navy rounded-2xl p-8 text-center'>
+        <h2 class='text-2xl font-serif font-bold text-white mb-3'>Host an Event</h2>
+        <p class='text-white/70 mb-6 max-w-lg mx-auto'>
+          Want Jimmy in your community? Send a request. We confirm details and publish the event to the calendar.
+        </p>
+        <a
+          href={EVENT_REQUEST_URL}
+          target='_blank'
+          rel='noopener noreferrer'
+          class='inline-block bg-wy-gold text-wy-navy font-bold px-8 py-3 rounded hover:bg-amber-400 transition-colors'
+        >
+          Request an Event
+        </a>
+        <p class='text-white/40 text-sm mt-4'>Or email directly: jimmy@grassrootsmvt.org</p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Base>

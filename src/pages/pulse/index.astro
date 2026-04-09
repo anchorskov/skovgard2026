@@ -1,0 +1,41 @@
+---
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="Pulse — Campaign Text Updates"
+  description="Opt in to receive campaign text updates from Skovgard for Senate. Open to all Wyoming voters."
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4">
+    <div class="max-w-2xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Stay Informed</p>
+      <h1 class="text-5xl font-serif font-bold text-wy-navy mb-6">Campaign Text Updates</h1>
+
+      <div class="prose prose-lg text-gray-600 mb-8">
+        <p>
+          By signing up here, you are <strong>not volunteering</strong>. You are opting in to receive occasional
+          campaign text messages from <strong>Skovgard for Senate</strong>.
+        </p>
+        <p>
+          We respect and support the entire state of Wyoming: Republicans, Democrats, and undecided voters.
+          Our goal is to share updates, resources, and important election information with everyone.
+        </p>
+        <ul>
+          <li>Message frequency varies.</li>
+          <li>Reply <strong>STOP</strong> to opt out, <strong>HELP</strong> for help.</li>
+          <li>Standard message and data rates may apply.</li>
+        </ul>
+      </div>
+
+      <a
+        href="/pulse/signup/"
+        class="inline-block bg-wy-gold text-wy-navy font-bold px-8 py-4 rounded text-lg hover:bg-amber-400 transition-colors"
+      >
+        Opt In Now →
+      </a>
+    </div>
+  </main>
+  <Footer />
+</Base>

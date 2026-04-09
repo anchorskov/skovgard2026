@@ -1,11 +1,10 @@
 name = "skovgard2026"
-main = "src/index.js"
 compatibility_date = "2024-11-01"
 
 [build]
 command = "npm run build"
-cwd = "."
-watch_paths = ["content/**", "layouts/**", "static/**", "config/**", "archetypes/**", "data/**"]
+output_dir = "dist"
+watch_paths = ["src/**", "content/**", "static/**", "astro.config.mjs"]
 
 [env.production]
 name = "skovgard2026"

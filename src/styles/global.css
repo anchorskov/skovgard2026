@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* Campaign brand tokens */
+@theme {
+  --color-wy-gold: #C8973A;
+  --color-wy-navy: #1B2A4A;
+  --color-wy-sky: #5B9BD5;
+  --color-wy-stone: #F5F0E8;
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-family-serif: 'Merriweather', Georgia, serif;
+}
