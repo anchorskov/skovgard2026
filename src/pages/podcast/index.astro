@@ -2,8 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Nav from '../../components/Nav.astro';
 import Footer from '../../components/Footer.astro';
-
-const MEDIA = 'https://media.this-is-us.org';
+import { MEDIA_BASE_URL } from '../../constants';
 
 const episodes = [
   {
@@ -28,7 +27,7 @@ const episodes = [
     date: 'January 25, 2026', guest: 'Jack Daniels', duration: '38:04',
     title: 'Wyoming Politics and Concerns',
     description: 'Unscripted conversation on what is really happening in Wyoming politics.',
-    type: 'audio', src: MEDIA + '/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3',
+    type: 'audio', src: MEDIA_BASE_URL + '/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3',
   },
   {
     date: 'December 14, 2025', guest: 'JR Riggins',
@@ -36,9 +35,9 @@ const episodes = [
     description: 'Three-part conversation on redemption, resilience, and Wyoming character.',
     type: 'video-series',
     parts: [
-      { label: 'Part 1 · 18:42', audio: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp3', video: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp4' },
-      { label: 'Part 2 · 16:08', audio: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-02.mp3', video: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-02.mp4' },
-      { label: 'Part 3 · 14:27', audio: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-03.mp3', video: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-03.mp4' },
+      { label: 'Part 1 · 18:42', audio: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp3', video: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp4' },
+      { label: 'Part 2 · 16:08', audio: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-02.mp3', video: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-02.mp4' },
+      { label: 'Part 3 · 14:27', audio: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-03.mp3', video: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-03.mp4' },
     ],
   },
 ];
@@ -66,6 +65,14 @@ const episodes = [
                 <audio controls class='w-full rounded' preload='none'>
                   <source src={ep.src} type='audio/mpeg' />
                 </audio>
+                <a
+                  href={ep.src}
+                  target='_blank'
+                  rel='noopener'
+                  class='mt-3 inline-block text-sm font-semibold text-wy-gold hover:underline'
+                >
+                  Open audio directly
+                </a>
               </div>
             )}
 
@@ -78,6 +85,10 @@ const episodes = [
                       <source src={part.video} type='video/mp4' />
                       <source src={part.audio} type='audio/mpeg' />
                     </video>
+                    <div class='mt-3 flex flex-wrap gap-4 text-sm font-semibold'>
+                      <a href={part.video} target='_blank' rel='noopener' class='text-wy-gold hover:underline'>Open video directly</a>
+                      <a href={part.audio} target='_blank' rel='noopener' class='text-wy-navy hover:underline'>Audio only</a>
+                    </div>
                   </div>
                 ))}
               </div>

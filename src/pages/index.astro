@@ -3,8 +3,7 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-
-const mediaBase = 'https://media.this-is-us.org';
+import { MEDIA_BASE_URL } from '../constants';
 ---
 <Base
   title="Jimmy Skovgard — U.S. Senate 2026"
@@ -87,8 +86,16 @@ const mediaBase = 'https://media.this-is-us.org';
             class="w-full rounded-2xl shadow-2xl bg-black"
             style="max-height: 456px;"
           >
-            <source src="https://media.this-is-us.org/townhall/intro_townhall.mp4" type="video/mp4" />
+            <source src={`${MEDIA_BASE_URL}/townhall/intro_townhall.mp4`} type="video/mp4" />
           </video>
+          <a
+            href={`${MEDIA_BASE_URL}/townhall/intro_townhall.mp4`}
+            target="_blank"
+            rel="noopener"
+            class="mt-3 inline-block text-sm font-semibold text-wy-gold hover:underline"
+          >
+            Open video directly
+          </a>
         </div>
         <!-- Context + CTA -->
         <div class="flex-1 pt-2">
@@ -125,8 +132,16 @@ const mediaBase = 'https://media.this-is-us.org';
           <h3 class="font-serif font-bold text-wy-navy text-xl mb-3">Jack Daniels &amp; Jimmy: Wyoming Politics</h3>
           <p class="text-gray-600 mb-4">An unscripted conversation about what's really going on in Cheyenne and Washington.</p>
           <audio controls class="w-full rounded" preload="none">
-            <source src="https://media.this-is-us.org/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3" type="audio/mpeg" />
+            <source src={`${MEDIA_BASE_URL}/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3`} type="audio/mpeg" />
           </audio>
+          <a
+            href={`${MEDIA_BASE_URL}/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3`}
+            target="_blank"
+            rel="noopener"
+            class="mt-3 inline-block text-sm font-semibold text-wy-gold hover:underline"
+          >
+            Open audio directly
+          </a>
         </div>
         <div class="bg-white rounded-xl p-6 shadow-md border border-gray-100 flex flex-col justify-between">
           <div>

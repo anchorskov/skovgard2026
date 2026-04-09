@@ -1,6 +1,7 @@
 ---
 // src/layouts/Base.astro
 import '../styles/global.css';
+import { MEDIA_BASE_URL } from '../constants';
 
 interface Props {
   title?: string;
@@ -15,7 +16,6 @@ const {
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? 'https://www.skovgard2026.org');
-const mediaBase = 'https://media.this-is-us.org';
 ---
 <!doctype html>
 <html lang="en">
@@ -33,6 +33,7 @@ const mediaBase = 'https://media.this-is-us.org';
   <!-- Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <!-- Fonts -->
+  <link rel="preconnect" href={MEDIA_BASE_URL} crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet" />
