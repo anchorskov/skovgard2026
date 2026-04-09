@@ -7,6 +7,7 @@ hugo_stats.json
 # Node (any depth)
 node_modules/
 dist/
+.astro/
 
 # Cloudflare Workers (local state only)
 .dev.vars

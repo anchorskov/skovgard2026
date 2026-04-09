@@ -2,34 +2,30 @@
 
 ## Cloudflare Pages Git Integration
 
-This site is deployed via **Cloudflare Pages Git integration** (not GitHub Actions).
+This site is deployed via **Cloudflare Pages Git integration**. The frontend is now an **Astro static build**, not Hugo.
 
-### How it works
+### Current build expectations
 
-1. **Push to `main`** → Cloudflare automatically detects the push and builds the site
-2. **Pull requests** → Cloudflare creates preview deployments automatically
-3. **No API tokens needed** in GitHub — Cloudflare handles authentication via its Git connection
-
-### Why not GitHub Actions?
-
-We previously used `cloudflare/pages-action@v1` in GitHub Actions, but this requires storing a `CLOUDFLARE_API_TOKEN` secret in GitHub. The Cloudflare Pages Git integration is simpler and more secure:
-
-- No secrets to manage or rotate
-- Build logs visible in Cloudflare dashboard
-- Automatic preview deployments for PRs
-
-### Build Configuration (in Cloudflare Dashboard)
+Cloudflare Pages must be configured for Astro's output:
 
 | Setting | Value |
 |---------|-------|
-| Build command | `npm ci && npm run unocss && hugo --minify` |
-| Build output directory | `public` |
+| Framework preset | `Astro` or `None` |
+| Build command | `npm ci && npm run build` |
+| Build output directory | `dist` |
 | Root directory | `/` |
-| Environment variable | `HUGO_VERSION=0.146.6` |
+| Environment variable | `NODE_VERSION=22.12.0` |
 
-### Triggering a Deploy
+### Common failure modes after the Hugo → Astro migration
 
-Simply push to `main`:
+- If Pages is still using `hugo --minify`, the build will fail because the repo no longer deploys with Hugo.
+- If Pages is still expecting `public`, deploys can fail or publish the wrong artifact because Astro builds to `dist`.
+- If Pages is still using Node 18 or Node 20, Astro 6 will fail with an unsupported Node version error. The current project requires Node `>=22.12.0`.
+- `HUGO_VERSION` is no longer needed for the site deploy and should be removed from the Pages project if it is still set.
+
+### Triggering a deploy
+
+Push to `main` and Cloudflare Pages will rebuild automatically:
 
 ```bash
 git add .
@@ -37,8 +33,14 @@ git commit -m "your commit message"
 git push origin main
 ```
 
-Cloudflare will automatically build and deploy within a few minutes.
+### Direct CLI deploy
+
+`scripts/deploy_cf.sh` now expects Astro output in `dist/` for direct `wrangler pages deploy` usage.
+
+### Worker deploy
+
+The API Worker in `worker/` is still a separate deploy target from the Astro Pages site.
 
 ---
 
-*Last updated: February 2, 2026*
+*Last updated: April 9, 2026*

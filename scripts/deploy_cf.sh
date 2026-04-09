@@ -2,6 +2,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SITE_OUTPUT_DIR="dist"
+
 status() {
   printf "[%s] %s\n" "$(date +"%H:%M:%S")" "$1"
 }
@@ -9,6 +11,22 @@ status() {
 fail() {
   printf "Error: %s\n" "$1" >&2
   exit 1
+}
+
+ensure_node_runtime() {
+  if [[ -f ".nvmrc" && -s "${HOME}/.nvm/nvm.sh" ]]; then
+    # shellcheck disable=SC1090
+    source "${HOME}/.nvm/nvm.sh"
+    nvm use >/dev/null
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    fail "node not found in PATH"
+  fi
+
+  if ! node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 22 || (major === 22 && minor >= 12) ? 0 : 1)'; then
+    fail "Node $(node -p 'process.versions.node') is too old for Astro. Use Node 22.12.0 or newer."
+  fi
 }
 
 git_dirty() {
@@ -21,6 +39,7 @@ fi
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
+ensure_node_runtime
 
 if [[ -n "${DEPLOY_HOOK_URL:-}" ]]; then
   status "Posting deploy hook"
@@ -44,11 +63,11 @@ if [[ "${DIRECT:-0}" == "1" ]]; then
     status "Building"
     npm run build
   fi
-  if [[ ! -d "public" ]]; then
-    fail "build output folder missing: ./public"
+  if [[ ! -d "${SITE_OUTPUT_DIR}" ]]; then
+    fail "build output folder missing: ./${SITE_OUTPUT_DIR}"
   fi
   status "Deploying directly with wrangler"
-  wrangler pages deploy public --project-name skovgard2026 --branch main
+  wrangler pages deploy "${SITE_OUTPUT_DIR}" --project-name skovgard2026 --branch main
   status "Direct deploy completed"
   exit 0
 fi
@@ -91,8 +110,8 @@ fi
 status "Building"
 npm run build
 
-if [[ ! -d "public" ]]; then
-  fail "build output folder missing: ./public"
+if [[ ! -d "${SITE_OUTPUT_DIR}" ]]; then
+  fail "build output folder missing: ./${SITE_OUTPUT_DIR}"
 fi
 
 status "Pushing to origin/main"
