@@ -2,8 +2,9 @@
 {{/* Head custom content area start */}}
 {{/*     Insert any custom code (web-analytics, resources, etc.) - it will appear in the <head></head> section of every page. */}}
 {{/*     Can be overridden by a partial with the same name in the global layouts. */}}
-{{/* UnoCSS utility classes - must be loaded before other custom styles */}}
-<link rel="stylesheet" href="/css/uno.css">
+{{/* UnoCSS utility classes - fingerprinted for cache busting */}}
+{{- $unoCss := resources.FromString "assets/css/uno.css" (readFile "static/css/uno.css") | fingerprint }}
+<link rel="stylesheet" href="{{ $unoCss.RelPermalink }}" integrity="{{ $unoCss.Data.Integrity }}" crossorigin="anonymous">
 {{- if and (eq .Type "donatev1") (not (.Param "donateRouter")) }}
 <!-- Content Security Policy for payment form; allows Stripe -->
 <meta http-equiv="Content-Security-Policy" content="
@@ -19,8 +20,10 @@
 <meta name="pm-default-theme" content="{{ site.Params.defaultTheme | default "auto" }}">
 <meta name="pm-disable-theme-toggle" content="{{ site.Params.disableThemeToggle | default false }}">
 <meta name="pm-show-code-copy" content="{{ .Param "ShowCodeCopyButtons" | default false }}">
-<link rel="stylesheet" href="/css/global.css">
-<link rel="stylesheet" href="/css/forms.css">
+{{- $globalCss := resources.FromString "assets/css/global.css" (readFile "static/css/global.css") | fingerprint }}
+<link rel="stylesheet" href="{{ $globalCss.RelPermalink }}" integrity="{{ $globalCss.Data.Integrity }}" crossorigin="anonymous">
+{{- $formsCss := resources.FromString "assets/css/forms.css" (readFile "static/css/forms.css") | fingerprint }}
+<link rel="stylesheet" href="{{ $formsCss.RelPermalink }}" integrity="{{ $formsCss.Data.Integrity }}" crossorigin="anonymous">
 {{- with .Params.extraCss }}
   {{- range . }}
     {{- $sourcePath := printf "static/css/%s" . }}
