@@ -1,5 +1,118 @@
 {{ define "main" }}
-  <main class="px-4 py-12">
-    {{ .Content }}   <!-- renders content/_index.md exactly -->
-  </main>
+
+{{/* ══════════════════════════════════════
+     HERO
+     ══════════════════════════════════════ */}}
+<section class="cp-hero">
+  <div class="cp-hero__text">
+    <p class="cp-hero__eyebrow">Jimmy Skovgard · U.S. Senate · Wyoming 2026</p>
+    <h1 class="cp-hero__headline">Your Voice.<br>Your Senator.<br>Our Wyoming.</h1>
+    <p class="cp-hero__tagline">Conservative Republican &middot; Rooted in Wyoming &middot; Powered by Us</p>
+    <div class="cp-hero__actions">
+      <a href="/donate/" class="cp-btn cp-btn--red">Support the Campaign</a>
+      <a href="/volunteer/" class="cp-btn cp-btn--outline-white">Volunteer</a>
+    </div>
+  </div>
+  <div class="cp-hero__photo">
+    <img src="/images/jimmy-bw.png" alt="Jimmy Skovgard, candidate for U.S. Senate from Wyoming" loading="eager">
+  </div>
+</section>
+
+{{/* ══════════════════════════════════════
+     QUOTE BAND
+     ══════════════════════════════════════ */}}
+<section class="cp-quote-band">
+  <blockquote class="cp-quote-band__quote">
+    <p>"We, the people, are the boss, and we will get the kind of political leadership that we demand and deserve."</p>
+    <cite>&mdash; John F. Kennedy, <em>Profiles in Courage</em></cite>
+  </blockquote>
+</section>
+
+{{/* ══════════════════════════════════════
+     FOUR PILLARS
+     ══════════════════════════════════════ */}}
+<section class="cp-pillars">
+  <div class="cp-container">
+    <h2 class="cp-section-title">Four Pillars</h2>
+    <div class="cp-pillars__grid">
+      <div class="cp-pillar">
+        <h3>Stronger Together</h3>
+        <p>Cooperation is not weakness &mdash; it is how free people solve hard problems. The founding generation, the Union, the Greatest Generation: when we stand together, we succeed.</p>
+      </div>
+      <div class="cp-pillar">
+        <h3>Modernizing Oversight</h3>
+        <p>Plain English bill summaries. Transparency for digital government systems. Town hall tools to gather and verify Wyoming&rsquo;s voice where it counts.</p>
+      </div>
+      <div class="cp-pillar">
+        <h3>Accountability &amp; Term Limits</h3>
+        <p>A term limits amendment. Transparency for money in politics. Oversight and ethics enforcement that has real teeth &mdash; not just press releases.</p>
+      </div>
+      <div class="cp-pillar">
+        <h3>The Constitutional Guardrail</h3>
+        <p>Oath over office. Restore Article I. The Tenth Amendment: powers not delegated remain with the states and the people &mdash; including Wyoming.</p>
+      </div>
+    </div>
+    <p class="cp-pillars__link">
+      <a href="/pledge/" class="cp-link-cta">View my signed Term Limits Pledge &rarr;</a>
+      &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+      <a href="/resources/Our%20Wyoming%20Covenant.pdf" class="cp-link-cta">Read the Wyoming Covenant (PDF) &rarr;</a>
+    </p>
+  </div>
+</section>
+
+{{/* ══════════════════════════════════════
+     ABOUT
+     ══════════════════════════════════════ */}}
+<section class="cp-about">
+  <div class="cp-container cp-about__inner">
+    <div class="cp-about__photo">
+      <img src="/images/jimmy-flag.png" alt="Jimmy Skovgard">
+    </div>
+    <div class="cp-about__text">
+      <h2>Born and Raised in Wyoming</h2>
+      <p>Great-grandfather Simon homesteaded near Basin in 1909. Greybull grade school. Basin High School. University of Wyoming.</p>
+      <p>Twelve years of service in the Wyoming Army National Guard, honorably discharged as a captain.</p>
+      <p>Zero political connections. Zero outside agendas. Just a clean slate and one goal: <strong>your voice</strong> in the United States Senate.</p>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.75rem;">
+        <a href="/about/" class="cp-btn cp-btn--outline-white">Meet Jimmy &rarr;</a>
+        <a href="/civ-tech/" class="cp-btn cp-btn--outline-white">Explore Civ-Tech &rarr;</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{{/* ══════════════════════════════════════
+     MOUNTAIN CTA
+     ══════════════════════════════════════ */}}
+<section class="cp-mountain-cta">
+  <div class="cp-mountain-cta__overlay">
+    <h2>This is your seat. This is your future.</h2>
+    <p>Washington has stopped listening. Let&rsquo;s reclaim it together.</p>
+    <div class="cp-mountain-cta__actions">
+      <a href="/donate/" class="cp-btn cp-btn--red">Support the Campaign</a>
+      <a href="/volunteer/" class="cp-btn cp-btn--white">Volunteer</a>
+      <a href="https://grassrootsmvt.org" class="cp-btn cp-btn--outline-white">Take a Survey</a>
+    </div>
+  </div>
+</section>
+
+{{/* ══════════════════════════════════════
+     CITIZEN'S OATH
+     ══════════════════════════════════════ */}}
+<section class="cp-oath">
+  <div class="cp-container cp-oath__inner">
+    <h2 class="cp-section-title cp-section-title--light">Take the Citizen&rsquo;s Oath</h2>
+    <p class="cp-oath__intro">Thank you for taking a step on the path toward preserving self-government for our children and our children&rsquo;s children. Citizen by citizen, we rebuild the habits of a free people.</p>
+    <blockquote class="cp-oath__text">
+      &ldquo;I, [state your name], do hereby solemnly swear that I will support and defend the Constitution of the United States against all enemies, foreign and domestic; that I will bear true faith and allegiance to the same; and that I take this obligation freely, as a citizen committed to the duties of self-government.&rdquo;
+    </blockquote>
+    <p class="cp-oath__cta">
+      Build what you can. Teach what you learn. Help the next person step forward.
+    </p>
+    <p class="cp-oath__link">
+      <a href="/resources/Our%20Wyoming%20Covenant.pdf" class="cp-link-cta cp-link-cta--light">Read the full Wyoming Covenant (PDF) &rarr;</a>
+    </p>
+  </div>
+</section>
+
 {{ end }}

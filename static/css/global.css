@@ -107,3 +107,457 @@ html, body { height: 100%; margin: 0; }
 /* Home generic bullets */
 .home-bullets { margin:0.5rem 0; padding-left:1.5rem; }
 .home-bullets li { margin:0.35rem 0; }
+
+/* ==========================================
+   CAMPAIGN HOME PAGE — full-bleed override
+   ========================================== */
+body.list main.main {
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* ==========================================
+   CAMPAIGN DESIGN TOKENS
+   ========================================== */
+:root {
+  --cp-black:      #0d0d0d;
+  --cp-dark:       #1a2230;
+  --cp-red:        #8b1c1c;
+  --cp-red-hover:  #6f1717;
+  --cp-off-white:  #f8f9fb;
+  --cp-border:     #e2e6ed;
+  --cp-muted:      rgba(255,255,255,0.75);
+}
+
+/* ==========================================
+   SHARED UTILITIES
+   ========================================== */
+.cp-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.cp-section-title {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: -0.02em;
+  margin: 0 0 2.5rem;
+  color: var(--cp-black);
+}
+.cp-section-title--light { color: #fff; }
+
+/* Buttons */
+.cp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.75rem;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  text-decoration: none;
+  border-radius: 0.4rem;
+  border: 2px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cp-btn:hover { transform: translateY(-1px); }
+
+.cp-btn--red {
+  background: var(--cp-red);
+  color: #fff !important;
+  border-color: var(--cp-red);
+}
+.cp-btn--red:hover { background: var(--cp-red-hover); border-color: var(--cp-red-hover); }
+
+.cp-btn--white {
+  background: #fff;
+  color: var(--cp-black) !important;
+  border-color: #fff;
+}
+.cp-btn--white:hover { background: #f0f0f0; border-color: #f0f0f0; }
+
+.cp-btn--outline-white {
+  background: transparent;
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.65);
+}
+.cp-btn--outline-white:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+
+/* Link CTAs */
+.cp-link-cta {
+  color: var(--cp-red);
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 1rem;
+}
+.cp-link-cta:hover { text-decoration: underline; }
+.cp-link-cta--light { color: rgba(255,255,255,0.85); }
+.cp-link-cta--light:hover { color: #fff; text-decoration: underline; }
+
+/* ==========================================
+   HERO SECTION
+   ========================================== */
+.cp-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 82vh;
+  background: var(--cp-black);
+  overflow: hidden;
+}
+
+.cp-hero__text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 5rem 3rem 5rem 4rem;
+  color: #fff;
+}
+
+.cp-hero__eyebrow {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  margin: 0 0 1.25rem;
+}
+
+.cp-hero__headline {
+  font-size: clamp(2.4rem, 4.5vw, 4.2rem);
+  font-weight: 900;
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+  color: #fff !important;
+  margin: 0 0 1.5rem;
+  border: none;
+  padding: 0;
+}
+
+.cp-hero__tagline {
+  font-size: 0.975rem;
+  color: rgba(255,255,255,0.55);
+  margin: 0 0 2.5rem;
+  line-height: 1.5;
+}
+
+.cp-hero__actions {
+  display: flex;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.cp-hero__photo {
+  overflow: hidden;
+  position: relative;
+  min-height: 480px;
+}
+.cp-hero__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+/* ==========================================
+   QUOTE BAND
+   ========================================== */
+.cp-quote-band {
+  background: var(--cp-red);
+  padding: 3rem 2rem;
+  text-align: center;
+}
+.cp-quote-band__quote {
+  max-width: 820px;
+  margin: 0 auto;
+  border: none;
+  padding: 0;
+}
+.cp-quote-band__quote p {
+  font-size: clamp(1rem, 2.2vw, 1.3rem);
+  font-style: italic;
+  color: #fff;
+  line-height: 1.65;
+  margin: 0 0 0.75rem;
+}
+.cp-quote-band__quote cite {
+  display: block;
+  font-size: 0.875rem;
+  color: rgba(255,255,255,0.75);
+  font-style: normal;
+}
+
+/* ==========================================
+   PILLARS SECTION
+   ========================================== */
+.cp-pillars {
+  background: var(--cp-off-white);
+  padding: 5rem 0;
+}
+.cp-pillars__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+.cp-pillar {
+  background: #fff;
+  border: 1px solid var(--cp-border);
+  border-left: 4px solid var(--cp-red);
+  padding: 1.75rem;
+  border-radius: 0.4rem;
+}
+.cp-pillar h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--cp-black);
+  margin: 0 0 0.6rem;
+}
+.cp-pillar p {
+  font-size: 0.95rem;
+  color: #4b5563;
+  line-height: 1.65;
+  margin: 0;
+}
+.cp-pillars__link {
+  text-align: center;
+  margin: 2.5rem 0 0;
+  font-size: 1rem;
+}
+
+/* ==========================================
+   ABOUT SECTION
+   ========================================== */
+.cp-about {
+  background: var(--cp-black);
+  padding: 5rem 0;
+  color: #fff;
+}
+.cp-about__inner {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 4rem;
+  align-items: center;
+}
+.cp-about__photo img {
+  width: 100%;
+  border-radius: 0.5rem;
+  display: block;
+}
+.cp-about__text h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 900;
+  color: #fff;
+  margin: 0 0 1.25rem;
+  letter-spacing: -0.02em;
+}
+.cp-about__text p {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--cp-muted);
+  margin: 0 0 1rem;
+}
+.cp-about__text strong { color: #fff; }
+
+/* ==========================================
+   MOUNTAIN CTA
+   ========================================== */
+.cp-mountain-cta {
+  background-image: url('/images/wyoming-mountains.jpg');
+  background-size: cover;
+  background-position: center 25%;
+}
+.cp-mountain-cta__overlay {
+  background: rgba(6, 10, 18, 0.66);
+  padding: 7rem 2rem;
+  text-align: center;
+}
+.cp-mountain-cta__overlay h2 {
+  font-size: clamp(1.75rem, 3.5vw, 3rem);
+  font-weight: 900;
+  color: #fff;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.02em;
+}
+.cp-mountain-cta__overlay p {
+  font-size: 1.15rem;
+  color: rgba(255,255,255,0.78);
+  margin: 0 0 2.5rem;
+}
+.cp-mountain-cta__actions {
+  display: flex;
+  gap: 0.875rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ==========================================
+   OATH SECTION
+   ========================================== */
+.cp-oath {
+  background: var(--cp-dark);
+  padding: 5rem 0;
+}
+.cp-oath__inner {
+  max-width: 820px;
+}
+.cp-oath__intro {
+  color: var(--cp-muted);
+  font-size: 1rem;
+  line-height: 1.75;
+  text-align: center;
+  margin: 0 0 2rem;
+}
+.cp-oath__text {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--cp-muted);
+  border-left: 4px solid var(--cp-red);
+  padding: 1.25rem 1.5rem;
+  margin: 0 0 1.75rem;
+  font-style: italic;
+  background: rgba(255,255,255,0.04);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+.cp-oath__cta {
+  color: rgba(255,255,255,0.6);
+  font-size: 0.95rem;
+  font-style: italic;
+  text-align: center;
+  margin: 0 0 1rem;
+}
+.cp-oath__link {
+  text-align: center;
+  margin: 0;
+}
+
+/* ==========================================
+   CAMPAIGN FOOTER
+   ========================================== */
+.cp-footer {
+  background: var(--cp-black);
+  color: rgba(255,255,255,0.6);
+  border-top: 1px solid rgba(255,255,255,0.08) !important;
+}
+/* Hide the default PaperMod footer text inside cp-footer */
+.cp-footer > .footer { display: none; }
+
+.cp-footer__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3rem 2rem 2rem;
+}
+.cp-footer__top {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 1.5rem;
+}
+.cp-footer__wordmark {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+.cp-footer__office {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin: 0.2rem 0 0.75rem;
+}
+.cp-footer__tagline {
+  font-size: 0.875rem;
+  color: rgba(255,255,255,0.45);
+  margin: 0;
+  font-style: italic;
+}
+.cp-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  align-items: flex-start;
+  padding-top: 0.25rem;
+}
+.cp-footer__nav a {
+  color: rgba(255,255,255,0.55);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.15s;
+}
+.cp-footer__nav a:hover { color: #fff; }
+.cp-footer__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.cp-footer__legal {
+  font-size: 0.775rem;
+  color: rgba(255,255,255,0.35);
+}
+.cp-footer__legal a {
+  color: rgba(255,255,255,0.35);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.cp-footer__legal a:hover { color: rgba(255,255,255,0.65); }
+.cp-footer__sep { margin: 0 0.35rem; opacity: 0.4; }
+.cp-footer__extras {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.cp-footer__feedback {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.45);
+  text-decoration: none;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 0.3rem;
+  transition: all 0.15s;
+}
+.cp-footer__feedback:hover { color: #fff; border-color: rgba(255,255,255,0.45); }
+
+/* Dark social icons in footer */
+.cp-footer__social svg { stroke: rgba(255,255,255,0.5); }
+.cp-footer__social a:hover svg { stroke: #fff; }
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+@media (max-width: 768px) {
+  .cp-hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+  .cp-hero__photo {
+    order: -1;
+    min-height: 300px;
+    max-height: 420px;
+  }
+  .cp-hero__text {
+    padding: 2.5rem 1.5rem 3rem;
+  }
+  .cp-pillars__grid { grid-template-columns: 1fr; }
+  .cp-about__inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .cp-about__photo { max-width: 260px; margin: 0 auto; }
+  .cp-footer__top { grid-template-columns: 1fr; gap: 1.5rem; }
+  .cp-footer__bottom { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .cp-hero__headline { font-size: 2.1rem; }
+  .cp-btn { font-size: 0.9rem; padding: 0.75rem 1.25rem; }
+  .cp-mountain-cta__overlay { padding: 5rem 1.5rem; }
+}

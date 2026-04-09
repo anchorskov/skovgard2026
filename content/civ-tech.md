@@ -58,7 +58,7 @@ We reject:
 
 Help shape Civ-Tech:
 
-**Test** the platform at [this-is-us.org](https://this-is-us.org) — Wyoming’s 501(c)(3) nonprofit bringing your voice to DC
+**Test** the platform at [grassrootsmvt.org](https://grassrootsmvt.org) — bringing your voice to DC
 - **Share** your feedback at [https://www.skovgard2026.org/feedback/](https://www.skovgard2026.org/feedback/)  
 - **Spread** the word—invite your neighbors  
 
