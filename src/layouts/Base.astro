@@ -14,7 +14,7 @@ const {
   ogImage = '/images/og-default.jpg',
 } = Astro.props;
 
-const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? 'https://www.skovgard2026.org');
 const mediaBase = 'https://media.this-is-us.org';
 ---
 <!doctype html>
