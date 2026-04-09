@@ -2,78 +2,104 @@
 import Base from '../../layouts/Base.astro';
 import Nav from '../../components/Nav.astro';
 
+const MEDIA = 'https://media.this-is-us.org';
+
 const episodes = [
   {
     date: 'March 20, 2026', guest: 'Kevin',
     title: 'Real Wyoming Issues',
-    description: 'Jimmy and Kevin go deep on water rights, federal land, and what Washington gets wrong about the West.',
-    type: 'youtube', url: 'https://youtu.be/yiqVj_xtO7Q?t=156',
+    description: 'Water rights, federal land use, rural healthcare — what Washington gets wrong about the West.',
+    type: 'youtube', url: 'https://youtu.be/yiqVj_xtO7Q?t=156', label: 'Watch on YouTube',
   },
   {
     date: 'February 17, 2026', guest: 'Jake — Cowboy State Daily',
     title: 'Cowboy State Daily Interview',
     description: 'Wide-ranging conversation for Cowboy State Daily.',
-    type: 'youtube', url: 'https://youtu.be/yrcZ6PyU1mE?t=5270',
+    type: 'youtube', url: 'https://youtu.be/yrcZ6PyU1mE?t=5270', label: 'Watch on YouTube (starts 1:27:50)',
   },
   {
-    date: 'January 25, 2026', guest: 'Jack Daniels',
-    title: 'Wyoming Politics and Concerns', duration: '38:04',
-    description: 'Unscripted conversation on Wyoming politics.',
-    type: 'audio', src: 'https://media.this-is-us.org/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3',
+    date: 'February 6, 2026', guest: 'Eric Henderson',
+    title: 'Talk Shop',
+    description: 'Eric Henderson and Jimmy talk shop on Wyoming civic life.',
+    type: 'facebook', url: 'https://www.facebook.com/share/v/187BgDeHSQ/', label: 'Watch on Facebook',
+  },
+  {
+    date: 'January 25, 2026', guest: 'Jack Daniels', duration: '38:04',
+    title: 'Wyoming Politics and Concerns',
+    description: 'Unscripted conversation on what is really happening in Wyoming politics.',
+    type: 'audio', src: MEDIA + '/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3',
   },
   {
     date: 'December 14, 2025', guest: 'JR Riggins',
     title: 'Stories of Redemption',
     description: 'Three-part conversation on redemption, resilience, and Wyoming character.',
-    type: 'audio-series',
+    type: 'video-series',
     parts: [
-      { label: 'Part 1', src: 'https://media.this-is-us.org/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp3', duration: '18:42' },
-      { label: 'Part 2', src: 'https://media.this-is-us.org/jr-riggins/2025-12-14/JR_RIGGINS_-02.mp3', duration: '16:08' },
-      { label: 'Part 3', src: 'https://media.this-is-us.org/jr-riggins/2025-12-14/JR_RIGGINS_-03.mp3', duration: '14:27' },
+      { label: 'Part 1 · 18:42', audio: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp3', video: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp4' },
+      { label: 'Part 2 · 16:08', audio: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-02.mp3', video: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-02.mp4' },
+      { label: 'Part 3 · 14:27', audio: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-03.mp3', video: MEDIA + '/jr-riggins/2025-12-14/JR_RIGGINS_-03.mp4' },
     ],
   },
 ];
 ---
 <Base title='Podcast — Skovgard 2026' description='Jimmy Skovgard in conversation with Wyoming leaders and citizens.'>
   <Nav />
-  <main class='pt-24 pb-20 px-4 max-w-4xl mx-auto'>
-    <p class='text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2'>On the Record</p>
-    <h1 class='text-5xl font-serif font-bold text-wy-navy mb-4'>Podcast</h1>
-    <p class='text-gray-600 text-lg mb-12 max-w-2xl'>
-      Real conversations with Wyoming leaders, teachers, and newsmakers about restoration and civic infrastructure.
-    </p>
-    <div class='space-y-8'>
-      {episodes.map(ep => (
-        <article class='bg-white rounded-xl shadow-md p-6 border border-gray-100'>
-          <p class='text-sm text-gray-400'>{ep.date} · {ep.guest}</p>
-          <h2 class='text-xl font-serif font-bold text-wy-navy mt-1 mb-2'>{ep.title}</h2>
-          <p class='text-gray-600 mb-4'>{ep.description}</p>
-          {ep.type === 'audio' && (
-            <audio controls class='w-full rounded' preload='none'>
-              <source src={ep.src} type='audio/mpeg' />
-            </audio>
-          )}
-          {ep.type === 'audio-series' && (
-            <div class='space-y-3'>
-              {ep.parts.map(part => (
-                <div class='flex items-center gap-3'>
-                  <span class='text-sm font-medium text-wy-navy w-14 shrink-0'>{part.label}</span>
-                  <audio controls class='flex-1 rounded' preload='none'>
-                    <source src={part.src} type='audio/mpeg' />
-                  </audio>
-                  <span class='text-xs text-gray-400 w-12 text-right'>{part.duration}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {(ep.type === 'youtube' || ep.type === 'facebook') && (
-            <a href={ep.url} target='_blank' rel='noopener'
-               class='inline-flex items-center gap-2 bg-wy-navy text-white text-sm font-semibold px-4 py-2 rounded hover:bg-wy-sky transition-colors'>
-              {ep.type === 'youtube' ? 'Watch on YouTube' : 'Watch on Facebook'}
-            </a>
-          )}
-        </article>
-      ))}
+  <main class='pt-24 pb-20 px-4'>
+    <div class='max-w-4xl mx-auto'>
+      <p class='text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2'>On the Record</p>
+      <h1 class='text-5xl font-serif font-bold text-wy-navy mb-4'>Podcast</h1>
+      <p class='text-gray-600 text-lg mb-12 max-w-2xl'>
+        Real conversations with Wyoming leaders, teachers, and newsmakers about restoration, renewal, and civic infrastructure.
+      </p>
+
+      <div class='space-y-8'>
+        {episodes.map(ep => (
+          <article class='bg-white rounded-xl shadow-md p-6 border border-gray-100'>
+            <p class='text-sm text-gray-400 mb-1'>{ep.date} &middot; {ep.guest}</p>
+            <h2 class='text-xl font-serif font-bold text-wy-navy mb-2'>{ep.title}</h2>
+            <p class='text-gray-600 mb-4'>{ep.description}</p>
+
+            {ep.type === 'audio' && (
+              <div>
+                {ep.duration && <p class='text-xs text-gray-400 mb-2'>{ep.duration}</p>}
+                <audio controls class='w-full rounded' preload='none'>
+                  <source src={ep.src} type='audio/mpeg' />
+                </audio>
+              </div>
+            )}
+
+            {ep.type === 'video-series' && (
+              <div class='space-y-4'>
+                {ep.parts.map(part => (
+                  <div>
+                    <p class='text-sm font-semibold text-wy-navy mb-2'>{part.label}</p>
+                    <video controls class='w-full rounded-lg bg-black' preload='none' style='max-height:360px'>
+                      <source src={part.video} type='video/mp4' />
+                      <source src={part.audio} type='audio/mpeg' />
+                    </video>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {(ep.type === 'youtube' || ep.type === 'facebook') && (
+              <a href={ep.url} target='_blank' rel='noopener'
+                 class='inline-flex items-center gap-2 bg-wy-navy text-white text-sm font-semibold px-5 py-2.5 rounded hover:bg-wy-sky transition-colors'>
+                {ep.label}
+              </a>
+            )}
+          </article>
+        ))}
+      </div>
+
+      <div class='mt-12 bg-wy-stone rounded-2xl p-8 text-center'>
+        <h2 class='text-2xl font-serif font-bold text-wy-navy mb-3'>More on Substack</h2>
+        <p class='text-gray-600 mb-6'>Hundreds of essays and podcast chapters. The full archive lives on Substack.</p>
+        <a href='https://jimskovgard.substack.com/' target='_blank' rel='noopener'
+           class='bg-wy-navy text-white font-bold px-8 py-3 rounded hover:bg-wy-sky transition-colors'>
+          Read on Substack
+        </a>
+      </div>
     </div>
   </main>
 </Base>

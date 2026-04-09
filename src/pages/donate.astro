@@ -1,0 +1,135 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+const TURNSTILE_KEY = '0x4AAAAAACMCTeRx-deO9TQh';
+const AMOUNTS = [25, 50, 100, 250, 500];
+---
+<Base title="Donate" description="Support Jimmy Skovgard for U.S. Senate.">
+  <Nav />
+  <main class="pt-24 pb-20 px-4 bg-wy-stone min-h-screen">
+    <div class="max-w-xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Support the Campaign</p>
+      <h1 class="text-4xl font-serif font-bold text-wy-navy mb-2">Donate</h1>
+      <p class="text-gray-600 mb-8">No PAC money. No machine. Every dollar reaches Wyoming voters directly.</p>
+      <div class="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+        <form id="donate-form" novalidate>
+          <fieldset class="mb-6">
+            <legend class="font-semibold text-wy-navy mb-3">Select Amount</legend>
+            <div class="grid grid-cols-3 gap-3 mb-3">
+              {AMOUNTS.map(amt => (
+                <button type="button" data-amount={amt}
+                  class="amount-btn border-2 border-gray-200 rounded-lg py-3 font-bold text-gray-700 hover:border-wy-gold transition-colors">
+                  ${amt}
+                </button>
+              ))}
+            </div>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+              <input id="custom-amount" type="number" min="1" placeholder="Other amount"
+                class="w-full border-2 border-gray-200 rounded-lg pl-7 pr-4 py-3 focus:border-wy-gold focus:outline-none" />
+            </div>
+          </fieldset>
+          <fieldset class="mb-6 space-y-3">
+            <legend class="font-semibold text-wy-navy mb-3">Your Information</legend>
+            <div class="grid sm:grid-cols-2 gap-3">
+              <input id="donor-first" type="text" placeholder="First name *" required class="border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+              <input id="donor-last" type="text" placeholder="Last name *" required class="border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+            </div>
+            <input id="donor-email" type="email" placeholder="Email *" required class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+            <input id="donor-address" type="text" placeholder="Street address *" required class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+            <div class="grid grid-cols-3 gap-3">
+              <input id="donor-city" type="text" placeholder="City *" required class="border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+              <input id="donor-state" type="text" placeholder="ST *" maxlength="2" required class="border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+              <input id="donor-zip" type="text" placeholder="ZIP *" required class="border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+            </div>
+            <input id="donor-employer" type="text" placeholder="Employer (FEC required)" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+            <input id="donor-occupation" type="text" placeholder="Occupation (FEC required)" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none" />
+          </fieldset>
+          <fieldset class="mb-6">
+            <legend class="font-semibold text-wy-navy mb-3">Payment</legend>
+            <div id="card-element" class="border-2 border-gray-200 rounded-lg px-4 py-4"></div>
+            <p id="card-error" class="text-red-500 text-sm mt-2 hidden"></p>
+          </fieldset>
+          <div class="cf-turnstile mb-6" data-sitekey={TURNSTILE_KEY}></div>
+          <p class="text-xs text-gray-400 mb-6">Contributions are not tax-deductible. By donating you confirm you are a U.S. citizen or permanent resident, not contributing from a corporation or foreign source, and are at least 18 years old.</p>
+          <button id="submit-btn" type="submit" class="w-full bg-wy-gold text-wy-navy font-bold py-4 rounded-lg text-lg hover:bg-amber-400 transition-colors">Donate Now</button>
+          <div id="form-message" class="mt-4 text-center text-sm hidden"></div>
+        </form>
+      </div>
+      <p class="text-center text-xs text-gray-400 mt-6">Paid for by Skovgard for Senate</p>
+    </div>
+  </main>
+</Base>
+<script is:inline>
+(function(){
+  const STRIPE_PK = 'pk_live_51Son0YIfsL5VU7kUc0Ux82IBA80IuVchE5qJz4UIiJEOLTe06wKPuFRDiMZ4wvYgPinz0AGmrpnZ5EUuVm3sQAkK00Fohb6wLr';
+  let stripe, cardElement, selectedAmount = 0;
+  document.querySelectorAll('.amount-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('border-wy-gold'));
+      btn.classList.add('border-wy-gold');
+      selectedAmount = parseInt(btn.dataset.amount, 10);
+      document.getElementById('custom-amount').value = '';
+    });
+  });
+  document.getElementById('custom-amount').addEventListener('input', e => {
+    document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('border-wy-gold'));
+    selectedAmount = parseFloat(e.target.value) || 0;
+  });
+  const s = document.createElement('script');
+  s.src = 'https://js.stripe.com/v3/';
+  s.onload = () => {
+    stripe = Stripe(STRIPE_PK);
+    const els = stripe.elements();
+    cardElement = els.create('card', { style: { base: { fontSize: '16px', color: '#1B2A4A' } } });
+    cardElement.mount('#card-element');
+    cardElement.on('change', ev => {
+      const err = document.getElementById('card-error');
+      ev.error ? (err.textContent = ev.error.message, err.classList.remove('hidden')) : err.classList.add('hidden');
+    });
+  };
+  document.head.appendChild(s);
+  document.getElementById('donate-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const amount = selectedAmount || parseFloat(document.getElementById('custom-amount').value);
+    if (!amount || amount < 1) { showMsg('Please select or enter an amount.', 'error'); return; }
+    const tokenEl = document.querySelector('[name=cf-turnstile-response]');
+    if (!tokenEl || !tokenEl.value) { showMsg('Please complete the security check.', 'error'); return; }
+    btn.disabled = true; btn.textContent = 'Processing...';
+    try {
+      const res = await fetch('/api/donate/create-intent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amountCents: Math.round(amount * 100),
+          firstName: document.getElementById('donor-first').value.trim(),
+          lastName: document.getElementById('donor-last').value.trim(),
+          email: document.getElementById('donor-email').value.trim(),
+          address1: document.getElementById('donor-address').value.trim(),
+          city: document.getElementById('donor-city').value.trim(),
+          state: document.getElementById('donor-state').value.trim().toUpperCase(),
+          zip: document.getElementById('donor-zip').value.trim(),
+          employer: document.getElementById('donor-employer').value.trim(),
+          occupation: document.getElementById('donor-occupation').value.trim(),
+          turnstileToken: tokenEl.value,
+        })
+      });
+      const { clientSecret, error: ie } = await res.json();
+      if (ie) throw new Error(ie);
+      const { error: se } = await stripe.confirmCardPayment(clientSecret, { payment_method: { card: cardElement } });
+      if (se) throw new Error(se.message);
+      showMsg('Thank you! Wyoming is stronger for it.', 'success');
+      e.target.reset(); selectedAmount = 0;
+      document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('border-wy-gold'));
+    } catch (err) {
+      showMsg(err.message || 'Something went wrong.', 'error');
+      btn.disabled = false; btn.textContent = 'Donate Now';
+    }
+  });
+  function showMsg(t, type) {
+    const el = document.getElementById('form-message');
+    el.textContent = t; el.classList.remove('hidden');
+    el.className = 'mt-4 text-center text-sm ' + (type === 'error' ? 'text-red-500' : 'text-green-600');
+  }
+})();
+</script>

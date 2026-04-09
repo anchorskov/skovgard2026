@@ -1,0 +1,124 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+---
+<Base
+  title='About Jimmy Skovgard — U.S. Senate 2026'
+  description='Fifth-generation Wyomingite, veteran, and candidate for U.S. Senate. Jimmy Skovgard for Wyoming.'
+>
+  <Nav />
+  <main class='pt-20'>
+
+    <!-- Hero banner -->
+    <div class='bg-wy-navy py-20 px-4'>
+      <div class='max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center'>
+        <div>
+          <p class='text-wy-gold font-semibold uppercase tracking-widest text-sm mb-3'>For Wyoming. For Us.</p>
+          <h1 class='text-5xl font-serif font-bold text-white mb-6 leading-tight'>About Jimmy Skovgard</h1>
+          <p class='text-white/75 text-lg leading-relaxed'>
+            Fifth-generation immigrant. Fourth-generation Wyomingite. Husband, father, veteran — and now a candidate for the U.S. Senate.
+          </p>
+        </div>
+        <div class='rounded-2xl overflow-hidden shadow-2xl'>
+          <img src='/images/jimmy.png' alt='Jimmy Skovgard' class='w-full object-cover' />
+        </div>
+      </div>
+    </div>
+
+    <!-- Bio -->
+    <section class='bg-white py-20 px-4'>
+      <div class='max-w-3xl mx-auto prose prose-lg prose-headings:font-serif prose-headings:text-wy-navy prose-a:text-wy-gold'>
+        <p>
+          I grew up in the Big Horn Basin: grade school in Greybull, high school in Basin, and college at the University of Wyoming. My great-grandfather, Simon Skovgard, homesteaded near Basin in 1909. Like many of us, I was raised to work hard, speak the truth, and take responsibility for my actions.
+        </p>
+        <p>
+          I served 12 years in the Wyoming Army National Guard and was honorably discharged as a captain. I have worked in the private sector, run my own business, and spent my life grounded in Wyoming values.
+        </p>
+        <p class='font-semibold text-wy-navy'>I never planned to run for office.</p>
+        <p>
+          I got off the couch in 2024 because the path of division, distraction, and fearmongering is wrong. Fear can sharpen the mind in a crisis, but right now it is being used to keep us angry and apart. Nothing is being built.
+        </p>
+        <p>
+          I have seen this in my own family. A brother who forwards link after link filled with half-truths. A sister who lives in the Big Horn Basin and worries that &ldquo;illegals&rdquo; will invade her home. These are not natural divisions. This is deliberate manipulation for control, and it cuts deep.
+        </p>
+      </div>
+    </section>
+
+    <!-- Why Running -->
+    <section class='bg-wy-stone py-20 px-4'>
+      <div class='max-w-3xl mx-auto'>
+        <h2 class='text-4xl font-serif font-bold text-wy-navy mb-6'>Why I Am Running</h2>
+        <p class='text-gray-700 text-lg leading-relaxed mb-6'>
+          If manipulation can divide a family, it can divide a nation. That is why I am running. This is not about party politics or career ambition. It is about principle — about us, the people of Wyoming, being seen, heard, and respected again.
+        </p>
+        <p class='text-gray-700 text-lg leading-relaxed mb-8'>
+          Our budget is a moral document. Every line tells a story about who is protected, who is forgotten, and who pays the bill. Right now that bill is drifting toward our children.
+        </p>
+        <div class='grid sm:grid-cols-3 gap-6'>
+          {[
+            { label: 'Service', text: 'Not career politics. A season of work for the people of Wyoming.' },
+            { label: 'Accountability', text: 'Receipts, not rhetoric. Transparent books. No secret slush funds.' },
+            { label: 'Tools', text: 'Technology that brings Wyoming voices to Washington, not backroom deals.' },
+          ].map(item => (
+            <div class='bg-white rounded-xl p-6 shadow-sm border-t-4 border-wy-gold'>
+              <h3 class='font-serif font-bold text-wy-navy text-xl mb-2'>{item.label}</h3>
+              <p class='text-gray-600 text-sm'>{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Term Limits pledge -->
+    <section class='bg-wy-navy py-20 px-4'>
+      <div class='max-w-3xl mx-auto text-center'>
+        <h2 class='text-4xl font-serif font-bold text-white mb-4'>A Season of Service</h2>
+        <p class='text-white/70 text-lg mb-10'>Office should be a season of service, not a lifetime entitlement.</p>
+        <div class='space-y-4 text-left'>
+          {[
+            'I will treat this work as a shift, not a career. I support term limits.',
+            'I will support plain-language public reports showing what came in, what went out, and what it means for our future.',
+            'I will live under the standard I am asking us to adopt.',
+          ].map(pledge => (
+            <div class='flex gap-4 items-start bg-white/10 rounded-xl p-5'>
+              <span class='text-wy-gold text-xl mt-0.5'>&#10003;</span>
+              <p class='text-white/90'>{pledge}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Healthcare rights -->
+    <section class='bg-white py-20 px-4'>
+      <div class='max-w-3xl mx-auto'>
+        <h2 class='text-4xl font-serif font-bold text-wy-navy mb-6'>Health Care Rights</h2>
+        <p class='text-gray-700 text-lg leading-relaxed mb-8'>
+          On questions of life, family, and medical care, we start with Wyoming&rsquo;s Constitution. Government must not force personal medical decisions on families.
+        </p>
+        <blockquote class='border-l-4 border-wy-gold pl-6 italic text-gray-600 text-lg mb-3'>
+          &ldquo;Every competent adult has the right to make personal health care decisions for themselves and their dependents, and the State of Wyoming must protect those rights from undue governmental infringement.&rdquo;
+        </blockquote>
+        <p class='text-sm text-gray-500'>Wyoming Constitution, Article 1, Section 38</p>
+      </div>
+    </section>
+
+    <!-- Substack CTA -->
+    <section class='bg-wy-stone py-16 px-4 text-center'>
+      <h2 class='text-3xl font-serif font-bold text-wy-navy mb-4'>Dig Deeper</h2>
+      <p class='text-gray-600 text-lg mb-8 max-w-xl mx-auto'>
+        Hundreds of essays on Jimmy&rsquo;s journey and the path forward. Read the Substack, then join the conversation on the podcast.
+      </p>
+      <div class='flex flex-col sm:flex-row gap-4 justify-center'>
+        <a href='https://jimskovgard.substack.com/' target='_blank' rel='noopener'
+           class='bg-wy-navy text-white font-bold px-8 py-3 rounded hover:bg-wy-sky transition-colors'>
+          Read on Substack
+        </a>
+        <a href='/podcast' class='border-2 border-wy-navy text-wy-navy font-bold px-8 py-3 rounded hover:bg-wy-navy hover:text-white transition-colors'>
+          Listen to Podcast
+        </a>
+      </div>
+    </section>
+
+  </main>
+</Base>
