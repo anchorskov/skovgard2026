@@ -1,0 +1,50 @@
+---
+// src/components/Nav.astro
+const navLinks = [
+  { href: '/about', label: 'About' },
+  { href: '/civ-tech', label: 'Civ-Tech' },
+  { href: '/volunteer', label: 'Volunteer' },
+  { href: '/events', label: 'Events' },
+  { href: '/pulse', label: 'Pulse' },
+  { href: '/podcast', label: 'Podcast' },
+  { href: '/finance', label: 'Finance' },
+];
+
+const current = Astro.url.pathname;
+---
+<nav class="fixed top-0 w-full z-50 bg-wy-navy/95 backdrop-blur-sm border-b border-wy-gold/20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+    <!-- Wordmark -->
+    <a href="/" class="flex items-center gap-2">
+      <span class="text-white font-serif font-bold text-lg leading-tight">
+        Jimmy<br/><span class="text-wy-gold">Skovgard</span>
+      </span>
+      <span class="text-white/40 text-xs ml-2 hidden sm:block">U.S. Senate · 2026</span>
+    </a>
+
+    <!-- Desktop links -->
+    <div class="hidden md:flex items-center gap-6">
+      {navLinks.map(link => (
+        <a
+          href={link.href}
+          class={[
+            'text-sm font-medium transition-colors',
+            current === link.href || current.startsWith(link.href + '/')
+              ? 'text-wy-gold'
+              : 'text-white/80 hover:text-white'
+          ].join(' ')}
+        >
+          {link.label}
+        </a>
+      ))}
+    </div>
+
+    <!-- CTA -->
+    <a
+      href="/donate"
+      class="bg-wy-gold text-wy-navy font-bold text-sm px-4 py-2 rounded hover:bg-amber-400 transition-colors"
+    >
+      Donate
+    </a>
+  </div>
+</nav>

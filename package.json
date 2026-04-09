@@ -1,13 +1,13 @@
 {
   "name": "skovgard2026",
   "version": "1.0.0",
-  "description": "Hugo + UnoCSS static site for Jimmy Skovgard 2026",
+  "description": "Astro + Tailwind campaign site for Jimmy Skovgard 2026",
   "private": true,
   "scripts": {
-    "dev": "npm run unocss:watch & hugo server -D --environment development --config config/_default/config.toml,config/development/config.toml",
-    "unocss": "unocss -c unocss.config.cjs 'layouts/**/*' 'content/**/*' 'static/js/**/*' -o static/css/uno.css",
-    "unocss:watch": "npm run unocss -- --watch",
-    "build": "npm run unocss && hugo --minify"
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
   },
   "repository": {
     "type": "git",
@@ -18,8 +18,15 @@
   },
   "homepage": "https://github.com/anchorskov/skovgard2026#readme",
   "devDependencies": {
+    "@astrojs/check": "^0.9.8",
+    "@astrojs/cloudflare": "^13.1.8",
+    "@astrojs/mdx": "^5.0.3",
+    "@tailwindcss/vite": "^4.2.2",
     "@unocss/cli": "^66.3.3",
     "@unocss/preset-uno": "^66.3.3",
+    "astro": "^6.1.5",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3",
     "unocss": "^66.3.3"
   },
   "engines": {
