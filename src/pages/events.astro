@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
 
 const GCAL_EMBED = 'https://calendar.google.com/calendar/embed?src=38a0e5d50371ca9fd7f5c39451b12f3fcc571e8465dd8a8a092f0ca8ca587512%40group.calendar.google.com&ctz=America%2FDenver&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=0&showCalendars=0&mode=AGENDA';
 const EVENT_REQUEST_URL = 'https://mail.google.com/mail/?view=cm&fs=1&to=jimmy@grassrootsmvt.org&su=Requested%20Event&body=Name%3A%0APhone%3A%0APreferred%20date%2Ftime%3A%0ACity%3A%0AEvent%20details%3A';
@@ -44,4 +45,5 @@ const EVENT_REQUEST_URL = 'https://mail.google.com/mail/?view=cm&fs=1&to=jimmy@g
       </div>
     </div>
   </main>
+  <Footer />
 </Base>

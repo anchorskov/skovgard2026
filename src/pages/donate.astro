@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
 const TURNSTILE_KEY = '0x4AAAAAACMCTeRx-deO9TQh';
 const AMOUNTS = [25, 50, 100, 250, 500];
 ---
@@ -59,6 +60,7 @@ const AMOUNTS = [25, 50, 100, 250, 500];
       <p class="text-center text-xs text-gray-400 mt-6">Paid for by Skovgard for Senate</p>
     </div>
   </main>
+  <Footer />
 </Base>
 <script is:inline>
 (function(){

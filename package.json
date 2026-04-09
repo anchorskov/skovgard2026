@@ -21,6 +21,7 @@
     "@astrojs/check": "^0.9.8",
     "@astrojs/cloudflare": "^13.1.8",
     "@astrojs/mdx": "^5.0.3",
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.2",
     "@unocss/cli": "^66.3.3",
     "@unocss/preset-uno": "^66.3.3",

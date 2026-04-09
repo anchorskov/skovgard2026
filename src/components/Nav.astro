@@ -39,12 +39,66 @@ const current = Astro.url.pathname;
       ))}
     </div>
 
-    <!-- CTA -->
-    <a
-      href="/donate"
-      class="bg-wy-gold text-wy-navy font-bold text-sm px-4 py-2 rounded hover:bg-amber-400 transition-colors"
-    >
-      Donate
-    </a>
+    <!-- Desktop CTA + mobile hamburger row -->
+    <div class="flex items-center gap-3">
+      <a
+        href="/donate"
+        class="bg-wy-gold text-wy-navy font-bold text-sm px-4 py-2 rounded hover:bg-amber-400 transition-colors"
+      >
+        Donate
+      </a>
+      <!-- Hamburger — mobile only -->
+      <button
+        id="nav-toggle"
+        aria-label="Toggle navigation menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        class="md:hidden text-white p-1 rounded focus:outline-none focus:ring-2 focus:ring-wy-gold"
+      >
+        <svg id="icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        <svg id="icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile menu (hidden by default) -->
+  <div
+    id="mobile-menu"
+    class="hidden md:hidden bg-wy-navy border-t border-wy-gold/20 px-4 pb-4"
+  >
+    {navLinks.map(link => (
+      <a
+        href={link.href}
+        class={[
+          'block py-2 text-sm font-medium transition-colors',
+          current === link.href || current.startsWith(link.href + '/')
+            ? 'text-wy-gold'
+            : 'text-white/80 hover:text-white'
+        ].join(' ')}
+      >
+        {link.label}
+      </a>
+    ))}
   </div>
 </nav>
+
+<script is:inline>
+(function () {
+  const toggle = document.getElementById('nav-toggle');
+  const menu = document.getElementById('mobile-menu');
+  const iconOpen = document.getElementById('icon-open');
+  const iconClose = document.getElementById('icon-close');
+  if (!toggle || !menu) return;
+  toggle.addEventListener('click', function () {
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!expanded));
+    menu.classList.toggle('hidden');
+    iconOpen.classList.toggle('hidden');
+    iconClose.classList.toggle('hidden');
+  });
+})();
+</script>

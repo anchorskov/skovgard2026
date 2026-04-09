@@ -1,0 +1,39 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+<Base
+  title="Grassroots — Skovgard 2026"
+  description="Reflections and stories from the trail. Wyoming people building something real."
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4">
+    <div class="max-w-3xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Community</p>
+      <h1 class="text-5xl font-serif font-bold text-wy-navy mb-6">Grassroots</h1>
+      <div class="prose prose-lg text-gray-600 mb-10">
+        <p>We are building a community. This page is for reflections and stories from the trail.</p>
+        <p>
+          For tools, downloads, and training, visit
+          <a href="/volunteer-resources/" class="text-wy-gold font-semibold hover:underline">Volunteer Resources</a>.
+        </p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8">
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-3">Reflection &amp; Stories</h2>
+        <p class="text-gray-600 mb-6">
+          If you've handed out flyers, hosted a kitchen-table conversation, or simply shared your
+          thoughts with a neighbor, we want to hear from you.
+        </p>
+        <a
+          href="/feedback/"
+          class="inline-block bg-wy-gold text-wy-navy font-bold px-6 py-3 rounded hover:bg-amber-400 transition-colors"
+        >
+          Share Your Story →
+        </a>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Base>

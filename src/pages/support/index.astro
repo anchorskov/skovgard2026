@@ -1,0 +1,136 @@
+---
+// src/pages/support/index.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="Campaign-to-Campaign Support — Skovgard 2026"
+  description="Helping other Wyoming candidates build their campaign websites. Open source, no cost, neighbor helping neighbor."
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4">
+    <div class="max-w-3xl mx-auto">
+
+      <!-- Header -->
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Candidate Support</p>
+      <h1 class="text-5xl font-serif font-bold text-wy-navy mb-6">Campaign-to-Campaign Support</h1>
+
+      <div class="prose prose-lg text-gray-600 mb-10">
+        <p>
+          Building a campaign website shouldn't require a tech team or a big budget. We built this site ourselves —
+          a Senate candidate and a neighbor with a laptop — and we want to help other Wyoming candidates do the same.
+        </p>
+        <p>
+          If you're running for state legislature, county commission, school board, or any other office, and you need
+          a simple, professional web presence, reach out. We'll walk you through every step.
+        </p>
+        <p>
+          There's no charge. This is neighbor helping neighbor.
+        </p>
+      </div>
+
+      <!-- CTA -->
+      <div class="bg-wy-stone border border-amber-200 rounded-xl p-6 mb-12">
+        <h2 class="text-xl font-serif font-bold text-wy-navy mb-2">Ready to Get Started?</h2>
+        <p class="text-gray-600 mb-4">
+          Email Jimmy directly with the subject line <strong>"Website Help Please"</strong> and describe
+          your campaign (office, county, and timeline). We'll get back to you within a few days.
+        </p>
+        <a
+          href="mailto:jimmy@grassrootsmvt.org?subject=Website%20Help%20Please"
+          class="inline-block bg-wy-gold text-wy-navy font-bold px-6 py-3 rounded hover:bg-amber-400 transition-colors"
+        >
+          Email Jimmy →
+        </a>
+      </div>
+
+      <!-- 5-Step Starter Path -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-2">The 5-Step Starter Path</h2>
+        <p class="text-gray-500 text-sm mb-6">
+          For the full detailed guide — every command, every screenshot, every decision — see
+          <a href="/my-path/" class="text-wy-gold hover:underline font-semibold">My Path</a>.
+        </p>
+
+        <ol class="space-y-6">
+
+          <li class="flex gap-4">
+            <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg">1</span>
+            <div>
+              <h3 class="font-bold text-wy-navy text-lg mb-1">Register a Domain Name</h3>
+              <p class="text-gray-600">
+                Choose a simple, memorable domain like <code class="text-sm bg-gray-100 px-1 rounded">yourname2026.com</code>.
+                Namecheap and Porkbun both offer low-cost domains with free WHOIS privacy. Expect to pay $10–15 per year.
+              </p>
+            </div>
+          </li>
+
+          <li class="flex gap-4">
+            <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg">2</span>
+            <div>
+              <h3 class="font-bold text-wy-navy text-lg mb-1">Set Up Hosting and DNS with Cloudflare</h3>
+              <p class="text-gray-600">
+                Create a free Cloudflare account. Add your domain, then point your registrar's nameservers to Cloudflare.
+                Cloudflare Pages (free tier) will host your site — no server bills ever.
+              </p>
+            </div>
+          </li>
+
+          <li class="flex gap-4">
+            <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg">3</span>
+            <div>
+              <h3 class="font-bold text-wy-navy text-lg mb-1">Create a GitHub Repository</h3>
+              <p class="text-gray-600">
+                GitHub is where your site's code lives. Create a free account and a new repository. Cloudflare Pages
+                will watch it and automatically rebuild your site every time you push a change.
+              </p>
+            </div>
+          </li>
+
+          <li class="flex gap-4">
+            <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg">4</span>
+            <div>
+              <h3 class="font-bold text-wy-navy text-lg mb-1">Start From the Skovgard2026 Template</h3>
+              <p class="text-gray-600">
+                Our site is built with Astro and Tailwind CSS — fast, simple, and free. You can fork our repository
+                as a starting point and swap in your name, colors, and content. No coding background required to get
+                the basics running.
+              </p>
+            </div>
+          </li>
+
+          <li class="flex gap-4">
+            <span class="flex-shrink-0 w-10 h-10 rounded-full bg-wy-navy text-wy-gold font-bold flex items-center justify-center text-lg">5</span>
+            <div>
+              <h3 class="font-bold text-wy-navy text-lg mb-1">Document Your Workflow</h3>
+              <p class="text-gray-600">
+                Write down every step you take — every command, every setting, every decision. You're not just
+                building a website; you're building a playbook the next candidate can follow. That's how this
+                movement grows.
+              </p>
+            </div>
+          </li>
+
+        </ol>
+      </section>
+
+      <!-- Full Guide Link -->
+      <section class="bg-wy-navy text-white rounded-xl p-8 text-center">
+        <h2 class="text-2xl font-serif font-bold mb-3">See the Full Step-by-Step Guide</h2>
+        <p class="text-wy-sky mb-6">
+          The <strong class="text-white">My Path</strong> page documents exactly how we built this site —
+          every tool, every decision, every command — so you can replicate it.
+        </p>
+        <a
+          href="/my-path/"
+          class="inline-block bg-wy-gold text-wy-navy font-bold px-8 py-4 rounded text-lg hover:bg-amber-400 transition-colors"
+        >
+          Read My Path →
+        </a>
+      </section>
+
+    </div>
+  </main>
+  <Footer />
+</Base>

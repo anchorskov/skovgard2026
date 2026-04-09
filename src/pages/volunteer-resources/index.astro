@@ -1,0 +1,204 @@
+---
+// src/pages/volunteer-resources/index.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="Volunteer Resources — Skovgard 2026"
+  description="Tools, downloads, training, and everything you need to volunteer for Skovgard for Senate."
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4">
+    <div class="max-w-3xl mx-auto">
+
+      <!-- Header -->
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Volunteer Hub</p>
+      <h1 class="text-5xl font-serif font-bold text-wy-navy mb-4">Volunteer Resources</h1>
+      <p class="text-gray-600 text-lg mb-10">
+        Everything you need to hit the ground running — flyers, affidavits, training, and meeting times.
+        Questions? Email <a href="mailto:skovgard2026@gmail.com" class="text-wy-gold hover:underline">skovgard2026@gmail.com</a>.
+      </p>
+
+      <!-- Quick Start -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-4 border-b border-wy-gold pb-2">Quick Start</h2>
+        <ol class="space-y-3 text-gray-700 list-decimal list-inside">
+          <li>Download the volunteer flyer and campaign flyer below.</li>
+          <li>Print a stack and bring them to your next community event, church, or coffee shop.</li>
+          <li>Collect signatures on the affidavit form and mail them in (address below).</li>
+          <li>Join a Saturday training call to connect with the team.</li>
+          <li>Sign up for the <a href="/pulse/signup/" class="text-wy-gold hover:underline font-semibold">Pulse texting circle</a> to stay in the loop and forward updates.</li>
+        </ol>
+      </section>
+
+      <!-- Downloads -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-4 border-b border-wy-gold pb-2">Downloads</h2>
+        <div class="grid gap-4">
+
+          <a
+            href="/resources/Volunteer%20Flyer.pdf"
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-wy-gold transition-all group"
+          >
+            <span class="text-3xl">📄</span>
+            <div>
+              <p class="font-bold text-wy-navy group-hover:text-wy-gold transition-colors">Volunteer Flyer</p>
+              <p class="text-sm text-gray-500">PDF — print and distribute at community events</p>
+            </div>
+          </a>
+
+          <a
+            href="/resources/Jimmy%20Skovgard%20for%20US%20Senate.pdf"
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-wy-gold transition-all group"
+          >
+            <span class="text-3xl">📄</span>
+            <div>
+              <p class="font-bold text-wy-navy group-hover:text-wy-gold transition-colors">Campaign Flyer</p>
+              <p class="text-sm text-gray-500">PDF — Jimmy Skovgard for U.S. Senate</p>
+            </div>
+          </a>
+
+          <a
+            href="/resources/VoterRegistrationForm.pdf"
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-wy-gold transition-all group"
+          >
+            <span class="text-3xl">🗳️</span>
+            <div>
+              <p class="font-bold text-wy-navy group-hover:text-wy-gold transition-colors">Wyoming Voter Registration Form</p>
+              <p class="text-sm text-gray-500">PDF — help neighbors get registered</p>
+            </div>
+          </a>
+
+          <a
+            href="/resources/affidavit-qr.png"
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-wy-gold transition-all group"
+          >
+            <span class="text-3xl">🔲</span>
+            <div>
+              <p class="font-bold text-wy-navy group-hover:text-wy-gold transition-colors">Affidavit QR Code</p>
+              <p class="text-sm text-gray-500">PNG — print or share so signers can pull up the form on their phone</p>
+            </div>
+          </a>
+
+          <a
+            href="/resources/Wyoming-Affidavit-Template-Fillable-2026-v3.pdf"
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-wy-gold transition-all group"
+          >
+            <span class="text-3xl">✍️</span>
+            <div>
+              <p class="font-bold text-wy-navy group-hover:text-wy-gold transition-colors">Fillable Affidavit PDF</p>
+              <p class="text-sm text-gray-500">PDF — Wyoming Affidavit Template (2026 v3)</p>
+            </div>
+          </a>
+
+        </div>
+      </section>
+
+      <!-- Affidavit -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-4 border-b border-wy-gold pb-2">Affidavit Submission</h2>
+        <div class="bg-wy-stone rounded-xl p-6 border border-amber-200">
+          <p class="text-gray-700 mb-4">
+            Once you've collected signed affidavits, mail them to us. Every signature matters — thank you for doing this work.
+          </p>
+          <div class="space-y-2">
+            <p class="font-bold text-wy-navy">Mailing Address:</p>
+            <address class="not-italic text-gray-700 leading-relaxed pl-4 border-l-4 border-wy-gold">
+              Skovgard for Senate<br />
+              5685 Hanly Mills<br />
+              Casper, WY 82604
+            </address>
+          </div>
+          <div class="mt-4">
+            <p class="font-bold text-wy-navy">Email:</p>
+            <a href="mailto:skovgard2026@gmail.com" class="text-wy-gold hover:underline">skovgard2026@gmail.com</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Training -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-4 border-b border-wy-gold pb-2">Training</h2>
+        <div class="prose prose-lg text-gray-600">
+          <p>
+            New volunteers receive a short orientation covering Wyoming ballot access law, how to approach conversations
+            with voters, and how to handle affidavit paperwork correctly. Training is done live on Saturday Zoom calls
+            or one-on-one by email request.
+          </p>
+          <ul>
+            <li>Never pressure a signer — all signatures must be freely given.</li>
+            <li>Verify the signer is a registered Wyoming voter before collecting the affidavit.</li>
+            <li>Keep all completed forms safe and mail them in promptly.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Meetings -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-4 border-b border-wy-gold pb-2">Weekly Meetings</h2>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <p class="text-gray-700 mb-2">
+            <span class="font-bold text-wy-navy">Every Saturday at 10:00 AM Mountain Time</span> — Zoom call
+          </p>
+          <p class="text-gray-600 text-sm mb-4">
+            We cover updates from the campaign trail, answer questions, coordinate canvassing, and celebrate wins.
+            Email <a href="mailto:skovgard2026@gmail.com" class="text-wy-gold hover:underline">skovgard2026@gmail.com</a> to get the Zoom link.
+          </p>
+          <p class="text-sm text-gray-500 italic">Can't make Saturdays? Reach out and we'll find a way to connect.</p>
+        </div>
+      </section>
+
+      <!-- Texting Circles -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-4 border-b border-wy-gold pb-2">Texting Circles</h2>
+        <div class="prose prose-lg text-gray-600 mb-4">
+          <p>
+            The Pulse texting circle is how we amplify the campaign's reach without spending a dime on ads. When you
+            receive a campaign update, forward it personally to people you know and trust — neighbors, family, friends.
+            A text from someone they know is worth a hundred mailers.
+          </p>
+        </div>
+        <a
+          href="/pulse/signup/"
+          class="inline-block bg-wy-gold text-wy-navy font-bold px-6 py-3 rounded hover:bg-amber-400 transition-colors"
+        >
+          Join the Texting Circle →
+        </a>
+      </section>
+
+      <!-- Code of Conduct -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-4 border-b border-wy-gold pb-2">Code of Conduct</h2>
+        <div class="prose prose-lg text-gray-600">
+          <p>
+            We represent Jimmy Skovgard and Wyoming voters with every interaction. Please hold yourself to these standards:
+          </p>
+          <ul>
+            <li><strong>Be respectful.</strong> Every voter deserves courtesy, regardless of their party.</li>
+            <li><strong>Be honest.</strong> Never misrepresent Jimmy's positions or the campaign's status.</li>
+            <li><strong>Be safe.</strong> If a situation feels unsafe, leave and report it.</li>
+            <li><strong>No harassment.</strong> Do not follow, pressure, or contact voters who decline.</li>
+            <li><strong>Represent the campaign well.</strong> Dress neatly, speak clearly, and thank people for their time.</li>
+          </ul>
+          <p>
+            Volunteers who violate these standards may be removed from the program.
+            If you have concerns, contact <a href="mailto:skovgard2026@gmail.com" class="text-wy-gold hover:underline">skovgard2026@gmail.com</a>.
+          </p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+  <Footer />
+</Base>

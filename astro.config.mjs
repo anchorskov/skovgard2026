@@ -8,6 +8,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   site: 'https://www.skovgard2026.org',
   output: 'static',
+  publicDir: 'static',   // Hugo-style: static/ directory served as public assets
   integrations: [mdx()],
   vite: {
     plugins: [tailwindcss()],

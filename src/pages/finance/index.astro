@@ -1,0 +1,144 @@
+---
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+
+const expensePDFs = [
+  { label: 'March 2026',    path: '/finance/2026-03-Expenses.pdf' },
+  { label: 'February 2026', path: '/finance/2026-02-Expenses.pdf' },
+  { label: 'January 2026',  path: '/finance/2026-01-Expenses.pdf' },
+  { label: 'December 2025', path: '/finance/2025-12-Expenses.pdf' },
+  { label: 'November 2025', path: '/finance/2025-11-Expenses.pdf' },
+  { label: 'October 2025',  path: '/finance/2025-10-Expenses.pdf' },
+  { label: 'September 2025',path: '/finance/2025-09-Expenses.pdf' },
+  { label: 'August 2025',   path: '/finance/2025-08-Expenses.pdf' },
+  { label: 'July 2025',     path: '/finance/2025-07-Expenses.pdf' },
+];
+
+const contributionPDFs = [
+  { label: 'March 2026',    path: '/finance/contributions/2026-03-Contributions.pdf' },
+  { label: 'February 2026', path: '/finance/contributions/2026-02-Contributions.pdf' },
+  { label: 'January 2026',  path: '/finance/contributions/2026-01-Contributions.pdf' },
+  { label: 'December 2025', path: '/finance/contributions/2025-12-Contributions.pdf' },
+  { label: 'November 2025', path: '/finance/contributions/2025-11-Contributions.pdf' },
+  { label: 'October 2025',  path: '/finance/contributions/2025-10-Contributions.pdf' },
+  { label: 'September 2025',path: '/finance/contributions/2025-09-Contributions.pdf' },
+  { label: 'August 2025',   path: '/finance/contributions/2025-08-Contributions.pdf' },
+  { label: 'July 2025',     path: '/finance/contributions/2025-07-Contributions.pdf' },
+];
+---
+<Base
+  title="Campaign Finance — Skovgard 2026"
+  description="Monthly campaign finance summary, expenditure and contribution PDFs, and FEC filing information for Skovgard for Senate."
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4">
+    <div class="max-w-4xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Transparency</p>
+      <h1 class="text-5xl font-serif font-bold text-wy-navy mb-4">Campaign Finance</h1>
+      <p class="text-gray-600 text-lg mb-10">We update this page at the start of each month. All figures are in US dollars.</p>
+
+      <!-- Current Month Summary -->
+      <section class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-10">
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-6">Current Month Summary — March 2026</h2>
+        <dl class="grid sm:grid-cols-2 gap-4 mb-6">
+          {[
+            ['Balance forward (as of Mar 1)',          '$961.92'],
+            ['Contributions received in March',        '$2,080.00'],
+            ['Expenditures in March',                  '$423.32'],
+            ['Cash on hand at Mar 31',                 '$2,618.60'],
+            ['Debts and obligations',                  '$0.00'],
+          ].map(([label, value]) => (
+            <div class="bg-wy-stone rounded-lg px-5 py-4">
+              <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{label}</dt>
+              <dd class="text-xl font-bold text-wy-navy">{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          March activity includes $2,000.00 in candidate support from Jimmy Skovgard, a $15.00 contribution from C. Jolley,
+          a $5.00 Stripe test contribution from the candidate, a $10.00 WinRed test contribution from the candidate, and a
+          $50.00 WinRed contribution from Caleb H. Expenditures include $355.00 to CWFR for booth space, $50.00 to The
+          Hangar for venue space, $15.00 in Wells Fargo monthly service fees, and $3.32 in processing fees.
+          Cash reconciles to the bank as of Mar 31, 2026.
+        </p>
+      </section>
+
+      <!-- Campaign Totals -->
+      <section class="bg-wy-navy rounded-2xl p-8 mb-10 text-white">
+        <h2 class="text-2xl font-serif font-bold mb-6">Campaign Totals</h2>
+        <dl class="grid sm:grid-cols-3 gap-6">
+          {[
+            ['Total contributions\nthrough Mar 31, 2026', '$7,246.21'],
+            ['Total expenditures\nsince launch 04/24/2025', '$4,627.61'],
+            ['Cash on hand\nas of Mar 31', '$2,618.60'],
+          ].map(([label, value]) => (
+            <div>
+              <dt class="text-white/50 text-xs font-semibold uppercase tracking-wider mb-1 whitespace-pre-line">{label}</dt>
+              <dd class="text-3xl font-bold text-wy-gold">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <!-- PDFs grid -->
+      <div class="grid md:grid-cols-2 gap-8 mb-10">
+        <!-- Expense PDFs -->
+        <section class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+          <h2 class="text-xl font-serif font-bold text-wy-navy mb-4">Expense Reports</h2>
+          <ul class="space-y-2">
+            {expensePDFs.map(pdf => (
+              <li>
+                <a
+                  href={pdf.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-2 text-wy-sky hover:text-wy-navy transition-colors text-sm font-medium"
+                >
+                  <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                  </svg>
+                  {pdf.label} Expenses
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <!-- Contribution PDFs -->
+        <section class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+          <h2 class="text-xl font-serif font-bold text-wy-navy mb-4">Contribution Reports</h2>
+          <ul class="space-y-2">
+            {contributionPDFs.map(pdf => (
+              <li>
+                <a
+                  href={pdf.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-2 text-wy-sky hover:text-wy-navy transition-colors text-sm font-medium"
+                >
+                  <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                  </svg>
+                  {pdf.label} Contributions
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <!-- FEC info -->
+      <section class="bg-wy-stone rounded-2xl p-6 text-sm text-gray-600">
+        <h2 class="font-serif font-bold text-wy-navy text-lg mb-2">Federal Election Commission Filing</h2>
+        <p>
+          Skovgard for Senate is registered with the FEC under <strong>Committee ID C00903369</strong>.
+          Official FEC filings are publicly available at
+          <a href="https://www.fec.gov/data/committee/C00903369/" target="_blank" rel="noopener noreferrer"
+             class="text-wy-sky hover:underline">fec.gov/data/committee/C00903369/</a>.
+        </p>
+      </section>
+    </div>
+  </main>
+  <Footer />
+</Base>
