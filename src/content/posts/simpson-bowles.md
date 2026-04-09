@@ -1,7 +1,7 @@
 ---
 title: "Simpson-Bowles: What Happened and Why It Matters"
 date: 2025-11-01
-description: "A deep dive into the Simpson-Bowles fiscal commission — what it proposed, why it failed, and what that tells us about the political will needed for real reform."
+description: "A deep dive into the Simpson-Bowles fiscal commission: what it proposed, why it failed, and what that tells us about the political will needed for real reform."
 draft: false
 tags: ["fiscal policy", "federal budget", "leadership"]
 ---
@@ -28,7 +28,7 @@ This was not just about history. It was about learning from a failed opportunity
 The **National Commission on Fiscal Responsibility and Reform** was created in 2010. Key facts:
 
 - Formed in response to rising deficits after the financial crisis and years of structural imbalance.
-- Co-chaired by former Senator Alan Simpson and former White House Chief of Staff Erskine Bowles — a cross-aisle effort.
+- Co-chaired by former Senator Alan Simpson and former White House Chief of Staff Erskine Bowles, a cross-aisle effort.
 - Mandate: propose a plan to stabilize the debt over the medium term.
 
 ---
