@@ -225,6 +225,65 @@ function normalizeEmailForStorage(email) {
   };
 }
 
+
+// ---------------------------------------------------------------------------
+// FEC election-period helpers
+// Primary:  now  -> Aug 18 2026 (end of day UTC)
+// General:  Aug 19 2026 -> Nov 3 2026 (end of day UTC)
+// ---------------------------------------------------------------------------
+function getFecElectionPeriod(now = new Date()) {
+  const PRIMARY_END = new Date('2026-08-19T06:00:00Z'); // midnight MT Aug 18 -> 06:00 UTC
+  const GENERAL_END = new Date('2026-11-04T07:00:00Z'); // midnight MT Nov 3  -> 07:00 UTC
+  if (now < PRIMARY_END) return 'primary';
+  if (now < GENERAL_END) return 'general';
+  return null; // election cycle closed
+}
+
+const FEC_PERIOD_LIMIT_CENTS = 350000; // $3,500 per election period
+
+async function getDonorPeriodTotalCents(db, email, period) {
+  if (!email) return 0;
+  const sql = [
+    "SELECT COALESCE(SUM(c.amount_cents), 0) AS total",
+    "FROM contributions c JOIN donors d ON c.donor_id = d.id",
+    "WHERE lower(d.email) = lower(?1) AND c.election_period = ?2",
+    "  AND c.status IN ('pending', 'succeeded', 'succeeded_webhook')",
+  ].join(" ");
+  const row = await db.prepare(sql).bind(email.toLowerCase(), period).first();
+  return row?.total ?? 0;
+}
+
+async function upsertDonor(db, donor) {
+  if (donor.email) {
+    const existing = await db.prepare(
+      "SELECT id FROM donors WHERE lower(email) = lower(?1) LIMIT 1"
+    ).bind(donor.email).first();
+    if (existing) {
+      await db.prepare(
+        "UPDATE donors SET first_name=?2, last_name=?3, address1=?4," +
+        " city=?5, state=?6, zip=?7, employer=?8, occupation=?9 WHERE id=?1"
+      ).bind(
+        existing.id,
+        donor.first_name, donor.last_name,
+        donor.address1, donor.city, donor.state, donor.zip,
+        donor.employer || '', donor.occupation || ''
+      ).run();
+      return existing.id;
+    }
+  }
+  const ins = await db.prepare(
+    "INSERT INTO donors (first_name, last_name, email, phone, address1, address2," +
+    " city, state, zip, country, employer, occupation)" +
+    " VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)"
+  ).bind(
+    donor.first_name, donor.last_name, donor.email || '', donor.phone || '',
+    donor.address1, donor.address2 || '',
+    donor.city, donor.state, donor.zip, donor.country,
+    donor.employer || '', donor.occupation || ''
+  ).run();
+  return ins.meta.last_row_id;
+}
+
 async function upsertNewsletterSubscriber(db, input) {
   const { raw: emailRaw, normalized: email } = normalizeEmailForStorage(input?.email);
   const consentEmail = input?.consentEmail === true || input?.consentEmail === 1;
@@ -1577,6 +1636,111 @@ export default {
         return json(req, env, { ok: true, d1Bound: Boolean(env.DB) });
       }
 
+      // ---------------------------------------------------------------
+      // Admin: donation tracking & FEC limit reporting
+      // ---------------------------------------------------------------
+
+      // GET /api/admin/donations/summary
+      // Returns per-donor totals grouped by election_period.
+      // Query params: ?period=primary|general  (default: current period)
+      //               ?limit=N (default 200, max 500)
+      if (req.method === "GET" && path === "/api/admin/donations/summary") {
+        if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const period = url.searchParams.get("period") || getFecElectionPeriod() || "primary";
+        const lim = Math.min(Math.max(Number(url.searchParams.get("limit") || 200), 1), 500);
+
+        const rows = (await env.DB.prepare(
+          "SELECT d.first_name, d.last_name, d.email, d.city, d.state," +
+          " c.election_period," +
+          " COUNT(*) AS num_contributions," +
+          " COALESCE(SUM(CASE WHEN c.status IN ('succeeded','succeeded_webhook') THEN c.amount_cents ELSE 0 END),0) AS confirmed_cents," +
+          " COALESCE(SUM(CASE WHEN c.status = 'pending' THEN c.amount_cents ELSE 0 END),0) AS pending_cents," +
+          " COALESCE(SUM(CASE WHEN c.status IN ('succeeded','succeeded_webhook','pending') THEN c.amount_cents ELSE 0 END),0) AS gross_cents," +
+          " (350000 - COALESCE(SUM(CASE WHEN c.status IN ('succeeded','succeeded_webhook','pending') THEN c.amount_cents ELSE 0 END),0)) AS remaining_cents" +
+          " FROM donors d JOIN contributions c ON c.donor_id = d.id" +
+          " WHERE c.election_period = ?1" +
+          " GROUP BY d.email, c.election_period" +
+          " ORDER BY gross_cents DESC LIMIT ?2"
+        ).bind(period, lim).all())?.results || [];
+
+        const currentPeriod = getFecElectionPeriod();
+        const atLimit = rows.filter(r => r.gross_cents >= 350000);
+        const nearLimit = rows.filter(r => r.gross_cents >= 300000 && r.gross_cents < 350000);
+
+        return json(req, env, {
+          period,
+          current_period: currentPeriod,
+          fec_limit_cents: 350000,
+          fec_limit_display: "$3,500",
+          donor_count: rows.length,
+          at_limit_count: atLimit.length,
+          near_limit_count: nearLimit.length,
+          donors: rows.map(r => ({
+            name: r.first_name + " " + r.last_name,
+            email: r.email,
+            city: r.city,
+            state: r.state,
+            election_period: r.election_period,
+            contributions: r.num_contributions,
+            confirmed: "$" + (r.confirmed_cents / 100).toFixed(2),
+            pending: "$" + (r.pending_cents / 100).toFixed(2),
+            gross: "$" + (r.gross_cents / 100).toFixed(2),
+            remaining: "$" + (Math.max(0, r.remaining_cents) / 100).toFixed(2),
+            at_limit: r.gross_cents >= 350000,
+            near_limit: r.gross_cents >= 300000,
+          })),
+        });
+      }
+
+      // GET /api/admin/donations/donor?email=X
+      // Returns full contribution history for a single donor across both periods.
+      if (req.method === "GET" && path === "/api/admin/donations/donor") {
+        if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const email = (url.searchParams.get("email") || "").toLowerCase().trim();
+        if (!email) return json(req, env, { error: "email param required." }, 400);
+
+        const contribs = (await env.DB.prepare(
+          "SELECT c.id, c.amount_cents, c.status, c.election_period, c.created_at, c.payment_intent_id" +
+          " FROM contributions c JOIN donors d ON c.donor_id = d.id" +
+          " WHERE lower(d.email) = ?1 ORDER BY c.created_at DESC"
+        ).bind(email).all())?.results || [];
+
+        const donor = await env.DB.prepare(
+          "SELECT first_name, last_name, email, city, state, zip, employer, occupation, created_at FROM donors WHERE lower(email) = ?1 LIMIT 1"
+        ).bind(email).first();
+
+        const totalsBySql = (
+          "SELECT election_period," +
+          " COALESCE(SUM(CASE WHEN status IN ('succeeded','succeeded_webhook','pending') THEN amount_cents ELSE 0 END),0) AS gross_cents" +
+          " FROM contributions c JOIN donors d ON c.donor_id = d.id" +
+          " WHERE lower(d.email) = ?1 GROUP BY election_period"
+        );
+        const periodTotals = (await env.DB.prepare(totalsBySql).bind(email).all())?.results || [];
+
+        return json(req, env, {
+          donor,
+          fec_limit_cents: 350000,
+          period_totals: Object.fromEntries(periodTotals.map(r => [
+            r.election_period,
+            { gross_cents: r.gross_cents, gross: "$" + (r.gross_cents / 100).toFixed(2), remaining: "$" + (Math.max(0, 350000 - r.gross_cents) / 100).toFixed(2) }
+          ])),
+          contributions: contribs.map(c => ({
+            id: c.id,
+            amount: "$" + (c.amount_cents / 100).toFixed(2),
+            status: c.status,
+            period: c.election_period,
+            date: c.created_at,
+            payment_intent_id: c.payment_intent_id,
+          })),
+        });
+      }
+
       if (req.method === "GET" && path === "/api/admin/telnyx/status") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
         const auth = mustBeAdmin(req, env, url);
@@ -1755,6 +1919,27 @@ export default {
         const attestationOk = attestation.us_citizen && attestation.personal_funds && attestation.age_18 && attestation.not_federal_contractor && attestation.personal_card;
         if (!attestationOk) return json(req, env, { error: "All attestations are required." }, 400);
 
+        // FEC election-period enforcement
+        const fecPeriod = getFecElectionPeriod();
+        if (!fecPeriod) return json(req, env, { error: "The contribution window for this election cycle has closed." }, 400);
+
+        if (donor.email) {
+          const priorCents = await getDonorPeriodTotalCents(env.DB, donor.email, fecPeriod);
+          const remainingCents = FEC_PERIOD_LIMIT_CENTS - priorCents;
+          if (cents > remainingCents) {
+            if (remainingCents <= 0) {
+              return json(req, env, {
+                error: "You have reached the $3,500 FEC contribution limit for the " + fecPeriod + " election. No additional contributions may be accepted.",
+              }, 400);
+            }
+            const remainingDollars = (remainingCents / 100).toFixed(2);
+            return json(req, env, {
+              error: "This contribution would exceed your $3,500 FEC limit for the " + fecPeriod + " election. You may contribute up to $" + remainingDollars + " more.",
+              remaining_cents: remainingCents,
+            }, 400);
+          }
+        }
+
         const stripeResult = await createStripePaymentIntent(
           env,
           {
@@ -1774,43 +1959,27 @@ export default {
         const ip = req.headers.get("cf-connecting-ip") || "";
 
         try {
-          const donorInsert = await env.DB.prepare(
-            `INSERT INTO donors (first_name, last_name, email, phone, address1, address2, city, state, zip, country, employer, occupation)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`
-          ).bind(
-            donor.first_name,
-            donor.last_name,
-            donor.email,
-            donor.phone,
-            donor.address1,
-            donor.address2,
-            donor.city,
-            donor.state,
-            donor.zip,
-            donor.country,
-            donor.employer,
-            donor.occupation
-          ).run();
-
-          const donorId = donorInsert.meta.last_row_id;
+          const donorId = await upsertDonor(env.DB, donor);
 
           const contributionInsert = await env.DB.prepare(
-            `INSERT INTO contributions (donor_id, amount_cents, currency, payment_intent_id, status, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, CURRENT_TIMESTAMP)`
+            "INSERT INTO contributions" +
+            " (donor_id, amount_cents, currency, payment_intent_id, status, election_period, updated_at)" +
+            " VALUES (?1, ?2, ?3, ?4, ?5, ?6, CURRENT_TIMESTAMP)"
           ).bind(
             donorId,
             cents,
             "usd",
             stripeResult.id,
-            "pending"
+            "pending",
+            fecPeriod
           ).run();
 
           const contributionId = contributionInsert.meta.last_row_id;
 
           await env.DB.prepare(
-            `INSERT INTO contribution_attestations
-              (contribution_id, us_citizen, personal_funds, age_18, not_federal_contractor, personal_card, ip, user_agent)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
+            "INSERT INTO contribution_attestations" +
+            " (contribution_id, us_citizen, personal_funds, age_18, not_federal_contractor, personal_card, ip, user_agent)" +
+            " VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
           ).bind(
             contributionId,
             attestation.us_citizen ? 1 : 0,
