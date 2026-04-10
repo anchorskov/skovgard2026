@@ -1,45 +1,218 @@
 
+---
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base title="Donate — Skovgard 2026" description="Support Jimmy Skovgard for U.S. Senate. Secure card donation processed by Stripe.">
+  <Fragment slot="head">
+    <link rel="stylesheet" href="/css/donateV1.css" />
+    <script src="https://js.stripe.com/v3/" id="stripe-js"></script>
+  </Fragment>
+  <Nav />
+  <main>
+    <section class="donate-v1">
+      <div class="donate-v1-wrap">
+        <div class="donate-v1-card">
+          <h1>Support Jimmy Skovgard</h1>
+          <p>No PAC money. No machine. Every dollar reaches Wyoming voters directly.</p>
+          <ul class="donate-v1-list">
+            <li>Contributions processed securely via Stripe</li>
+            <li>Maximum contribution: $3,500 (FEC limit)</li>
+            <li>U.S. citizens and permanent residents only</li>
+          </ul>
+
+          <form id="donate-form" class="donate-v1-form" novalidate>
+
+            <!-- Amount -->
+            <div class="field">
+              <label for="donate-amount">Donation Amount ($)</label>
+              <input id="donate-amount" type="number" min="75" max="3500" step="any"
+                placeholder="Enter amount (minimum $75)" />
+            </div>
+
+            <!-- Donor info -->
+            <div class="field-inline">
+              <div class="field">
+                <label for="donor-first">First Name <span aria-hidden="true">*</span></label>
+                <input id="donor-first" type="text" autocomplete="given-name" required />
+              </div>
+              <div class="field">
+                <label for="donor-last">Last Name <span aria-hidden="true">*</span></label>
+                <input id="donor-last" type="text" autocomplete="family-name" required />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="donor-email">Email</label>
+              <input id="donor-email" type="email" autocomplete="email" />
+            </div>
+
+            <!-- Address -->
+            <div class="field">
+              <label for="donor-address">Street Address <span aria-hidden="true">*</span></label>
+              <input id="donor-address" type="text" autocomplete="street-address" required />
+            </div>
+
+            <div class="field-inline">
+              <div class="field">
+                <label for="donor-city">City <span aria-hidden="true">*</span></label>
+                <input id="donor-city" type="text" autocomplete="address-level2" required />
+              </div>
+              <div class="field">
+                <label for="donor-state">State <span aria-hidden="true">*</span></label>
+                <input id="donor-state" type="text" maxlength="2" placeholder="WY"
+                  autocomplete="address-level1" required />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="donor-zip">ZIP Code <span aria-hidden="true">*</span></label>
+              <input id="donor-zip" type="text" inputmode="numeric" maxlength="10"
+                autocomplete="postal-code" required />
+            </div>
+
+            <!-- FEC employer/occupation (required >$200) -->
+            <div class="field-inline">
+              <div class="field">
+                <label for="donor-employer">Employer</label>
+                <input id="donor-employer" type="text" autocomplete="organization"
+                  placeholder="Required for contributions over $200" />
+              </div>
+              <div class="field">
+                <label for="donor-occupation">Occupation</label>
+                <input id="donor-occupation" type="text"
+                  placeholder="Required for contributions over $200" />
+              </div>
+            </div>
+
+            <!-- FEC attestations -->
+            <fieldset>
+              <legend>Federal Election Commission Required Disclosures</legend>
+
+              <div class="checkbox-row">
+                <input type="checkbox" id="attest-citizen" />
+                <label for="attest-citizen">I am a U.S. citizen or lawfully admitted permanent resident.</label>
+              </div>
+              <div class="checkbox-row">
+                <input type="checkbox" id="attest-funds" />
+                <label for="attest-funds">This contribution is made from my own funds and not those of another.</label>
+              </div>
+              <div class="checkbox-row">
+                <input type="checkbox" id="attest-age" />
+                <label for="attest-age">I am at least 18 years old.</label>
+              </div>
+              <div class="checkbox-row">
+                <input type="checkbox" id="attest-contractor" />
+                <label for="attest-contractor">I am not a federal contractor.</label>
+              </div>
+              <div class="checkbox-row">
+                <input type="checkbox" id="attest-card" />
+                <label for="attest-card">The card I am using belongs to me personally.</label>
+              </div>
+            </fieldset>
+
+            <!-- Turnstile (auto-renders when CF script loads) -->
+            <div class="field"
+              id="ts-slot"
+              data-sitekey="0x4AAAAAAB0HbT-nnpITnPNj"
+              data-local-sitekey="1x00000000000000000000AA">
+            </div>
+
+            <!-- Stripe Card Element -->
+            <div class="donate-v1-payment is-hidden" id="card-section">
+              <p class="help" style="margin-bottom:0.75rem;">
+                Enter your card details below. All transactions are encrypted.
+              </p>
+              <div id="card-element" class="payment-element"></div>
+              <div id="card-error" class="field-error hidden" role="alert"></div>
+            </div>
+
+            <!-- Status / errors -->
+            <div id="form-message" class="donate-v1-status hidden" role="alert"></div>
+
+            <div class="donate-v1-actions">
+              <button type="submit" id="submit-btn">Donate Now</button>
+              <a href="/donate/" class="donate-v1-cancel">Back</a>
+            </div>
+
+          </form>
+          <p class="donate-v1-note">Paid for by Skovgard for Senate</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Base>
+
 <script is:inline>
 (function () {
+  // On localhost (Astro dev :4321) route API calls to the worker at :8787
+  var isLocal = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+  var API_BASE = isLocal ? 'http://localhost:8787' : '';
+
   var STRIPE_PK = 'pk_live_51Son0YIfsL5VU7kUc0Ux82IBA80IuVchE5qJz4UIiJEOLTe06wKPuFRDiMZ4wvYgPinz0AGmrpnZ5EUuVm3sQAkK00Fohb6wLr';
   var stripe, cardElement;
 
-  // Pre-fill amount from URL param
-  var params = new URLSearchParams(window.location.search);
-  var preAmount = parseFloat(params.get('amount'));
-  if (preAmount && preAmount >= 75) {
-    document.getElementById('donate-amount').value = preAmount;
+  // Set up Turnstile slot immediately so CF auto-render picks it up
+  // (async script may load after DOMContentLoaded; auto-render is more reliable)
+  (function setupTurnstile() {
+    var slot = document.getElementById('ts-slot');
+    if (!slot) return;
+    var sitekey = isLocal ? '1x00000000000000000000AA' : '0x4AAAAAAB0HbT-nnpITnPNj';
+    slot.classList.add('cf-turnstile');
+    slot.setAttribute('data-sitekey', sitekey);
+    slot.setAttribute('data-action', 'donate');
+  })();
+
+  // Wait for Stripe.js (loaded in <head>)
+  function waitForStripe(cb) {
+    if (typeof window.Stripe === 'function') { cb(); return; }
+    var stripeScript = document.getElementById('stripe-js');
+    if (!stripeScript) { console.error('stripe-js script not found'); return; }
+    stripeScript.addEventListener('load', cb, { once: true });
   }
 
-  // Load Stripe
-  var s = document.createElement('script');
-  s.src = 'https://js.stripe.com/v3/';
-  s.onload = function() {
+  function initCard() {
     stripe = Stripe(STRIPE_PK);
     var els = stripe.elements();
-    cardElement = els.create('card', { style: { base: { fontSize: '16px', color: '#1B2A4A' } } });
+    cardElement = els.create('card', {
+      style: { base: { fontSize: '16px', color: '#1B2A4A' } },
+    });
     cardElement.mount('#card-element');
-    cardElement.on('change', function(ev) {
+    cardElement.on('change', function (ev) {
       var err = document.getElementById('card-error');
       if (ev.error) { err.textContent = ev.error.message; err.classList.remove('hidden'); }
       else { err.classList.add('hidden'); }
     });
-  };
-  document.head.appendChild(s);
+    // Show card section once Stripe is ready
+    var cs = document.getElementById('card-section');
+    if (cs) cs.classList.remove('is-hidden');
+  }
 
-  // Load Turnstile
-  var t = document.createElement('script');
-  t.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-  t.async = true; t.defer = true;
-  document.head.appendChild(t);
+  // Pre-fill amount from URL param (?amount=xxx) from the router page
+  (function preload() {
+    var params = new URLSearchParams(window.location.search);
+    var raw = params.get('amount');
+    if (!raw) return;
+    var amt = parseFloat(raw);
+    if (amt && amt >= 75) {
+      var el = document.getElementById('donate-amount');
+      if (el) el.value = amt;
+    }
+  })();
 
-  document.getElementById('donate-form').addEventListener('submit', async function(e) {
+  document.addEventListener('DOMContentLoaded', function () {
+    waitForStripe(initCard);
+  });
+
+  document.getElementById('donate-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     var btn = document.getElementById('submit-btn');
 
     var amount = parseFloat(document.getElementById('donate-amount').value);
-    if (!amount || amount < 75) { showMsg('Minimum amount for card processing is $75.', 'error'); return; }
-    if (amount > 3500) { showMsg('Maximum contribution is $3,500.', 'error'); return; }
+    if (!amount || amount < 75)  { showMsg('Minimum amount for card processing is $75.', 'error'); return; }
+    if (amount > 3500)            { showMsg('Maximum contribution is $3,500.', 'error'); return; }
 
     var attestations = {
       us_citizen:             document.getElementById('attest-citizen').checked,
@@ -58,24 +231,24 @@
     btn.disabled = true; btn.textContent = 'Processing...';
 
     try {
-      var res = await fetch('/api/donate/create-intent', {
+      var res = await fetch(API_BASE + '/api/donate/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount:      amount,
-          first_name:  document.getElementById('donor-first').value.trim(),
-          last_name:   document.getElementById('donor-last').value.trim(),
-          email:       document.getElementById('donor-email').value.trim(),
-          address1:    document.getElementById('donor-address').value.trim(),
-          city:        document.getElementById('donor-city').value.trim(),
-          state:       document.getElementById('donor-state').value.trim().toUpperCase(),
-          zip:         document.getElementById('donor-zip').value.trim(),
-          country:     'US',
-          employer:    document.getElementById('donor-employer').value.trim(),
-          occupation:  document.getElementById('donor-occupation').value.trim(),
+          amount:       amount,
+          first_name:   document.getElementById('donor-first').value.trim(),
+          last_name:    document.getElementById('donor-last').value.trim(),
+          email:        document.getElementById('donor-email').value.trim(),
+          address1:     document.getElementById('donor-address').value.trim(),
+          city:         document.getElementById('donor-city').value.trim(),
+          state:        document.getElementById('donor-state').value.trim().toUpperCase(),
+          zip:          document.getElementById('donor-zip').value.trim(),
+          country:      'US',
+          employer:     document.getElementById('donor-employer').value.trim(),
+          occupation:   document.getElementById('donor-occupation').value.trim(),
           attestations: attestations,
           turnstileToken: tokenEl.value,
-        })
+        }),
       });
 
       var data = await res.json();
@@ -98,8 +271,7 @@
   function showMsg(text, type) {
     var el = document.getElementById('form-message');
     el.textContent = text;
-    el.classList.remove('hidden');
-    el.className = 'mt-4 text-center text-sm ' + (type === 'error' ? 'text-red-500' : 'text-green-600');
+    el.className = 'donate-v1-status ' + (type === 'error' ? 'error' : 'success');
   }
 })();
 </script>
