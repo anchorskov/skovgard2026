@@ -1519,8 +1519,8 @@ async function buildIdempotencyKey({ email, amountCents, address1, zip }) {
 }
 
 const PREVIEW_TOKEN_TTL_MS = 15 * 60 * 1000;
-const ADMIN_EMAIL_SEND_BATCH_SIZE = 4;
-const ADMIN_EMAIL_SEND_BATCH_DELAY_MS = 1250;
+const ADMIN_EMAIL_SEND_BATCH_SIZE = 1;
+const ADMIN_EMAIL_SEND_BATCH_DELAY_MS = 340;
 const ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT = 2;
 const ADMIN_EMAIL_RATE_LIMIT_FALLBACK_MS = 1500;
 
@@ -3425,7 +3425,8 @@ export default {
 
         const sent = [];
         const failed = [];
-        for (const recipient of recipients) {
+        for (let smsIdx = 0; smsIdx < recipients.length; smsIdx++) {
+          const recipient = recipients[smsIdx];
           try {
             const telnyx = await sendSmsWithTelnyx({
               apiKey: env.TELNYX_API_KEY,
@@ -3466,6 +3467,11 @@ export default {
               phone: recipient.phone_e164,
               error: error.message,
             });
+          }
+          // 340 ms between each individual send — keeps messages separate at the
+          // carrier level so no recipient sees another's number in a group thread.
+          if (smsIdx < recipients.length - 1) {
+            await sleep(340);
           }
         }
 
