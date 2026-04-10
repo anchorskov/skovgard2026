@@ -1377,11 +1377,15 @@ broadcastForm?.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    // Clear the tray immediately so the same recipients cannot be sent to
+    // again without explicitly re-adding them. Primary duplicate-send guard.
+    recipientTray.clear();
+    renderRecipientTray();
+    clearBroadcastPreview();
     setStatus(
       broadcastStatusEl,
-      `Broadcast ${data.batchId} sent ${data.sentCount} messages with ${data.failedCount} failures and ${data.skippedCount || 0} skipped by safeguards.`
+      `Broadcast ${data.batchId} sent ${data.sentCount} messages with ${data.failedCount} failures and ${data.skippedCount || 0} skipped by safeguards. Recipient tray cleared.`
     );
-    clearBroadcastPreview();
     await refreshAll();
   } catch (error) {
     if (shouldReturnToAuth(error)) {

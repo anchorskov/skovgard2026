@@ -821,6 +821,11 @@ async function runSend() {
       }),
     });
     clearPreview();
+    // Clear the tray so the same addresses cannot be sent to again without
+    // explicitly re-adding them. This is the primary duplicate-send guard.
+    recipientTray.clear();
+    renderRecipientTray();
+    renderContacts(contactsDataset.filter(contactMatchesLocalFilters));
     const failedCount = Number(data?.failedCount || 0);
     const sentCount = Number(data?.sentCount || 0);
     const stagedNote = data?.deliveryMode === "staged"
@@ -831,7 +836,7 @@ async function runSend() {
       : "";
     setStatus(
       composeStatusEl,
-      `Sent ${sentCount} email${sentCount === 1 ? "" : "s"}.${stagedNote}${failureSummary}`
+      `Sent ${sentCount} email${sentCount === 1 ? "" : "s"}.${stagedNote}${failureSummary} Recipient tray cleared.`
     );
   } catch (error) {
     if (shouldReturnToAuth(error)) {
