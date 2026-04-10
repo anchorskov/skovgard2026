@@ -33,10 +33,11 @@ import Footer from '../components/Footer.astro';
             { title: 'Real-Time', desc: 'Responsive to feedback, not quarterly town halls.' },
             { title: 'Verifiable', desc: 'Every record is transparent. Trust is built on receipts.' },
           ].map(item => (
-            <div class='bg-wy-stone rounded-xl p-6 border-l-4 border-wy-gold'>
-              <h3 class='font-serif font-bold text-wy-navy text-xl mb-2'>{item.title}</h3>
+            <a href='https://grassrootsmvt.org' target='_blank' rel='noopener'
+               class='bg-wy-stone rounded-xl p-6 border-l-4 border-wy-gold hover:border-wy-sky hover:shadow-md transition-all group block'>
+              <h3 class='font-serif font-bold text-wy-navy text-xl mb-2 group-hover:text-wy-sky transition-colors'>{item.title}</h3>
               <p class='text-gray-600'>{item.desc}</p>
-            </div>
+            </a>
           ))}
         </div>
       </div>
