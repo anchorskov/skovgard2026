@@ -2100,6 +2100,94 @@ export default {
             .run();
         }
 
+        // Donation notification email on confirmed payment
+        if (newStatus === "succeeded_webhook" && env.RESEND_API_KEY) {
+          const notifyEmail = async () => {
+            try {
+              const row = await env.DB.prepare(
+                "SELECT d.first_name, d.last_name, d.email, d.city, d.state," +
+                " d.employer, d.occupation," +
+                " c.amount_cents, c.election_period, c.created_at" +
+                " FROM contributions c JOIN donors d ON c.donor_id = d.id" +
+                " WHERE c.payment_intent_id = ?1 LIMIT 1"
+              ).bind(paymentIntentId).first();
+
+              if (!row) return;
+
+              const amount = "$" + (row.amount_cents / 100).toFixed(2);
+              const donorName = row.first_name + " " + row.last_name;
+              const location = [row.city, row.state].filter(Boolean).join(", ");
+              const period = row.election_period || "primary";
+              const priorCents = await getDonorPeriodTotalCents(env.DB, row.email, period);
+              const remainingCents = Math.max(0, 350000 - priorCents);
+              const remaining = "$" + (remainingCents / 100).toFixed(2);
+              const fromAddr = normalizeText(env.ADMIN_EMAIL_FROM) || "support@grassrootsmvt.org";
+
+              const htmlBody = [
+                "<div style=\"font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1B2A4A;\">",
+                "<h2 style=\"background:#C8973A;color:#fff;padding:16px 20px;margin:0;border-radius:6px 6px 0 0\">",
+                "New Donation Received</h2>",
+                "<div style=\"border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;padding:20px\">",
+                "<table style=\"width:100%;border-collapse:collapse\">",
+                "<tr><td style=\"padding:8px 0;color:#6b7280;width:140px\">Donor</td>",
+                "<td style=\"padding:8px 0;font-weight:bold\">" + donorName + "</td></tr>",
+                "<tr><td style=\"padding:8px 0;color:#6b7280\">Email</td>",
+                "<td style=\"padding:8px 0\">" + (row.email || "—") + "</td></tr>",
+                "<tr><td style=\"padding:8px 0;color:#6b7280\">Location</td>",
+                "<td style=\"padding:8px 0\">" + (location || "—") + "</td></tr>",
+                "<tr><td style=\"padding:8px 0;color:#6b7280\">Amount</td>",
+                "<td style=\"padding:8px 0;font-weight:bold;font-size:1.2em;color:#15803d\">" + amount + "</td></tr>",
+                "<tr><td style=\"padding:8px 0;color:#6b7280\">Period</td>",
+                "<td style=\"padding:8px 0;text-transform:capitalize\">" + period + "</td></tr>",
+                "<tr><td style=\"padding:8px 0;color:#6b7280\">FEC Remaining</td>",
+                "<td style=\"padding:8px 0\">" + remaining + " of $3,500 left (" + period + ")</td></tr>",
+                "<tr><td style=\"padding:8px 0;color:#6b7280\">Employer</td>",
+                "<td style=\"padding:8px 0\">" + (row.employer || "—") + "</td></tr>",
+                "<tr><td style=\"padding:8px 0;color:#6b7280\">Occupation</td>",
+                "<td style=\"padding:8px 0\">" + (row.occupation || "—") + "</td></tr>",
+                "<tr><td style=\"padding:8px 0;color:#6b7280\">Payment ID</td>",
+                "<td style=\"padding:8px 0;font-size:0.8em;color:#6b7280\">" + paymentIntentId + "</td></tr>",
+                "</table>",
+                "<hr style=\"margin:16px 0;border:none;border-top:1px solid #e5e7eb\">",
+                "<p style=\"font-size:0.75em;color:#9ca3af;margin:0\">",
+                "Skovgard for Senate &mdash; contributions tracked in D1 ballot_sources database.",
+                "</p></div></div>",
+              ].join("\n");
+
+              const textBody = [
+                "New donation received — Skovgard 2026",
+                "---",
+                "Donor:      " + donorName,
+                "Email:      " + (row.email || "—"),
+                "Location:   " + (location || "—"),
+                "Amount:     " + amount,
+                "Period:     " + period,
+                "FEC left:   " + remaining + " of $3,500 (" + period + ")",
+                "Employer:   " + (row.employer || "—"),
+                "Occupation: " + (row.occupation || "—"),
+                "Payment ID: " + paymentIntentId,
+              ].join("\n");
+
+              await sendResendEmail(env.RESEND_API_KEY, {
+                from: "Skovgard 2026 <" + fromAddr + ">",
+                to: ["donate@grassrootsmvt.org"],
+                subject: "Donation " + amount + " from " + donorName + " (" + period + ")",
+                html: htmlBody,
+                text: textBody,
+                tags: [
+                  { name: "source", value: "donation_notify" },
+                  { name: "period", value: period },
+                ],
+              }, paymentIntentId + ":donation-notify");
+            } catch (e) {
+              console.error("Donation notification email failed:", e.message);
+            }
+          };
+
+          if (ctx?.waitUntil) ctx.waitUntil(notifyEmail());
+          else await notifyEmail();
+        }
+
         return json(req, env, { ok: true });
       }
 
