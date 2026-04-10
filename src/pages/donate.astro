@@ -206,7 +206,7 @@ const AMOUNTS = [25, 50, 100, 250, 500];
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      const { error: stripeErr } = await stripe.confirmCardPayment(data.clientSecret, {
+      const { error: stripeErr } = await stripe.confirmCardPayment(data.client_secret, {
         payment_method: { card: cardElement },
       });
       if (stripeErr) throw new Error(stripeErr.message);
