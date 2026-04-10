@@ -1,0 +1,105 @@
+
+<script is:inline>
+(function () {
+  var STRIPE_PK = 'pk_live_51Son0YIfsL5VU7kUc0Ux82IBA80IuVchE5qJz4UIiJEOLTe06wKPuFRDiMZ4wvYgPinz0AGmrpnZ5EUuVm3sQAkK00Fohb6wLr';
+  var stripe, cardElement;
+
+  // Pre-fill amount from URL param
+  var params = new URLSearchParams(window.location.search);
+  var preAmount = parseFloat(params.get('amount'));
+  if (preAmount && preAmount >= 75) {
+    document.getElementById('donate-amount').value = preAmount;
+  }
+
+  // Load Stripe
+  var s = document.createElement('script');
+  s.src = 'https://js.stripe.com/v3/';
+  s.onload = function() {
+    stripe = Stripe(STRIPE_PK);
+    var els = stripe.elements();
+    cardElement = els.create('card', { style: { base: { fontSize: '16px', color: '#1B2A4A' } } });
+    cardElement.mount('#card-element');
+    cardElement.on('change', function(ev) {
+      var err = document.getElementById('card-error');
+      if (ev.error) { err.textContent = ev.error.message; err.classList.remove('hidden'); }
+      else { err.classList.add('hidden'); }
+    });
+  };
+  document.head.appendChild(s);
+
+  // Load Turnstile
+  var t = document.createElement('script');
+  t.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+  t.async = true; t.defer = true;
+  document.head.appendChild(t);
+
+  document.getElementById('donate-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('submit-btn');
+
+    var amount = parseFloat(document.getElementById('donate-amount').value);
+    if (!amount || amount < 75) { showMsg('Minimum amount for card processing is $75.', 'error'); return; }
+    if (amount > 3500) { showMsg('Maximum contribution is $3,500.', 'error'); return; }
+
+    var attestations = {
+      us_citizen:             document.getElementById('attest-citizen').checked,
+      personal_funds:         document.getElementById('attest-funds').checked,
+      age_18:                 document.getElementById('attest-age').checked,
+      not_federal_contractor: document.getElementById('attest-contractor').checked,
+      personal_card:          document.getElementById('attest-card').checked,
+    };
+    if (!Object.values(attestations).every(Boolean)) {
+      showMsg('Please check all five attestation boxes to continue.', 'error'); return;
+    }
+
+    var tokenEl = document.querySelector('[name=cf-turnstile-response]');
+    if (!tokenEl || !tokenEl.value) { showMsg('Please complete the security check.', 'error'); return; }
+
+    btn.disabled = true; btn.textContent = 'Processing...';
+
+    try {
+      var res = await fetch('/api/donate/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount:      amount,
+          first_name:  document.getElementById('donor-first').value.trim(),
+          last_name:   document.getElementById('donor-last').value.trim(),
+          email:       document.getElementById('donor-email').value.trim(),
+          address1:    document.getElementById('donor-address').value.trim(),
+          city:        document.getElementById('donor-city').value.trim(),
+          state:       document.getElementById('donor-state').value.trim().toUpperCase(),
+          zip:         document.getElementById('donor-zip').value.trim(),
+          country:     'US',
+          employer:    document.getElementById('donor-employer').value.trim(),
+          occupation:  document.getElementById('donor-occupation').value.trim(),
+          attestations: attestations,
+          turnstileToken: tokenEl.value,
+        })
+      });
+
+      var data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      var result = await stripe.confirmCardPayment(data.client_secret, {
+        payment_method: { card: cardElement },
+      });
+      if (result.error) throw new Error(result.error.message);
+
+      showMsg('Thank you! Wyoming is stronger for it.', 'success');
+      e.target.reset();
+    } catch (err) {
+      showMsg(err.message || 'Something went wrong. Please try again.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Donate Now';
+    }
+  });
+
+  function showMsg(text, type) {
+    var el = document.getElementById('form-message');
+    el.textContent = text;
+    el.classList.remove('hidden');
+    el.className = 'mt-4 text-center text-sm ' + (type === 'error' ? 'text-red-500' : 'text-green-600');
+  }
+})();
+</script>
