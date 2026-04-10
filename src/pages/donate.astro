@@ -1,3 +1,54 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+const AMOUNTS = [10, 25, 50, 100, 250, 500];
+---
+<Base title="Donate — Skovgard 2026" description="Support Jimmy Skovgard for U.S. Senate.">
+  <Nav />
+  <main class="pt-24 pb-20 px-4 bg-wy-stone min-h-screen">
+    <div class="max-w-xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Support the Campaign</p>
+      <h1 class="text-4xl font-serif font-bold text-wy-navy mb-2">Donate</h1>
+      <p class="text-gray-600 mb-8">No PAC money. No machine. Every dollar reaches Wyoming voters directly.</p>
+
+      <div class="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+        <form id="router-form" novalidate>
+          <fieldset class="mb-6">
+            <legend class="font-semibold text-wy-navy mb-3">Select Amount</legend>
+            <div class="grid grid-cols-3 gap-3 mb-3">
+              {AMOUNTS.map(amt => (
+                <button type="button" data-amount={amt}
+                  class="amount-btn border-2 border-gray-200 rounded-lg py-3 font-bold text-gray-700 hover:border-wy-gold transition-colors">
+                  ${amt}
+                </button>
+              ))}
+            </div>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+              <input id="custom-amount" type="number" min="1" max="3500" placeholder="Other amount"
+                class="w-full border-2 border-gray-200 rounded-lg pl-7 pr-4 py-3 focus:border-wy-gold focus:outline-none" />
+            </div>
+            <p class="text-xs text-gray-400 mt-2">Maximum contribution: $3,500 (FEC limit)</p>
+          </fieldset>
+
+          <!-- Processor note shown dynamically -->
+          <div id="processor-note" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
+
+          <p id="router-error" class="text-red-500 text-sm mb-4 hidden"></p>
+
+          <button type="submit"
+            class="w-full bg-wy-gold text-wy-navy font-bold py-4 rounded-lg text-lg hover:bg-amber-400 transition-colors">
+            Continue
+          </button>
+        </form>
+      </div>
+
+      <p class="text-center text-xs text-gray-400 mt-6">Paid for by Skovgard for Senate</p>
+    </div>
+  </main>
+  <Footer />
+</Base>
 
 <script is:inline>
 (function () {
@@ -9,7 +60,8 @@
   var errorEl = document.getElementById('router-error');
 
   function getAmount() {
-    return selectedAmount || parseFloat(document.getElementById('custom-amount').value) || 0;
+    var custom = document.getElementById('custom-amount');
+    return selectedAmount || (custom ? parseFloat(custom.value) || 0 : 0);
   }
 
   function updateNote() {
@@ -27,7 +79,9 @@
 
   document.querySelectorAll('.amount-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      document.querySelectorAll('.amount-btn').forEach(function(b) { b.classList.remove('border-wy-gold', 'bg-wy-gold/10'); });
+      document.querySelectorAll('.amount-btn').forEach(function(b) {
+        b.classList.remove('border-wy-gold', 'bg-wy-gold/10');
+      });
       btn.classList.add('border-wy-gold', 'bg-wy-gold/10');
       selectedAmount = parseInt(btn.dataset.amount, 10);
       document.getElementById('custom-amount').value = '';
@@ -36,7 +90,9 @@
   });
 
   document.getElementById('custom-amount').addEventListener('input', function() {
-    document.querySelectorAll('.amount-btn').forEach(function(b) { b.classList.remove('border-wy-gold', 'bg-wy-gold/10'); });
+    document.querySelectorAll('.amount-btn').forEach(function(b) {
+      b.classList.remove('border-wy-gold', 'bg-wy-gold/10');
+    });
     selectedAmount = 0;
     updateNote();
   });
@@ -50,7 +106,7 @@
       return;
     }
     if (amount > 3500) {
-      errorEl.textContent = 'Maximum contribution is ,500 (FEC limit).';
+      errorEl.textContent = 'Maximum contribution is $3,500 (FEC limit).';
       errorEl.classList.remove('hidden');
       return;
     }
