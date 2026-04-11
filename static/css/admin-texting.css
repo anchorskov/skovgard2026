@@ -238,6 +238,7 @@ main .tray-actions {
   flex-wrap: wrap;
 }
 
+main .contact-update,
 main .contact-thread,
 main .contact-tray-toggle,
 main .tray-remove {
@@ -254,6 +255,12 @@ main .tray-remove {
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
+}
+
+main .contact-update {
+  border-color: #facc15;
+  background: #fef3c7;
+  color: #713f12;
 }
 
 main .danger-action,
@@ -281,6 +288,11 @@ main .message-delete:hover,
 main .conversation-message-delete:hover {
   background: #991b1b;
   border-color: #991b1b;
+}
+
+main .contact-update:hover {
+  background: #fde68a;
+  border-color: #eab308;
 }
 
 main .contact-thread:hover,
