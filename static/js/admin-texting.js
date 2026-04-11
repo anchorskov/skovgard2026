@@ -693,7 +693,7 @@ function renderContacts(items) {
                 class="contact-tray-toggle"
                 data-phone="${phoneAttr}"
               >${recipientTray.has(phone) ? "Remove from tray" : "Add to tray"}</button>
-              <button type="button" class="secondary contact-update" data-phone="${phoneAttr}">${isEditing ? "Close" : "Update"}</button>
+              <button type="button" class="warning-action contact-update" data-phone="${phoneAttr}">${isEditing ? "Close" : "Update"}</button>
               <button type="button" class="secondary contact-thread" data-phone="${phoneAttr}">View thread</button>
               <button type="button" class="danger-action contact-delete" data-phone="${phoneAttr}">Delete record</button>
             </div>

@@ -302,6 +302,18 @@ main .tray-remove:hover {
   border-color: #475569;
 }
 
+#admin-texting-contacts .warning-action {
+  border: 1px solid #ca8a04;
+  background: #eab308;
+  color: #fff;
+  font-weight: 700;
+}
+
+#admin-texting-contacts .warning-action:hover {
+  background: #ca8a04;
+  border-color: #a16207;
+}
+
 main .meta,
 main .empty {
   color: #6b7280;
