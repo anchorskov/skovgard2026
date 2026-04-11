@@ -2992,6 +2992,112 @@ export default {
         });
       }
 
+      if (req.method === "POST" && path === "/api/admin/texting/contacts/update") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const phoneE164 = normalizePhoneNumber(body?.phone || "");
+
+        if (!phoneE164) {
+          return json(req, env, { error: "Valid phone required." }, 400);
+        }
+
+        const seed = await loadContactVolunteerSeed(env.DB, phoneE164);
+        if (!seed?.phone_e164) {
+          return json(req, env, { error: "Contact not found." }, 404);
+        }
+
+        // Editable fields — only touch the keys the client actually sent.
+        // Empty string or null clears the value; undefined leaves it alone.
+        const editableKeys = [
+          "first_name",
+          "last_name",
+          "city",
+          "state_house_district",
+          "state_senate_district",
+          "email",
+        ];
+        const updates = {};
+        for (const key of editableKeys) {
+          if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
+          const raw = body[key];
+          updates[key] = normalizeText(raw) || null;
+        }
+
+        if (!Object.keys(updates).length) {
+          return json(req, env, { error: "No fields to update." }, 400);
+        }
+
+        // Update consent_status in-place with only the fields provided.
+        const csFields = [];
+        const csBinds = [];
+        let idx = 1;
+        for (const [key, value] of Object.entries(updates)) {
+          csFields.push(`${key} = ?${idx}`);
+          csBinds.push(value);
+          idx += 1;
+        }
+        csFields.push(`updated_at = datetime('now')`);
+        csBinds.push(phoneE164);
+        const csSql = `UPDATE consent_status SET ${csFields.join(", ")} WHERE phone_e164 = ?${idx}`;
+        await env.DB.prepare(csSql).bind(...csBinds).run();
+
+        // Mirror first_name/last_name into contacts table so the list view reflects the edit.
+        if ("first_name" in updates || "last_name" in updates) {
+          const cFields = [];
+          const cBinds = [];
+          let cIdx = 1;
+          if ("first_name" in updates) {
+            cFields.push(`first_name = ?${cIdx}`);
+            cBinds.push(updates.first_name);
+            cIdx += 1;
+          }
+          if ("last_name" in updates) {
+            cFields.push(`last_name = ?${cIdx}`);
+            cBinds.push(updates.last_name);
+            cIdx += 1;
+          }
+          cFields.push(`updated_at = datetime('now')`);
+          cBinds.push(phoneE164);
+          await env.DB.prepare(
+            `UPDATE contacts SET ${cFields.join(", ")} WHERE phone_e164 = ?${cIdx}`
+          ).bind(...cBinds).run();
+        }
+
+        // Keep the legacy sms_optins backup roughly in sync for opted-in contacts.
+        if (String(seed.status || "").trim() === "opted_in") {
+          await upsertLegacySmsOptin(env.DB, {
+            phoneE164,
+            firstName: "first_name" in updates ? updates.first_name : seed.first_name,
+            lastName: "last_name" in updates ? updates.last_name : seed.last_name,
+            email: "email" in updates ? updates.email : seed.email,
+            consent: 1,
+            consentEmail: Number(seed.consent_email || 0) === 1,
+            wyVoter: Number(seed.wy_voter || 0) === 1,
+            consentVersion: seed.consent_version,
+            source: "skovgard2026:admin_texting",
+          }).catch(() => null);
+        }
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail,
+          actorUserId: actor.actorUserId,
+          action: "admin_update_contact_info",
+          targetPhone: phoneE164,
+          detailsJson: JSON.stringify({ updates }),
+        });
+
+        const item = (await queryContactsByPhones(env.DB, [phoneE164]))[0] || null;
+        return json(req, env, {
+          ok: true,
+          phoneE164,
+          item,
+        });
+      }
+
       if (req.method === "POST" && path === "/api/admin/texting/contacts/delete") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
         const auth = mustBeAdmin(req, env, url);

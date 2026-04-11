@@ -500,3 +500,86 @@ main .is-error {
     justify-content: flex-start;
   }
 }
+
+/* ── contact inline edit form ── */
+
+main .contact-edit-form {
+  border-top: 1px solid #e5e7eb;
+  margin-top: .5rem;
+  padding-top: .75rem;
+}
+
+main .contact-edit-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem .75rem;
+}
+
+main .contact-edit-fields label {
+  display: flex;
+  flex-direction: column;
+  font-size: .85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+main .contact-edit-fields input {
+  margin-top: .2rem;
+  padding: .4rem .55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: .5rem;
+  font-size: .92rem;
+  font-weight: 400;
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+main .contact-edit-fields input:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+  border-color: #2563eb;
+}
+
+main .contact-edit-form .button-row {
+  margin-top: .65rem;
+}
+
+#admin-texting-contacts .contact-edit-form .button-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: .6rem 1.1rem;
+  border: 1px solid #2563eb;
+  border-radius: .7rem;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#admin-texting-contacts .contact-edit-form .button-row button:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+#admin-texting-contacts .contact-edit-form .button-row .secondary {
+  background: #64748b;
+  border-color: #64748b;
+}
+
+#admin-texting-contacts .contact-edit-form .button-row .secondary:hover {
+  background: #475569;
+  border-color: #475569;
+}
+
+main .contact-edit-form .contact-edit-status {
+  margin-top: .35rem;
+  min-height: 1.2em;
+}
+
+@media (max-width: 640px) {
+  main .contact-edit-fields {
+    grid-template-columns: 1fr;
+  }
+}

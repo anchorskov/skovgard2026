@@ -2,6 +2,18 @@
 
 These notes are repo-local and apply inside `/home/anchor/projects/skovgard2026`.
 
+## Framework: Astro (not Hugo)
+
+This project migrated from Hugo to Astro in early April 2026. **All code changes must target the Astro environment.** Hugo is no longer used — there is no `hugo` binary, no `config/`, no `layouts/` directory.
+
+- Frontend: **Astro 6 static site** (`output: 'static'` in `astro.config.mjs`), builds to `dist/`.
+- Pages: `src/pages/*.astro`. Layouts: `src/layouts/`. Components: `src/components/`.
+- Static assets: `static/` (configured as `publicDir` in `astro.config.mjs`).
+- Admin pages: standalone HTML in `static/admin/` (not Astro pages).
+- Dev server: `npm run dev` (port 4321). Use `http://localhost:4321/admin/texting/index.html` for admin pages (Astro dev does not auto-resolve directory `index.html`).
+- Do not suggest Hugo commands, Hugo template syntax, or Hugo config files — none exist.
+- The `content/` directory holds legacy Hugo content that is **not routed by Astro**. Do not create new pages there.
+
 ## Media Asset Paths
 
 - The canonical public media host is `https://media.skovgard2026.org`.

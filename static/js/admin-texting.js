@@ -73,6 +73,7 @@ let visibleConversationMessages = [];
 const selectedContactPhones = new Set();
 const knownContacts = new Map();
 const recipientTray = new Map();
+let editingContactPhone = "";
 let lastApiDiagnostic = {
   kind: "idle",
   status: null,
@@ -662,16 +663,20 @@ function renderContacts(items) {
     }
   });
   contactsEl.innerHTML = rows.length
-    ? rows.map((item) => `
+    ? rows.map((item) => {
+        const phone = item.phone_e164;
+        const phoneAttr = escapeHtml(phone);
+        const isEditing = editingContactPhone === phone;
+        return `
         <article class="list-item contact-item">
           <div class="row">
-            <label class="checkbox-inline" for="contact-select-${escapeHtml(item.phone_e164)}">
+            <label class="checkbox-inline" for="contact-select-${phoneAttr}">
               <input
-                id="contact-select-${escapeHtml(item.phone_e164)}"
+                id="contact-select-${phoneAttr}"
                 type="checkbox"
                 class="contact-select"
-                data-phone="${escapeHtml(item.phone_e164)}"
-                ${selectedContactPhones.has(item.phone_e164) ? "checked" : ""}
+                data-phone="${phoneAttr}"
+                ${selectedContactPhones.has(phone) ? "checked" : ""}
               />
               <span>Select</span>
             </label>
@@ -686,33 +691,98 @@ function renderContacts(items) {
               <button
                 type="button"
                 class="contact-tray-toggle"
-                data-phone="${escapeHtml(item.phone_e164)}"
-              >${recipientTray.has(item.phone_e164) ? "Remove from tray" : "Add to tray"}</button>
-              <button type="button" class="secondary contact-thread" data-phone="${escapeHtml(item.phone_e164)}">View thread</button>
-              <button type="button" class="danger-action contact-delete" data-phone="${escapeHtml(item.phone_e164)}">Delete record</button>
+                data-phone="${phoneAttr}"
+              >${recipientTray.has(phone) ? "Remove from tray" : "Add to tray"}</button>
+              <button type="button" class="secondary contact-update" data-phone="${phoneAttr}">${isEditing ? "Close" : "Update"}</button>
+              <button type="button" class="secondary contact-thread" data-phone="${phoneAttr}">View thread</button>
+              <button type="button" class="danger-action contact-delete" data-phone="${phoneAttr}">Delete record</button>
             </div>
           </div>
-          <div class="meta">${escapeHtml(item.phone_e164)}</div>
+          <div class="meta">${escapeHtml(phone)}</div>
           <div class="meta">City: ${escapeHtml(normalizeFacetText(item?.city) || "\u2014")}</div>
           <div class="meta">${escapeHtml(districtText(item) || "HD / SD unavailable")}</div>
           <div class="meta contact-volunteer-row">
-            <label class="checkbox-inline" for="contact-volunteer-${escapeHtml(item.phone_e164)}">
+            <label class="checkbox-inline" for="contact-volunteer-${phoneAttr}">
               <input
-                id="contact-volunteer-${escapeHtml(item.phone_e164)}"
+                id="contact-volunteer-${phoneAttr}"
                 type="checkbox"
                 class="contact-volunteer-toggle"
-                data-phone="${escapeHtml(item.phone_e164)}"
+                data-phone="${phoneAttr}"
                 ${Number(item?.is_volunteer || 0) === 1 ? "checked" : ""}
               />
               <span>Volunteer</span>
             </label>
           </div>
           <div class="meta">Keyword: ${escapeHtml(item.last_inbound_keyword || "none")}</div>
+          ${isEditing ? renderContactEditForm(item) : ""}
         </article>
-      `).join("")
+      `;
+      }).join("")
     : `<p class="empty">No contacts found.</p>`;
   updateSelectionUi();
   renderRecipientTray();
+}
+
+function renderContactEditForm(item) {
+  const phone = escapeHtml(item.phone_e164);
+  return `
+    <form class="contact-edit-form" data-phone="${phone}">
+      <div class="contact-edit-fields">
+        <label>First name
+          <input type="text" name="first_name" value="${escapeHtml(item.first_name || '')}" />
+        </label>
+        <label>Last name
+          <input type="text" name="last_name" value="${escapeHtml(item.last_name || '')}" />
+        </label>
+        <label>Email
+          <input type="email" name="email" value="${escapeHtml(item.email || '')}" />
+        </label>
+        <label>City
+          <input type="text" name="city" value="${escapeHtml(item.city || '')}" />
+        </label>
+        <label>House district
+          <input type="text" name="state_house_district" value="${escapeHtml(item.state_house_district || '')}" />
+        </label>
+        <label>Senate district
+          <input type="text" name="state_senate_district" value="${escapeHtml(item.state_senate_district || '')}" />
+        </label>
+      </div>
+      <div class="button-row">
+        <button type="submit" class="contact-update-save">Save</button>
+        <button type="button" class="secondary contact-update-cancel" data-phone="${phone}">Cancel</button>
+      </div>
+      <p class="contact-edit-status help"></p>
+    </form>
+  `;
+}
+
+async function saveContactUpdate(phone, formData) {
+  const payload = { phone };
+  const editableKeys = ["first_name", "last_name", "email", "city", "state_house_district", "state_senate_district"];
+  for (const key of editableKeys) {
+    const val = (formData.get(key) || "").trim();
+    payload[key] = val;
+  }
+  try {
+    const data = await api("/api/admin/texting/contacts/update", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    editingContactPhone = "";
+    await loadContacts();
+    setStatus(contactsSelectionStatusEl, `Updated ${contactDisplayName(data?.item || payload)}.`);
+  } catch (error) {
+    if (shouldReturnToAuth(error)) {
+      returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
+      return;
+    }
+    const statusEl = document.querySelector(`.contact-edit-form[data-phone="${escapeHtml(phone)}"] .contact-edit-status`);
+    if (statusEl) {
+      setStatus(statusEl, error.message, true);
+    } else {
+      setStatus(contactsSelectionStatusEl, error.message, true);
+    }
+  }
 }
 
 async function updateContactVolunteer(phone, isVolunteer) {
@@ -1543,6 +1613,20 @@ contactsEl?.addEventListener("click", (event) => {
     setStatus(contactsSelectionStatusEl, `Added ${contactDisplayName(item)} to the recipient tray.`);
     return;
   }
+  const updateButton = event.target.closest(".contact-update");
+  if (updateButton) {
+    const phone = updateButton.getAttribute("data-phone") || "";
+    if (!phone) return;
+    editingContactPhone = editingContactPhone === phone ? "" : phone;
+    renderContacts(visibleContacts);
+    return;
+  }
+  const cancelButton = event.target.closest(".contact-update-cancel");
+  if (cancelButton) {
+    editingContactPhone = "";
+    renderContacts(visibleContacts);
+    return;
+  }
   const deleteButton = event.target.closest(".contact-delete");
   if (deleteButton) {
     const phone = deleteButton.getAttribute("data-phone") || "";
@@ -1556,6 +1640,15 @@ contactsEl?.addEventListener("click", (event) => {
   if (!phone) return;
   selectedPhone = phone;
   loadConversation(selectedPhone).catch((error) => setStatus(authStatusEl, error.message, true));
+});
+
+contactsEl?.addEventListener("submit", (event) => {
+  const form = event.target.closest(".contact-edit-form");
+  if (!form) return;
+  event.preventDefault();
+  const phone = form.getAttribute("data-phone") || "";
+  if (!phone) return;
+  saveContactUpdate(phone, new FormData(form));
 });
 
 messagesEl?.addEventListener("click", (event) => {

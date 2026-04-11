@@ -8,6 +8,20 @@ This file is repo-local. It applies only inside:
 
 If instructions, names, domains, emails, or policies from another project appear here or in generated work, treat that as drift and do not apply them without explicit user approval.
 
+## Framework: Astro (not Hugo)
+
+This project **migrated from Hugo to Astro** in early April 2026. All code changes must target the Astro environment.
+
+- The frontend is an **Astro 6 static site** (`output: 'static'` in `astro.config.mjs`). There is no Hugo build.
+- Pages live in `src/pages/` as `.astro` files. Layouts live in `src/layouts/`. Components live in `src/components/`.
+- The `content/` directory contains legacy Hugo content files that are **not routed by Astro**. Do not create new pages there.
+- `static/` is configured as Astro's `publicDir` (via `publicDir: 'static'` in `astro.config.mjs`). Files in `static/` are served at the site root as static assets.
+- Admin pages (`static/admin/texting/index.html`, `static/admin/emails/index.html`) are standalone HTML files served from `static/`, not Astro pages. They load their own CSS/JS directly.
+- The build command is `npm run build` (outputs to `dist/`). There is no `hugo` binary involved.
+- The local dev server is `npm run dev` (Astro on port 4321), not `hugo server`.
+- Do not suggest Hugo commands (`hugo`, `hugo server`, `hugo --minify`), Hugo template syntax (`{{ .Params }}`, `{{ partial }}`), Hugo pipes (`resources.Get | fingerprint`), or Hugo config files (`config.toml`, `config/_default/`). None of these exist in the project.
+- If you encounter references to Hugo patterns in older files or memory, treat them as outdated and do not apply them.
+
 ## Project Scope Guard
 
 - Do not import policy from other repos or organizations into this repo just because names or files look similar.
@@ -19,13 +33,17 @@ If instructions, names, domains, emails, or policies from another project appear
 
 When deciding what is valid for `skovgard2026`, check local files first:
 
-- `config/_default/config.toml`
-- `content/`
-- `layouts/`
-- `static/`
-- `worker/wrangler.toml`
-- `worker/src/`
+- `astro.config.mjs` — Astro configuration (site URL, publicDir, integrations)
+- `src/pages/` — Astro page routes
+- `src/layouts/` — Astro layouts
+- `src/components/` — Astro components
+- `src/constants.ts` — shared constants (e.g. `MEDIA_BASE_URL`)
+- `static/` — static assets served at site root (CSS, JS, images, standalone admin HTML)
+- `worker/wrangler.toml` — Worker config, env vars, routes
+- `worker/src/` — Worker source code
 - repo docs that explicitly describe this site
+
+Do not reference `config/_default/config.toml`, `layouts/`, or Hugo-era paths — those directories no longer exist.
 
 If those files conflict with a generic instruction file or prior memory, the repo content wins unless the user directs otherwise.
 
@@ -91,55 +109,33 @@ When creating audio/video files with `ffmpeg`, review `how_to_mp4.md` first. If 
 - Before finishing a task that used `wrangler dev` or another local server, verify that the listener has been shut down.
 - Do not leave background test servers running after validation unless the user explicitly asks to keep one open.
 
-## Hugo Asset Loading Rules
+## Admin Pages (standalone HTML in `static/`)
 
-### Never place `<link>` or `<script>` tags inside content files
+Admin pages like `static/admin/texting/index.html` and `static/admin/emails/index.html` are **standalone HTML files**, not Astro pages. They are served directly from the `static/` publicDir.
 
-Hugo content files (`.html`, `.md` in `content/`) render inside `<main>`, not `<head>`. A `<link rel="stylesheet">` written in a content file ends up in `<body>`, which browsers accept but which causes:
+### Asset loading
 
-- CSS is applied out of cascade order — `forms.css` (loaded in `<head>`) wins over admin page styles even when the admin CSS has higher specificity.
-- Stale-cache bugs: if the content file loads a plain `/css/admin-foo.css` path, browsers cache aggressively and may serve an old version after a deploy.
-
-**Correct pattern for admin pages:** use a dedicated layout partial that conditionally emits the page-specific `<link>` and `<script>` inside `<head>`. Specifically:
-
-- Per-page CSS → emit from `layouts/partials/extend_head.html` gated on `.Page.File.Path` or page type.
-- Per-page JS → emit from `layouts/partials/extend_footer.html` (or a `foot.html` hook) for the same reason.
-- Use Hugo's `resources.Get | fingerprint` on admin CSS/JS so that each deploy emits a hash-stamped URL. This eliminates stale-cache mismatches after pushes.
-
-```html
-{{/* layouts/partials/extend_head.html — correct approach */}}
-{{- if eq .File.Path "admin/texting/index.html" }}
-{{- $css := resources.Get "css/admin-texting.css" | fingerprint }}
-<link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}" crossorigin="anonymous">
-{{- end }}
-```
-
-- Never add a bare `<link rel="stylesheet" href="/css/admin-*.css">` directly to a content file. If you need to attach CSS to a content page, move it to the appropriate layout partial.
-
-### Local dev server requires config merge
-
-Always start the local Hugo server with both configs merged, either via:
-
-```
-npm run dev        # uses package.json script
-./startDev.sh
-```
-
-Running plain `hugo server` without the development config merge can cause the PaperMod stylesheet fingerprint to not resolve, breaking the page chrome while admin CSS still loads (visible as a broken layout on localhost only). This is a local-only symptom — production uses the built `public/` output.
+- Each admin page is a complete HTML document with its own `<head>`. It loads CSS and JS via standard `<link>` and `<script>` tags in `<head>` — no build pipeline or Astro component needed.
+- Cache-busting: append a version query string (`?v=2`) when updating CSS/JS to avoid stale caches after deploy.
 
 ### Cross-admin navigation: use `<a>`, not `<button>`
 
 When a control navigates to another admin page (e.g. "Go to Emails"), use a styled `<a href="...">` tag rather than a `<button>` with a JS `location.assign`. Reasons:
 
-- Avoids the button-reset+specificity fight described below.
 - Correct semantic element for navigation.
 - No JS event listener needed.
 
 Style it to match the secondary button variant using the same ID-targeted rule pattern described in the Button CSS Rules section.
 
+### Local dev access
+
+Start the dev server with `npm run dev` or `./startDev.sh` (runs Astro dev on port 4321). Admin pages in `static/` must be accessed with the explicit filename: `http://localhost:4321/admin/texting/index.html`. Astro's dev server does not auto-resolve `index.html` for static directory URLs. In production (Cloudflare Pages), trailing-slash directory index resolution works automatically.
+
 ## Button CSS Rules (admin pages)
 
-The PaperMod theme's global reset zeroes out all button appearance (`background: none; border: 0; padding: 0`). Every `<button>` on admin pages **must** be covered by an explicit CSS rule that restores its visual treatment.
+The global CSS reset in `global.css` and `forms.css` zeroes out all button appearance (`background: none; border: 0; padding: 0`). Every `<button>` on admin pages **must** be covered by an explicit CSS rule that restores its visual treatment.
+
+### Specificity pitfall
 
 ### Specificity pitfall
 
