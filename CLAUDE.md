@@ -30,24 +30,15 @@ This project migrated from Hugo to Astro in early April 2026. **All code changes
   - `worker/wrangler.toml`
   - the actual public `curl -I` response for the final URL
 
-## Worker Deploy & `wrangler.toml` var blocks
+## Worker Deploy
 
-`worker/wrangler.toml` has **three var blocks**:
+- Use `./scripts/deploy_worker.sh` for production Worker deploys.
+- That script is the canonical path for this repo. It runs `npx wrangler deploy --env production --name skovgard2026-api` from `worker/` so Wrangler does not create or target `skovgard2026-api-production`.
+- Do not use plain `npx wrangler deploy --env production` for this repo unless the target Worker name has been reverified in Cloudflare.
+- `scripts/deploy_cf.sh` is for the Astro Pages site only. It does not publish the API Worker.
 
-| Block | Used when |
-|---|---|
-| `[vars]` | `npx wrangler deploy --config worker/wrangler.toml` (no `--env`) — **this is what runs in production** |
-| `[env.production.vars]` | `npx wrangler deploy --config worker/wrangler.toml --env production` — NOT used because it creates a route conflict |
-| `[env.preview.vars]` | Pages preview builds only |
+## Worker `wrangler.toml` vars
 
-**Always deploy without `--env`** — the top-level `[[routes]]` and `[vars]` are what Cloudflare serves on `www.skovgard2026.org/api/*`.
-
-### Feature flags that default OFF and must be ON in `[vars]`
-
-Several flags are `"0"` in `[vars]` as a safe default but need to be `"1"` in production. Verify these are set correctly in the **`[vars]` block** (not just in `[env.production.vars]`) before telling a user a feature is live:
-
-- `ADMIN_EMAIL_ENABLED` — must be `"1"` for the admin email portal Send button to be active. Was mistakenly `"0"` in `[vars]` while `"1"` only in the unused `[env.production.vars]`, causing "Sending is still disabled by configuration."
-- `TEXTING_WELCOME_ENABLED` — `"0"` by default; set to `"1"` to activate welcome texts.
-- `PULSE_EMAIL_ENABLED` — `"0"` by default; set to `"1"` in `[vars]` to enable Pulse opt-in emails.
-
-When a feature appears broken despite looking correctly wired in code, **check `[vars]` in `wrangler.toml` first** before diving into JS or Worker logic.
+- `worker/wrangler.toml` contains shared `[vars]`, production `[env.production.vars]`, and preview `[env.preview.vars]`.
+- The canonical production deploy path in this repo uses `--env production`, so production behavior should be checked against `[env.production.vars]` first, then against shared `[vars]` defaults.
+- When a feature looks wired correctly in code but behaves differently in production, check the relevant flags in both blocks before changing app logic.

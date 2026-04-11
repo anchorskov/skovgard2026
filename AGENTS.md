@@ -60,7 +60,8 @@ If those files conflict with a generic instruction file or prior memory, the rep
 - `scripts/deploy_cf.sh` is a site deploy helper for Cloudflare Pages. For the Astro frontend it should deploy `dist/`, not `public/`.
 - That script does not publish the Worker in `worker/`.
 - Cloudflare Pages Git builds for the Astro site must use Node `22.12.0` or newer. If dashboard settings still reference Hugo or `public/`, correct them before debugging app code.
-- For the production Worker routes currently attached to `skovgard2026-api`, use `cd worker && npx wrangler deploy --env production --name skovgard2026-api`.
+- `scripts/deploy_worker.sh` is the canonical production Worker deploy helper. It runs `npx wrangler deploy --env production --name skovgard2026-api` from `worker/` so Wrangler does not drift to `skovgard2026-api-production`.
+- For the production Worker routes currently attached to `skovgard2026-api`, use `./scripts/deploy_worker.sh`.
 - Do not use plain `npx wrangler deploy --env production` for this repo unless the target service name has been reverified; Wrangler may try to publish `skovgard2026-api-production`, which conflicts with the existing routed Worker.
 
 ## Contact and Email Guardrails
