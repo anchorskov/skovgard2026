@@ -262,22 +262,24 @@ main .conversation-message-delete {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.25rem;
+  min-height: 2.75rem;
   margin: 0;
-  padding: .45rem .8rem;
+  padding: .6rem 1.1rem;
   border: 1px solid #b91c1c;
   border-radius: .7rem;
-  background: #fef2f2;
-  color: #991b1b;
+  background: #b91c1c;
+  color: #fff;
   font-weight: 700;
   line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
 
 main .danger-action:hover,
 main .message-delete:hover,
 main .conversation-message-delete:hover {
-  background: #fee2e2;
+  background: #991b1b;
   border-color: #991b1b;
 }
 
@@ -437,14 +439,28 @@ main .status-unknown {
 
 #admin-texting-auth .button-row .secondary,
 #admin-texting-shell .button-row .secondary {
-  background: #64748b;
-  border-color: #64748b;
+  background: #16a34a;
+  border-color: #16a34a;
 }
 
 #admin-texting-auth .button-row .secondary:hover,
 #admin-texting-shell .button-row .secondary:hover {
-  background: #475569;
-  border-color: #475569;
+  background: #15803d;
+  border-color: #15803d;
+}
+
+#admin-texting-auth .button-row .secondary:focus-visible,
+#admin-texting-shell .button-row .secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.25);
+}
+
+#admin-texting-auth .button-row .secondary:disabled,
+#admin-texting-shell .button-row .secondary:disabled {
+  background: #cbd5e1;
+  border-color: #cbd5e1;
+  color: #475569;
+  cursor: not-allowed;
 }
 
 main .is-error {

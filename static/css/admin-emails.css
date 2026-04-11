@@ -319,14 +319,20 @@ main .preview-copy {
 
 #admin-emails-auth .button-row .secondary,
 #admin-emails-shell .button-row .secondary {
-  background: #64748b;
-  border-color: #64748b;
+  background: #16a34a;
+  border-color: #16a34a;
 }
 
 #admin-emails-auth .button-row .secondary:hover,
 #admin-emails-shell .button-row .secondary:hover {
-  background: #475569;
-  border-color: #475569;
+  background: #15803d;
+  border-color: #15803d;
+}
+
+#admin-emails-auth .button-row .secondary:focus-visible,
+#admin-emails-shell .button-row .secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.25);
 }
 
 #admin-emails-auth .button-row button:disabled,
