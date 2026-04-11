@@ -132,6 +132,13 @@
           <button type="submit" id="broadcast-send-confirm">Send broadcast</button>
         </div>
         <p id="broadcast-send-status" class="help" role="status" aria-live="polite"></p>
+        <div id="broadcast-send-receipt" class="send-receipt" hidden>
+          <div class="send-receipt-header">
+            <strong id="broadcast-send-receipt-summary"></strong>
+            <button type="button" id="broadcast-send-receipt-toggle" class="secondary">Show recipients</button>
+          </div>
+          <ul id="broadcast-send-receipt-list" class="send-receipt-list" hidden></ul>
+        </div>
       </form>
     </section>
 
@@ -272,6 +279,6 @@
   </section>
 </section>
   </main>
-  <script type="module" src="/js/admin-texting.js?v=3"></script>
+  <script type="module" src="/js/admin-texting.js?v=4"></script>
 </body>
 </html>

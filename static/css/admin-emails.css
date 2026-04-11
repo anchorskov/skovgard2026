@@ -375,6 +375,46 @@ main .is-error {
   color: #991b1b !important;
 }
 
+/* Send receipt — appears after a confirmed broadcast send */
+main .send-receipt {
+  margin-top: .85rem;
+  border: 1px solid #16a34a;
+  border-radius: .85rem;
+  background: #f0fdf4;
+  overflow: hidden;
+}
+
+main .send-receipt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .8rem 1rem;
+}
+
+main .send-receipt-header strong {
+  font-size: 1.05rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #15803d;
+}
+
+main .send-receipt-list {
+  margin: 0;
+  padding: 0 1rem .85rem;
+  list-style: none;
+  display: grid;
+  gap: .35rem;
+}
+
+main .send-receipt-list li {
+  font-size: .9rem;
+  color: #166534;
+  padding: .3rem .5rem;
+  border-radius: .5rem;
+  background: #dcfce7;
+}
+
 @media (max-width: 1120px) {
   main .admin-emails-grid {
     grid-template-columns: 1fr;

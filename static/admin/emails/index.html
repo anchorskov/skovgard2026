@@ -107,6 +107,13 @@
         </div>
         <p class="help">Run Preview first. Bulk sends are staged in small waves to stay under the provider rate limit, while still using the preview token, current audience safeguards, and the configured `support@grassrootsmvt.org` sender.</p>
         <p id="admin-emails-compose-status" class="help" role="status" aria-live="polite"></p>
+        <div id="email-send-receipt" class="send-receipt" hidden>
+          <div class="send-receipt-header">
+            <strong id="email-send-receipt-summary"></strong>
+            <button type="button" id="email-send-receipt-toggle" class="secondary">Show recipients</button>
+          </div>
+          <ul id="email-send-receipt-list" class="send-receipt-list" hidden></ul>
+        </div>
       </form>
     </section>
 
@@ -158,6 +165,6 @@
   </section>
 </section>
   </main>
-  <script type="module" src="/js/admin-emails.js?v=3"></script>
+  <script type="module" src="/js/admin-emails.js?v=4"></script>
 </body>
 </html>

@@ -53,6 +53,10 @@ const broadcastTextInput = document.getElementById("broadcast_text");
 const recipientTraySummary = document.getElementById("recipient-tray-summary");
 const recipientTrayList = document.getElementById("recipient-tray-list");
 const recipientTrayClearBtn = document.getElementById("recipient-tray-clear");
+const broadcastReceiptEl = document.getElementById("broadcast-send-receipt");
+const broadcastReceiptSummaryEl = document.getElementById("broadcast-send-receipt-summary");
+const broadcastReceiptToggleBtn = document.getElementById("broadcast-send-receipt-toggle");
+const broadcastReceiptListEl = document.getElementById("broadcast-send-receipt-list");
 
 const STORAGE_KEY = "skovgard_admin_texting_key";
 const STORAGE_EMAIL = "skovgard_admin_texting_email";
@@ -98,6 +102,7 @@ function returnToAuth(message, { clearStoredKey = false } = {}) {
   shellEl.hidden = true;
   clearSinglePreview();
   clearBroadcastPreview();
+  if (broadcastReceiptEl) broadcastReceiptEl.hidden = true;
   contactsDataset = [];
   visibleMessages = [];
   selectedContactPhones.clear();
@@ -452,6 +457,30 @@ function clearBroadcastPreview() {
   broadcastPreviewSummary.textContent = "";
   broadcastPreviewList.innerHTML = "";
 }
+
+function renderBroadcastReceipt(sentCount, failedCount, recipients) {
+  if (!broadcastReceiptEl || !broadcastReceiptSummaryEl || !broadcastReceiptListEl) return;
+  const label = failedCount
+    ? `Sent ${sentCount} message${sentCount === 1 ? "" : "s"} · ${failedCount} failed`
+    : `Sent ${sentCount} message${sentCount === 1 ? "" : "s"}`;
+  broadcastReceiptSummaryEl.textContent = label;
+  broadcastReceiptListEl.innerHTML = recipients.map((r) => {
+    const name = [r.first_name, r.last_name].filter(Boolean).join(" ");
+    const phone = r.phone_e164 || r.phone || "";
+    const display = name ? `${name} — ${phone}` : phone;
+    return `<li>${escapeHtml(display)}</li>`;
+  }).join("");
+  broadcastReceiptListEl.hidden = true;
+  if (broadcastReceiptToggleBtn) broadcastReceiptToggleBtn.textContent = "Show recipients";
+  broadcastReceiptEl.hidden = false;
+}
+
+broadcastReceiptToggleBtn?.addEventListener("click", () => {
+  if (!broadcastReceiptListEl) return;
+  const isHidden = broadcastReceiptListEl.hidden;
+  broadcastReceiptListEl.hidden = !isHidden;
+  broadcastReceiptToggleBtn.textContent = isHidden ? "Hide recipients" : "Show recipients";
+});
 
 function currentSinglePayload() {
   return {
@@ -1377,14 +1406,23 @@ broadcastForm?.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    const sentCount = Number(data?.sentCount || 0);
+    const failedCount = Number(data?.failedCount || 0);
+    // Snapshot tray for the receipt before clearing it.
+    const sentPhones = new Set((Array.isArray(data?.sent) ? data.sent : []).map((r) => String(r.phone || "")));
+    const receiptRecipients = [...knownContacts.values()].filter((c) => sentPhones.has(String(c.phone_e164 || "")));
+    if (!receiptRecipients.length) {
+      (Array.isArray(data?.sent) ? data.sent : []).forEach((r) => receiptRecipients.push({ phone_e164: r.phone || "" }));
+    }
     // Clear the tray immediately so the same recipients cannot be sent to
     // again without explicitly re-adding them. Primary duplicate-send guard.
     recipientTray.clear();
     renderRecipientTray();
     clearBroadcastPreview();
+    renderBroadcastReceipt(sentCount, failedCount, receiptRecipients);
     setStatus(
       broadcastStatusEl,
-      `Broadcast ${data.batchId} sent ${data.sentCount} messages with ${data.failedCount} failures and ${data.skippedCount || 0} skipped by safeguards. Recipient tray cleared.`
+      `Sent ${sentCount} message${sentCount === 1 ? "" : "s"} with ${failedCount} failure${failedCount === 1 ? "" : "s"} and ${data.skippedCount || 0} skipped. Recipient tray cleared.`
     );
     await refreshAll();
   } catch (error) {

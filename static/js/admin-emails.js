@@ -34,6 +34,10 @@ const contactsSelectionStatusEl = document.getElementById("email-contacts-select
 const recipientTraySummary = document.getElementById("email-recipient-tray-summary");
 const recipientTrayList = document.getElementById("email-recipient-tray-list");
 const recipientTrayClearBtn = document.getElementById("email-recipient-tray-clear");
+const sendReceiptEl = document.getElementById("email-send-receipt");
+const sendReceiptSummaryEl = document.getElementById("email-send-receipt-summary");
+const sendReceiptToggleBtn = document.getElementById("email-send-receipt-toggle");
+const sendReceiptListEl = document.getElementById("email-send-receipt-list");
 
 const STORAGE_KEY = "skovgard_admin_emails_key";
 const STORAGE_EMAIL = "skovgard_admin_emails_email";
@@ -79,7 +83,31 @@ function clearPortalState() {
   updateSelectionUi();
   setStatus(contactsSelectionStatusEl, "");
   setStatus(composeStatusEl, "");
+  if (sendReceiptEl) sendReceiptEl.hidden = true;
 }
+
+function renderSendReceipt(sentCount, failedCount, recipients) {
+  if (!sendReceiptEl || !sendReceiptSummaryEl || !sendReceiptListEl) return;
+  const label = failedCount
+    ? `Sent ${sentCount} message${sentCount === 1 ? "" : "s"} · ${failedCount} failed`
+    : `Sent ${sentCount} message${sentCount === 1 ? "" : "s"}`;
+  sendReceiptSummaryEl.textContent = label;
+  sendReceiptListEl.innerHTML = recipients.map((r) => {
+    const name = [r.first_name, r.last_name].filter(Boolean).join(" ");
+    const display = name ? `${name} — ${r.email || r.email_norm || ""}` : (r.email || r.email_norm || r);
+    return `<li>${escapeHtml(display)}</li>`;
+  }).join("");
+  sendReceiptListEl.hidden = true;
+  if (sendReceiptToggleBtn) sendReceiptToggleBtn.textContent = "Show recipients";
+  sendReceiptEl.hidden = false;
+}
+
+sendReceiptToggleBtn?.addEventListener("click", () => {
+  if (!sendReceiptListEl) return;
+  const isHidden = sendReceiptListEl.hidden;
+  sendReceiptListEl.hidden = !isHidden;
+  sendReceiptToggleBtn.textContent = isHidden ? "Hide recipients" : "Show recipients";
+});
 
 function returnToAuth(message, { clearStoredKey = false } = {}) {
   if (shellEl) shellEl.hidden = true;
@@ -821,13 +849,21 @@ async function runSend() {
       }),
     });
     clearPreview();
+    const failedCount = Number(data?.failedCount || 0);
+    const sentCount = Number(data?.sentCount || 0);
+    // Snapshot tray for the receipt list before clearing it.
+    const sentEmails = new Set((Array.isArray(data?.sent) ? data.sent : []).map((r) => String(r.email || "").toLowerCase()));
+    const receiptRecipients = [...knownContacts.values()].filter((c) => sentEmails.has(String(c.email_norm || c.email || "").toLowerCase()));
+    // Fall back to bare email strings from the API if contacts aren't in knownContacts.
+    if (!receiptRecipients.length) {
+      (Array.isArray(data?.sent) ? data.sent : []).forEach((r) => receiptRecipients.push({ email: r.email || "" }));
+    }
     // Clear the tray so the same addresses cannot be sent to again without
     // explicitly re-adding them. This is the primary duplicate-send guard.
     recipientTray.clear();
     renderRecipientTray();
     renderContacts(contactsDataset.filter(contactMatchesLocalFilters));
-    const failedCount = Number(data?.failedCount || 0);
-    const sentCount = Number(data?.sentCount || 0);
+    renderSendReceipt(sentCount, failedCount, receiptRecipients);
     const stagedNote = data?.deliveryMode === "staged"
       ? ` Staged in waves of ${Number(data?.batchSize || 0) || "n/a"}.`
       : "";
