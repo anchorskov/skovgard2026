@@ -70,6 +70,7 @@ let contactsDataset = [];
 let visibleMessages = [];
 let visibleContacts = [];
 let visibleConversationMessages = [];
+let highlightedContactPhone = "";
 const selectedContactPhones = new Set();
 const knownContacts = new Map();
 const recipientTray = new Map();
@@ -667,8 +668,9 @@ function renderContacts(items) {
         const phone = item.phone_e164;
         const phoneAttr = escapeHtml(phone);
         const isEditing = editingContactPhone === phone;
+        const isHighlighted = highlightedContactPhone === phone;
         return `
-        <article class="list-item contact-item">
+        <article class="list-item contact-item${isHighlighted ? " is-highlighted" : ""}">
           <div class="row">
             <label class="checkbox-inline" for="contact-select-${phoneAttr}">
               <input
@@ -721,6 +723,48 @@ function renderContacts(items) {
     : `<p class="empty">No contacts found.</p>`;
   updateSelectionUi();
   renderRecipientTray();
+}
+
+function upsertContactDatasetItem(item) {
+  if (!item?.phone_e164) return;
+  const phone = item.phone_e164;
+  knownContacts.set(phone, item);
+  contactsDataset = [
+    item,
+    ...contactsDataset.filter((existing) => existing?.phone_e164 !== phone),
+  ];
+}
+
+function resetContactsViewForSavedOptIn() {
+  if (contactsSearchInput) contactsSearchInput.value = "";
+  if (contactsFilterInput) contactsFilterInput.value = "all";
+  if (contactsCityInput) contactsCityInput.value = "";
+  if (contactsHdInput) contactsHdInput.value = "";
+  if (contactsSdInput) contactsSdInput.value = "";
+  if (contactsSelectAllInput) contactsSelectAllInput.checked = false;
+  selectedContactPhones.clear();
+  const { broadcastChanged } = syncTextingAudienceFilter("all", "contacts");
+  if (broadcastChanged && broadcastPreviewState) {
+    clearBroadcastPreview();
+    setStatus(
+      broadcastStatusEl,
+      "Broadcast preview cleared because the audience filter was reset after saving the opt-in.",
+      false
+    );
+  }
+}
+
+function revealSavedContact(phone) {
+  if (!phone) return;
+  highlightedContactPhone = phone;
+  syncContactFacetOptions(contactsDataset);
+  renderContacts(contactsDataset.filter(contactMatchesLocalFilters));
+  window.requestAnimationFrame(() => {
+    const row = Array.from(contactsEl?.querySelectorAll(".contact-thread") || [])
+      .find((button) => button.getAttribute("data-phone") === phone)
+      ?.closest(".contact-item");
+    row?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
 }
 
 function renderContactEditForm(item) {
@@ -1419,14 +1463,22 @@ optInForm?.addEventListener("submit", async (event) => {
       body: JSON.stringify(payload),
     });
     optInForm.reset();
+    resetContactsViewForSavedOptIn();
+    if (data?.item?.phone_e164) {
+      upsertContactDatasetItem(data.item);
+      revealSavedContact(data.item.phone_e164);
+    }
     setStatus(
       optInStatusEl,
       data?.result === "updated"
-        ? `Updated opted-in contact for ${data.phoneE164}.`
-        : `Created opted-in contact for ${data.phoneE164}.`
+        ? `Updated opted-in contact for ${data.phoneE164}. Filters were reset so it is visible in the contacts list.`
+        : `Created opted-in contact for ${data.phoneE164}. Filters were reset so it is visible in the contacts list.`
     );
     selectedPhone = data?.phoneE164 || selectedPhone;
     await refreshAll();
+    if (data?.item?.phone_e164) {
+      revealSavedContact(data.item.phone_e164);
+    }
   } catch (error) {
     if (shouldReturnToAuth(error)) {
       returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });

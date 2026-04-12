@@ -171,6 +171,12 @@ main .contact-item:hover {
   border-color: #2563eb;
 }
 
+main .contact-item.is-highlighted {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.16);
+}
+
 main .message-heading,
 main .contact-heading,
 main .contact-badges,
