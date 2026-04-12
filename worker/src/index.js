@@ -869,6 +869,7 @@ const CONTACT_IS_VOLUNTEER_SQL = `COALESCE((
 const CONTACT_SELECT_SQL = `SELECT c.phone_e164,
                                    COALESCE(NULLIF(c.first_name, ''), NULLIF(cs.first_name, '')) AS first_name,
                                    COALESCE(NULLIF(c.last_name, ''), NULLIF(cs.last_name, '')) AS last_name,
+                                   cs.email,
                                    c.tags,
                                    c.welcome_sent_at,
                                    cs.status,
