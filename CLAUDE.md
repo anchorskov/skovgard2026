@@ -2,6 +2,43 @@
 
 These notes are repo-local and apply inside `/home/anchor/projects/skovgard2026`.
 
+## Brand System (theme-frontier)
+
+The locked brand specification lives in `brand/BRAND.md`. Read it before
+generating any front-end code, copy, or visual assets.
+
+### Hard rules — do not deviate
+
+- NEVER introduce a color not defined in `brand/palette.json`.
+- Treat `wy-*` token names as legacy aliases wired to the frontier palette.
+  Do not "correct" `wy-navy`, `wy-gold`, `wy-stone`, or `wy-sky` by name alone.
+- NEVER swap the primary fonts on this branch. Headlines: Bitter. Body: Source Sans 3.
+  Preserve Merriweather and Inter as fallbacks in that order.
+- Bone (`#f1ece1`) is the dominant page background. Charcoal (`#2b2b2b`) is the
+  primary structural dark.
+- Ember (`#b22234`) is the primary accent for this branch. Use `#8b1a26` for hover
+  and pressed states, not as a new accent family.
+- Sandstone (`#c68a4a`) is secondary warmth. Sage (`#7a8a6b`) is quiet chrome only.
+- Do NOT use the Wyoming Bucking Horse trademark in campaign materials.
+- If another branch, prompt, or doc mentions `theme-civic`, treat it as historical
+  exploration, not the source of truth for this branch.
+- When uncertain about a brand decision, say so and ask. Do not guess.
+
+### Where to find brand details
+
+- Palette: `brand/palette.json`
+- Typography: `brand/typography.json`
+- Voice and copy rules: `brand/voice.md`
+- Photography guidance: `brand/photography.md`
+- Channel-specific rules: `brand/channel-rules.md`
+- Locked spec overview: `brand/BRAND.md`
+
+### Current theme status
+
+The frontier theme is already implemented on this branch in `src/styles/global.css`,
+`src/layouts/Base.astro`, `src/components/Nav.astro`, `src/components/Footer.astro`,
+and `src/pages/index.astro`. Use those files as the live reference implementation.
+
 ## Framework: Astro (not Hugo)
 
 This project migrated from Hugo to Astro in early April 2026. **All code changes must target the Astro environment.** Hugo is no longer used — there is no `hugo` binary, no `config/`, no `layouts/` directory.

@@ -29,6 +29,51 @@ This project **migrated from Hugo to Astro** in early April 2026. All code chang
 - Prefer values already established in this repo over values remembered from other work.
 - Before changing public-facing campaign identity fields such as emails, domains, org names, donation links, form destinations, or legal/contact copy, verify them against this repo first.
 
+## Brand System (theme-frontier)
+
+The locked brand specification for this branch lives in `brand/BRAND.md`.
+Read it before generating front-end code, campaign copy, or visual assets.
+
+### Hard rules
+
+- NEVER introduce a color not defined in `brand/palette.json`.
+- Treat `wy-*` token names as intentional legacy aliases. On this branch:
+  - `wy-navy` maps to charcoal, not blue
+  - `wy-gold` maps to sandstone
+  - `wy-stone` maps to bone
+  - `wy-sky` maps to sage
+- NEVER "correct" those alias names by intuition alone. Check `src/styles/global.css` first.
+- NEVER swap the primary fonts on this branch. Headlines: Bitter. Body/UI: Source Sans 3.
+  Merriweather and Inter remain fallbacks only.
+- Bone (`#F1ECE1`) is the dominant background. Charcoal (`#2B2B2B`) is the structural dark.
+- Ember (`#B22234`) is the primary accent. Ember-dark (`#8B1A26`) is hover/pressed state only.
+- Sandstone is the secondary warm accent. Sage is quiet support chrome, not lead CTA color.
+- Do not import the `theme-civic` palette, tokens, or rules onto this branch unless the user explicitly asks.
+- Do NOT use the Wyoming Bucking Horse trademark in campaign materials.
+- If a brand decision is ambiguous, say so and ask instead of guessing.
+
+### Brand files
+
+- `brand/BRAND.md` — locked human-readable spec
+- `brand/palette.json` — machine-readable token map plus alias rules
+- `brand/typography.json` — font families, fallback order, and type rules
+- `brand/voice.md` — copy tone, word choice, sentence style
+- `brand/photography.md` — image guidance, alt text, settings
+- `brand/channel-rules.md` — website, email, social, event, video guidance
+
+### Live implementation reference
+
+The frontier theme is already implemented on this branch. The primary reference files are:
+
+- `src/styles/global.css`
+- `src/layouts/Base.astro`
+- `src/components/Nav.astro`
+- `src/components/Footer.astro`
+- `src/pages/index.astro`
+
+If another branch or old chat mentions `theme-civic`, treat that as historical exploration.
+For this branch and current campaign media direction, `theme-frontier` is authoritative.
+
 ## Local Source of Truth
 
 When deciding what is valid for `skovgard2026`, check local files first:

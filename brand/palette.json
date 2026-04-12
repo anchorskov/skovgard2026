@@ -1,0 +1,68 @@
+{
+  "brand": "skovgard2026",
+  "theme": "frontier",
+  "locked": true,
+  "updated": "2026-04-12",
+  "palette": {
+    "charcoal": {
+      "hex": "#2B2B2B",
+      "role": "primary-dark",
+      "usage": "headings, overlays, nav/footer backgrounds, structural anchor"
+    },
+    "ember": {
+      "hex": "#B22234",
+      "role": "primary-accent",
+      "usage": "CTAs, active states, hero emphasis, key borders"
+    },
+    "ember-dark": {
+      "hex": "#8B1A26",
+      "role": "accent-hover",
+      "usage": "hover and pressed states for ember actions"
+    },
+    "sandstone": {
+      "hex": "#C68A4A",
+      "role": "secondary-warm",
+      "usage": "kicker labels, accent stripes, warm subheads"
+    },
+    "sage": {
+      "hex": "#7A8A6B",
+      "role": "quiet-secondary",
+      "usage": "subtle rails, muted fills, low-priority chrome"
+    },
+    "bone": {
+      "hex": "#F1ECE1",
+      "role": "background",
+      "usage": "default page background, whitespace, paper texture base"
+    },
+    "rust": {
+      "hex": "#8A3D23",
+      "role": "deep-warm-accent",
+      "usage": "tags, underlines, long-form accent treatment"
+    },
+    "dust": {
+      "hex": "#B7A88A",
+      "role": "chrome",
+      "usage": "card borders, dividers, subtle structure"
+    }
+  },
+  "aliases": {
+    "wy-navy": "charcoal",
+    "wy-gold": "sandstone",
+    "wy-stone": "bone",
+    "wy-sky": "sage"
+  },
+  "rules": {
+    "legacy-aliases": "Preserve wy-* aliases. They intentionally map old class names to the frontier palette.",
+    "bone": "Use as the dominant page background instead of pure white.",
+    "ember": "Primary accent. Use for CTAs, active states, and emphasis, but avoid turning whole pages into red fields.",
+    "sage": "Quiet secondary only. Do not use for primary CTA or lead hero text.",
+    "new-colors": "Do not introduce new palette colors without approval."
+  },
+  "distribution": {
+    "bone": "50-60%",
+    "charcoal": "20-25%",
+    "ember": "10-15%",
+    "sandstone-rust": "5-10%",
+    "sage-dust": "5% or less"
+  }
+}

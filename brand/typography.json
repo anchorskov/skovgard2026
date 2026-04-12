@@ -1,0 +1,29 @@
+{
+  "brand": "skovgard2026",
+  "theme": "frontier",
+  "locked": true,
+  "updated": "2026-04-12",
+  "fonts": {
+    "headline": {
+      "family": "Bitter",
+      "category": "serif",
+      "weights": ["600", "700", "800"],
+      "fallback": ["Merriweather", "Georgia", "serif"],
+      "letter-spacing": "-0.01em",
+      "usage": "h1, h2, h3, hero text, quote headlines"
+    },
+    "body": {
+      "family": "Source Sans 3",
+      "category": "sans-serif",
+      "weights": ["400", "500", "600", "700"],
+      "fallback": ["Inter", "system-ui", "sans-serif"],
+      "usage": "paragraphs, navigation, buttons, labels, forms"
+    }
+  },
+  "rules": {
+    "keep-order": "Preserve the primary and fallback order implemented in Base.astro.",
+    "no-alternates": "Do not substitute other fonts or switch back to the civic font stack on this branch.",
+    "small-caps-only": "All-caps is reserved for short UI labels, kicker text, and compact button copy.",
+    "heading-hierarchy": "Use size and weight for emphasis before adding more color."
+  }
+}
