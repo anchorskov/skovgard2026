@@ -34,11 +34,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? 'https://www.skov
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <!-- Per-page head injection (CSS, scripts, meta) -->
   <slot name="head" />
-  <!-- Fonts -->
+  <!-- Fonts — Western / Frontier theme: Bitter headlines + Source Sans 3 body -->
   <link rel="preconnect" href={MEDIA_BASE_URL} crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body class="bg-wy-stone text-wy-navy font-sans antialiased">
   <slot />

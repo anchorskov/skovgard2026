@@ -1,12 +1,77 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
-/* Campaign brand tokens */
+/* ---------------------------------------------------------------------------
+   Campaign brand tokens — Western / Frontier theme
+   ---------------------------------------------------------------------------
+   Big-sky palette tuned for Wyoming. Charcoal replaces navy so the site reads
+   like weathered wood and iron, not a DC banker's business card. Sandstone is
+   the single warm accent. Sage is a quiet secondary for rails and chrome.
+   Bone white is the page background — easier on the eyes than pure white and
+   feels document-like in a good way.
+
+   The legacy `wy-*` token names are preserved (wy-gold, wy-navy, wy-stone,
+   wy-sky) so every existing page picks up the new palette with zero markup
+   changes. New semantic tokens (wy-charcoal, wy-sandstone, wy-sage, wy-bone,
+   wy-rust) are added for anything built from here forward.
+--------------------------------------------------------------------------- */
 @theme {
-  --color-wy-gold: #C8973A;
-  --color-wy-navy: #1B2A4A;
-  --color-wy-sky: #5B9BD5;
-  --color-wy-stone: #F5F0E8;
-  --font-family-sans: 'Inter', system-ui, sans-serif;
-  --font-family-serif: 'Merriweather', Georgia, serif;
+  /* --- Western / Frontier semantic tokens with Republican red primary --- */
+  --color-wy-charcoal: #2b2b2b;    /* weathered iron — primary dark */
+  --color-wy-ember: #b22234;       /* Old Glory red — primary warm accent */
+  --color-wy-ember-dark: #8b1a26;  /* deeper ember — hover on ember */
+  --color-wy-sandstone: #c68a4a;   /* honeyed sandstone — secondary warm */
+  --color-wy-sage: #7a8a6b;        /* muted green — quiet rails, not bold UI */
+  --color-wy-bone: #f1ece1;        /* page background — cream-warm off-white */
+  --color-wy-rust: #8a3d23;        /* deep ember-brown — tags, link underlines */
+  --color-wy-dust: #b7a88a;        /* pale prairie — card borders, dividers */
+
+  /* --- Legacy aliases (wire old class names to the new palette) --- */
+  --color-wy-navy: #2b2b2b;        /* was deep blue → now charcoal */
+  --color-wy-gold: #c68a4a;        /* was amber → now sandstone */
+  --color-wy-stone: #f1ece1;       /* was cream → now bone */
+  --color-wy-sky: #7a8a6b;         /* was sky blue → now sage */
+
+  /* --- Typography --- */
+  --font-family-sans: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+  --font-family-serif: 'Bitter', 'Merriweather', Georgia, serif;
+}
+
+/* Subtle topographic accent rule used as a frontier-style section divider.
+   Apply with: <hr class="topo-rule" /> */
+.topo-rule {
+  border: 0;
+  height: 10px;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent 6px,
+    var(--color-wy-ember) 6px,
+    var(--color-wy-ember) 9px,
+    transparent 9px,
+    transparent 16px,
+    var(--color-wy-sandstone) 16px,
+    var(--color-wy-sandstone) 18px,
+    transparent 18px,
+    transparent 28px
+  );
+  opacity: 0.7;
+  margin: 0;
+}
+
+/* Body background supports a faint bone-paper grain so large flat expanses
+   don't feel flat on high-density displays. */
+body {
+  background-color: var(--color-wy-bone);
+  background-image:
+    radial-gradient(rgba(43, 43, 43, 0.035) 1px, transparent 1px),
+    radial-gradient(rgba(198, 138, 74, 0.03) 1px, transparent 1px);
+  background-size: 22px 22px, 37px 37px;
+  background-position: 0 0, 11px 11px;
+}
+
+/* Headline serif treatment — slightly condensed, weighty, frontier-era feel */
+h1, h2, h3, .font-serif {
+  font-family: var(--font-family-serif);
+  letter-spacing: -0.01em;
 }

@@ -12,14 +12,14 @@ const navLinks = [
 
 const current = Astro.url.pathname;
 ---
-<nav class="fixed top-0 w-full z-50 bg-wy-navy/95 backdrop-blur-sm border-b border-wy-gold/20">
+<nav class="fixed top-0 w-full z-50 bg-wy-charcoal/95 backdrop-blur-sm border-b-2 border-wy-ember/60">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
     <!-- Wordmark -->
     <a href="/" class="flex items-center gap-2">
-      <span class="text-white font-serif font-bold text-lg leading-tight">
-        Jimmy<br/><span class="text-wy-gold">Skovgard</span>
+      <span class="text-wy-bone font-serif font-extrabold text-lg leading-tight">
+        Jimmy<br/><span class="text-wy-ember">Skovgard</span>
       </span>
-      <span class="text-white/40 text-xs ml-2 hidden sm:block">U.S. Senate · 2026</span>
+      <span class="text-wy-bone/40 text-xs ml-2 hidden sm:block tracking-widest uppercase">U.S. Senate · 2026</span>
     </a>
 
     <!-- Desktop links -->
@@ -30,8 +30,8 @@ const current = Astro.url.pathname;
           class={[
             'text-sm font-medium transition-colors',
             current === link.href || current.startsWith(link.href + '/')
-              ? 'text-wy-gold'
-              : 'text-white/80 hover:text-white'
+              ? 'text-wy-ember'
+              : 'text-wy-bone/80 hover:text-wy-bone'
           ].join(' ')}
         >
           {link.label}
@@ -43,7 +43,7 @@ const current = Astro.url.pathname;
     <div class="flex items-center gap-3">
       <a
         href="/donate"
-        class="bg-wy-gold text-wy-navy font-bold text-sm px-4 py-2 rounded hover:bg-amber-400 transition-colors"
+        class="bg-wy-ember text-wy-bone font-bold text-sm px-4 py-2 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm"
       >
         Donate
       </a>
@@ -53,7 +53,7 @@ const current = Astro.url.pathname;
         aria-label="Toggle navigation menu"
         aria-expanded="false"
         aria-controls="mobile-menu"
-        class="md:hidden text-white p-1 rounded focus:outline-none focus:ring-2 focus:ring-wy-gold"
+        class="md:hidden text-wy-bone p-1 rounded focus:outline-none focus:ring-2 focus:ring-wy-ember"
       >
         <svg id="icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -68,7 +68,7 @@ const current = Astro.url.pathname;
   <!-- Mobile menu (hidden by default) -->
   <div
     id="mobile-menu"
-    class="hidden md:hidden bg-wy-navy border-t border-wy-gold/20 px-4 pb-4"
+    class="hidden md:hidden bg-wy-charcoal border-t border-wy-ember/40 px-4 pb-4"
   >
     {navLinks.map(link => (
       <a
@@ -76,8 +76,8 @@ const current = Astro.url.pathname;
         class={[
           'block py-2 text-sm font-medium transition-colors',
           current === link.href || current.startsWith(link.href + '/')
-            ? 'text-wy-gold'
-            : 'text-white/80 hover:text-white'
+            ? 'text-wy-ember'
+            : 'text-wy-bone/80 hover:text-wy-bone'
         ].join(' ')}
       >
         {link.label}
