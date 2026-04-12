@@ -1,0 +1,236 @@
+---
+// src/components/PulseOptInForm.astro
+interface Props {
+  showPrivacyNote?: boolean;
+}
+
+const {
+  showPrivacyNote = true,
+} = Astro.props;
+---
+<div class="pulse-optin-surface">
+  <noscript>
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-amber-800 text-sm">
+      JavaScript is required to submit this form securely. Please email
+      <a href="mailto:skovgard2026@gmail.com?subject=Pulse%20Opt-in" class="underline">skovgard2026@gmail.com</a>
+      with the subject "Pulse Opt-in" and include your name, street address, city, ZIP, and mobile number.
+    </div>
+  </noscript>
+
+  <form id="optin-form" class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-gray-100 space-y-5" method="post" novalidate>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">First name <span class="text-red-500">*</span></label>
+        <input
+          id="first_name"
+          name="first_name"
+          type="text"
+          autocomplete="given-name"
+          required
+          class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
+        />
+      </div>
+      <div>
+        <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Last name <span class="text-red-500">*</span></label>
+        <input
+          id="last_name"
+          name="last_name"
+          type="text"
+          autocomplete="family-name"
+          required
+          class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
+        />
+      </div>
+    </div>
+
+    <div>
+      <label for="address1" class="block text-sm font-medium text-gray-700 mb-1">Street address <span class="text-red-500">*</span></label>
+      <input
+        id="address1"
+        name="address1"
+        type="text"
+        autocomplete="address-line1"
+        required
+        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
+      />
+    </div>
+
+    <input id="state" name="state" type="hidden" value="WY" />
+
+    <div class="grid sm:grid-cols-[minmax(0,1fr)_11rem] gap-4">
+      <div>
+        <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
+        <input
+          id="city"
+          name="city"
+          type="text"
+          autocomplete="address-level2"
+          required
+          class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
+        />
+      </div>
+      <div>
+        <label for="zip" class="block text-sm font-medium text-gray-700 mb-1">ZIP code <span class="text-red-500">*</span></label>
+        <input
+          id="zip"
+          name="zip"
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]{5}"
+          placeholder="82001"
+          required
+          class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
+        />
+      </div>
+    </div>
+
+    <div>
+      <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Mobile number <span class="text-red-500">*</span></label>
+      <input
+        id="phone"
+        name="phone"
+        type="tel"
+        inputmode="tel"
+        placeholder="307-555-1234"
+        required
+        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
+      />
+      <p class="text-xs text-gray-500 mt-1">We format as +1XXXXXXXXXX. Standard rates may apply.</p>
+    </div>
+
+    <div id="consent-panel" class="pulse-consent-panel rounded-xl border border-wy-gold/25 bg-wy-stone/50 px-4 py-4 space-y-3">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          id="consent_sms"
+          name="consent_sms"
+          required
+          aria-describedby="consent-copy consent-error"
+          class="mt-1 accent-wy-gold w-4 h-4 shrink-0"
+        />
+        <span class="text-sm text-gray-700 font-medium">
+          I agree to receive campaign text messages from Jimmy Skovgard.
+        </span>
+      </label>
+      <p id="consent-copy" class="text-xs leading-5 text-gray-500 pl-7">
+        By checking this box and submitting your mobile number, you agree to receive campaign text messages from Skovgard for Senate.
+        Message frequency may vary. Message and data rates may apply. Reply STOP to opt out. Reply HELP for help.
+        Consent is not a condition of donation. View
+        <a href="/privacy" class="text-wy-gold underline">Privacy Policy</a>
+        and
+        <a href="/terms" class="text-wy-gold underline">Terms</a>.
+      </p>
+      <p id="consent-error" class="hidden pl-7 text-sm font-semibold text-[#991b1b]" aria-live="polite"></p>
+    </div>
+
+    <div class="hp-field" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;pointer-events:none;">
+      <label for="website">Website</label>
+      <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+    </div>
+    <input type="hidden" id="ts_start" name="ts_start" value="" />
+    <div id="ts-slot" aria-live="polite"></div>
+
+    <button
+      type="submit"
+      id="optin-submit"
+      class="w-full bg-wy-gold text-wy-navy font-bold py-4 rounded-lg text-lg hover:bg-amber-400 transition-colors"
+    >
+      Confirm Opt-In
+    </button>
+
+    <div id="form-message" class="hidden mt-2 text-center text-sm"></div>
+  </form>
+
+  {showPrivacyNote && (
+    <div class="mt-6 bg-white rounded-xl p-5 border border-gray-100 text-sm text-gray-500">
+      <h3 class="font-semibold text-wy-navy mb-2">How we protect your information</h3>
+      <p>
+        We collect the information needed to send updates and place you in the right district, including your name,
+        street address, city, ZIP, and mobile number. We protect data in transit with HTTPS, store consent records securely,
+        and do not sell or share mobile opt-in data for promotional or marketing purposes.
+      </p>
+    </div>
+  )}
+</div>
+
+<script type="module" src="/js/pulse-optin.js"></script>
+
+<style is:global>
+  #optin-form .optin-success {
+    margin-top: 0.75rem;
+    color: #166534;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  #optin-form .optin-error {
+    margin-top: 0.75rem;
+    color: #991b1b;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  #optin-form .pulse-consent-panel.has-error {
+    border-color: rgba(153, 27, 27, 0.7);
+    background: rgba(254, 242, 242, 0.92);
+    box-shadow: 0 0 0 1px rgba(153, 27, 27, 0.12);
+  }
+
+  #optin-form #consent_sms:focus-visible {
+    outline: 2px solid #b22234;
+    outline-offset: 2px;
+  }
+
+  #optin-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(17, 24, 39, 0.55);
+    z-index: 80;
+  }
+
+  #optin-modal.show {
+    display: flex;
+  }
+
+  #optin-modal .optin-dialog {
+    width: min(100%, 28rem);
+    background: #f1ece1;
+    color: #2b2b2b;
+    border: 1px solid rgba(178, 34, 52, 0.2);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    box-shadow: 0 24px 60px rgba(17, 24, 39, 0.22);
+  }
+
+  #optin-modal h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+  }
+
+  #optin-modal p {
+    margin: 0.25rem 0 0;
+    line-height: 1.55;
+  }
+
+  #optin-modal .actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+
+  #optin-modal .actions button {
+    min-height: 2.75rem;
+    padding: 0.65rem 1.1rem;
+    border: 1px solid #b22234;
+    border-radius: 0.65rem;
+    background: #b22234;
+    color: #f1ece1;
+    font-weight: 700;
+    cursor: pointer;
+  }
+</style>

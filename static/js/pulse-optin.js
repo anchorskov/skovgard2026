@@ -6,6 +6,9 @@ if (form) {
   /* ---------- small helpers ---------- */
   const HOME_URL = '/';
   const $ = (sel) => form.querySelector(sel && (sel[0] === '#' || sel[0] === '.') ? sel : ('#' + sel));
+  const consentPanel = $('#consent-panel');
+  const consentCheckbox = $('#consent_sms');
+  const consentError = $('#consent-error');
 
   const msg = document.createElement('div');
   msg.setAttribute('aria-live', 'polite');
@@ -13,6 +16,30 @@ if (form) {
 
   const err = (t) => { msg.className = 'optin-error';   msg.textContent = t; };
   const ok  = (t) => { msg.className = 'optin-success'; msg.textContent = t; };
+
+  const clearConsentError = () => {
+    consentPanel?.classList.remove('has-error');
+    if (consentError) {
+      consentError.textContent = '';
+      consentError.classList.add('hidden');
+    }
+    if (consentCheckbox) consentCheckbox.removeAttribute('aria-invalid');
+  };
+
+  const showConsentError = (text = 'To continue, check the box agreeing to receive campaign text messages.') => {
+    msg.className = '';
+    msg.textContent = '';
+    consentPanel?.classList.add('has-error');
+    if (consentError) {
+      consentError.textContent = text;
+      consentError.classList.remove('hidden');
+    }
+    if (consentCheckbox) {
+      consentCheckbox.setAttribute('aria-invalid', 'true');
+      consentCheckbox.focus({ preventScroll: true });
+    }
+    consentPanel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   const setBtn = (txt, { disabled = false, success = false } = {}) => {
     const btn = $('#optin-submit'); if (!btn) return;
@@ -221,10 +248,15 @@ function resetTurnstile() {
     setTimeout(() => { btn.disabled = false; }, MIN_WAIT_MS);
   })();
 
+  consentCheckbox?.addEventListener('change', () => {
+    if (consentCheckbox.checked) clearConsentError();
+  });
+
   /* ---------- submit ---------- */
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     msg.className = ''; msg.textContent = '';
+    clearConsentError();
 
     // honeypot: silent success
     if ((form.querySelector('#website')?.value || '').trim() !== '') {
@@ -248,7 +280,6 @@ function resetTurnstile() {
     const state         = ($('#state')?.value || '').trim().toUpperCase();
     const zip           = ($('#zip')?.value || '').replace(/\D/g, '');
     const phone10       = normalize10($('#phone')?.value || '');
-    const wy_voter      = $('#wy_voter')?.checked || false;
     const email         = ($('#email')?.value || '').trim();
     const consent_sms   = $('#consent_sms')?.checked || false;
     const consent_email = $('#consent_email')?.checked || false;
@@ -261,9 +292,11 @@ function resetTurnstile() {
     if (!state)      return err('State is required.');
     if (state !== 'WY') return err('This SMS list is for Wyoming addresses only.');
     if (!/^\d{5}$/.test(zip)) return err('Enter a 5-digit Wyoming ZIP.');
-    if (!wy_voter)   return err('This SMS list is for registered Wyoming voters only.');
     if (phone10.length !== 10) return err('Enter a valid 10-digit mobile.');
-    if (!consent_sms) return err('Please confirm SMS consent.');
+    if (!consent_sms) {
+      showConsentError();
+      return;
+    }
     if (email && !/.+@.+\..+/.test(email)) return err('Enter a valid email address.');
     if (email && !consent_email) return err('Check the email opt-in to receive emails.');
 
@@ -303,7 +336,6 @@ function resetTurnstile() {
           state,
           country: 'US',
           zip,
-          wy_voter: !!wy_voter,
           phone: phone10,
           email: email || null,
           consent_sms: !!consent_sms,
@@ -330,7 +362,7 @@ function resetTurnstile() {
       modal.show();
     } catch (e3) {
       console.error('opt-in error', e3);
-      setBtn('Click to Confirm Opt-In', { disabled: false });
+      setBtn('Confirm Opt-In', { disabled: false });
       err(e3?.message || 'Sorry—something went wrong. Please try again.');
       resetTurnstile(); // never reuse a failed/expired token
     }

@@ -2239,7 +2239,7 @@ export default {
         const state = normalizeText(b.state || "WY").toUpperCase();
         const country = normalizeText(b.country || "US").toUpperCase();
         const zip = String(b.zip || "").replace(/\D/g, "");
-        const wyVoter = b.wy_voter === true || b.wy_voter === 1;
+        const requestedWyVoter = b.wy_voter === true || b.wy_voter === 1;
 
         const phone = String(b.phone || "").replace(/[^\d]/g, "");
         const email = String(b.email || "").trim();
@@ -2286,13 +2286,6 @@ export default {
           );
         if (!/^\d{5}$/.test(zip))
           return json(req, env, { error: "5-digit ZIP required" }, 400);
-        if (!wyVoter)
-          return json(
-            req,
-            env,
-            { error: "This SMS list is for registered Wyoming voters only." },
-            400
-          );
         if (!phoneE164)
           return json(
             req,
@@ -2313,13 +2306,18 @@ export default {
         const ip = req.headers.get("cf-connecting-ip") || "";
         const ipHash = await sha256Hex(ip);
         const priorConsent = await env.DB.prepare(
-          `SELECT status, consent_email
+          `SELECT status, consent_email, wy_voter
              FROM consent_status
             WHERE phone_e164 = ?1`
         )
           .bind(phoneE164)
           .first()
           .catch(() => null);
+
+        const wyVoter =
+          b.wy_voter === undefined
+            ? (Number(priorConsent?.wy_voter || 0) === 1 ? 1 : 0)
+            : (requestedWyVoter ? 1 : 0);
 
         const origin = req.headers.get("origin") || "";
         const hostHdr = req.headers.get("host") || "";
@@ -2382,7 +2380,7 @@ export default {
           lastName,
           email: email || null,
           consentEmail: consentEmail ? 1 : 0,
-          wyVoter: wyVoter ? 1 : 0,
+          wyVoter,
           zip,
           address1: address1 || null,
           address2: address2 || null,
