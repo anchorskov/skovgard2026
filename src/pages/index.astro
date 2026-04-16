@@ -90,26 +90,21 @@ import { MEDIA_BASE_URL } from '../constants';
       <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-3">Town Hall</p>
       <h2 class="text-4xl font-serif font-bold text-white mb-4">Hear Jimmy</h2>
       <p class="text-white/70 text-lg mb-10 max-w-xl">
-        A recent town hall conversation: unscripted, unfiltered, Wyoming straight talk on the issues that matter.
+        A recent conversation: unscripted, unfiltered, Wyoming straight talk on the issues that matter.
       </p>
       <div class="flex flex-col md:flex-row gap-10 items-start">
-        <!-- Portrait video constrained so 9:16 displays naturally -->
-        <div class="w-full md:w-64 flex-shrink-0 mx-auto md:mx-0">
-          <video
-            controls
-            preload="none"
-            class="w-full rounded-2xl shadow-2xl bg-black"
-            style="max-height: 456px;"
-          >
-            <source src={`${MEDIA_BASE_URL}/townhall/intro_townhall.mp4`} type="video/mp4" />
-          </video>
+        <!-- Audio player -->
+        <div class="w-full md:w-80 flex-shrink-0 mx-auto md:mx-0">
+          <audio controls preload="metadata" class="w-full rounded">
+            <source src={`${MEDIA_BASE_URL}/townhall/SpecialAsk.mp3`} type="audio/mpeg" />
+          </audio>
           <a
-            href={`${MEDIA_BASE_URL}/townhall/intro_townhall.mp4`}
+            href={`${MEDIA_BASE_URL}/townhall/SpecialAsk.mp3`}
             target="_blank"
             rel="noopener"
             class="mt-3 inline-block text-sm font-semibold text-wy-sandstone hover:text-wy-ember hover:underline"
           >
-            Open video directly
+            Open audio directly
           </a>
         </div>
         <!-- Context + CTA -->
