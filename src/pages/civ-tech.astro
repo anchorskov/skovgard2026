@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import { MEDIA_BASE_URL } from '../constants';
 ---
 <Base
   title='Civ-Tech — Skovgard 2026'
@@ -25,7 +26,20 @@ import Footer from '../components/Footer.astro';
     <section class='bg-white py-20 px-4'>
       <div class='max-w-4xl mx-auto'>
         <h2 class='text-4xl font-serif font-bold text-wy-navy mb-4'>Why Civ-Tech</h2>
-        <p class='text-gray-600 text-lg mb-10'>Congress listens to the loudest. We are leveling the playing field.</p>
+        <p class='text-gray-600 text-lg mb-6'>Congress listens to the loudest. We are leveling the playing field.</p>
+        <div class='mb-10'>
+          <audio controls preload='metadata' class='w-full rounded'>
+            <source src={`${MEDIA_BASE_URL}/civ-tech/JimmyTools.mp3`} type='audio/mpeg' />
+          </audio>
+          <a
+            href={`${MEDIA_BASE_URL}/civ-tech/JimmyTools.mp3`}
+            target='_blank'
+            rel='noopener'
+            class='mt-2 inline-block text-sm font-semibold text-wy-sandstone hover:text-wy-ember hover:underline'
+          >
+            Open audio directly
+          </a>
+        </div>
         <div class='grid sm:grid-cols-2 gap-6'>
           {[
             { title: 'Open-Source', desc: 'Anyone can inspect it, audit it, and improve it. No black boxes.' },
