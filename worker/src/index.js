@@ -2857,40 +2857,40 @@ export default {
         let county = "";
         if (cityInput) {
           const mapping = await env.WY_DB.prepare(
-            `SELECT county_norm FROM wy_city_county WHERE UPPER(TRIM(city_norm)) = UPPER(TRIM(?1)) LIMIT 1`
+            `SELECT county FROM wy_city_county WHERE UPPER(TRIM(city)) = UPPER(TRIM(?1)) LIMIT 1`
           ).bind(cityInput).first().catch(() => null);
-          county = mapping?.county_norm || cityInput; // fall back to raw input (may be a county name already)
+          county = mapping?.county || cityInput; // fall back to raw input (may be a county name already)
         }
 
         let rows;
         const showAll = url.searchParams.get("all") === "1";
         const rowLimit = showAll ? 50 : 5;
-        const baseQuery = `SELECT house_district, senate_district, county
-          FROM voters
-          WHERE UPPER(TRIM(first_name)) = UPPER(TRIM(?1))
-            AND UPPER(TRIM(last_name))  = UPPER(TRIM(?2))
-            AND status = 'active'`;
+        const baseQuery = `SELECT van.house AS house_district, van.senate AS senate_district, v.county
+          FROM voters_addr_norm van
+          JOIN voters v ON van.voter_id = v.voter_id
+          WHERE UPPER(TRIM(van.fn)) = UPPER(TRIM(?1))
+            AND UPPER(TRIM(van.ln))  = UPPER(TRIM(?2))`;
         const countQuery = `SELECT COUNT(*) as cnt
-          FROM voters
-          WHERE UPPER(TRIM(first_name)) = UPPER(TRIM(?1))
-            AND UPPER(TRIM(last_name))  = UPPER(TRIM(?2))
-            AND status = 'active'`;
+          FROM voters_addr_norm van
+          JOIN voters v ON van.voter_id = v.voter_id
+          WHERE UPPER(TRIM(van.fn)) = UPPER(TRIM(?1))
+            AND UPPER(TRIM(van.ln))  = UPPER(TRIM(?2))`;
 
         // Last-name fallback: when exact first+last returns nothing, find similar voters
         // Requires county to narrow suggestions; without it just return "none"
         async function lastNameFallback() {
           if (!county) return json(req, env, { match: null, mode: "none" });
 
-          const surnameQuery = `SELECT first_name, house_district, senate_district, county,
-                 CASE WHEN UPPER(first_name) = UPPER(?3) THEN 0
-                      WHEN UPPER(SUBSTR(first_name,1,LENGTH(?3))) = UPPER(?3) THEN 1
-                      WHEN UPPER(SUBSTR(first_name,1,1)) = UPPER(SUBSTR(?3,1,1)) THEN 2
+          const surnameQuery = `SELECT van.fn AS first_name, van.house AS house_district, van.senate AS senate_district, v.county,
+                 CASE WHEN UPPER(van.fn) = UPPER(?3) THEN 0
+                      WHEN UPPER(SUBSTR(van.fn,1,LENGTH(?3))) = UPPER(?3) THEN 1
+                      WHEN UPPER(SUBSTR(van.fn,1,1)) = UPPER(SUBSTR(?3,1,1)) THEN 2
                       ELSE 3 END AS rank
-               FROM voters
-               WHERE UPPER(TRIM(last_name)) = UPPER(TRIM(?1))
-                 AND UPPER(TRIM(county)) = UPPER(TRIM(?2))
-                 AND status = 'active'
-               ORDER BY rank, first_name`;
+               FROM voters_addr_norm van
+               JOIN voters v ON van.voter_id = v.voter_id
+               WHERE UPPER(TRIM(van.ln)) = UPPER(TRIM(?1))
+                 AND UPPER(TRIM(v.county)) = UPPER(TRIM(?2))
+               ORDER BY rank, van.fn`;
           const similar = await env.WY_DB.prepare(surnameQuery)
             .bind(lastName, county, firstName).all().then(r => r.results).catch(() => []);
           if (similar.length) {
@@ -2905,7 +2905,7 @@ export default {
 
         if (county) {
           rows = await env.WY_DB.prepare(
-            baseQuery + ` AND UPPER(TRIM(county)) = UPPER(TRIM(?3)) LIMIT ${rowLimit}`
+            baseQuery + ` AND UPPER(TRIM(v.county)) = UPPER(TRIM(?3)) LIMIT ${rowLimit}`
           ).bind(firstName, lastName, county).all().then(r => r.results).catch(() => []);
 
           if (rows.length === 0) {
@@ -2929,7 +2929,7 @@ export default {
           }
           // county-filtered rows found — get filtered count
           const total = await env.WY_DB.prepare(
-            countQuery + ` AND UPPER(TRIM(county)) = UPPER(TRIM(?3))`
+            countQuery + ` AND UPPER(TRIM(v.county)) = UPPER(TRIM(?3))`
           ).bind(firstName, lastName, county).first().then(r => r?.cnt || 0).catch(() => rows.length);
 
           if (rows.length === 1 && total === 1) {
