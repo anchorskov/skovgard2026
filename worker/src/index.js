@@ -17,6 +17,14 @@ import {
   sendAdminOutreachEmail,
 } from "./admin-email.js";
 import { sendPulseOptInEmails } from "./pulse-email.js";
+
+function pulseWelcomeConfig(env) {
+  return {
+    enabled: env.PULSE_TEXT_WELCOME_ENABLED,
+    text: env.PULSE_TEXT_WELCOME_TEXT,
+    auditAction: "pulse_welcome_send",
+  };
+}
 // --- CORS helpers ------------------------------------------------------------
 function allowOrigin(env, req) {
   const origin = req.headers.get("origin") || "";
@@ -2435,7 +2443,20 @@ export default {
           );
         }
 
-        await maybeSendWelcomeText(env.DB, env, phone);
+        const pulseWelcomeWork = maybeSendWelcomeText(
+          env.DB,
+          env,
+          phone,
+          pulseWelcomeConfig(env)
+        ).catch((error) => {
+          console.error("[/api/optin] pulse welcome text failed", String(error?.message || error));
+          return null;
+        });
+        if (ctx?.waitUntil) {
+          ctx.waitUntil(pulseWelcomeWork);
+        } else {
+          await pulseWelcomeWork;
+        }
 
         const currentConsent = await env.DB.prepare(
           `SELECT phone_e164, status, consented_at, source, source_detail,
@@ -2816,6 +2837,130 @@ export default {
         return json(req, env, { ok: true, items: results });
       }
 
+      if (req.method === "GET" && path === "/api/admin/texting/voter-lookup") {
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        if (!env.WY_DB) {
+          return json(req, env, { match: null, mode: "no_db" });
+        }
+
+        const firstName = normalizeText(url.searchParams.get("first_name"));
+        const lastName = normalizeText(url.searchParams.get("last_name"));
+        const cityInput = normalizeText(url.searchParams.get("city"));
+
+        if (!firstName || !lastName) {
+          return json(req, env, { error: "first_name and last_name are required." }, 400);
+        }
+
+        // Resolve city name to county via wy_city_county lookup table
+        let county = "";
+        if (cityInput) {
+          const mapping = await env.WY_DB.prepare(
+            `SELECT county_norm FROM wy_city_county WHERE UPPER(TRIM(city_norm)) = UPPER(TRIM(?1)) LIMIT 1`
+          ).bind(cityInput).first().catch(() => null);
+          county = mapping?.county_norm || cityInput; // fall back to raw input (may be a county name already)
+        }
+
+        let rows;
+        const showAll = url.searchParams.get("all") === "1";
+        const rowLimit = showAll ? 50 : 5;
+        const baseQuery = `SELECT house_district, senate_district, county
+          FROM voters
+          WHERE UPPER(TRIM(first_name)) = UPPER(TRIM(?1))
+            AND UPPER(TRIM(last_name))  = UPPER(TRIM(?2))
+            AND status = 'active'`;
+        const countQuery = `SELECT COUNT(*) as cnt
+          FROM voters
+          WHERE UPPER(TRIM(first_name)) = UPPER(TRIM(?1))
+            AND UPPER(TRIM(last_name))  = UPPER(TRIM(?2))
+            AND status = 'active'`;
+
+        // Last-name fallback: when exact first+last returns nothing, find similar voters
+        // Requires county to narrow suggestions; without it just return "none"
+        async function lastNameFallback() {
+          if (!county) return json(req, env, { match: null, mode: "none" });
+
+          const surnameQuery = `SELECT first_name, house_district, senate_district, county,
+                 CASE WHEN UPPER(first_name) = UPPER(?3) THEN 0
+                      WHEN UPPER(SUBSTR(first_name,1,LENGTH(?3))) = UPPER(?3) THEN 1
+                      WHEN UPPER(SUBSTR(first_name,1,1)) = UPPER(SUBSTR(?3,1,1)) THEN 2
+                      ELSE 3 END AS rank
+               FROM voters
+               WHERE UPPER(TRIM(last_name)) = UPPER(TRIM(?1))
+                 AND UPPER(TRIM(county)) = UPPER(TRIM(?2))
+                 AND status = 'active'
+               ORDER BY rank, first_name`;
+          const similar = await env.WY_DB.prepare(surnameQuery)
+            .bind(lastName, county, firstName).all().then(r => r.results).catch(() => []);
+          if (similar.length) {
+            const suggestions = similar.map(r => ({
+              first_name: r.first_name, hd: r.house_district,
+              sd: r.senate_district, county: r.county,
+            }));
+            return json(req, env, { match: null, mode: "suggestions", suggestions });
+          }
+          return json(req, env, { match: null, mode: "none" });
+        }
+
+        if (county) {
+          rows = await env.WY_DB.prepare(
+            baseQuery + ` AND UPPER(TRIM(county)) = UPPER(TRIM(?3)) LIMIT ${rowLimit}`
+          ).bind(firstName, lastName, county).all().then(r => r.results).catch(() => []);
+
+          if (rows.length === 0) {
+            const total = await env.WY_DB.prepare(countQuery)
+              .bind(firstName, lastName).first().then(r => r?.cnt || 0).catch(() => 0);
+            rows = await env.WY_DB.prepare(
+              baseQuery + ` LIMIT ${rowLimit}`
+            ).bind(firstName, lastName).all().then(r => r.results).catch(() => []);
+
+            if (rows.length === 1) {
+              return json(req, env, {
+                match: { hd: rows[0].house_district, sd: rows[0].senate_district, county: rows[0].county },
+                mode: "name_only",
+              });
+            }
+            if (rows.length > 1) {
+              const candidates = rows.map(r => ({ hd: r.house_district, sd: r.senate_district, county: r.county }));
+              return json(req, env, { match: null, mode: "ambiguous", count: total, candidates });
+            }
+            return lastNameFallback();
+          }
+          // county-filtered rows found — get filtered count
+          const total = await env.WY_DB.prepare(
+            countQuery + ` AND UPPER(TRIM(county)) = UPPER(TRIM(?3))`
+          ).bind(firstName, lastName, county).first().then(r => r?.cnt || 0).catch(() => rows.length);
+
+          if (rows.length === 1 && total === 1) {
+            return json(req, env, {
+              match: { hd: rows[0].house_district, sd: rows[0].senate_district, county: rows[0].county },
+              mode: "unique",
+            });
+          }
+          const candidates = rows.map(r => ({ hd: r.house_district, sd: r.senate_district, county: r.county }));
+          return json(req, env, { match: null, mode: "ambiguous", count: total, candidates });
+        } else {
+          const total = await env.WY_DB.prepare(countQuery)
+            .bind(firstName, lastName).first().then(r => r?.cnt || 0).catch(() => 0);
+          rows = await env.WY_DB.prepare(
+            baseQuery + ` LIMIT ${rowLimit}`
+          ).bind(firstName, lastName).all().then(r => r.results).catch(() => []);
+
+          if (rows.length === 1 && total === 1) {
+            return json(req, env, {
+              match: { hd: rows[0].house_district, sd: rows[0].senate_district, county: rows[0].county },
+              mode: "unique",
+            });
+          }
+          if (rows.length > 1) {
+            const candidates = rows.map(r => ({ hd: r.house_district, sd: r.senate_district, county: r.county }));
+            return json(req, env, { match: null, mode: "ambiguous", count: total, candidates });
+          }
+          return lastNameFallback();
+        }
+      }
+
       if (req.method === "POST" && path === "/api/admin/texting/optins") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
         const auth = mustBeAdmin(req, env, url);
@@ -2828,6 +2973,9 @@ export default {
         const phoneRaw = normalizeText(body?.phone);
         const phoneE164 = normalizePhoneNumber(phoneRaw);
         const email = normalizeText(body?.email);
+        const city = normalizeText(body?.city);
+        const stateHouseDistrict = normalizeText(body?.state_house_district);
+        const stateSenateDistrict = normalizeText(body?.state_senate_district);
         const consentEmail = isAffirmative(body?.consent_email) ? 1 : 0;
         const wyVoter = isAffirmative(body?.wy_voter) ? 1 : 0;
         const isVolunteer = isAffirmative(body?.is_volunteer) ? 1 : 0;
@@ -2877,6 +3025,9 @@ export default {
           userAgent,
           ipHash,
           overwriteProfile: false,
+          city: city || null,
+          stateHouseDistrict: stateHouseDistrict || null,
+          stateSenateDistrict: stateSenateDistrict || null,
         });
 
         if (email && consentEmail) {
@@ -2918,6 +3069,9 @@ export default {
             wyVoter,
             isVolunteer,
             email: email || null,
+            city: city || null,
+            state_house_district: stateHouseDistrict || null,
+            state_senate_district: stateSenateDistrict || null,
           }),
         });
 

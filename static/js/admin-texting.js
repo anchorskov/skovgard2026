@@ -13,6 +13,13 @@ const refreshBtn = document.getElementById("admin-texting-refresh");
 const optInForm = document.getElementById("admin-texting-optin");
 const optInStatusEl = document.getElementById("admin-texting-optin-status");
 const optInGoEmailsBtn = document.getElementById("admin-optin-go-emails");
+const optInCityInput = document.getElementById("admin_optin_city");
+const optInHdInput = document.getElementById("admin_optin_hd");
+const optInSdInput = document.getElementById("admin_optin_sd");
+const optInLookupStatusEl = document.getElementById("admin-optin-lookup-status");
+const optInFirstNameInput = document.getElementById("admin_optin_first_name");
+const optInLastNameInput = document.getElementById("admin_optin_last_name");
+const optInLookupBtn = document.getElementById("admin-optin-lookup");
 const sendForm = document.getElementById("admin-texting-send");
 const sendStatusEl = document.getElementById("admin-texting-send-status");
 const previewBtn = document.getElementById("text-preview");
@@ -85,6 +92,83 @@ function setStatus(el, message, isError = false) {
   if (!el) return;
   el.textContent = message;
   el.classList.toggle("is-error", isError);
+}
+
+/* ── Debounced voter lookup for HD/SD auto-fill ── */
+let _voterLookupTimer = null;
+function scheduleVoterLookup() {
+  clearTimeout(_voterLookupTimer);
+  _voterLookupTimer = setTimeout(runVoterLookup, 400);
+}
+async function runVoterLookup(showAll) {
+  const first = (optInFirstNameInput?.value || "").trim();
+  const last = (optInLastNameInput?.value || "").trim();
+  if (first.length < 2 || last.length < 2) return;
+
+  const city = (optInCityInput?.value || "").trim();
+  if (!city) {
+    setStatus(optInLookupStatusEl, "City required for voter lookup");
+    return;
+  }
+
+  const params = new URLSearchParams({ first_name: first, last_name: last });
+  params.set("city", city);
+  if (showAll === true) params.set("all", "1");
+
+  try {
+    const data = await api("/api/admin/texting/voter-lookup?" + params.toString());
+    if (data?.match) {
+      if (optInHdInput) optInHdInput.value = data.match.hd || "";
+      if (optInSdInput) optInSdInput.value = data.match.sd || "";
+      setStatus(optInLookupStatusEl, "Auto-filled from voter file" + (data.mode === "name_only" ? " (not found in that city — matched by name only)" : ""));
+    } else if (data?.mode === "ambiguous" && data.candidates?.length) {
+      if (optInHdInput) optInHdInput.value = "";
+      if (optInSdInput) optInSdInput.value = "";
+      const list = data.candidates.map(c => `${c.county} (HD ${c.hd} / SD ${c.sd})`).join(", ");
+      const more = data.count > data.candidates.length
+        ? ` — and ${data.count - data.candidates.length} more`
+        : "";
+      if (optInLookupStatusEl) {
+        optInLookupStatusEl.textContent = "";
+        optInLookupStatusEl.classList.remove("is-error");
+        optInLookupStatusEl.append(`Found ${data.count} records: ${list}${more}`);
+        if (data.count > data.candidates.length) {
+          const showAllLink = document.createElement("a");
+          showAllLink.href = "#";
+          showAllLink.textContent = " Show all";
+          showAllLink.style.cssText = "margin-left:.3em;font-weight:700;";
+          showAllLink.addEventListener("click", (e) => { e.preventDefault(); runVoterLookup(true); });
+          optInLookupStatusEl.append(showAllLink);
+        }
+      }
+    } else if (data?.mode === "suggestions" && data.suggestions?.length) {
+      if (optInHdInput) optInHdInput.value = "";
+      if (optInSdInput) optInSdInput.value = "";
+      optInLookupStatusEl.textContent = "";
+      optInLookupStatusEl.classList.remove("is-error");
+      const intro = document.createElement("span");
+      intro.textContent = `No exact match. ${data.suggestions.length} voter(s) with surname ${last.toUpperCase()}:`;
+      optInLookupStatusEl.appendChild(intro);
+      const ul = document.createElement("ul");
+      ul.style.cssText = "margin:.3rem 0 0 1.2rem;padding:0;list-style:disc;font-size:.85rem;line-height:1.5";
+      data.suggestions.forEach(s => {
+        const li = document.createElement("li");
+        li.textContent = `${s.first_name} — ${s.county} (HD ${s.hd} / SD ${s.sd})`;
+        ul.appendChild(li);
+      });
+      optInLookupStatusEl.appendChild(ul);
+    } else if (data?.mode === "no_db") {
+      if (optInHdInput) optInHdInput.value = "";
+      if (optInSdInput) optInSdInput.value = "";
+      setStatus(optInLookupStatusEl, "Voter database unavailable");
+    } else {
+      if (optInHdInput) optInHdInput.value = "";
+      if (optInSdInput) optInSdInput.value = "";
+      setStatus(optInLookupStatusEl, "No voter record found");
+    }
+  } catch (_) {
+    /* silent — voter lookup is best-effort */
+  }
 }
 
 function hasManualOptInHash() {
@@ -1444,6 +1528,12 @@ sendForm?.addEventListener("submit", async (event) => {
   }
 });
 
+/* ── Voter lookup triggers ── */
+optInFirstNameInput?.addEventListener("blur", scheduleVoterLookup);
+optInLastNameInput?.addEventListener("blur", scheduleVoterLookup);
+optInCityInput?.addEventListener("input", scheduleVoterLookup);
+optInLookupBtn?.addEventListener("click", runVoterLookup);
+
 optInForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(optInForm);
@@ -1452,6 +1542,9 @@ optInForm?.addEventListener("submit", async (event) => {
     last_name: String(formData.get("admin_optin_last_name") || "").trim(),
     phone: String(formData.get("admin_optin_phone") || "").trim(),
     email: String(formData.get("admin_optin_email") || "").trim(),
+    city: String(formData.get("admin_optin_city") || "").trim(),
+    state_house_district: String(formData.get("admin_optin_hd") || "").trim(),
+    state_senate_district: String(formData.get("admin_optin_sd") || "").trim(),
     consent_email: formData.get("admin_optin_consent_email") === "on",
     wy_voter: formData.get("admin_optin_wy_voter") === "on",
     is_volunteer: formData.get("admin_optin_is_volunteer") === "on",
@@ -1463,6 +1556,9 @@ optInForm?.addEventListener("submit", async (event) => {
       body: JSON.stringify(payload),
     });
     optInForm.reset();
+    if (optInHdInput) optInHdInput.value = "";
+    if (optInSdInput) optInSdInput.value = "";
+    setStatus(optInLookupStatusEl, "");
     resetContactsViewForSavedOptIn();
     if (data?.item?.phone_e164) {
       upsertContactDatasetItem(data.item);

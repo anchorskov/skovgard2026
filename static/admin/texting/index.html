@@ -173,6 +173,16 @@
         </div>
         <div class="field-inline">
           <div class="field">
+            <label for="admin_optin_city">City</label>
+            <input id="admin_optin_city" name="admin_optin_city" type="text"
+                   autocomplete="address-level2" placeholder="e.g. Casper" />
+          </div>
+          <div class="field field-btn-align">
+            <button type="button" id="admin-optin-lookup">Look Up</button>
+          </div>
+        </div>
+        <div class="field-inline">
+          <div class="field">
             <label for="admin_optin_phone">Phone</label>
             <input id="admin_optin_phone" name="admin_optin_phone" type="tel" autocomplete="tel" placeholder="+1307..." required />
           </div>
@@ -181,6 +191,19 @@
             <input id="admin_optin_email" name="admin_optin_email" type="email" autocomplete="email" placeholder="name@example.com" />
           </div>
         </div>
+        <div class="field-inline">
+          <div class="field">
+            <label for="admin_optin_hd">House District <span class="help">(auto-filled)</span></label>
+            <input id="admin_optin_hd" name="admin_optin_hd" type="text" readonly
+                   placeholder="—" />
+          </div>
+          <div class="field">
+            <label for="admin_optin_sd">Senate District <span class="help">(auto-filled)</span></label>
+            <input id="admin_optin_sd" name="admin_optin_sd" type="text" readonly
+                   placeholder="—" />
+          </div>
+        </div>
+        <p id="admin-optin-lookup-status" class="help" role="status" aria-live="polite"></p>
         <div class="field">
           <span class="help">Saving marks the contact as opted in. Re-using an existing phone updates that contact instead of creating a second record.</span>
         </div>

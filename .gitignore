@@ -55,6 +55,8 @@ backups/
 data/
 docs/db/data/
 exports/
+brand/exports/
+scripts/brand/
 
 # Repo-specific review artifacts
 optin-review-*.zip

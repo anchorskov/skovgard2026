@@ -353,6 +353,33 @@ main .preview-list-item {
   align-items: center;
 }
 
+#admin-texting-shell #admin-optin-lookup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: .6rem 1.1rem;
+  border: 1px solid #64748b;
+  border-radius: .7rem;
+  background: #64748b;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease;
+}
+#admin-texting-shell #admin-optin-lookup:hover {
+  background: #475569;
+  border-color: #475569;
+}
+
+.field-btn-align {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 2px;
+}
+
 #admin-texting-shell .checkbox-stack {
   display: flex;
   flex-wrap: wrap;

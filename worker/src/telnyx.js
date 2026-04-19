@@ -236,9 +236,10 @@ export async function sendSmsWithTelnyx({ apiKey, fromNumber, to, text }) {
   };
 }
 
-export async function maybeSendWelcomeText(db, env, phoneE164) {
-  const enabled = String(env.TEXTING_WELCOME_ENABLED || "0") === "1";
-  const welcomeText = String(env.TEXTING_WELCOME_TEXT || "").trim();
+export async function maybeSendWelcomeText(db, env, phoneE164, options = {}) {
+  const enabled = String(options.enabled ?? env.TEXTING_WELCOME_ENABLED ?? "0") === "1";
+  const welcomeText = String(options.text ?? env.TEXTING_WELCOME_TEXT ?? "").trim();
+  const auditAction = String(options.auditAction || "welcome_send").trim() || "welcome_send";
   const apiKey = String(env.TELNYX_API_KEY || "").trim();
   const fromNumber = String(env.TELNYX_FROM_NUMBER || "").trim();
   const to = normalizePhoneNumber(phoneE164);
@@ -303,7 +304,7 @@ export async function maybeSendWelcomeText(db, env, phoneE164) {
     .run();
 
   await insertTextingAuditLog(db, {
-    action: "welcome_send",
+    action: auditAction,
     targetPhone: to,
     messageId: telnyx.providerId,
     detailsJson: JSON.stringify({
