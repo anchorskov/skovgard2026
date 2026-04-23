@@ -6,7 +6,21 @@
   <title>Admin Export — Skovgard 2026</title>
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/forms.css">
-
+  <style>
+    #admin-export-form .button-row button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.75rem;
+      padding: .6rem 1.1rem;
+      border: 1px solid #2563eb;
+      border-radius: .7rem;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
 
 </head>
 <body>
@@ -17,7 +31,7 @@
     <span style="color:rgba(255,255,255,.4);font-size:.75rem;">Admin</span>
   </header>
   <main style="max-width:1200px;margin:2rem auto;padding:0 1rem;">
-    <p>Download CSV exports for newsletter subscribers and pulse opt-ins.</p>
+    <p>Download CSV exports for newsletter subscribers, pulse opt-ins, and Stripe donations.</p>
 
 <p class="notice">
   This page requires an admin export key. Enter it below to authorize downloads.
@@ -32,13 +46,13 @@
   <div class="button-row">
     <button type="button" id="download-newsletter">Download Newsletter CSV</button>
     <button type="button" id="download-pulse">Download Pulse CSV</button>
+    <button type="button" id="download-donations">Download Stripe Donations CSV</button>
   </div>
 
   <p id="admin-export-status" class="help" role="status" aria-live="polite"></p>
 </form>
 
-<script type="module" src="/js/admin-exports.js" defer></script>
+<script type="module" src="/js/admin-exports.js?v=2" defer></script>
   </main>
-  <script src="/js/env.js" defer></script>
 </body>
 </html>

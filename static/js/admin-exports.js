@@ -4,6 +4,7 @@ const keyInput = document.getElementById("admin_key");
 const statusEl = document.getElementById("admin-export-status");
 const newsletterBtn = document.getElementById("download-newsletter");
 const pulseBtn = document.getElementById("download-pulse");
+const donationsBtn = document.getElementById("download-donations");
 
 function setStatus(message, isError = false) {
   if (!statusEl) return;
@@ -82,4 +83,12 @@ newsletterBtn?.addEventListener("click", () => {
 
 pulseBtn?.addEventListener("click", () => {
   downloadCsv("/api/admin/exports/pulse.csv", "pulse-optins.csv", "pulse CSV");
+});
+
+donationsBtn?.addEventListener("click", () => {
+  downloadCsv(
+    "/api/admin/exports/donations.csv",
+    "stripe-donations.csv",
+    "Stripe donations CSV"
+  );
 });

@@ -4474,6 +4474,92 @@ export default {
         return csvResponse(req, env, `pulse-optins-${date}.csv`, csv);
       }
 
+      if (
+        req.method === "GET" &&
+        (path === "/api/admin/exports/donations.csv" || path === "/api/admin/donations.csv")
+      ) {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const columns = [
+          "contribution_id",
+          "contribution_created_at",
+          "contribution_updated_at",
+          "status",
+          "election_period",
+          "amount",
+          "amount_cents",
+          "currency",
+          "payment_intent_id",
+          "donor_id",
+          "first_name",
+          "last_name",
+          "email",
+          "phone",
+          "address1",
+          "address2",
+          "city",
+          "state",
+          "zip",
+          "country",
+          "employer",
+          "occupation",
+          "donor_created_at",
+          "us_citizen",
+          "personal_funds",
+          "age_18",
+          "not_federal_contractor",
+          "personal_card",
+          "attestation_created_at",
+          "ip",
+          "user_agent",
+        ];
+
+        const { results = [] } =
+          (await env.DB.prepare(
+            `SELECT
+                c.id AS contribution_id,
+                c.created_at AS contribution_created_at,
+                c.updated_at AS contribution_updated_at,
+                c.status,
+                c.election_period,
+                printf('%.2f', c.amount_cents / 100.0) AS amount,
+                c.amount_cents,
+                c.currency,
+                c.payment_intent_id,
+                d.id AS donor_id,
+                d.first_name,
+                d.last_name,
+                d.email,
+                d.phone,
+                d.address1,
+                d.address2,
+                d.city,
+                d.state,
+                d.zip,
+                d.country,
+                d.employer,
+                d.occupation,
+                d.created_at AS donor_created_at,
+                COALESCE(a.us_citizen, '') AS us_citizen,
+                COALESCE(a.personal_funds, '') AS personal_funds,
+                COALESCE(a.age_18, '') AS age_18,
+                COALESCE(a.not_federal_contractor, '') AS not_federal_contractor,
+                COALESCE(a.personal_card, '') AS personal_card,
+                COALESCE(a.created_at, '') AS attestation_created_at,
+                COALESCE(a.ip, '') AS ip,
+                COALESCE(a.user_agent, '') AS user_agent
+             FROM contributions c
+             JOIN donors d ON d.id = c.donor_id
+             LEFT JOIN contribution_attestations a ON a.contribution_id = c.id
+             ORDER BY datetime(c.created_at) DESC, c.id DESC`
+          ).all()) || {};
+
+        const date = new Date().toISOString().slice(0, 10);
+        return csvResponse(req, env, `stripe-donations-${date}.csv`, rowsToCsv(columns, results));
+      }
+
       // Fallback (ensure CORS on 404)
       return new Response("Not found", {
         status: 404,
