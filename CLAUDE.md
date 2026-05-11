@@ -79,3 +79,15 @@ This project migrated from Hugo to Astro in early April 2026. **All code changes
 - `worker/wrangler.toml` contains shared `[vars]`, production `[env.production.vars]`, and preview `[env.preview.vars]`.
 - The canonical production deploy path in this repo uses `--env production`, so production behavior should be checked against `[env.production.vars]` first, then against shared `[vars]` defaults.
 - When a feature looks wired correctly in code but behaves differently in production, check the relevant flags in both blocks before changing app logic.
+
+## Contact Import Workflow (Signup Sheets → Admin Portals)
+
+When a user provides a signup-sheet CSV to be imported into the SMS/email systems:
+
+1. Read `docs/update_new_contact_emails_texts.md` for the step-by-step operations guide.
+2. Read `docs/UpsertOptinData.md` for the technical field mapping and script reference.
+3. Required sequence: normalize CSV columns → transform → review `source-audit.csv` → SQLite test → surface issues → confirm → production push.
+4. The admin portals (`static/admin/texting/index.html`, `static/admin/emails/index.html`) are web UIs backed by the D1 database — **they do not need to be edited** to add contacts. Contacts flow in via the upsert scripts.
+5. Never commit raw signup CSVs or any file from `docs/db/data/optin-import/`.
+
+See also: `AGENTS.md` → "CSV Import Workflow" for the full required sequence and data quality gates.

@@ -144,10 +144,27 @@ When creating audio/video files with `ffmpeg`, review `how_to_mp4.md` first. If 
 
 ## CSV Import Workflow
 
-- For signup-sheet and opt-in CSV import work, follow [docs/UpsertOptinData.md](/home/anchor/projects/skovgard2026/docs/UpsertOptinData.md).
-- Never commit raw `.csv` signup data files to the git repo.
-- Standard working folder for raw or generated CSV import artifacts: `/home/anchor/projects/skovgard2026/docs/db/data/optin-import/`
-- That folder lives under `docs/db/data/`, which is already ignored by `.gitignore`.
+When a user provides a signup-sheet CSV to add contacts to the SMS/email systems:
+
+- The admin portals (`static/admin/texting/index.html`, `static/admin/emails/index.html`) are **read-only UIs** — do not edit them to add contacts. Contacts flow in via the transform + upsert scripts into the D1 database.
+- Human-facing operations guide: [docs/update_new_contact_emails_texts.md](/home/anchor/projects/skovgard2026/docs/update_new_contact_emails_texts.md)
+- Technical field mapping and script reference: [docs/UpsertOptinData.md](/home/anchor/projects/skovgard2026/docs/UpsertOptinData.md)
+- Standard working folder for raw or generated CSV import artifacts: `/home/anchor/projects/skovgard2026/docs/db/data/optin-import/` (git-ignored — never commit these files)
+
+### Required sequence
+
+1. Normalize source CSV columns to match: `row,name,email,phone,city_town,opt_in_text,opt_in_email,volunteer,notes`
+2. Run `scripts/optins/transform-optin-csv.mjs` and review `source-audit.csv` — surface all skip reasons and data quality issues to the user before touching any database.
+3. Test against an isolated SQLite DB (`--sqlite /tmp/...`) and verify counts.
+4. Confirm with the user before the production push (`--remote --env production`).
+
+### Data quality gates — do not skip
+
+- Flag any TextOptIn=Yes row with no valid phone number.
+- Flag any phone number with `?`, partial digits, or fewer than 10 US digits.
+- Do not silently import rows with known-invalid phone numbers.
+- Do not reactivate opted-out contacts (the upsert script is conservative by design).
+- Never commit raw signup CSVs, normalized CSVs, or generated SQL/CSV output.
 
 ## Local Testing Servers
 

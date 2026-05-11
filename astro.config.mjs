@@ -12,5 +12,15 @@ export default defineConfig({
   integrations: [mdx()],
   vite: {
     plugins: [tailwindcss()],
+    server: {
+      proxy: {
+        // Proxy /api/* to the local Wrangler dev server when running `npm run dev`.
+        // Run `cd worker && npx wrangler dev` in a second terminal to back this.
+        '/api': {
+          target: 'http://localhost:8787',
+          changeOrigin: true,
+        },
+      },
+    },
   },
 });

@@ -2523,6 +2523,179 @@ export default {
         return json(req, env, { ok: true });
       }
 
+      // POST /api/share — visitor-initiated "share with a friend" sends
+      if (req.method === "POST" && path === "/api/share") {
+        const shareEnabled = String(env.SHARE_ENABLED || "0") === "1";
+        const apiKey = String(env.RESEND_API_KEY || "").trim();
+        const fromAddr = String(env.ADMIN_EMAIL_FROM || "").trim();
+
+        if (!shareEnabled || !apiKey || !fromAddr) {
+          return json(req, env, { error: "Share feature is not currently available." }, 503);
+        }
+
+        const b = await req.json().catch(() => ({}));
+
+        // Honeypot — silent drop for bots
+        if (String(b._trap || "").trim()) {
+          return json(req, env, { ok: true, sent: 0 });
+        }
+
+        const senderName = String(b.sender_name || "").trim().slice(0, 80);
+
+        const rawRecipients = Array.isArray(b.recipients) ? b.recipients : [];
+        const recipients = rawRecipients
+          .map((e) => String(e || "").trim().toLowerCase())
+          .filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e))
+          .slice(0, 10);
+
+        if (recipients.length === 0) {
+          return json(req, env, { error: "At least one valid email address is required." }, 400);
+        }
+
+        const senderIntro = senderName
+          ? `${senderName} wanted to share this with you.`
+          : "A Wyoming neighbor wanted to share this with you.";
+
+        const subject = senderName
+          ? `${senderName} wants you to hear about Jimmy Skovgard for Wyoming`
+          : "Your neighbor wanted you to hear about Jimmy Skovgard for Wyoming";
+
+        function buildShareHtml(intro) {
+          const esc = (s) => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+          return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1ece1;font-family:Georgia,'Times New Roman',serif;">
+<div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;margin-top:24px;margin-bottom:24px;">
+  <div style="background:#2b2b2b;padding:24px 32px;">
+    <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#b22234;">Jimmy Skovgard</p>
+    <p style="margin:6px 0 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#f1ece1cc;">U.S. Senate &middot; Wyoming &middot; 2026</p>
+  </div>
+  <div style="padding:32px;color:#2b2b2b;font-size:16px;line-height:1.75;">
+    <p style="margin:0 0 16px;font-style:italic;color:#6b7280;">${esc(intro)}</p>
+    <p style="margin:0 0 16px;">Hi,</p>
+    <p style="margin:0 0 16px;">
+      This campaign is built around two beliefs.
+    </p>
+    <p style="margin:0 0 16px;">
+      <strong>First</strong>, Wyoming voters deserve leadership grounded in integrity, accountability,
+      transparency, and courage &mdash; bound by the Constitution and the rule of law.
+    </p>
+    <p style="margin:0 0 16px;">
+      <strong>Second</strong>, citizens are the fourth branch of government. Our representatives
+      work for us and are accountable to us. Public office belongs to public service, and public
+      service must answer to the people.
+    </p>
+    <p style="margin:0 0 16px;">
+      That is why mass manipulation is so dangerous. Fear, outrage, and division are being used to
+      weaken our judgment and convince us to surrender choices that belong to us.
+    </p>
+    <p style="margin:0 0 16px;">
+      Freedom matters. Our right to make our own choices, speak our minds, and associate freely
+      is fundamental to self-government.
+    </p>
+    <p style="margin:0 0 8px;font-weight:bold;">Three commitments:</p>
+    <ol style="margin:0 0 24px;padding-left:20px;">
+      <li style="margin-bottom:8px;"><strong>Integrity in leadership</strong> &mdash; Public service measured by truth, character, and accountability.</li>
+      <li style="margin-bottom:8px;"><strong>A stronger Wyoming voice</strong> &mdash; Wyoming communities heard clearly, from small towns to kitchen tables.</li>
+      <li style="margin-bottom:8px;"><strong>A future built together</strong> &mdash; Lasting change built by listening first and speaking honestly.</li>
+    </ol>
+    <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="padding-right:12px;">
+          <a href="https://www.skovgard2026.org/about/" style="display:inline-block;padding:12px 20px;background:#b22234;color:#f1ece1;font-family:Georgia,serif;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;">Learn more</a>
+        </td>
+        <td style="padding-right:12px;">
+          <a href="https://www.skovgard2026.org/volunteer/" style="display:inline-block;padding:12px 20px;border:2px solid #2b2b2b;color:#2b2b2b;font-family:Georgia,serif;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;">Volunteer</a>
+        </td>
+        <td>
+          <a href="https://www.skovgard2026.org/donate/" style="display:inline-block;padding:12px 20px;border:2px solid #2b2b2b;color:#2b2b2b;font-family:Georgia,serif;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;">Donate</a>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 16px;">
+      Most of all, I would like to hear from you. If you reply to this email your message goes
+      directly to the campaign.
+    </p>
+    <p style="margin:0;font-style:italic;">
+      With respect,<br/>
+      <strong>Jimmy Skovgard</strong><br/>
+      Skovgard for Wyoming<br/>
+      <em>Preserving our legacy. Empowering our future.</em>
+    </p>
+  </div>
+  <div style="background:#f1ece1;padding:20px 32px;font-size:12px;color:#6b7280;border-top:1px solid #e5e0d8;">
+    <p style="margin:0 0 6px;">Paid for by Skovgard for Senate.</p>
+    <p style="margin:0;">
+      You received this because ${esc(senderName || "a friend")} shared it with you.
+      This is a one-time message &mdash; you are not being added to any mailing list.
+      If you would like to <a href="https://www.skovgard2026.org/pulse/" style="color:#b22234;">subscribe to updates, click here</a>.
+    </p>
+  </div>
+</div>
+</body>
+</html>`;
+        }
+
+        function buildShareText(intro) {
+          return [
+            intro,
+            "",
+            "Hi,",
+            "",
+            "This campaign is built around two beliefs.",
+            "",
+            "First, Wyoming voters deserve leadership grounded in integrity, accountability, and the rule of law.",
+            "",
+            "Second, citizens are the fourth branch of government. Our representatives work for us.",
+            "",
+            "Three commitments:",
+            "  1. Integrity in leadership",
+            "  2. A stronger Wyoming voice",
+            "  3. A future built together",
+            "",
+            "Learn more:  https://www.skovgard2026.org/about/",
+            "Volunteer:   https://www.skovgard2026.org/volunteer/",
+            "Donate:      https://www.skovgard2026.org/donate/",
+            "",
+            "With respect,",
+            "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+            "",
+            "Paid for by Skovgard for Senate.",
+            "---",
+            `You received this because ${senderName || "a friend"} shared it with you. This is a one-time message — you are not being added to any mailing list.`,
+          ].join("\n");
+        }
+
+        const htmlBody = buildShareHtml(senderIntro);
+        const textBody = buildShareText(senderIntro);
+
+        const sends = recipients.map((email) =>
+          sendResendEmail(apiKey, {
+            from: fromAddr,
+            to: [email],
+            subject,
+            text: textBody,
+            html: htmlBody,
+            reply_to: fromAddr,
+            tags: [
+              { name: "source", value: "share" },
+              { name: "kind", value: "friend_share" },
+            ],
+          }).then(() => ({ ok: true })).catch((err) => ({ ok: false, error: String(err?.message || err) }))
+        );
+
+        const results = await Promise.all(sends);
+        const sent = results.filter((r) => r.ok).length;
+        const failed = results.length - sent;
+
+        if (sent === 0) {
+          return json(req, env, { error: "Failed to send. Please try again shortly." }, 500);
+        }
+
+        return json(req, env, { ok: true, sent, failed });
+      }
+
       if (req.method === "GET" && path === "/api/admin/telnyx/can-send") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
         const auth = mustBeAdmin(req, env, url);
