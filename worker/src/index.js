@@ -17,6 +17,7 @@ import {
   sendAdminOutreachEmail,
 } from "./admin-email.js";
 import { sendPulseOptInEmails } from "./pulse-email.js";
+import { sendResendEmail } from "./resend.js";
 
 function pulseWelcomeConfig(env) {
   return {
