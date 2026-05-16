@@ -2617,7 +2617,7 @@ export default {
               <h2 style="margin:26px 0 10px; font-size:22px; line-height:1.3; color:#0f2742;">Why this matters</h2>
 
               <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">
-                That is why mass manipulation is so dangerous. Fear, outrage, and division are being used to weaken our judgment, separate us from one another, and convince us to surrender choices that belong to us. When citizens are kept angry, afraid, and suspicious of one another, power becomes easier to hold and harder to question.
+                Mass manipulation is dangerous because fear, outrage, and division weaken our judgment, separate us from one another, and pressure us to surrender choices that belong to us. When citizens are kept angry, afraid, and suspicious of one another, power becomes easier to hold and harder to question.
               </p>
 
               <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">
@@ -2733,7 +2733,7 @@ export default {
             "",
             "Second, the citizens, you and I, are the fourth branch of government. Our representatives work for us and are accountable to us.",
             "",
-            "That is why mass manipulation is so dangerous. Fear, outrage, and division are being used to weaken our judgment and convince us to surrender choices that belong to us.",
+            "Mass manipulation is dangerous because fear, outrage, and division weaken our judgment, separate us from one another, and pressure us to surrender choices that belong to us. When citizens are kept angry, afraid, and suspicious of one another, power becomes easier to hold and harder to question.",
             "",
             "Freedom matters. Our right to make our own choices, speak our minds without fear of retribution, and associate freely is fundamental to self-government.",
             "",
