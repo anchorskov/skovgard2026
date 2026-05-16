@@ -3259,6 +3259,44 @@ export default {
         });
       }
 
+      if (req.method === "POST" && path === "/api/admin/texting/volunteers") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const firstName = normalizeText(body?.first_name);
+        const lastName  = normalizeText(body?.last_name);
+        const email     = normalizeText(body?.email);
+        const city      = normalizeText(body?.city);
+
+        if (!firstName) return json(req, env, { error: "First name is required." }, 400);
+        if (!lastName)  return json(req, env, { error: "Last name is required." }, 400);
+        if (email && !isValidEmail(email)) return json(req, env, { error: "Email is not valid." }, 400);
+
+        const id = crypto.randomUUID();
+        await env.DB.prepare(
+          `INSERT INTO volunteers (id, first_name, last_name, email, source, status, notes)
+           VALUES (?1, ?2, ?3, ?4, 'admin', 'new', ?5)`
+        ).bind(
+          id,
+          firstName,
+          lastName,
+          email || null,
+          city ? `City: ${city}` : null
+        ).run();
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail,
+          actorUserId: actor.actorUserId,
+          action: "admin_create_volunteer",
+          detailsJson: JSON.stringify({ id, firstName, lastName, email: email || null, city: city || null }),
+        });
+
+        return json(req, env, { ok: true, result: "created", id, firstName, lastName });
+      }
+
       if (req.method === "POST" && path === "/api/admin/texting/contacts/volunteer") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
         const auth = mustBeAdmin(req, env, url);

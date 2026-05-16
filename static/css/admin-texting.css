@@ -486,6 +486,64 @@ main .send-receipt-list li {
   background: #dcfce7;
 }
 
+main .send-receipt.has-failures {
+  border-color: #b45309;
+  background: #fffbeb;
+}
+
+main .send-receipt.has-failures .send-receipt-header strong {
+  color: #92400e;
+}
+
+main .send-receipt-failures {
+  padding: .5rem 1rem .85rem;
+  border-top: 1px solid #fcd34d;
+}
+
+main .send-receipt-failures-label {
+  font-size: .8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #b45309;
+  margin: 0 0 .4rem;
+}
+
+main .send-receipt-failed-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: .35rem;
+}
+
+main .send-receipt-failed-list li {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  font-size: .9rem;
+  padding: .3rem .5rem;
+  border-radius: .5rem;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+}
+
+main .send-receipt-failed-list .failed-phone {
+  font-weight: 600;
+  color: #92400e;
+  white-space: nowrap;
+}
+
+main .send-receipt-failed-list .failed-reason {
+  color: #78350f;
+  font-size: .85rem;
+}
+
+#admin-texting-shell .button-row button[type="submit"]:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
 main .status-pending,
 main .status-accepted,
 main .status-sent,

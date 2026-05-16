@@ -144,7 +144,7 @@ function renderTurnstileOnce() {
           _flushWaiters(tsToken);
         },
         'expired-callback': () => { tsToken = ''; tsIssuedAt = 0; },
-        'error-callback':   () => { tsToken = ''; tsIssuedAt = 0; }
+        'error-callback':   () => { tsToken = ''; tsIssuedAt = 0; _flushWaiters(''); }
       });
 
       tsRendered = true;

@@ -49,6 +49,7 @@ const downloadSuppressedBtn = document.getElementById("download-suppressed-conta
 const broadcastForm = document.getElementById("admin-texting-broadcast");
 const broadcastStatusEl = document.getElementById("broadcast-send-status");
 const broadcastPreviewBtn = document.getElementById("broadcast-preview");
+const broadcastSendBtn = document.getElementById("broadcast-send-confirm");
 const broadcastPreviewBox = document.getElementById("broadcast-preview-box");
 const broadcastPreviewSummary = document.getElementById("broadcast-preview-summary");
 const broadcastPreviewList = document.getElementById("broadcast-preview-list");
@@ -544,13 +545,21 @@ function clearBroadcastPreview() {
   broadcastPreviewList.innerHTML = "";
 }
 
-function renderBroadcastReceipt(sentCount, failedCount, recipients) {
+function renderBroadcastReceipt(sentCount, failedEntries, sentRecipients) {
   if (!broadcastReceiptEl || !broadcastReceiptSummaryEl || !broadcastReceiptListEl) return;
+  const failedCount = failedEntries.length;
   const label = failedCount
     ? `Sent ${sentCount} message${sentCount === 1 ? "" : "s"} · ${failedCount} failed`
     : `Sent ${sentCount} message${sentCount === 1 ? "" : "s"}`;
   broadcastReceiptSummaryEl.textContent = label;
-  broadcastReceiptListEl.innerHTML = recipients.map((r) => {
+
+  if (failedCount) {
+    broadcastReceiptEl.classList.add("has-failures");
+  } else {
+    broadcastReceiptEl.classList.remove("has-failures");
+  }
+
+  broadcastReceiptListEl.innerHTML = sentRecipients.map((r) => {
     const name = [r.first_name, r.last_name].filter(Boolean).join(" ");
     const phone = r.phone_e164 || r.phone || "";
     const display = name ? `${name} — ${phone}` : phone;
@@ -558,6 +567,27 @@ function renderBroadcastReceipt(sentCount, failedCount, recipients) {
   }).join("");
   broadcastReceiptListEl.hidden = true;
   if (broadcastReceiptToggleBtn) broadcastReceiptToggleBtn.textContent = "Show recipients";
+
+  let failureSection = broadcastReceiptEl.querySelector(".send-receipt-failures");
+  if (failedCount) {
+    if (!failureSection) {
+      failureSection = document.createElement("div");
+      failureSection.className = "send-receipt-failures";
+      broadcastReceiptEl.appendChild(failureSection);
+    }
+    failureSection.innerHTML =
+      `<p class="send-receipt-failures-label">Failed deliveries:</p>` +
+      `<ul class="send-receipt-failed-list">${
+        failedEntries.map((f) => {
+          const phone = f.phone || "";
+          const reason = f.error || "Unknown error";
+          return `<li><span class="failed-phone">${escapeHtml(phone)}</span><span class="failed-reason">${escapeHtml(reason)}</span></li>`;
+        }).join("")
+      }</ul>`;
+  } else if (failureSection) {
+    failureSection.remove();
+  }
+
   broadcastReceiptEl.hidden = false;
 }
 
@@ -1537,20 +1567,44 @@ optInLookupBtn?.addEventListener("click", runVoterLookup);
 optInForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(optInForm);
-  const payload = {
-    first_name: String(formData.get("admin_optin_first_name") || "").trim(),
-    last_name: String(formData.get("admin_optin_last_name") || "").trim(),
-    phone: String(formData.get("admin_optin_phone") || "").trim(),
-    email: String(formData.get("admin_optin_email") || "").trim(),
-    city: String(formData.get("admin_optin_city") || "").trim(),
-    state_house_district: String(formData.get("admin_optin_hd") || "").trim(),
-    state_senate_district: String(formData.get("admin_optin_sd") || "").trim(),
-    consent_email: formData.get("admin_optin_consent_email") === "on",
-    wy_voter: formData.get("admin_optin_wy_voter") === "on",
-    is_volunteer: formData.get("admin_optin_is_volunteer") === "on",
-  };
+  const firstName = String(formData.get("admin_optin_first_name") || "").trim();
+  const lastName  = String(formData.get("admin_optin_last_name")  || "").trim();
+  const phone     = String(formData.get("admin_optin_phone")      || "").trim();
+  const email     = String(formData.get("admin_optin_email")      || "").trim();
+  const city      = String(formData.get("admin_optin_city")       || "").trim();
+  const isVolunteer = formData.get("admin_optin_is_volunteer") === "on";
+
+  // No phone + not a volunteer → require phone
+  if (!phone && !isVolunteer) {
+    setStatus(optInStatusEl, "Phone is required unless saving as volunteer-only.", true);
+    return;
+  }
 
   try {
+    // No phone → save to volunteers table only, not consent_status
+    if (!phone) {
+      const data = await api("/api/admin/texting/volunteers", {
+        method: "POST",
+        body: JSON.stringify({ first_name: firstName, last_name: lastName, email: email || null, city: city || null }),
+      });
+      optInForm.reset();
+      setStatus(optInStatusEl, `Saved ${firstName} ${lastName} as a volunteer (no phone). They will not receive SMS.`);
+      return;
+    }
+
+    const payload = {
+      first_name: firstName,
+      last_name: lastName,
+      phone,
+      email,
+      city,
+      state_house_district: String(formData.get("admin_optin_hd") || "").trim(),
+      state_senate_district: String(formData.get("admin_optin_sd") || "").trim(),
+      consent_email: formData.get("admin_optin_consent_email") === "on",
+      wy_voter: formData.get("admin_optin_wy_voter") === "on",
+      is_volunteer: isVolunteer,
+    };
+
     const data = await api("/api/admin/texting/optins", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -1612,6 +1666,7 @@ broadcastForm?.addEventListener("submit", async (event) => {
     return;
   }
 
+  if (broadcastSendBtn) { broadcastSendBtn.disabled = true; broadcastSendBtn.textContent = "Sending…"; }
   try {
     const payload = {
       ...currentBroadcastPayload(),
@@ -1625,7 +1680,8 @@ broadcastForm?.addEventListener("submit", async (event) => {
       body: JSON.stringify(payload),
     });
     const sentCount = Number(data?.sentCount || 0);
-    const failedCount = Number(data?.failedCount || 0);
+    const failedEntries = Array.isArray(data?.failed) ? data.failed : [];
+    const failedCount = failedEntries.length;
     // Snapshot tray for the receipt before clearing it.
     const sentPhones = new Set((Array.isArray(data?.sent) ? data.sent : []).map((r) => String(r.phone || "")));
     const receiptRecipients = [...knownContacts.values()].filter((c) => sentPhones.has(String(c.phone_e164 || "")));
@@ -1637,7 +1693,7 @@ broadcastForm?.addEventListener("submit", async (event) => {
     recipientTray.clear();
     renderRecipientTray();
     clearBroadcastPreview();
-    renderBroadcastReceipt(sentCount, failedCount, receiptRecipients);
+    renderBroadcastReceipt(sentCount, failedEntries, receiptRecipients);
     setStatus(
       broadcastStatusEl,
       `Sent ${sentCount} message${sentCount === 1 ? "" : "s"} with ${failedCount} failure${failedCount === 1 ? "" : "s"} and ${data.skippedCount || 0} skipped. Recipient tray cleared.`
@@ -1649,6 +1705,8 @@ broadcastForm?.addEventListener("submit", async (event) => {
       return;
     }
     setStatus(broadcastStatusEl, error.message, true);
+  } finally {
+    if (broadcastSendBtn) { broadcastSendBtn.disabled = false; broadcastSendBtn.textContent = "Send broadcast"; }
   }
 });
 
