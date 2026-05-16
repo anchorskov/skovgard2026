@@ -2624,6 +2624,10 @@ export default {
                 That means freedom matters. Our right to make our own choices, speak our minds without fear of retribution, and associate freely or decline to associate is fundamental to self-government. When those freedoms are restricted, the voice of the people is weakened. When those freedoms are protected, Wyoming grows stronger.
               </p>
 
+              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">
+                That is why the August 18th primary election matters. Freedom works only when citizens use it. Every eligible Wyoming voter should make a plan, study the candidates, ask hard questions, and cast a ballot. The primary is where many choices are truly shaped, and our voice belongs in that process. Power stays accountable when citizens show up.
+              </p>
+
               <p style="margin:0 0 22px; font-size:16px; line-height:1.65; color:#111827;">
                 I am running to help restore trust in public service and make sure Wyoming's voice is carried with honesty, courage, and respect. That begins by listening. It grows through conversation. It moves forward when neighbors decide that the future belongs to all of us.
               </p>
@@ -2736,6 +2740,8 @@ export default {
             "Mass manipulation is dangerous because fear, outrage, and division weaken our judgment, separate us from one another, and pressure us to surrender choices that belong to us. When citizens are kept angry, afraid, and suspicious of one another, power becomes easier to hold and harder to question.",
             "",
             "Freedom matters. Our right to make our own choices, speak our minds without fear of retribution, and associate freely is fundamental to self-government.",
+            "",
+            "That is why the August 18th primary election matters. Freedom works only when citizens use it. Every eligible Wyoming voter should make a plan, study the candidates, ask hard questions, and cast a ballot. The primary is where many choices are truly shaped, and our voice belongs in that process. Power stays accountable when citizens show up.",
             "",
             "Three commitments:",
             "  1. Integrity in leadership — Public service measured by truth, character, and accountability.",
