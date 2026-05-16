@@ -2563,77 +2563,160 @@ export default {
 
         function buildShareHtml(intro) {
           const esc = (s) => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-          return `<!DOCTYPE html>
+          return `<!doctype html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f1ece1;font-family:Georgia,'Times New Roman',serif;">
-<div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;margin-top:24px;margin-bottom:24px;">
-  <div style="background:#2b2b2b;padding:24px 32px;">
-    <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#b22234;">Jimmy Skovgard</p>
-    <p style="margin:6px 0 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#f1ece1cc;">U.S. Senate &middot; Wyoming &middot; 2026</p>
-  </div>
-  <div style="padding:32px;color:#2b2b2b;font-size:16px;line-height:1.75;">
-    <p style="margin:0 0 16px;font-style:italic;color:#6b7280;">${esc(intro)}</p>
-    <p style="margin:0 0 16px;">Hi,</p>
-    <p style="margin:0 0 16px;">
-      This campaign is built around two beliefs.
-    </p>
-    <p style="margin:0 0 16px;">
-      <strong>First</strong>, Wyoming voters deserve leadership grounded in integrity, accountability,
-      transparency, and courage &mdash; bound by the Constitution and the rule of law.
-    </p>
-    <p style="margin:0 0 16px;">
-      <strong>Second</strong>, citizens are the fourth branch of government. Our representatives
-      work for us and are accountable to us. Public office belongs to public service, and public
-      service must answer to the people.
-    </p>
-    <p style="margin:0 0 16px;">
-      That is why mass manipulation is so dangerous. Fear, outrage, and division are being used to
-      weaken our judgment and convince us to surrender choices that belong to us.
-    </p>
-    <p style="margin:0 0 16px;">
-      Freedom matters. Our right to make our own choices, speak our minds, and associate freely
-      is fundamental to self-government.
-    </p>
-    <p style="margin:0 0 8px;font-weight:bold;">Three commitments:</p>
-    <ol style="margin:0 0 24px;padding-left:20px;">
-      <li style="margin-bottom:8px;"><strong>Integrity in leadership</strong> &mdash; Public service measured by truth, character, and accountability.</li>
-      <li style="margin-bottom:8px;"><strong>A stronger Wyoming voice</strong> &mdash; Wyoming communities heard clearly, from small towns to kitchen tables.</li>
-      <li style="margin-bottom:8px;"><strong>A future built together</strong> &mdash; Lasting change built by listening first and speaking honestly.</li>
-    </ol>
-    <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-      <tr>
-        <td style="padding-right:12px;">
-          <a href="https://www.skovgard2026.org/about/" style="display:inline-block;padding:12px 20px;background:#b22234;color:#f1ece1;font-family:Georgia,serif;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;">Learn more</a>
-        </td>
-        <td style="padding-right:12px;">
-          <a href="https://www.skovgard2026.org/volunteer/" style="display:inline-block;padding:12px 20px;border:2px solid #2b2b2b;color:#2b2b2b;font-family:Georgia,serif;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;">Volunteer</a>
-        </td>
-        <td>
-          <a href="https://www.skovgard2026.org/donate/" style="display:inline-block;padding:12px 20px;border:2px solid #2b2b2b;color:#2b2b2b;font-family:Georgia,serif;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;">Donate</a>
-        </td>
-      </tr>
-    </table>
-    <p style="margin:0 0 16px;">
-      Most of all, I would like to hear from you. If you reply to this email your message goes
-      directly to the campaign.
-    </p>
-    <p style="margin:0;font-style:italic;">
-      With respect,<br/>
-      <strong>Jimmy Skovgard</strong><br/>
-      Skovgard for Wyoming<br/>
-      <em>Preserving our legacy. Empowering our future.</em>
-    </p>
-  </div>
-  <div style="background:#f1ece1;padding:20px 32px;font-size:12px;color:#6b7280;border-top:1px solid #e5e0d8;">
-    <p style="margin:0 0 6px;">Paid for by Skovgard for Senate.</p>
-    <p style="margin:0;">
-      You received this because ${esc(senderName || "a friend")} shared it with you.
-      This is a one-time message &mdash; you are not being added to any mailing list.
-      If you would like to <a href="https://www.skovgard2026.org/pulse/" style="color:#b22234;">subscribe to updates, click here</a>.
-    </p>
-  </div>
-</div>
+<head>
+  <meta charset="utf-8">
+  <title>Jimmy Skovgard for Wyoming</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0; padding:0; background:#f7f3ec; font-family:Arial, Helvetica, sans-serif; color:#111827;">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">${esc(intro)}</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f3ec; margin:0; padding:0;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px; background:#ffffff; border-radius:16px; overflow:hidden; border:1px solid #e5e7eb;">
+          <tr>
+            <td style="background:#0f2742; padding:28px 28px 22px; text-align:left;">
+              <p style="margin:0 0 8px; font-size:13px; line-height:1.4; letter-spacing:1.5px; text-transform:uppercase; color:#d8b46a; font-weight:bold;">
+                Skovgard for Wyoming
+              </p>
+              <h1 style="margin:0; font-size:30px; line-height:1.2; color:#ffffff; font-weight:bold;">
+                More information about Jimmy Skovgard
+              </h1>
+              <p style="margin:12px 0 0; font-size:16px; line-height:1.5; color:#f3f4f6;">
+                Preserving our legacy. Empowering our future.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:28px;">
+              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">Hi,</p>
+
+              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#6b7280; font-style:italic;">${esc(intro)}</p>
+
+              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">
+                This campaign is built around two simple beliefs.
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0; border-left:5px solid #d8b46a; background:#fbf8f1;">
+                <tr>
+                  <td style="padding:18px 18px 16px;">
+                    <p style="margin:0 0 14px; font-size:16px; line-height:1.65; color:#111827;">
+                      <strong>First,</strong> Wyoming voters deserve leadership grounded in integrity, accountability, transparency, compassion, courage and bound by the Constitution and the rule of law.
+                    </p>
+                    <p style="margin:0; font-size:16px; line-height:1.65; color:#111827;">
+                      <strong>Second,</strong> the citizens, you and I, are the fourth branch of government. Our representatives work for us and are accountable to us. Public office belongs to public service, and public service must answer to the people.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <h2 style="margin:26px 0 10px; font-size:22px; line-height:1.3; color:#0f2742;">Why this matters</h2>
+
+              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">
+                That is why mass manipulation is so dangerous. Fear, outrage, and division are being used to weaken our judgment, separate us from one another, and convince us to surrender choices that belong to us. When citizens are kept angry, afraid, and suspicious of one another, power becomes easier to hold and harder to question.
+              </p>
+
+              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">
+                That means freedom matters. Our right to make our own choices, speak our minds without fear of retribution, and associate freely or decline to associate is fundamental to self-government. When those freedoms are restricted, the voice of the people is weakened. When those freedoms are protected, Wyoming grows stronger.
+              </p>
+
+              <p style="margin:0 0 22px; font-size:16px; line-height:1.65; color:#111827;">
+                I am running to help restore trust in public service and make sure Wyoming's voice is carried with honesty, courage, and respect. That begins by listening. It grows through conversation. It moves forward when neighbors decide that the future belongs to all of us.
+              </p>
+
+              <h2 style="margin:28px 0 14px; font-size:22px; line-height:1.3; color:#0f2742;">Our campaign is focused on three commitments</h2>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
+                <tr>
+                  <td style="padding:14px 0; border-top:1px solid #e5e7eb;">
+                    <p style="margin:0 0 4px; font-size:16px; line-height:1.5; color:#0f2742; font-weight:bold;">1. Integrity in leadership</p>
+                    <p style="margin:0; font-size:15px; line-height:1.6; color:#374151;">Public service must be measured by truth, character, and accountability.</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 0; border-top:1px solid #e5e7eb;">
+                    <p style="margin:0 0 4px; font-size:16px; line-height:1.5; color:#0f2742; font-weight:bold;">2. A stronger Wyoming voice</p>
+                    <p style="margin:0; font-size:15px; line-height:1.6; color:#374151;">Wyoming communities deserve to be heard clearly, from small towns and ranch roads to main streets, schools, churches, coffee shops, and kitchen tables.</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 0; border-top:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb;">
+                    <p style="margin:0 0 4px; font-size:16px; line-height:1.5; color:#0f2742; font-weight:bold;">3. A future built together</p>
+                    <p style="margin:0; font-size:15px; line-height:1.6; color:#374151;">We build lasting change by listening first, speaking honestly, and bringing people back into the work of self-government.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <h2 style="margin:28px 0 14px; font-size:22px; line-height:1.3; color:#0f2742;">Stay connected</h2>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
+                <tr>
+                  <td style="padding:0 0 12px;">
+                    <a href="https://www.skovgard2026.org/about/" style="display:inline-block; background:#0f2742; color:#ffffff; font-size:15px; line-height:1.2; font-weight:bold; text-decoration:none; padding:13px 18px; border-radius:8px;">Learn more about the campaign</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:0 0 12px;">
+                    <a href="https://www.skovgard2026.org/volunteer/" style="display:inline-block; background:#d8b46a; color:#111827; font-size:15px; line-height:1.2; font-weight:bold; text-decoration:none; padding:13px 18px; border-radius:8px;">Volunteer or join the effort</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:0 0 12px;">
+                    <a href="https://www.skovgard2026.org/donate/" style="display:inline-block; background:#ffffff; color:#0f2742; font-size:15px; line-height:1.2; font-weight:bold; text-decoration:none; padding:12px 17px; border-radius:8px; border:1px solid #0f2742;">Support the campaign</a>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0; background:#0f2742; border-radius:12px;">
+                <tr>
+                  <td style="padding:22px;">
+                    <h2 style="margin:0 0 10px; font-size:22px; line-height:1.3; color:#ffffff;">Help grow the conversation</h2>
+                    <p style="margin:0 0 16px; font-size:16px; line-height:1.6; color:#f3f4f6;">
+                      Share this campaign with three or more people who care about Wyoming's future. One conversation can open the next door.
+                    </p>
+                    <a href="https://www.skovgard2026.org/share/" style="display:inline-block; background:#d8b46a; color:#111827; font-size:15px; line-height:1.2; font-weight:bold; text-decoration:none; padding:13px 18px; border-radius:8px;">Share with 3 or more contacts</a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:12px 0 18px; font-size:16px; line-height:1.65; color:#111827;">
+                Most of all, I would like to hear from you. Reply to this email and tell us what issue matters most in your community.
+              </p>
+
+              <p style="margin:0 0 22px; font-size:16px; line-height:1.65; color:#111827;">
+                This campaign is built one conversation at a time. Thank you for being part of it.
+              </p>
+
+              <p style="margin:0; font-size:16px; line-height:1.65; color:#111827;">
+                With respect,<br>
+                <strong>Jimmy Skovgard</strong><br>
+                Skovgard for Wyoming
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background:#f3f4f6; padding:20px 28px;">
+              <p style="margin:0 0 10px; font-size:13px; line-height:1.5; color:#374151; font-weight:bold;">Paid for by Skovgard for Senate.</p>
+              <p style="margin:0; font-size:12px; line-height:1.5; color:#6b7280;">
+                You received this because ${esc(senderName || "a friend")} shared it with you.
+                This is a one-time message &mdash; you are not being added to any mailing list.
+                If you would like to <a href="https://www.skovgard2026.org/pulse/" style="color:#0f2742;">subscribe to updates, click here</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin:14px 0 0; font-size:11px; line-height:1.5; color:#6b7280; text-align:center;">
+          Skovgard for Wyoming | Preserving our legacy. Empowering our future.
+        </p>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
         }
@@ -2644,20 +2727,27 @@ export default {
             "",
             "Hi,",
             "",
-            "This campaign is built around two beliefs.",
+            "This campaign is built around two simple beliefs.",
             "",
-            "First, Wyoming voters deserve leadership grounded in integrity, accountability, and the rule of law.",
+            "First, Wyoming voters deserve leadership grounded in integrity, accountability, transparency, compassion, and courage — bound by the Constitution and the rule of law.",
             "",
-            "Second, citizens are the fourth branch of government. Our representatives work for us.",
+            "Second, the citizens, you and I, are the fourth branch of government. Our representatives work for us and are accountable to us.",
+            "",
+            "That is why mass manipulation is so dangerous. Fear, outrage, and division are being used to weaken our judgment and convince us to surrender choices that belong to us.",
+            "",
+            "Freedom matters. Our right to make our own choices, speak our minds without fear of retribution, and associate freely is fundamental to self-government.",
             "",
             "Three commitments:",
-            "  1. Integrity in leadership",
-            "  2. A stronger Wyoming voice",
-            "  3. A future built together",
+            "  1. Integrity in leadership — Public service measured by truth, character, and accountability.",
+            "  2. A stronger Wyoming voice — Wyoming communities heard clearly, from small towns to kitchen tables.",
+            "  3. A future built together — Lasting change built by listening first and speaking honestly.",
             "",
-            "Learn more:  https://www.skovgard2026.org/about/",
-            "Volunteer:   https://www.skovgard2026.org/volunteer/",
-            "Donate:      https://www.skovgard2026.org/donate/",
+            "Learn more:   https://www.skovgard2026.org/about/",
+            "Volunteer:    https://www.skovgard2026.org/volunteer/",
+            "Donate:       https://www.skovgard2026.org/donate/",
+            "Share:        https://www.skovgard2026.org/share/",
+            "",
+            "Most of all, I would like to hear from you. Reply to this email and tell us what issue matters most in your community.",
             "",
             "With respect,",
             "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
