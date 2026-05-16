@@ -109,6 +109,23 @@ If those files conflict with a generic instruction file or prior memory, the rep
 - For the production Worker routes currently attached to `skovgard2026-api`, use `./scripts/deploy_worker.sh`.
 - Do not use plain `npx wrangler deploy --env production` for this repo unless the target service name has been reverified; Wrangler may try to publish `skovgard2026-api-production`, which conflicts with the existing routed Worker.
 
+## Environment Sync Check
+
+When asked whether localhost, the repo, or production are in sync — or before recommending a deploy — always run this check sequence first:
+
+1. **Determine the branch**: `git branch --show-current`
+2. **Check local changes**: `git status` — any modified or untracked files are not yet committed
+3. **Check unpushed commits**: `git log origin/<branch>..HEAD` — any output means commits exist locally that have not been pushed
+
+**If the current branch is `main`:**
+- Production mirrors `origin/main`. If `git log origin/main..HEAD` is empty and the deploy scripts were run after the last push, production is current.
+- There is **no automated CD** — pushing to `origin/main` alone does not update production. Both `scripts/deploy_cf.sh` (Astro Pages) and `scripts/deploy_worker.sh` (API Worker) must be run explicitly after each push.
+- If it is unclear whether the deploy scripts were run since the last push, ask the user rather than assuming production is current.
+
+**If the current branch is anything other than `main`:**
+- Do **not** check or reference production — production only mirrors `main`.
+- Limit the sync check to: working tree vs last commit, and local branch vs its remote tracking branch.
+
 ## Contact and Email Guardrails
 
 - Do not replace an existing project email address with one from another project without explicit user approval.

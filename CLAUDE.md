@@ -91,3 +91,75 @@ When a user provides a signup-sheet CSV to be imported into the SMS/email system
 5. Never commit raw signup CSVs or any file from `docs/db/data/optin-import/`.
 
 See also: `AGENTS.md` → "CSV Import Workflow" for the full required sequence and data quality gates.
+
+## Environment Sync Check
+
+When asked whether localhost, the repo, or production are in sync — or before recommending a deploy — always run this check sequence first:
+
+1. **Determine the branch**: `git branch --show-current`
+2. **Check local changes**: `git status` — any modified or untracked files are not yet committed
+3. **Check unpushed commits**: `git log origin/<branch>..HEAD` — any output means commits exist locally that have not been pushed
+
+**If the current branch is `main`:**
+- Production mirrors `origin/main`. If `git log origin/main..HEAD` is empty and the deploy scripts were run after the last push, production is current.
+- There is **no automated CD** — pushing to `origin/main` alone does not update production. Both `scripts/deploy_cf.sh` (Astro Pages) and `scripts/deploy_worker.sh` (API Worker) must be run explicitly after each push.
+- If it is unclear whether the deploy scripts were run since the last push, ask the user rather than assuming production is current.
+
+**If the current branch is anything other than `main`:**
+- Do **not** check or reference production — production only mirrors `main`.
+- Limit the sync check to: working tree vs last commit, and local branch vs its remote tracking branch.
+
+## Project Scope Guard
+
+- Do not import policy from other repos or organizations into this repo just because names or files look similar.
+- If a rule mentions another project by name, stop treating it as authoritative for this repo unless the user explicitly says to reuse it here.
+- Prefer values already established in this repo over values remembered from other work.
+- Before changing public-facing campaign identity fields such as emails, domains, org names, donation links, form destinations, or legal/contact copy, verify them against this repo first.
+
+## Cloudflare Worker Naming
+
+- Never guess at Worker names for preview or production.
+- Before suggesting `wrangler secret`, `wrangler deploy`, `wrangler tail`, `wrangler d1`, or route-related commands against a named environment, check `worker/wrangler.toml` first and state the exact Worker name implied by the config.
+- If the user is about to run a production command and the real remote Worker name has not been verified, tell them to verify it first rather than guessing.
+- Do not recommend creating a new production Worker just because Wrangler prompts for one unless the user explicitly wants a new Worker created.
+
+## Contact and Email Guardrails
+
+- Do not replace an existing project email address with one from another project without explicit user approval.
+- Do not invent, suggest, or publish new contact addresses unless the user asks for that change.
+- If updating CTAs, forms, support text, or contact blocks, reuse addresses already present in this repo.
+- If the correct contact address is ambiguous, ask the user or present the conflicting in-repo references before changing them.
+
+## Repository Hygiene
+
+- Suggest cleanup of odd or stray files created in the project root when you notice them.
+- Keep edits scoped to the user request. Do not fold in unrelated cleanup or cross-project standardization unless asked.
+
+## Local Testing Servers
+
+- When starting local servers for testing, treat them as temporary and close them when the test is complete.
+- Before finishing a task that used `wrangler dev` or another local server, verify that the listener has been shut down.
+- Do not leave background test servers running after validation unless the user explicitly asks to keep one open.
+
+## Admin Pages (standalone HTML in `static/`)
+
+Admin pages like `static/admin/texting/index.html` and `static/admin/emails/index.html` are **standalone HTML files**, not Astro pages. They are served directly from the `static/` publicDir.
+
+- Each admin page loads its own CSS and JS via `<link>` and `<script>` tags — no build pipeline or Astro component needed.
+- Cache-busting: append a version query string (`?v=N`) when updating CSS/JS to avoid stale caches after deploy.
+- When a control navigates to another admin page, use a styled `<a href="...">` tag rather than a `<button>` with JS `location.assign`.
+- Local dev: access admin pages with the explicit filename — `http://localhost:4321/admin/texting/index.html`. Astro's dev server does not auto-resolve `index.html` for static directory URLs.
+
+## Button CSS Rules (admin pages)
+
+The global CSS reset in `global.css` and `forms.css` zeroes out all button appearance. Every `<button>` on admin pages must be covered by an explicit CSS rule that restores its visual treatment.
+
+`forms.css` contains `main .optin-form button[type="submit"]` with specificity **(0, 2, 2)**. Any admin-page button rule using only class selectors will lose for `type="submit"` buttons inside `.optin-form`. Use an **ID selector** on the closest ancestor to raise specificity:
+
+```css
+/* CORRECT — specificity (1, 1, 1) */
+#admin-texting-shell .button-row button { ... }
+
+/* WRONG — specificity (0, 2, 1), loses to forms.css for submit buttons */
+.admin-texting-shell .button-row button { ... }
+```
