@@ -80,6 +80,14 @@ This project migrated from Hugo to Astro in early April 2026. **All code changes
 - The canonical production deploy path in this repo uses `--env production`, so production behavior should be checked against `[env.production.vars]` first, then against shared `[vars]` defaults.
 - When a feature looks wired correctly in code but behaves differently in production, check the relevant flags in both blocks before changing app logic.
 
+## Share Message Workflow
+
+To add a new shareable message at `/share/<slug>`, follow the checklist in
+`docs/share/AddShareMessage.md`. Key files: `worker/src/email-template.js`
+(SHARE_MESSAGES registry + plain-text builder), `src/pages/share/index.astro`
+(card grid), and a new `src/pages/share/<slug>.astro` detail page.
+No D1 migration is needed for a new message.
+
 ## Contact Import Workflow (Signup Sheets → Admin Portals)
 
 When a user provides a signup-sheet CSV to be imported into the SMS/email systems:

@@ -183,6 +183,14 @@ When a user provides a signup-sheet CSV to add contacts to the SMS/email systems
 - Do not reactivate opted-out contacts (the upsert script is conservative by design).
 - Never commit raw signup CSVs, normalized CSVs, or generated SQL/CSV output.
 
+## Share Message Workflow
+
+To add a new shareable message at `/share/<slug>`, follow the step-by-step checklist in:
+
+- [docs/share/AddShareMessage.md](/home/anchor/projects/skovgard2026/docs/share/AddShareMessage.md)
+
+Key files involved: `worker/src/email-template.js` (SHARE_MESSAGES registry), `src/pages/share/index.astro` (card grid), and a new `src/pages/share/<slug>.astro` detail page. No D1 migration is needed for a new message.
+
 ## Local Testing Servers
 
 - When starting local servers for testing, treat them as temporary and close them when the test is complete.

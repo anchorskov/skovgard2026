@@ -304,10 +304,13 @@ export const SHARE_MESSAGES = {
  * @param {string} p.sender_intro  — Italic personalisation sentence already formatted
  * @param {string} p.body_html     — Inner message HTML fragment (no <html>/<body>)
  * @param {string} [p.preview_text] — Inbox preview line, 50–80 chars
+ * @param {string} [p.headline]    — Large h1 in the campaign header; falls back to p.title
+ * @param {string} [p.title]       — Fallback headline if p.headline is not provided
  */
-export function buildShareEmailHtml({ sender_name = "", sender_intro, body_html, preview_text = "" }) {
+export function buildShareEmailHtml({ sender_name = "", sender_intro, body_html, preview_text = "", headline = "", title = "" }) {
   const esc       = escHtml;
   const preheader = preview_text || sender_intro || "";
+  const h1Text    = headline || title || "Jimmy Skovgard for Wyoming";
 
   return `<!doctype html>
 <html lang="en">
@@ -339,7 +342,7 @@ export function buildShareEmailHtml({ sender_name = "", sender_intro, body_html,
                 Skovgard for Wyoming
               </p>
               <h1 style="margin:0;font-size:30px;line-height:1.2;color:#ffffff;font-weight:bold;">
-                More information about Jimmy Skovgard
+                ${esc(h1Text)}
               </h1>
               <p style="margin:12px 0 0;font-size:16px;line-height:1.5;color:#f3f4f6;">
                 Preserving our legacy. Empowering our future.

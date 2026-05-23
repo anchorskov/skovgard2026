@@ -2586,6 +2586,7 @@ export default {
           sender_intro: senderIntro,
           body_html:    msg.body_html,
           preview_text: msg.preview_text,
+          title:        msg.title,
         });
         const textBody = buildShareEmailText({
           sender_name:  senderName,
@@ -2663,6 +2664,7 @@ export default {
           sender_intro: senderIntro,
           body_html:    msg.body_html,
           preview_text: msg.preview_text,
+          title:        msg.title,
         });
         return new Response(html, {
           headers: {
