@@ -248,11 +248,11 @@ const FREEDOM_VS_CONTROL_BODY_HTML = `
   </p>
 
   <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
-    <a href="https://skovgard2026.org/share/freedom-vs-control"
+    <a href="https://skovgard2026.org/share/freedom-vs-control/sources/"
         style="color:#0f2742;font-weight:bold;">
       Read the full breakdown with sources
     </a>
-    at skovgard2026.org/share/freedom-vs-control
+    at skovgard2026.org/share/freedom-vs-control/sources/
   </p>
 `;
 

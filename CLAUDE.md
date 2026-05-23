@@ -88,6 +88,8 @@ To add a new shareable message at `/share/<slug>`, follow the checklist in
 (card grid), and a new `src/pages/share/<slug>.astro` detail page.
 No D1 migration is needed for a new message.
 
+- If the share email makes verifiable public claims, create `src/pages/share/<slug>/sources.astro` and point the email CTA in `body_html` to `https://skovgard2026.org/share/<slug>/sources/` — never back to the share page itself.
+
 ## Contact Import Workflow (Signup Sheets → Admin Portals)
 
 When a user provides a signup-sheet CSV to be imported into the SMS/email systems:

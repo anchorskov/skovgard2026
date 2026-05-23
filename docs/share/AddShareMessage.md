@@ -280,3 +280,75 @@ npx wrangler d1 execute ballot_sources --command "SELECT * FROM share_sends ORDE
 - Body HTML constant: `SCREAMING_SNAKE_CASE` matching the slug (`NEW_TOPIC_BODY_HTML`)
 - Meme image: `static/images/share/meme-<slug>.png`
 - No new D1 migrations unless new tables or columns are explicitly requested
+
+---
+
+## 14. Sources pages
+
+Messages that make verifiable public claims must have a matching sources page.
+
+### Static route pattern (current)
+
+```
+src/pages/share/<slug>.astro               → /share/<slug>/
+src/pages/share/<slug>/sources.astro       → /share/<slug>/sources/
+```
+
+Both files can coexist in the same parent directory. Astro static routing handles this: `<slug>.astro` and the `<slug>/` subdirectory do not conflict.
+
+**File comment header for the sources page:**
+```
+// src/pages/share/<slug>/sources.astro
+```
+
+### What the sources page must contain
+
+- A breadcrumb back to `/share/<slug>` and `/share`
+- A preamble stating this is a research aid, not a legal opinion
+- A claims-and-support table pairing each public statement with its source backing
+- Primary source links using official enrolled act PDFs or bill pages — not invented links
+- Public-safe wording guidance where claims require interpretation
+- Notes for responsible use (distinguish passed law from failed bills, access claims from admin claims)
+- A back-link CTA to the detail page
+
+### Email CTA rule
+
+The `body_html` constant for a sourced message must link to its own sources page:
+
+```html
+<a href="https://skovgard2026.org/share/<slug>/sources/"
+    style="color:#0f2742;font-weight:bold;">
+  Read the full breakdown with sources
+</a>
+at skovgard2026.org/share/<slug>/sources/
+```
+
+**Never point the email CTA back to the share page itself** — that is circular. The CTA should take a reader to independently verifiable information, not back to the share flow.
+
+### Unsourced messages
+
+If a message makes no verifiable public claims (general introduction, campaign overview), no sources page is required. The email CTA may link to the campaign About page or the main share index.
+
+### Do not reuse a generic sources page
+
+Each sourced message gets its own sources page at its own slug path. Do not create a single `/share/sources/` page or point multiple messages to the same URL.
+
+### Future D1 pattern (deferred)
+
+When D1 `share_messages` is implemented, plan for:
+
+| Column | Purpose |
+|--------|---------|
+| `slug` | Matches `SHARE_MESSAGES` key |
+| `cta_url` | Per-message CTA target, e.g. `/share/freedom-vs-control/sources/` |
+| `sources_slug` | Foreign key or slug ref to a `share_message_sources` table |
+
+A `share_message_sources` table would hold per-message source rows (bill name, URL, note, display_order) tied to `message_slug`. This removes the need to maintain sources inside the Astro page. Until that migration is written and applied, the static Astro sources page is the source of truth.
+
+### Source link quality rules
+
+- Use enrolled act PDFs from `wyoleg.gov` as primary sources for passed bills
+- Use official Secretary of State publications for SoS-produced documents
+- Use bill pages (`wyoleg.gov/Legislation/{year}/{bill}`) for bills that did not produce an enrolled act or for current bill status
+- Do not link to third-party aggregators as the primary source if the official enrolled act is available
+- Do not invent URLs — only publish links verified against the PDF research notes

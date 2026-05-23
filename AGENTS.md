@@ -191,6 +191,8 @@ To add a new shareable message at `/share/<slug>`, follow the step-by-step check
 
 Key files involved: `worker/src/email-template.js` (SHARE_MESSAGES registry), `src/pages/share/index.astro` (card grid), and a new `src/pages/share/<slug>.astro` detail page. No D1 migration is needed for a new message.
 
+- If a share email makes verifiable public claims, create `src/pages/share/<slug>/sources.astro` and point the email CTA (`body_html` link in `SHARE_MESSAGES`) to `https://skovgard2026.org/share/<slug>/sources/` — not back to the share page itself.
+
 ## Local Testing Servers
 
 - When starting local servers for testing, treat them as temporary and close them when the test is complete.
