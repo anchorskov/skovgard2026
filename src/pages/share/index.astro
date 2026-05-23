@@ -1,0 +1,424 @@
+---
+// src/pages/share/index.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+
+const BASE = 'https://skovgard2026.org';
+
+const cards = [
+  {
+    slug: 'jimmys-story',
+    href: '/share/jimmys-story',
+    label: 'Campaign intro',
+    title: "Jimmy's Story",
+    teaser: "Know someone who cares about Wyoming's future? Share the campaign in 30 seconds — a message from you carries more weight than any ad.",
+    meme: '/images/share/meme-jimmys-story.png',
+    memeAlt: "Jimmy Skovgard for Wyoming — share his story",
+    memeBg: '#2b2b2b',
+    tweetText: "Wyoming deserves a Senator who actually shows up. Jimmy Skovgard is running for U.S. Senate on integrity, accountability, and a stronger Wyoming voice.",
+    emailSubject: "Your Wyoming neighbor wanted you to hear about Jimmy Skovgard",
+    emailBody: [
+      "Hi,",
+      "",
+      "I came across Jimmy Skovgard's campaign for Wyoming's U.S. Senate seat and thought you'd want to know about it.",
+      "",
+      "This campaign is built around two beliefs:",
+      "",
+      "— Wyoming voters deserve leadership grounded in integrity, accountability, and the rule of law.",
+      "",
+      "— Citizens are the fourth branch of government. Our representatives work for us, not the other way around.",
+      "",
+      "Three commitments:",
+      "  1. Integrity in leadership",
+      "  2. A stronger Wyoming voice",
+      "  3. A future built together",
+      "",
+      `Learn more:  ${BASE}/about/`,
+      `Volunteer:   ${BASE}/volunteer/`,
+      `Support:     ${BASE}/donate/`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'freedom-vs-control',
+    href: '/share/freedom-vs-control',
+    label: 'Election issues',
+    title: 'Freedom vs. Control',
+    teaser: "Wyoming passed 38 election bills in 2025-26. One helped voters. The rest moved toward tighter control. Read the breakdown and share it.",
+    meme: '/images/share/meme-freedom-vs-control.png',
+    memeAlt: "Freedom vs. Control — Wyoming election legislation",
+    memeBg: '#8b1a26',
+    tweetText: "Wyoming: 38 election bills. 1 helped voters. The rest added barriers. That is a control agenda, not election security.",
+    emailSubject: "Freedom vs. Control — Wyoming's 2025-26 election legislation",
+    emailBody: [
+      "Hi,",
+      "",
+      "I want to share a breakdown of what Wyoming's Legislature actually did on voting and elections in 2025 and 2026.",
+      "",
+      "Out of 38 election-related bills, one arguably helped voters. An email notice before your name is removed from the voter rolls. That is the high-water mark for voter access.",
+      "",
+      "Everything else moved the other direction.",
+      "",
+      "WYOMING PASSED HB0156 — requiring proof of citizenship, proof of residence, and a 30-day residency requirement before voter eligibility.",
+      "",
+      "WYOMING PASSED SF0078 — no person except a county clerk or Secretary of State may distribute an absentee ballot request form unless the voter specifically asks for one.",
+      "",
+      "WYOMING PASSED SF0030 — clarifying the definition of 'qualified elector' and making conforming changes to voter registration.",
+      "",
+      "Freedom would mean online voter registration. Control means more paperwork.",
+      "Freedom would mean longer early voting. Control means proof before participation.",
+      "Freedom would mean easier absentee access. Control means restricting who can hand you an absentee ballot form.",
+      "Freedom would mean broader ballot access. Control means tighter deadlines and more barriers.",
+      "",
+      "This was not a voting freedom agenda. It was a control agenda dressed up as election security.",
+      "",
+      `Read the full breakdown: ${BASE}/share/freedom-vs-control`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+];
+---
+<Base
+  title="Share — Skovgard 2026"
+  description="Spread the word about Jimmy Skovgard's campaign for Wyoming's U.S. Senate seat. Choose a message and share it with your contacts."
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-16 px-4 text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Spread the Word</p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-extrabold text-wy-bone mb-4 leading-tight">
+        Choose a Message to Share
+      </h1>
+      <p class="text-wy-bone/70 text-lg max-w-xl mx-auto">
+        Pick any message below. Preview the full content, then share it with your Wyoming neighbors in seconds.
+      </p>
+    </div>
+
+    <!-- Grid -->
+    <section class="bg-wy-bone py-16 px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="share-grid">
+          {cards.map(card => (
+            <article class="share-card" data-slug={card.slug}>
+
+              <!-- Meme / image -->
+              <div
+                class="card-meme"
+                style={`background-color: ${card.memeBg}; --meme-url: url('${card.meme}')`}
+                role="img"
+                aria-label={card.memeAlt}
+              >
+                <!-- Quick-share bar (always visible on touch, slides up on hover on desktop) -->
+                <div class="quick-bar" aria-label="Quick share">
+                  <button
+                    type="button"
+                    class="qb-btn"
+                    data-action="copy-link"
+                    data-url={`${BASE}${card.href}`}
+                    aria-label="Copy link"
+                    title="Copy link"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span>Copy link</span>
+                  </button>
+                  <a
+                    class="qb-btn"
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(BASE + card.href)}`}
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="Share on Facebook"
+                    title="Facebook"
+                  >
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+                    </svg>
+                    <span>Facebook</span>
+                  </a>
+                  <a
+                    class="qb-btn"
+                    href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(BASE + card.href)}&text=${encodeURIComponent(card.tweetText)}`}
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="Share on X"
+                    title="X / Twitter"
+                  >
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                    <span>X</span>
+                  </a>
+                  <button
+                    type="button"
+                    class="qb-btn"
+                    data-action="email"
+                    data-subject={card.emailSubject}
+                    data-body={card.emailBody}
+                    aria-label="Send by email"
+                    title="Email"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span>Email</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Card body -->
+              <div class="card-body">
+                <span class="card-kicker">{card.label}</span>
+                <h2 class="card-title">{card.title}</h2>
+                <p class="card-teaser">{card.teaser}</p>
+                <p class="card-hint">Choose a quick-share button above, or click below to review the full message before sending.</p>
+                <a href={card.href} class="card-cta">
+                  Read full message &amp; send
+                  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </a>
+              </div>
+
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer note -->
+    <div class="bg-white py-12 px-4 text-center">
+      <p class="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
+        A message from someone you know carries more weight than any ad.<br />
+        Thank you for helping spread the word.
+      </p>
+    </div>
+
+  </main>
+  <Footer />
+</Base>
+
+<!-- Toast notification -->
+<div id="share-toast" role="status" aria-live="polite" hidden>
+  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+  </svg>
+  <span id="share-toast-msg">Copied!</span>
+</div>
+
+<style>
+  /* Grid */
+  .share-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  @media (max-width: 640px) {
+    .share-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Card */
+  .share-card {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s, transform 0.2s;
+    display: flex;
+    flex-direction: column;
+  }
+  .share-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 12px 32px rgba(0,0,0,0.10);
+    transform: translateY(-3px);
+  }
+
+  /* Meme area */
+  .card-meme {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background-image: var(--meme-url);
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+  }
+
+  /* Quick-share bar */
+  .quick-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px;
+    background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%);
+    transform: translateY(100%);
+    transition: transform 0.22s ease;
+    flex-wrap: wrap;
+  }
+  .share-card:hover .quick-bar,
+  .share-card:focus-within .quick-bar {
+    transform: translateY(0);
+  }
+  /* Always visible on touch devices */
+  @media (hover: none) {
+    .quick-bar { transform: translateY(0); }
+  }
+
+  .qb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1.5px solid rgba(241, 236, 225, 0.5);
+    background: rgba(0, 0, 0, 0.35);
+    color: #f1ece1;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    backdrop-filter: blur(4px);
+    transition: background-color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .qb-btn:hover {
+    background: rgba(178, 34, 52, 0.7);
+    border-color: #b22234;
+  }
+
+  /* Card body */
+  .card-body {
+    padding: 20px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .card-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-family: 'Bitter', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2b2b2b;
+    margin: 0 0 8px;
+    line-height: 1.3;
+  }
+  .card-teaser {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0 0 10px;
+    flex: 1;
+  }
+  .card-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin: 0 0 14px;
+    line-height: 1.4;
+  }
+  .card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: #b22234;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    align-self: flex-start;
+    transition: background-color 0.15s;
+  }
+  .card-cta:hover { background: #8b1a26; }
+
+  /* Toast */
+  #share-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  #share-toast.toast-show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+
+<script>
+(function () {
+  const toast     = document.getElementById('share-toast');
+  const toastMsg  = document.getElementById('share-toast-msg');
+  let toastTimer;
+
+  function showToast(msg) {
+    toastMsg.textContent = msg;
+    toast.hidden = false;
+    requestAnimationFrame(() => toast.classList.add('toast-show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('toast-show');
+      setTimeout(() => { toast.hidden = true; }, 220);
+    }, 2400);
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Link copied!');
+    } catch {
+      showToast('Could not copy — please copy the URL manually.');
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+
+    if (action === 'copy-link') {
+      e.preventDefault();
+      copyText(btn.dataset.url);
+    }
+
+    if (action === 'email') {
+      e.preventDefault();
+      const url =
+        'mailto:?subject=' + encodeURIComponent(btn.dataset.subject) +
+        '&body='    + encodeURIComponent(btn.dataset.body);
+      window.location.href = url;
+    }
+  });
+})();
+</script>

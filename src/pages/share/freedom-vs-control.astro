@@ -1,0 +1,761 @@
+---
+// src/pages/share/freedom-vs-control.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="Freedom vs. Control — Skovgard 2026"
+  description="Wyoming passed 38 election bills in 2025 and 2026. One helped voters. The rest moved toward tighter control. Read the breakdown."
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-14 px-4 text-center">
+      <a href="/share" class="inline-flex items-center gap-1.5 text-wy-bone/50 hover:text-wy-bone text-xs font-semibold uppercase tracking-widest mb-6 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        All messages
+      </a>
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Election Issues</p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-extrabold mb-4 leading-tight">
+        <span class="text-wy-bone">Freedom</span>
+        <span class="text-wy-ember"> vs. </span>
+        <span class="text-wy-ember">Control</span>
+      </h1>
+      <p class="text-wy-bone/70 text-lg max-w-xl mx-auto mb-8">
+        Wyoming passed 38 election bills in 2025 and 2026. One helped voters. The rest moved toward tighter control.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <button id="hero-copy-link" type="button" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy link
+        </button>
+        <a id="hero-facebook" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+          </svg>
+          Facebook
+        </a>
+        <a id="hero-twitter" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          X / Twitter
+        </a>
+      </div>
+    </div>
+
+    <!-- ① Share on social media -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+
+        <p class="section-kicker">Share on social media</p>
+        <p class="section-desc">
+          This image and link are what people see when you post on Facebook or X.
+          When someone clicks the link, they land on this page with the full breakdown.
+        </p>
+
+        <figure class="rounded-xl overflow-hidden shadow-lg mb-7">
+          <img
+            src="/images/share/meme-freedom-vs-control.png"
+            alt="Freedom vs. Control — Wyoming election legislation infographic showing 38 bills reviewed, with Freedom items on the left and Control legislation on the right"
+            class="w-full block"
+            style="background-color:#8b1a26;min-height:180px;"
+            loading="eager"
+          />
+        </figure>
+
+        <div class="flex flex-wrap gap-3">
+          <a id="social-facebook" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+            </svg>
+            Share on Facebook
+          </a>
+          <a id="social-twitter" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Share on X
+          </a>
+          <button id="social-copy-link" type="button" class="social-btn-outline">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy link
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ② Send by email -->
+    <section class="bg-white py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+
+        <p class="section-kicker">Send by email to your contacts</p>
+        <p class="section-desc">
+          This is the written message your contacts receive in their inbox.
+          It is not the image above — it is a personal email that comes from you.
+        </p>
+
+        <div class="bg-wy-bone rounded-2xl border border-gray-200 p-7">
+
+          <!-- Your name -->
+          <div class="mb-6">
+            <label for="fvc-sender" class="block text-sm font-semibold text-gray-700 mb-1">
+              Your name <span class="font-normal text-gray-400">(optional — personalises the message)</span>
+            </label>
+            <input
+              id="fvc-sender"
+              type="text"
+              autocomplete="given-name"
+              placeholder="e.g. Sarah"
+              maxlength="80"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-wy-ember focus:border-wy-ember"
+            />
+          </div>
+
+          <!-- Honeypot -->
+          <input id="fvc-trap" name="fvc_trap" type="text" autocomplete="off" tabindex="-1"
+            style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+
+          <!-- Recipient input -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-sm font-semibold text-gray-700">
+                Friends' email addresses
+              </label>
+              <button id="fvc-contacts-btn" type="button" hidden
+                class="text-xs font-semibold text-wy-ember hover:text-wy-ember-dark flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.47-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.47.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Add from contacts
+              </button>
+            </div>
+            <div id="fvc-tag-box"
+              class="min-h-[48px] w-full px-2 py-1.5 border border-gray-300 rounded-lg bg-white cursor-text flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-wy-ember focus-within:border-wy-ember"
+              aria-label="Recipient email list">
+              <input id="fvc-email-input" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
+                placeholder="Type an address and press Enter"
+                class="flex-1 min-w-[180px] border-0 outline-none text-sm py-1 px-1 bg-transparent" />
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">
+              Press <kbd>Enter</kbd> or <kbd>,</kbd> after each address. Paste a comma-separated list to add several at once. Up to 10.
+            </p>
+          </div>
+
+          <!-- Live HTML email preview -->
+          <div class="email-preview-wrap mb-6">
+            <div class="email-preview-header">
+              <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;share@skovgard2026.org&gt;</div>
+              <div class="epf"><span class="epl">Subject:</span> <span id="fvc-preview-subject">Wyoming's election legislation — freedom vs. control</span></div>
+            </div>
+            <iframe
+              id="fvc-preview-iframe"
+              title="Preview of the email your contacts will receive"
+              sandbox="allow-same-origin"
+              scrolling="yes"
+              class="email-preview-iframe"
+            ></iframe>
+          </div>
+
+          <!-- Status -->
+          <div id="fvc-status" role="status" aria-live="polite" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+          <!-- Action button -->
+          <button id="fvc-send-btn" type="button"
+            class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            <span id="fvc-send-label">Have us send it</span>
+          </button>
+
+          <p class="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+            We send a campaign-branded email on your behalf. Recipients are not added to any mailing list.
+          </p>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Full breakdown article -->
+    <article class="bg-wy-bone border-t border-gray-200 py-14 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-8">Full breakdown</p>
+
+        <div class="prose-content">
+          <h2>What did the control caucus do to increase voter access?</h2>
+          <p>Almost nothing.</p>
+          <p>
+            After reviewing the 2025 and 2026 Wyoming election bills, I found one measure that could be called
+            mildly voter-protective: <strong>SEA 75, SF0165</strong>. It allows a voter cancellation notice to be sent
+            by email in addition to first-class mail. In plain English, if the government is preparing to remove you
+            from the voter rolls, you might also get an email saying so. That is the high-water mark for "helping" voters.
+          </p>
+          <p>That is not expanding freedom. That is a courtesy notice before the trapdoor opens.</p>
+          <p>Now compare that with what actually moved through the Legislature.</p>
+          <p>
+            Wyoming passed <strong>HB0156</strong>, requiring proof of citizenship, proof of residence, and a
+            30-day residency requirement before voter eligibility. The Secretary of State publicly described HB0156
+            as requiring proof of U.S. citizenship, proof of Wyoming residency, and a durational residency requirement.
+            <a href="https://sos.wyo.gov/Media/2025/SoS_Release_2025-03-21.pdf" target="_blank" rel="noopener" class="source-link">[1]</a>
+          </p>
+          <p>
+            Wyoming passed <strong>SF0078</strong>, which says no person, except a county clerk, the Secretary of
+            State, or their designees, may distribute an absentee ballot request form unless the voter specifically
+            asks for one.
+            <a href="https://legiscan.com/WY/text/SF0078/id/3130886/Wyoming-2025-SF0078-Enrolled.pdf" target="_blank" rel="noopener" class="source-link">[2]</a>
+          </p>
+          <p>
+            Wyoming passed <strong>SF0030</strong> in 2026, described as clarifying the definition of
+            "qualified elector" and making conforming changes to voter registration and voter qualifications.
+            <a href="https://wyoleg.gov/Legislation/2026/SF0030" target="_blank" rel="noopener" class="source-link">[3]</a>
+          </p>
+
+          <div class="contrast-grid my-10" role="table" aria-label="Freedom vs. Control comparison">
+            <div class="contrast-header" role="row">
+              <span class="h-freedom" role="columnheader">Freedom</span>
+              <span class="h-control" role="columnheader">Control</span>
+            </div>
+            <div class="pair" role="row">
+              <div class="freedom" role="cell">Freedom would mean online voter registration.</div>
+              <div class="control" role="cell">Control means more paperwork.</div>
+            </div>
+            <div class="pair" role="row">
+              <div class="freedom" role="cell">Freedom would mean longer early voting.</div>
+              <div class="control" role="cell">Control means proof before participation.</div>
+            </div>
+            <div class="pair" role="row">
+              <div class="freedom" role="cell">Freedom would mean easier absentee access.</div>
+              <div class="control" role="cell">Control means restricting who can even hand you an absentee ballot request form.</div>
+            </div>
+            <div class="pair" role="row">
+              <div class="freedom" role="cell">Freedom would mean broader ballot access.</div>
+              <div class="control" role="cell">Control means tighter deadlines, more technical barriers, and more ways to keep people off the ballot.</div>
+            </div>
+            <div class="pair" role="row">
+              <div class="freedom" role="cell">Freedom would mean restoring voting rights and trusting citizens.</div>
+              <div class="control" role="cell">Control means expanding verification, cancellation, proof requirements, and voter-roll policing.</div>
+            </div>
+          </div>
+
+          <p>
+            Out of the review, we flagged <strong>38 election-related bills</strong> touching voting, registration,
+            ballot access, absentee voting, voter rolls, election administration, or candidate access. The one item
+            that arguably helped voters was an email notice before cancellation. Everything else worth watching moved
+            toward tighter control.
+          </p>
+          <p>That tells us something.</p>
+          <p>This was not a voting freedom agenda.</p>
+          <p>It was a control agenda dressed up as election security.</p>
+          <p>
+            And the clearest example is <strong>HB0156</strong>. It places proof, paperwork, timing, and government
+            verification between a Wyoming citizen and the ballot. That deserves constitutional review because
+            Wyoming's Constitution says elections are supposed to be open, free, and equal.
+          </p>
+        </div>
+
+      </div>
+    </article>
+
+    <!-- Bottom share bar -->
+    <div class="bg-wy-charcoal py-14 px-4 text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Spread the Word</p>
+      <p class="text-wy-bone/70 text-sm mb-6 max-w-md mx-auto">
+        One message from someone you know carries more weight than any ad. Share this with Wyoming neighbors.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <button id="footer-copy-link" type="button" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy link
+        </button>
+        <a id="footer-facebook" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+          </svg>
+          Facebook
+        </a>
+        <a id="footer-twitter" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          X / Twitter
+        </a>
+      </div>
+    </div>
+
+    <!-- Sources -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-6">Sources</h2>
+        <ol class="space-y-4 text-sm text-gray-600 list-none">
+          <li>
+            <strong>1.</strong> Wyoming Secretary of State — HB0156 release<br />
+            <a href="https://sos.wyo.gov/Media/2025/SoS_Release_2025-03-21.pdf" target="_blank" rel="noopener" class="text-wy-ember hover:underline break-all">
+              https://sos.wyo.gov/Media/2025/SoS_Release_2025-03-21.pdf
+            </a>
+          </li>
+          <li>
+            <strong>2.</strong> SF0078 enrolled text — LegiScan<br />
+            <a href="https://legiscan.com/WY/text/SF0078/id/3130886/Wyoming-2025-SF0078-Enrolled.pdf" target="_blank" rel="noopener" class="text-wy-ember hover:underline break-all">
+              https://legiscan.com/WY/text/SF0078/id/3130886/Wyoming-2025-SF0078-Enrolled.pdf
+            </a>
+          </li>
+          <li>
+            <strong>3.</strong> SF0030 — Wyoming Legislature<br />
+            <a href="https://wyoleg.gov/Legislation/2026/SF0030" target="_blank" rel="noopener" class="text-wy-ember hover:underline break-all">
+              https://wyoleg.gov/Legislation/2026/SF0030
+            </a>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  /* Section headers */
+  .section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 52ch;
+  }
+
+  /* Social share buttons */
+  .social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.15s;
+  }
+  .social-btn:hover { background: #b22234; }
+  .social-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: transparent;
+    color: #2b2b2b;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 2px solid #2b2b2b;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .social-btn-outline:hover { background: #2b2b2b; color: #f1ece1; }
+
+  .share-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border: 2px solid rgba(241, 236, 225, 0.45);
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    background: transparent;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+  .share-btn-outline:hover {
+    background-color: rgba(241, 236, 225, 0.1);
+    border-color: #f1ece1;
+  }
+
+  /* Instructions */
+  .instructions-box {
+    background: #fff;
+    border: 1px solid #e5e2da;
+    border-radius: 14px;
+    padding: 22px 24px;
+  }
+  .instructions-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #c68a4a;
+    margin-bottom: 14px;
+  }
+  .instructions-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .instructions-list li {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    font-size: 0.9rem;
+    color: #4b4b4b;
+    line-height: 1.55;
+  }
+  .instructions-list li strong { color: #2b2b2b; }
+  .step-n {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #b22234;
+    color: #f1ece1;
+    font-weight: 800;
+    font-size: 0.8125rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+
+  /* Email preview frame */
+  .email-preview-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .email-preview-header {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .epf {
+    font-size: 0.8125rem;
+    color: #374151;
+    line-height: 1.6;
+  }
+  .epl {
+    font-weight: 700;
+    color: #6b7280;
+    margin-right: 4px;
+  }
+  .email-preview-iframe {
+    display: block;
+    width: 100%;
+    height: 460px;
+    border: none;
+  }
+
+  #fvc-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Email chip tags */
+  .fvc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1ece1;
+    border: 1px solid #c68a4a33;
+    color: #2b2b2b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 8px 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+  .fvc-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .fvc-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: #c68a4a55;
+    color: #2b2b2b;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .fvc-chip button:hover { background: #b22234; color: #fff; }
+
+  kbd {
+    padding: 1px 5px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    color: #6b7280;
+  }
+
+  /* Essay typography */
+  .prose-content { line-height: 1.8; color: #2b2b2b; }
+  .prose-content h2 {
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: #2b2b2b;
+  }
+  .prose-content p { margin-bottom: 1.25rem; font-size: 1.0625rem; }
+  .source-link {
+    color: #b22234;
+    text-decoration: none;
+    font-size: 0.85em;
+    vertical-align: super;
+  }
+  .source-link:hover { text-decoration: underline; }
+
+  /* Freedom / Control comparison grid */
+  .contrast-grid { border: 1px solid #ddd8ce; border-radius: 12px; overflow: hidden; }
+  .contrast-header { display: grid; grid-template-columns: 1fr 1fr; background: #2b2b2b; }
+  .contrast-header span { padding: 10px 18px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; }
+  .h-freedom { color: #f1ece1; border-right: 1px solid rgba(255,255,255,0.12); }
+  .h-control  { color: #e87a86; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #ddd8ce; }
+  .pair:last-child { border-bottom: none; }
+  .freedom { padding: 14px 18px; font-size: 0.9375rem; color: #2b2b2b; border-right: 1px solid #ddd8ce; background: #f1ece1; }
+  .control  { padding: 14px 18px; font-size: 0.9375rem; color: #2b2b2b; background: #fef7f7; }
+  @media (max-width: 600px) {
+    .pair { grid-template-columns: 1fr; }
+    .freedom { border-right: none; border-bottom: 1px solid #ddd8ce; }
+    .contrast-header { grid-template-columns: 1fr; }
+    .h-freedom { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.12); }
+  }
+
+  #fvc-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  #fvc-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  #fvc-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+</style>
+
+<script>
+(function () {
+  const PAGE_URL = 'https://skovgard2026.org/share/freedom-vs-control';
+
+  /* ── Social share links ──────────────────────────────────── */
+  const fb = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
+  const tw = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_URL) +
+    '&text=' + encodeURIComponent('Wyoming: 38 election bills. 1 helped voters. The rest added barriers. That is a control agenda, not election security.');
+  ['hero-facebook', 'social-facebook', 'footer-facebook'].forEach(id => { const el = document.getElementById(id); if (el) el.href = fb; });
+  ['hero-twitter',  'social-twitter',  'footer-twitter' ].forEach(id => { const el = document.getElementById(id); if (el) el.href = tw; });
+
+  async function copyText(text, label) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus(label + ' copied!', 'success');
+      setTimeout(() => setStatus('', ''), 3000);
+    } catch {
+      setStatus('Could not copy — please copy manually.', 'error');
+    }
+  }
+
+  ['hero-copy-link', 'social-copy-link', 'footer-copy-link']
+    .forEach(id => { const btn = document.getElementById(id); if (btn) btn.addEventListener('click', () => copyText(PAGE_URL, 'Link')); });
+
+  /* ── Email state ─────────────────────────────────────────── */
+  const fvcEmails      = [];
+  const FVC_MAX        = 10;
+  const tagBox         = document.getElementById('fvc-tag-box');
+  const emailInput     = document.getElementById('fvc-email-input');
+  const senderInput    = document.getElementById('fvc-sender');
+  const contactsBtn    = document.getElementById('fvc-contacts-btn');
+  const previewIframe  = document.getElementById('fvc-preview-iframe');
+  const previewSubject = document.getElementById('fvc-preview-subject');
+  const sendBtn        = document.getElementById('fvc-send-btn');
+  const sendLabel      = document.getElementById('fvc-send-label');
+  const statusEl       = document.getElementById('fvc-status');
+  const trapEl         = document.getElementById('fvc-trap');
+
+  function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
+
+  function setStatus(msg, type) {
+    if (!msg) { statusEl.classList.add('hidden'); statusEl.textContent = ''; return; }
+    statusEl.className = `mb-4 px-4 py-3 rounded-lg text-sm font-medium status-${type}`;
+    statusEl.textContent = msg;
+    statusEl.classList.remove('hidden');
+  }
+
+  function renderTags() {
+    Array.from(tagBox.querySelectorAll('.fvc-chip')).forEach(c => c.remove());
+    fvcEmails.forEach((email, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'fvc-chip';
+      chip.innerHTML = `<span title="${email}">${email}</span><button type="button" aria-label="Remove ${email}">✕</button>`;
+      chip.querySelector('button').addEventListener('click', () => { fvcEmails.splice(i, 1); setStatus('', ''); renderTags(); });
+      tagBox.insertBefore(chip, emailInput);
+    });
+    updateButtons();
+    schedulePreview();
+  }
+
+  function addEmail(raw) {
+    const e = raw.trim().toLowerCase();
+    if (!e) return;
+    if (!isValidEmail(e)) { setStatus(`"${e}" doesn't look like a valid email address.`, 'error'); return; }
+    if (fvcEmails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
+    if (fvcEmails.length >= FVC_MAX) { setStatus(`Maximum ${FVC_MAX} recipients.`, 'info'); return; }
+    setStatus('', '');
+    fvcEmails.push(e);
+    renderTags();
+  }
+
+  function updateButtons() {
+    sendBtn.disabled = fvcEmails.length === 0;
+  }
+
+  emailInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addEmail(emailInput.value); emailInput.value = ''; }
+    else if (e.key === 'Backspace' && emailInput.value === '' && fvcEmails.length > 0) {
+      fvcEmails.splice(fvcEmails.length - 1, 1); setStatus('', ''); renderTags();
+    }
+  });
+  emailInput.addEventListener('blur', () => { if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; } });
+  emailInput.addEventListener('paste', e => {
+    e.preventDefault();
+    (e.clipboardData || window.clipboardData).getData('text').split(/[,;\s\n]+/).forEach(p => { if (p.trim()) addEmail(p); });
+    emailInput.value = '';
+  });
+  tagBox.addEventListener('click', () => emailInput.focus());
+
+  (async () => {
+    if (!('contacts' in navigator)) return;
+    try {
+      const props = await navigator.contacts.getProperties();
+      if (!props.includes('email')) return;
+      contactsBtn.hidden = false;
+      contactsBtn.addEventListener('click', async () => {
+        try { const picked = await navigator.contacts.select(['name', 'email'], { multiple: true }); picked.forEach(c => (c.email || []).forEach(e => addEmail(e))); } catch (_) {}
+      });
+    } catch (_) {}
+  })();
+
+  /* ── Live email preview via Worker ──────────────────────── */
+  let previewTimer = null;
+
+  function buildPreviewUrl() {
+    const name = senderInput.value.trim().slice(0, 80);
+    const params = new URLSearchParams({ slug: 'freedom-vs-control' });
+    if (name) params.set('sender_name', name);
+    return '/api/share/preview?' + params.toString();
+  }
+
+  function updateSubjectLine() {
+    const name = senderInput.value.trim();
+    if (previewSubject) {
+      previewSubject.textContent = name
+        ? `${name} wanted you to see this Wyoming election breakdown`
+        : "Wyoming's election legislation — freedom vs. control";
+    }
+  }
+
+  async function fetchPreview() {
+    updateSubjectLine();
+    if (!previewIframe) return;
+    try {
+      const resp = await fetch(buildPreviewUrl());
+      if (resp.ok) previewIframe.srcdoc = await resp.text();
+    } catch (_) {
+      // Worker not running locally — leave iframe blank
+    }
+  }
+
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(fetchPreview, 300);
+  }
+
+  senderInput.addEventListener('input', schedulePreview);
+
+  /* ── Send via Worker ─────────────────────────────────────── */
+  sendBtn.addEventListener('click', async () => {
+    if (fvcEmails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
+    if (trapEl.value.trim()) return;
+
+    sendBtn.disabled = true;
+    sendLabel.textContent = 'Sending…';
+    setStatus('', '');
+
+    try {
+      const resp = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message_slug: 'freedom-vs-control',
+          sender_name:  senderInput.value.trim(),
+          recipients:   fvcEmails.slice(),
+          _trap: trapEl.value,
+          _t:    Date.now(),
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        setStatus(
+          resp.status === 404 && isLocal
+            ? 'Route not found — make sure the Worker is running: cd worker && npx wrangler dev'
+            : resp.status === 503
+            ? 'Share feature is not enabled on this environment yet.'
+            : data.error || 'Something went wrong. Please try again.',
+          'error'
+        );
+      } else {
+        const n = data.sent || fvcEmails.length;
+        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} delivered. Thank you for spreading the word.`, 'success');
+        fvcEmails.length = 0;
+        renderTags();
+      }
+    } catch (_) {
+      setStatus(
+        ['localhost', '127.0.0.1'].includes(window.location.hostname)
+          ? 'Worker not reachable. Run `cd worker && npx wrangler dev` in a second terminal.'
+          : 'Network error — please check your connection and try again.',
+        'error'
+      );
+    } finally {
+      sendLabel.textContent = 'Have us send it';
+      updateButtons();
+    }
+  });
+
+  /* ── Init ────────────────────────────────────────────────── */
+  updateButtons();
+  fetchPreview();
+
+  if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    setStatus(
+      'Local dev: "Have us send it" needs the Worker running. ' +
+      'In a second terminal: cd worker && npx wrangler dev.',
+      'info'
+    );
+  }
+})();
+</script>

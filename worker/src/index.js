@@ -18,6 +18,7 @@ import {
 } from "./admin-email.js";
 import { sendPulseOptInEmails } from "./pulse-email.js";
 import { sendResendEmail } from "./resend.js";
+import { buildShareEmailHtml, buildShareEmailText, SHARE_MESSAGES } from "./email-template.js";
 
 function pulseWelcomeConfig(env) {
   return {
@@ -2541,7 +2542,31 @@ export default {
           return json(req, env, { ok: true, sent: 0 });
         }
 
+        // IP rate limit — max 50 sends per IP per 60 minutes
+        const ip = req.headers.get("cf-connecting-ip") || "";
+        const ipHash = await sha256Hex(ip);
+        if (env.DB) {
+          try {
+            const rlRow = await env.DB.prepare(
+              "SELECT COUNT(*) AS n FROM share_sends WHERE sender_ip_hash = ?1 AND created_at >= datetime('now', '-60 minutes')"
+            ).bind(ipHash).first();
+            if ((rlRow?.n || 0) >= 50) {
+              return json(req, env, { error: "Too many requests. Please try again later." }, 429);
+            }
+          } catch (_) { /* fail open if table not yet created */ }
+        }
+
         const senderName = String(b.sender_name || "").trim().slice(0, 80);
+
+        if (/[\r\n\x00]/.test(senderName)) {
+          return json(req, env, { error: "Invalid sender name." }, 400);
+        }
+
+        const messageSlug = String(b.message_slug || "jimmys-story").trim();
+        const msg = SHARE_MESSAGES[messageSlug];
+        if (!msg) {
+          return json(req, env, { error: "Unknown message." }, 400);
+        }
 
         const rawRecipients = Array.isArray(b.recipients) ? b.recipients : [];
         const recipients = rawRecipients
@@ -2553,224 +2578,25 @@ export default {
           return json(req, env, { error: "At least one valid email address is required." }, 400);
         }
 
-        const senderIntro = senderName
-          ? `${senderName} wanted to share this with you.`
-          : "A Wyoming neighbor wanted to share this with you.";
+        const senderIntro = msg.intro(senderName);
+        const subject     = msg.subject(senderName);
 
-        const subject = senderName
-          ? `${senderName} wants you to hear about Jimmy Skovgard for Wyoming`
-          : "Your neighbor wanted you to hear about Jimmy Skovgard for Wyoming";
+        const htmlBody = buildShareEmailHtml({
+          sender_name:  senderName,
+          sender_intro: senderIntro,
+          body_html:    msg.body_html,
+          preview_text: msg.preview_text,
+        });
+        const textBody = buildShareEmailText({
+          sender_name:  senderName,
+          sender_intro: senderIntro,
+          slug:         messageSlug,
+        });
 
-        function buildShareHtml(intro) {
-          const esc = (s) => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-          return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Jimmy Skovgard for Wyoming</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="margin:0; padding:0; background:#f7f3ec; font-family:Arial, Helvetica, sans-serif; color:#111827;">
-  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">${esc(intro)}</div>
-
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f3ec; margin:0; padding:0;">
-    <tr>
-      <td align="center" style="padding:24px 12px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px; background:#ffffff; border-radius:16px; overflow:hidden; border:1px solid #e5e7eb;">
-          <tr>
-            <td style="background:#0f2742; padding:28px 28px 22px; text-align:left;">
-              <p style="margin:0 0 8px; font-size:13px; line-height:1.4; letter-spacing:1.5px; text-transform:uppercase; color:#d8b46a; font-weight:bold;">
-                Skovgard for Wyoming
-              </p>
-              <h1 style="margin:0; font-size:30px; line-height:1.2; color:#ffffff; font-weight:bold;">
-                More information about Jimmy Skovgard
-              </h1>
-              <p style="margin:12px 0 0; font-size:16px; line-height:1.5; color:#f3f4f6;">
-                Preserving our legacy. Empowering our future.
-              </p>
-            </td>
-          </tr>
-
-          <tr>
-            <td style="padding:28px;">
-              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">Hi,</p>
-
-              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#6b7280; font-style:italic;">${esc(intro)}</p>
-
-              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">
-                This campaign is built around two simple beliefs.
-              </p>
-
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0; border-left:5px solid #d8b46a; background:#fbf8f1;">
-                <tr>
-                  <td style="padding:18px 18px 16px;">
-                    <p style="margin:0 0 14px; font-size:16px; line-height:1.65; color:#111827;">
-                      <strong>First,</strong> Wyoming voters deserve leadership grounded in integrity, accountability, transparency, compassion, courage and bound by the Constitution and the rule of law.
-                    </p>
-                    <p style="margin:0; font-size:16px; line-height:1.65; color:#111827;">
-                      <strong>Second,</strong> the citizens, you and I, are the fourth branch of government. Our representatives work for us and are accountable to us. Public office belongs to public service, and public service must answer to the people.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-              <h2 style="margin:26px 0 10px; font-size:22px; line-height:1.3; color:#0f2742;">Why this matters</h2>
-
-              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">
-                Mass manipulation is dangerous because fear, outrage, and division weaken our judgment, separate us from one another, and pressure us to surrender choices that belong to us. When citizens are kept angry, afraid, and suspicious of one another, power becomes easier to hold and harder to question.
-              </p>
-
-              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">
-                Freedom matters. Our right to make our own choices, speak our minds without fear of retribution, and associate freely or decline to associate is fundamental to self-government. When those freedoms are restricted, the voice of the people is weakened. When those freedoms are protected, Wyoming grows stronger.
-              </p>
-
-              <p style="margin:0 0 18px; font-size:16px; line-height:1.65; color:#111827;">
-                The August 18th primary election matters — freedom works only when citizens use it. Every eligible Wyoming voter should make a plan, study the candidates, ask hard questions, and cast a ballot. Many of Wyoming's most consequential choices are shaped in the primary — our voice belongs there. Power stays accountable when citizens show up.
-              </p>
-
-              <p style="margin:0 0 22px; font-size:16px; line-height:1.65; color:#111827;">
-                I am running to help restore trust in public service and make sure Wyoming's voice is carried with honesty, courage, and respect. Restoring that trust begins by listening. It grows through conversation, and moves forward when neighbors decide the future belongs to all of us.
-              </p>
-
-              <h2 style="margin:28px 0 14px; font-size:22px; line-height:1.3; color:#0f2742;">Our campaign is focused on three commitments</h2>
-
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
-                <tr>
-                  <td style="padding:14px 0; border-top:1px solid #e5e7eb;">
-                    <p style="margin:0 0 4px; font-size:16px; line-height:1.5; color:#0f2742; font-weight:bold;">1. Integrity in leadership</p>
-                    <p style="margin:0; font-size:15px; line-height:1.6; color:#374151;">Public service must be measured by truth, character, and accountability.</p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 0; border-top:1px solid #e5e7eb;">
-                    <p style="margin:0 0 4px; font-size:16px; line-height:1.5; color:#0f2742; font-weight:bold;">2. A stronger Wyoming voice</p>
-                    <p style="margin:0; font-size:15px; line-height:1.6; color:#374151;">Wyoming communities deserve to be heard clearly, from small towns and ranch roads to main streets, schools, churches, coffee shops, and kitchen tables.</p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 0; border-top:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb;">
-                    <p style="margin:0 0 4px; font-size:16px; line-height:1.5; color:#0f2742; font-weight:bold;">3. A future built together</p>
-                    <p style="margin:0; font-size:15px; line-height:1.6; color:#374151;">We build lasting change by listening first, speaking honestly, and bringing people back into the work of self-government.</p>
-                  </td>
-                </tr>
-              </table>
-
-              <h2 style="margin:28px 0 14px; font-size:22px; line-height:1.3; color:#0f2742;">Stay connected</h2>
-
-              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
-                <tr>
-                  <td style="padding:0 0 12px;">
-                    <a href="https://www.skovgard2026.org/about/" style="display:inline-block; background:#0f2742; color:#ffffff; font-size:15px; line-height:1.2; font-weight:bold; text-decoration:none; padding:13px 18px; border-radius:8px;">Learn more about the campaign</a>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:0 0 12px;">
-                    <a href="https://www.skovgard2026.org/volunteer/" style="display:inline-block; background:#d8b46a; color:#111827; font-size:15px; line-height:1.2; font-weight:bold; text-decoration:none; padding:13px 18px; border-radius:8px;">Volunteer or join the effort</a>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:0 0 12px;">
-                    <a href="https://www.skovgard2026.org/donate/" style="display:inline-block; background:#ffffff; color:#0f2742; font-size:15px; line-height:1.2; font-weight:bold; text-decoration:none; padding:12px 17px; border-radius:8px; border:1px solid #0f2742;">Support the campaign</a>
-                  </td>
-                </tr>
-              </table>
-
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0; background:#0f2742; border-radius:12px;">
-                <tr>
-                  <td style="padding:22px;">
-                    <h2 style="margin:0 0 10px; font-size:22px; line-height:1.3; color:#ffffff;">Help grow the conversation</h2>
-                    <p style="margin:0 0 16px; font-size:16px; line-height:1.6; color:#f3f4f6;">
-                      Share this campaign with three or more people who care about Wyoming's future. One conversation can open the next door.
-                    </p>
-                    <a href="https://www.skovgard2026.org/share/" style="display:inline-block; background:#d8b46a; color:#111827; font-size:15px; line-height:1.2; font-weight:bold; text-decoration:none; padding:13px 18px; border-radius:8px;">Share with 3 or more contacts</a>
-                  </td>
-                </tr>
-              </table>
-
-              <p style="margin:12px 0 18px; font-size:16px; line-height:1.65; color:#111827;">
-                Most of all, I would like to hear from you. Reply to this email and tell us what issue matters most in your community.
-              </p>
-
-              <p style="margin:0 0 22px; font-size:16px; line-height:1.65; color:#111827;">
-                This campaign is built one conversation at a time. Thank you for being part of it.
-              </p>
-
-              <p style="margin:0; font-size:16px; line-height:1.65; color:#111827;">
-                With respect,<br>
-                <strong>Jimmy Skovgard</strong><br>
-                Skovgard for Wyoming
-              </p>
-            </td>
-          </tr>
-
-          <tr>
-            <td style="background:#f3f4f6; padding:20px 28px;">
-              <p style="margin:0 0 10px; font-size:13px; line-height:1.5; color:#374151; font-weight:bold;">Paid for by Skovgard for Senate.</p>
-              <p style="margin:0; font-size:12px; line-height:1.5; color:#6b7280;">
-                You received this because ${esc(senderName || "a friend")} shared it with you.
-                This is a one-time message &mdash; you are not being added to any mailing list.
-                If you would like to <a href="https://www.skovgard2026.org/pulse/" style="color:#0f2742;">subscribe to updates, click here</a>.
-              </p>
-            </td>
-          </tr>
-        </table>
-
-        <p style="margin:14px 0 0; font-size:11px; line-height:1.5; color:#6b7280; text-align:center;">
-          Skovgard for Wyoming | Preserving our legacy. Empowering our future.
-        </p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-        }
-
-        function buildShareText(intro) {
-          return [
-            intro,
-            "",
-            "Hi,",
-            "",
-            "This campaign is built around two simple beliefs.",
-            "",
-            "First, Wyoming voters deserve leadership grounded in integrity, accountability, transparency, compassion, and courage — bound by the Constitution and the rule of law.",
-            "",
-            "Second, the citizens, you and I, are the fourth branch of government. Our representatives work for us and are accountable to us.",
-            "",
-            "Mass manipulation is dangerous because fear, outrage, and division weaken our judgment, separate us from one another, and pressure us to surrender choices that belong to us. When citizens are kept angry, afraid, and suspicious of one another, power becomes easier to hold and harder to question.",
-            "",
-            "Freedom matters. Our right to make our own choices, speak our minds without fear of retribution, and associate freely is fundamental to self-government.",
-            "",
-            "The August 18th primary election matters — freedom works only when citizens use it. Every eligible Wyoming voter should make a plan, study the candidates, ask hard questions, and cast a ballot. Many of Wyoming's most consequential choices are shaped in the primary — our voice belongs there. Power stays accountable when citizens show up.",
-            "",
-            "Three commitments:",
-            "  1. Integrity in leadership — Public service measured by truth, character, and accountability.",
-            "  2. A stronger Wyoming voice — Wyoming communities heard clearly, from small towns to kitchen tables.",
-            "  3. A future built together — Lasting change built by listening first and speaking honestly.",
-            "",
-            "Learn more:   https://www.skovgard2026.org/about/",
-            "Volunteer:    https://www.skovgard2026.org/volunteer/",
-            "Donate:       https://www.skovgard2026.org/donate/",
-            "Share:        https://www.skovgard2026.org/share/",
-            "",
-            "Most of all, I would like to hear from you. Reply to this email and tell us what issue matters most in your community.",
-            "",
-            "With respect,",
-            "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
-            "",
-            "Paid for by Skovgard for Senate.",
-            "---",
-            `You received this because ${senderName || "a friend"} shared it with you. This is a one-time message — you are not being added to any mailing list.`,
-          ].join("\n");
-        }
-
-        const htmlBody = buildShareHtml(senderIntro);
-        const textBody = buildShareText(senderIntro);
-
-        const sends = recipients.map((email) =>
+        const sends = recipients.map((to) =>
           sendResendEmail(apiKey, {
             from: fromAddr,
-            to: [email],
+            to: [to],
             subject,
             text: textBody,
             html: htmlBody,
@@ -2779,18 +2605,115 @@ export default {
               { name: "source", value: "share" },
               { name: "kind", value: "friend_share" },
             ],
-          }).then(() => ({ ok: true })).catch((err) => ({ ok: false, error: String(err?.message || err) }))
+          })
+            .then((res) => ({ ok: true,  email: to, resendId: res?.id || null }))
+            .catch((err) => ({ ok: false, email: to, error: String(err?.message || err) }))
         );
 
         const results = await Promise.all(sends);
-        const sent = results.filter((r) => r.ok).length;
+        const sent   = results.filter((r) => r.ok).length;
         const failed = results.length - sent;
+
+        // Persist every send attempt — audit log + rate-limit source
+        if (env.DB) {
+          const logWork = Promise.all(
+            results.map((r) =>
+              env.DB.prepare(
+                `INSERT INTO share_sends
+                   (message_slug, recipient_email, sender_name, sender_ip_hash,
+                    resend_message_id, status, error_message)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+              )
+                .bind(
+                  messageSlug,
+                  r.email,
+                  senderName || null,
+                  ipHash,
+                  r.resendId || null,
+                  r.ok ? "sent" : "failed",
+                  r.ok ? null : (r.error || null)
+                )
+                .run()
+                .catch(() => {})
+            )
+          );
+          if (ctx?.waitUntil) ctx.waitUntil(logWork);
+          else await logWork;
+        }
 
         if (sent === 0) {
           return json(req, env, { error: "Failed to send. Please try again shortly." }, 500);
         }
 
         return json(req, env, { ok: true, sent, failed });
+      }
+
+      // GET /api/share/preview — returns the full rendered HTML email for iframe preview
+      // No auth required; SHARE_ENABLED not required (preview always works in dev).
+      if (req.method === "GET" && path === "/api/share/preview") {
+        const slug       = (url.searchParams.get("slug") || "jimmys-story").trim();
+        const senderName = String(url.searchParams.get("sender_name") || "").trim().slice(0, 80);
+        const msg        = SHARE_MESSAGES[slug];
+        if (!msg) {
+          return new Response("Unknown message slug.", { status: 400, headers: { "Content-Type": "text/plain" } });
+        }
+        const senderIntro = msg.intro(senderName);
+        const html = buildShareEmailHtml({
+          sender_name:  senderName,
+          sender_intro: senderIntro,
+          body_html:    msg.body_html,
+          preview_text: msg.preview_text,
+        });
+        return new Response(html, {
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
+      }
+
+      // GET /api/admin/share/audit — share send log with optional filters
+      if (req.method === "GET" && path === "/api/admin/share/audit") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const limit = Math.min(parseInt(url.searchParams.get("limit") || "100", 10), 500);
+        const since = url.searchParams.get("since")     || null;
+        const rcpt  = url.searchParams.get("recipient") || null;
+        const slug  = url.searchParams.get("slug")      || null;
+
+        let query = `SELECT id, message_slug, recipient_email, sender_name, sender_ip_hash,
+                            resend_message_id, status, error_message, created_at
+                       FROM share_sends`;
+        const conds = [];
+        const binds = [];
+        if (since) { conds.push(`created_at >= ?${binds.length + 1}`);     binds.push(since); }
+        if (rcpt)  { conds.push(`recipient_email = ?${binds.length + 1}`); binds.push(rcpt.toLowerCase().trim()); }
+        if (slug)  { conds.push(`message_slug = ?${binds.length + 1}`);   binds.push(slug); }
+        if (conds.length) query += ` WHERE ${conds.join(" AND ")}`;
+        query += ` ORDER BY created_at DESC LIMIT ?${binds.length + 1}`;
+        binds.push(limit);
+
+        try {
+          const rows   = await env.DB.prepare(query).bind(...binds).all();
+          const totals = await env.DB.prepare(
+            `SELECT COUNT(*) AS total,
+                    SUM(CASE WHEN status = 'sent'   THEN 1 ELSE 0 END) AS sent_count,
+                    SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count
+               FROM share_sends`
+          ).first();
+          return json(req, env, {
+            ok:           true,
+            total:        totals?.total        || 0,
+            total_sent:   totals?.sent_count   || 0,
+            total_failed: totals?.failed_count || 0,
+            sends:        rows.results || [],
+          });
+        } catch (err) {
+          return json(req, env, { error: "Query failed: " + String(err?.message || err) }, 500);
+        }
       }
 
       if (req.method === "GET" && path === "/api/admin/telnyx/can-send") {
