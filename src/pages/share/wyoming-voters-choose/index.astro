@@ -1,0 +1,728 @@
+---
+// src/pages/share/wyoming-voters-choose/index.astro
+import Base from '../../../layouts/Base.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+---
+<Base
+  title="Wyoming Voters Should Choose — Skovgard 2026"
+  description="Freedom means voters choose. Control means insiders choose first and voters are expected to fall in line. Join the movement to put Wyoming voters back in charge."
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-14 px-4 text-center">
+      <a href="/share" class="inline-flex items-center gap-1.5 text-wy-bone/50 hover:text-wy-bone text-xs font-semibold uppercase tracking-widest mb-6 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        All messages
+      </a>
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Skovgard for Wyoming</p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-extrabold text-wy-bone mb-4 leading-tight">
+        Wyoming voters should choose.
+      </h1>
+      <p class="text-wy-bone/70 text-lg max-w-xl mx-auto mb-8">
+        Party insiders should serve. The people choose.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <button id="hero-copy-link" type="button" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy link
+        </button>
+        <a id="hero-facebook" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+          </svg>
+          Facebook
+        </a>
+        <a id="hero-twitter" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          X / Twitter
+        </a>
+      </div>
+    </div>
+
+    <!-- Social share section -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+
+        <p class="section-kicker">Share on social media</p>
+        <p class="section-desc">
+          This image and link are what people see when you post on Facebook or X.
+          When someone clicks the link, they land on this page with the full message.
+        </p>
+
+        <figure class="rounded-xl overflow-hidden shadow-lg mb-7">
+          <img
+            src="/images/share/meme-wyoming-voters-choose.png"
+            alt="Wyoming voters should choose. Party insiders should serve. The people choose."
+            class="w-full block"
+            style="background-color:#0f2742;min-height:180px;"
+            loading="eager"
+          />
+        </figure>
+
+        <div class="flex flex-wrap gap-3">
+          <a id="social-facebook" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+            </svg>
+            Share on Facebook
+          </a>
+          <a id="social-twitter" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Share on X
+          </a>
+          <button id="social-copy-link" type="button" class="social-btn-outline">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy link
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Main message article -->
+    <article class="bg-white border-t border-gray-200 py-14 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-8">The message</p>
+
+        <div class="prose-content">
+
+          <p>
+            I am opposed to the so-called Freedom Caucus because freedom does not mean a small group
+            of insiders gets to decide who voters are allowed to support.
+          </p>
+
+          <p>That is control.</p>
+
+          <p>
+            The new Wyoming GOP bylaw fight makes the issue plain. The party now claims the power to
+            endorse, oppose, and financially support candidates before voters have spoken in the
+            primary.
+          </p>
+
+          <p>That turns the primary upside down.</p>
+
+          <p>
+            In Wyoming, the people choose. A party should make room for debate, competition, local
+            judgment, and the voice of every voter. A party should trust us enough to let us decide.
+          </p>
+
+          <p>
+            This is bigger than one race. This is bigger than one candidate. This is about whether
+            Wyoming citizens still control our own government, our own party, and our own future.
+          </p>
+
+          <p>
+            We are watching a pattern grow in Cheyenne and inside the party structure: more decisions
+            moved away from local communities, more power gathered at the top, more rules written to
+            control who gets heard, and more pressure placed on candidates to obey the faction before
+            serving the people.
+          </p>
+
+          <p>That is why I now call it what it is: the Control Caucus.</p>
+
+          <div class="contrast-grid my-10" role="table" aria-label="Freedom vs. Control comparison">
+            <div class="contrast-header" role="row">
+              <span class="h-freedom" role="columnheader">Freedom means</span>
+              <span class="h-control" role="columnheader">Control means</span>
+            </div>
+            <div class="pair" role="row">
+              <div class="freedom" role="cell">Voters choose.</div>
+              <div class="control" role="cell">Insiders choose first and voters are expected to fall in line.</div>
+            </div>
+            <div class="pair" role="row">
+              <div class="freedom" role="cell">Local control.</div>
+              <div class="control" role="cell">Cheyenne tells every county how to live.</div>
+            </div>
+            <div class="pair" role="row">
+              <div class="freedom" role="cell">Open debate.</div>
+              <div class="control" role="cell">Rushed rules, purity tests, and loyalty screens.</div>
+            </div>
+          </div>
+
+          <p>Wyoming deserves better.</p>
+
+          <p>
+            I am asking Wyoming voters, precinct leaders, county volunteers, candidates, and neighbors
+            across this state to stand together for a simple principle:
+          </p>
+
+          <blockquote class="principle-block">
+            The people choose. The party serves. The government answers to us.
+          </blockquote>
+
+          <p>
+            This is how we take back the Wyoming GOP. This is how we take back our voice. This is
+            how we put Wyoming voters back in charge.
+          </p>
+
+          <p>Join the movement at Skovgard2026.org.</p>
+
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 mt-10">
+          <a href="/donate"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            Support the campaign
+          </a>
+          <a href="/share/wyoming-voters-choose/sources/"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-wy-charcoal font-bold rounded-lg border-2 border-wy-charcoal hover:bg-wy-charcoal hover:text-wy-bone transition-colors text-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Read the sources
+          </a>
+          <a id="email-share-btn" href="#" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-wy-charcoal font-bold rounded-lg border-2 border-gray-300 hover:border-wy-charcoal transition-colors text-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Share by email
+          </a>
+        </div>
+
+      </div>
+    </article>
+
+    <!-- Send by email section -->
+    <section class="bg-wy-bone py-12 px-4" id="send-email">
+      <div class="max-w-3xl mx-auto">
+
+        <p class="section-kicker">Send by email to your contacts</p>
+        <p class="section-desc">
+          This is the written message your contacts receive in their inbox.
+          It is a personal email that comes from you, not a campaign blast.
+        </p>
+
+        <div class="bg-white rounded-2xl border border-gray-200 p-7">
+
+          <!-- Your name -->
+          <div class="mb-6">
+            <label for="vyc-sender" class="block text-sm font-semibold text-gray-700 mb-1">
+              Your name <span class="font-normal text-gray-400">(optional -- personalises the message)</span>
+            </label>
+            <input
+              id="vyc-sender"
+              type="text"
+              autocomplete="given-name"
+              placeholder="e.g. Sarah"
+              maxlength="80"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-wy-ember focus:border-wy-ember"
+            />
+          </div>
+
+          <!-- Honeypot -->
+          <input id="vyc-trap" name="vyc_trap" type="text" autocomplete="off" tabindex="-1"
+            style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+
+          <!-- Recipient input -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-sm font-semibold text-gray-700">
+                Friends' email addresses
+              </label>
+              <button id="vyc-contacts-btn" type="button" hidden
+                class="text-xs font-semibold text-wy-ember hover:text-wy-ember-dark flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.47-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.47.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Add from contacts
+              </button>
+            </div>
+            <div id="vyc-tag-box"
+              class="min-h-[48px] w-full px-2 py-1.5 border border-gray-300 rounded-lg bg-white cursor-text flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-wy-ember focus-within:border-wy-ember"
+              aria-label="Recipient email list">
+              <input id="vyc-email-input" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
+                placeholder="Type an address and press Enter"
+                class="flex-1 min-w-[180px] border-0 outline-none text-sm py-1 px-1 bg-transparent" />
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">
+              Press <kbd>Enter</kbd> or <kbd>,</kbd> after each address. Paste a comma-separated list to add several at once. Up to 10.
+            </p>
+          </div>
+
+          <!-- Live email preview -->
+          <div class="email-preview-wrap mb-6">
+            <div class="email-preview-header">
+              <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;share@skovgard2026.org&gt;</div>
+              <div class="epf"><span class="epl">Subject:</span> <span id="vyc-preview-subject">Wyoming voters should choose</span></div>
+            </div>
+            <iframe
+              id="vyc-preview-iframe"
+              title="Preview of the email your contacts will receive"
+              sandbox="allow-same-origin"
+              scrolling="yes"
+              class="email-preview-iframe"
+            ></iframe>
+          </div>
+
+          <!-- Status -->
+          <div id="vyc-status" role="status" aria-live="polite" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+          <!-- Send button -->
+          <button id="vyc-send-btn" type="button"
+            class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            <span id="vyc-send-label">Have us send it</span>
+          </button>
+
+          <p class="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+            We send a campaign-branded email on your behalf. Recipients are not added to any mailing list.
+          </p>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom share bar -->
+    <div class="bg-wy-charcoal py-14 px-4 text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Spread the Word</p>
+      <p class="text-wy-bone/70 text-sm mb-6 max-w-md mx-auto">
+        One message from someone you know carries more weight than any ad. Share this with Wyoming neighbors.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <button id="footer-copy-link" type="button" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy link
+        </button>
+        <a id="footer-facebook" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+          </svg>
+          Facebook
+        </a>
+        <a id="footer-twitter" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          X / Twitter
+        </a>
+      </div>
+    </div>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  /* Section headers */
+  .section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 52ch;
+  }
+
+  /* Social share buttons */
+  .social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.15s;
+  }
+  .social-btn:hover { background: #b22234; }
+  .social-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: transparent;
+    color: #2b2b2b;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 2px solid #2b2b2b;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .social-btn-outline:hover { background: #2b2b2b; color: #f1ece1; }
+  .share-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border: 2px solid rgba(241, 236, 225, 0.45);
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    background: transparent;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+  .share-btn-outline:hover {
+    background-color: rgba(241, 236, 225, 0.1);
+    border-color: #f1ece1;
+  }
+
+  /* Essay typography */
+  .prose-content { line-height: 1.8; color: #2b2b2b; }
+  .prose-content p { margin-bottom: 1.25rem; font-size: 1.0625rem; }
+
+  /* Principle blockquote */
+  .principle-block {
+    background: #f1ece1;
+    border-left: 5px solid #b22234;
+    border-radius: 0 8px 8px 0;
+    padding: 16px 22px;
+    margin: 0 0 1.5rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.6;
+    color: #0f2742;
+    font-style: normal;
+  }
+
+  /* Freedom / Control comparison grid */
+  .contrast-grid { border: 1px solid #ddd8ce; border-radius: 12px; overflow: hidden; }
+  .contrast-header { display: grid; grid-template-columns: 1fr 1fr; background: #2b2b2b; }
+  .contrast-header span { padding: 10px 18px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; }
+  .h-freedom { color: #f1ece1; border-right: 1px solid rgba(255,255,255,0.12); }
+  .h-control  { color: #e87a86; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #ddd8ce; }
+  .pair:last-child { border-bottom: none; }
+  .freedom { padding: 14px 18px; font-size: 0.9375rem; color: #2b2b2b; border-right: 1px solid #ddd8ce; background: #f1ece1; }
+  .control  { padding: 14px 18px; font-size: 0.9375rem; color: #2b2b2b; background: #fef7f7; }
+  @media (max-width: 600px) {
+    .pair { grid-template-columns: 1fr; }
+    .freedom { border-right: none; border-bottom: 1px solid #ddd8ce; }
+    .contrast-header { grid-template-columns: 1fr; }
+    .h-freedom { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.12); }
+  }
+
+  /* Email preview frame */
+  .email-preview-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .email-preview-header {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .epf { font-size: 0.8125rem; color: #374151; line-height: 1.6; }
+  .epl { font-weight: 700; color: #6b7280; margin-right: 4px; }
+  .email-preview-iframe {
+    display: block;
+    width: 100%;
+    height: 460px;
+    border: none;
+  }
+
+  /* Email chip tags */
+  .vyc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1ece1;
+    border: 1px solid #c68a4a33;
+    color: #2b2b2b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 8px 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+  .vyc-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .vyc-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: #c68a4a55;
+    color: #2b2b2b;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .vyc-chip button:hover { background: #b22234; color: #fff; }
+
+  #vyc-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #vyc-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  #vyc-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  #vyc-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+
+  kbd {
+    padding: 1px 5px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    color: #6b7280;
+  }
+</style>
+
+<script>
+(function () {
+  const PAGE_URL = 'https://skovgard2026.org/share/wyoming-voters-choose';
+
+  /* Social share links */
+  const tweetText = 'Freedom means voters choose. Control means insiders choose first. Wyoming voters should be in charge of the primary. #Wyoming #skovgard2026';
+  const fb = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
+  const tw = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_URL) +
+    '&text=' + encodeURIComponent(tweetText);
+
+  ['hero-facebook', 'social-facebook', 'footer-facebook'].forEach(id => { const el = document.getElementById(id); if (el) el.href = fb; });
+  ['hero-twitter',  'social-twitter',  'footer-twitter' ].forEach(id => { const el = document.getElementById(id); if (el) el.href = tw; });
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus('Link copied!', 'success');
+      setTimeout(() => setStatus('', ''), 3000);
+    } catch {
+      setStatus('Could not copy -- please copy the URL manually.', 'error');
+    }
+  }
+
+  ['hero-copy-link', 'social-copy-link', 'footer-copy-link']
+    .forEach(id => { const btn = document.getElementById(id); if (btn) btn.addEventListener('click', () => copyText(PAGE_URL)); });
+
+  /* Mailto share button */
+  const emailShareBtn = document.getElementById('email-share-btn');
+  if (emailShareBtn) {
+    const subject = encodeURIComponent('Wyoming voters should choose');
+    const body = encodeURIComponent(
+      'Hi,\n\n' +
+      'I want to share a message about what is happening inside Wyoming politics right now.\n\n' +
+      'Freedom means voters choose. Control means insiders choose first and voters are expected to fall in line.\n\n' +
+      'The new Wyoming GOP bylaw fight makes the issue plain. Party insiders now claim the power to\n' +
+      'endorse, oppose, and financially support candidates before voters have spoken in the primary.\n\n' +
+      'Read and share the full message here:\n' +
+      'https://skovgard2026.org/share/wyoming-voters-choose/\n\n' +
+      'Jimmy Skovgard -- Preserving our legacy. Empowering our future.\n' +
+      'Paid for by Skovgard for Senate.'
+    );
+    emailShareBtn.href = 'mailto:?subject=' + subject + '&body=' + body;
+  }
+
+  /* Scroll to email section when "Share by email" clicked */
+  if (emailShareBtn) {
+    emailShareBtn.addEventListener('click', (e) => {
+      const section = document.getElementById('send-email');
+      if (section) {
+        e.preventDefault();
+        section.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  }
+
+  /* Email state */
+  const vycEmails   = [];
+  const VYC_MAX     = 10;
+  const tagBox      = document.getElementById('vyc-tag-box');
+  const emailInput  = document.getElementById('vyc-email-input');
+  const senderInput = document.getElementById('vyc-sender');
+  const contactsBtn = document.getElementById('vyc-contacts-btn');
+  const previewIframe  = document.getElementById('vyc-preview-iframe');
+  const previewSubject = document.getElementById('vyc-preview-subject');
+  const sendBtn     = document.getElementById('vyc-send-btn');
+  const sendLabel   = document.getElementById('vyc-send-label');
+  const statusEl    = document.getElementById('vyc-status');
+  const trapEl      = document.getElementById('vyc-trap');
+
+  function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
+
+  function setStatus(msg, type) {
+    if (!msg) { statusEl.classList.add('hidden'); statusEl.textContent = ''; return; }
+    statusEl.className = `mb-4 px-4 py-3 rounded-lg text-sm font-medium status-${type}`;
+    statusEl.textContent = msg;
+    statusEl.classList.remove('hidden');
+  }
+
+  function renderTags() {
+    Array.from(tagBox.querySelectorAll('.vyc-chip')).forEach(c => c.remove());
+    vycEmails.forEach((email, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'vyc-chip';
+      chip.innerHTML = `<span title="${email}">${email}</span><button type="button" aria-label="Remove ${email}">&#x2715;</button>`;
+      chip.querySelector('button').addEventListener('click', () => { vycEmails.splice(i, 1); setStatus('', ''); renderTags(); });
+      tagBox.insertBefore(chip, emailInput);
+    });
+    updateButtons();
+    schedulePreview();
+  }
+
+  function addEmail(raw) {
+    const e = raw.trim().toLowerCase();
+    if (!e) return;
+    if (!isValidEmail(e)) { setStatus(`"${e}" doesn't look like a valid email address.`, 'error'); return; }
+    if (vycEmails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
+    if (vycEmails.length >= VYC_MAX) { setStatus(`Maximum ${VYC_MAX} recipients.`, 'info'); return; }
+    setStatus('', '');
+    vycEmails.push(e);
+    renderTags();
+  }
+
+  function updateButtons() { sendBtn.disabled = vycEmails.length === 0; }
+
+  emailInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addEmail(emailInput.value); emailInput.value = ''; }
+    else if (e.key === 'Backspace' && emailInput.value === '' && vycEmails.length > 0) {
+      vycEmails.splice(vycEmails.length - 1, 1); setStatus('', ''); renderTags();
+    }
+  });
+  emailInput.addEventListener('blur', () => { if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; } });
+  emailInput.addEventListener('paste', e => {
+    e.preventDefault();
+    (e.clipboardData || window.clipboardData).getData('text').split(/[,;\s\n]+/).forEach(p => { if (p.trim()) addEmail(p); });
+    emailInput.value = '';
+  });
+  tagBox.addEventListener('click', () => emailInput.focus());
+
+  (async () => {
+    if (!('contacts' in navigator)) return;
+    try {
+      const props = await navigator.contacts.getProperties();
+      if (!props.includes('email')) return;
+      contactsBtn.hidden = false;
+      contactsBtn.addEventListener('click', async () => {
+        try { const picked = await navigator.contacts.select(['name', 'email'], { multiple: true }); picked.forEach(c => (c.email || []).forEach(e => addEmail(e))); } catch (_) {}
+      });
+    } catch (_) {}
+  })();
+
+  /* Live email preview */
+  let previewTimer = null;
+
+  function buildPreviewUrl() {
+    const name = senderInput.value.trim().slice(0, 80);
+    const params = new URLSearchParams({ slug: 'wyoming-voters-choose' });
+    if (name) params.set('sender_name', name);
+    return '/api/share/preview?' + params.toString();
+  }
+
+  function updateSubjectLine() {
+    const name = senderInput.value.trim();
+    if (previewSubject) {
+      previewSubject.textContent = name
+        ? `${name} wanted you to see this`
+        : 'Wyoming voters should choose';
+    }
+  }
+
+  async function fetchPreview() {
+    updateSubjectLine();
+    if (!previewIframe) return;
+    try {
+      const resp = await fetch(buildPreviewUrl());
+      if (resp.ok) previewIframe.srcdoc = await resp.text();
+    } catch (_) {}
+  }
+
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(fetchPreview, 300);
+  }
+
+  senderInput.addEventListener('input', schedulePreview);
+
+  /* Send via Worker */
+  sendBtn.addEventListener('click', async () => {
+    if (vycEmails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
+    if (trapEl.value.trim()) return;
+
+    sendBtn.disabled = true;
+    sendLabel.textContent = 'Sending…';
+    setStatus('', '');
+
+    try {
+      const resp = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message_slug: 'wyoming-voters-choose',
+          sender_name:  senderInput.value.trim(),
+          recipients:   vycEmails.slice(),
+          _trap: trapEl.value,
+          _t:    Date.now(),
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        setStatus(
+          resp.status === 404 && isLocal
+            ? 'Route not found -- make sure the Worker is running: cd worker && npx wrangler dev'
+            : resp.status === 503
+            ? 'Share feature is not enabled on this environment yet.'
+            : data.error || 'Something went wrong. Please try again.',
+          'error'
+        );
+      } else {
+        const n = data.sent || vycEmails.length;
+        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} delivered. Thank you for spreading the word.`, 'success');
+        vycEmails.length = 0;
+        renderTags();
+      }
+    } catch (_) {
+      setStatus(
+        ['localhost', '127.0.0.1'].includes(window.location.hostname)
+          ? 'Worker not reachable. Run `cd worker && npx wrangler dev` in a second terminal.'
+          : 'Network error -- please check your connection and try again.',
+        'error'
+      );
+    } finally {
+      sendLabel.textContent = 'Have us send it';
+      updateButtons();
+    }
+  });
+
+  updateButtons();
+  fetchPreview();
+
+  if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    setStatus(
+      'Local dev: "Have us send it" needs the Worker running. ' +
+      'In a second terminal: cd worker && npx wrangler dev.',
+      'info'
+    );
+  }
+})();
+</script>

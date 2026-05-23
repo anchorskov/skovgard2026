@@ -256,6 +256,53 @@ const FREEDOM_VS_CONTROL_BODY_HTML = `
   </p>
 `;
 
+const WYOMING_VOTERS_CHOOSE_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I want to share a message about what is happening inside Wyoming politics right now.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    This is bigger than one candidate or one race. The issue is simple:
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #b22234;background:#fef7f7;">
+    <tr>
+      <td style="padding:14px 18px;">
+        <p style="margin:0 0 10px;font-size:16px;line-height:1.65;color:#111827;">
+          <strong style="color:#b22234;">Freedom means voters choose.</strong>
+        </p>
+        <p style="margin:0;font-size:16px;line-height:1.65;color:#111827;">
+          <strong style="color:#2b2b2b;">Control means insiders choose first</strong>
+          and voters are expected to fall in line.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The new Wyoming GOP bylaw fight makes the issue plain. Party insiders now claim
+    the power to endorse, oppose, and financially support candidates before voters have
+    spoken in the primary.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    That turns the primary upside down.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I believe the people choose. The party serves. The government answers to us.
+  </p>
+
+  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
+    <a href="https://skovgard2026.org/share/wyoming-voters-choose/sources/"
+        style="color:#0f2742;font-weight:bold;">
+      Read the full message with sources
+    </a>
+    at skovgard2026.org/share/wyoming-voters-choose/sources/
+  </p>
+`;
+
 // ── Message registry ───────────────────────────────────────────────────────────
 // One entry per shareable message. subject() and intro() accept an optional senderName.
 
@@ -288,6 +335,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted to share this breakdown with you.`
         : "A Wyoming neighbor wanted to share this breakdown with you.";
+    },
+  },
+  "wyoming-voters-choose": {
+    title:        "Wyoming Voters Should Choose",
+    body_html:    WYOMING_VOTERS_CHOOSE_BODY_HTML,
+    preview_text: "Party insiders should serve. The people choose.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this`
+        : "Wyoming voters should choose";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
     },
   },
 };
@@ -483,7 +545,30 @@ export function buildShareEmailHtml({ sender_name = "", sender_intro, body_html,
  */
 export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" }) {
   const specificLines =
-    slug === "freedom-vs-control"
+    slug === "wyoming-voters-choose"
+      ? [
+          "I want to share a message about what is happening inside Wyoming politics right now.",
+          "",
+          "This is bigger than one candidate or one race. The issue is simple:",
+          "",
+          "Freedom means voters choose.",
+          "Control means insiders choose first and voters are expected to fall in line.",
+          "",
+          "The new Wyoming GOP bylaw fight makes the issue plain. Party insiders now claim",
+          "the power to endorse, oppose, and financially support candidates before voters have",
+          "spoken in the primary.",
+          "",
+          "That turns the primary upside down.",
+          "",
+          "I believe the people choose. The party serves. The government answers to us.",
+          "",
+          "Read and share the full message:",
+          "https://skovgard2026.org/share/wyoming-voters-choose/",
+          "",
+          "Read the sources:",
+          "https://skovgard2026.org/share/wyoming-voters-choose/sources/",
+        ]
+    : slug === "freedom-vs-control"
       ? [
           "I want to share a breakdown of what Wyoming's Legislature actually did on voting",
           "and elections in 2025 and 2026.",
