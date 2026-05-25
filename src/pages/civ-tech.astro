@@ -80,7 +80,7 @@ import { MEDIA_BASE_URL } from '../constants';
     </section>
 
     <!-- Active Wyoming Surveys -->
-    <section class='bg-white py-20 px-4'>
+    <section class='bg-wy-bone py-20 px-4'>
       <div class='max-w-4xl mx-auto'>
         <p class='text-wy-gold font-semibold uppercase tracking-widest text-sm mb-2'>Wyoming Surveys</p>
         <h2 class='text-4xl font-serif font-bold text-wy-navy mb-4'>Take Part in Active Surveys</h2>
@@ -133,7 +133,8 @@ import { MEDIA_BASE_URL } from '../constants';
 
         <!-- Panel: cards -->
         <div id='panel-cards' class='survey-panel hidden'>
-          <div id='survey-cards-grid' class='grid sm:grid-cols-2 gap-4'></div>
+          <p id='survey-count' class='survey-count'></p>
+          <div id='survey-cards-grid' class='grid sm:grid-cols-2 lg:grid-cols-3 gap-4'></div>
         </div>
 
         <!-- External link notice -->
@@ -256,41 +257,83 @@ import { MEDIA_BASE_URL } from '../constants';
   .survey-go-btn:hover:not(:disabled) { background: #b22234; }
   .survey-go-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+  /* Survey count label */
+  .survey-count {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #c68a4a;
+    margin-bottom: 14px;
+  }
+
   /* Survey cards */
   .survey-card {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 20px 22px;
-    background: #f8f6f1;
-    border: 1px solid #ddd8ce;
-    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e2da;
+    border-left: 4px solid #0f2742;
+    border-radius: 10px;
     text-decoration: none;
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    overflow: hidden;
+    transition: border-left-color 0.18s, box-shadow 0.18s, transform 0.18s;
   }
   .survey-card:hover {
-    border-color: #0f2742;
-    box-shadow: 0 4px 14px rgba(15,39,66,0.1);
-    transform: translateY(-2px);
+    border-left-color: #b22234;
+    box-shadow: 0 6px 20px rgba(15,39,66,0.13);
+    transform: translateY(-3px);
   }
-  .survey-card-title {
+  .sc-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px 18px 14px;
+    flex: 1;
+  }
+  .sc-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #0f2742;
+    color: #d8b46a;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+    transition: background-color 0.18s;
+  }
+  .survey-card:hover .sc-num { background: #b22234; color: #fff; }
+  .sc-title {
     font-family: 'Bitter', serif;
-    font-size: 1rem;
+    font-size: 0.9375rem;
     font-weight: 700;
     color: #0f2742;
-    line-height: 1.4;
+    line-height: 1.45;
+    margin: 0;
   }
-  .survey-card-cta {
+  .sc-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 9px 18px;
+    background: #f8f6f1;
+    border-top: 1px solid #e5e2da;
+  }
+  .sc-btn {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-size: 0.8125rem;
-    font-weight: 700;
+    font-size: 0.6875rem;
+    font-weight: 800;
     color: #b22234;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.09em;
   }
+  .survey-card:hover .sc-btn { color: #8b1a26; }
 </style>
 
 <script>
@@ -332,20 +375,29 @@ import { MEDIA_BASE_URL } from '../constants';
   }
 
   function buildCards(list) {
-    list.forEach(s => {
+    const countEl = document.getElementById('survey-count');
+    if (countEl) countEl.textContent = `${list.length} active Wyoming surveys`;
+
+    list.forEach((s, i) => {
+      const num = String(i + 1).padStart(2, '0');
       const a = document.createElement('a');
       a.href = BASE + s.slug;
       a.target = '_blank';
       a.rel = 'noopener';
       a.className = 'survey-card';
       a.innerHTML =
-        `<span class="survey-card-title">${s.title}</span>` +
-        `<span class="survey-card-cta">` +
-          `Take survey` +
-          `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">` +
-            `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>` +
-          `</svg>` +
-        `</span>`;
+        `<div class="sc-body">` +
+          `<span class="sc-num" aria-hidden="true">${num}</span>` +
+          `<p class="sc-title">${s.title}</p>` +
+        `</div>` +
+        `<div class="sc-footer">` +
+          `<span class="sc-btn">` +
+            `Take Survey` +
+            `<svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">` +
+              `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>` +
+            `</svg>` +
+          `</span>` +
+        `</div>`;
       cardsGrid.appendChild(a);
     });
   }
