@@ -317,7 +317,7 @@ const REPRESENTATIVES_WORK_FOR_BODY_HTML = `
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
     Technology already allows us to organize the voice of the constituency in real time.
     Jimmy Skovgard has developed a working proof of concept through
-    <a href="https://grassrootsmvt.org" style="color:#0f2742;font-weight:bold;">GrassrootsMVT.org</a>
+    <a href="https://grassrootsmvt.org/surveys/wy-primary-elections-party-preselection" style="color:#0f2742;font-weight:bold;">GrassrootsMVT.org</a>
     designed to help Wyoming voters provide structured feedback on issues affecting our
     communities, our state, and our future.
   </p>
