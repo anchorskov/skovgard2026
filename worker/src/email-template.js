@@ -303,6 +303,79 @@ const WYOMING_VOTERS_CHOOSE_BODY_HTML = `
   </p>
 `;
 
+const REPRESENTATIVES_WORK_FOR_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    For too long, the voice of the constituency has been reduced to headlines, polls,
+    social media arguments, and election-year promises. Then the election passes, the
+    votes are cast, and the public is expected to simply remember four years later.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    We can do better.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Technology already allows us to organize the voice of the constituency in real time.
+    Jimmy Skovgard has developed a working proof of concept through
+    <a href="https://grassrootsmvt.org" style="color:#0f2742;font-weight:bold;">GrassrootsMVT.org</a>
+    designed to help Wyoming voters provide structured feedback on issues affecting our
+    communities, our state, and our future.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Verified Wyoming voters participate in surveys designed to aggregate constituent
+    feedback by issue and legislative district. Legislative actions and voting records
+    can then be compared against the measured priorities of the people elected officials
+    were chosen to represent.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #b22234;background:#fef7f7;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 8px;font-size:17px;line-height:1.7;color:#111827;font-weight:bold;">We ask.</p>
+        <p style="margin:0 0 8px;font-size:17px;line-height:1.7;color:#111827;font-weight:bold;">Representatives vote.</p>
+        <p style="margin:0 0 8px;font-size:17px;line-height:1.7;color:#111827;font-weight:bold;">We measure.</p>
+        <p style="margin:0;font-size:17px;line-height:1.7;color:#b22234;font-weight:bold;">We remember.</p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    This is foremost a tool for accountability.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;background:#f3f4f6;border-radius:8px;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 6px;font-size:15px;line-height:1.6;color:#374151;font-style:italic;">
+          Representation requires accountability.
+        </p>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#374151;font-style:italic;">
+          Accountability requires memory.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The goal is simple: strengthen communication between citizens and the people elected
+    to serve us. Modern technology gives us the ability to organize public feedback,
+    preserve transparency, and help ensure that the will of the constituency is neither
+    forgotten nor ignored.
+  </p>
+
+  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
+    Take part in the Wyoming primary election and party preselection survey &#8212;
+    and join the proof of concept at
+    <a href="https://grassrootsmvt.org/surveys/wy-primary-elections-party-preselection"
+        style="color:#0f2742;font-weight:bold;">
+      GrassrootsMVT.org
+    </a>.
+  </p>
+`;
+
 // ── Message registry ───────────────────────────────────────────────────────────
 // One entry per shareable message. subject() and intro() accept an optional senderName.
 
@@ -349,6 +422,21 @@ export const SHARE_MESSAGES = {
     intro(n) {
       return n
         ? `${n} wanted to share this with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "representatives-work-for": {
+    title:        "Who Do Our Representatives Work For?",
+    body_html:    REPRESENTATIVES_WORK_FOR_BODY_HTML,
+    preview_text: "We ask. Representatives vote. We measure. We remember. This is accountability.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — GrassrootsMVT.org`
+        : "Who do our representatives work for?";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming accountability effort with you.`
         : "A Wyoming neighbor wanted to share this with you.";
     },
   },
@@ -545,7 +633,39 @@ export function buildShareEmailHtml({ sender_name = "", sender_intro, body_html,
  */
 export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" }) {
   const specificLines =
-    slug === "wyoming-voters-choose"
+    slug === "representatives-work-for"
+      ? [
+          "For too long, the voice of the constituency has been reduced to headlines,",
+          "polls, social media arguments, and election-year promises. Then the election",
+          "passes and the public is expected to simply remember four years later.",
+          "",
+          "We can do better.",
+          "",
+          "Jimmy Skovgard has developed a working proof of concept through GrassrootsMVT.org",
+          "designed to help Wyoming voters provide structured feedback on issues affecting",
+          "our communities, our state, and our future.",
+          "",
+          "Verified Wyoming voters participate in surveys designed to aggregate constituent",
+          "feedback by issue and legislative district. Legislative actions and voting records",
+          "can then be compared against the measured priorities of the people elected officials",
+          "were chosen to represent.",
+          "",
+          "We ask.",
+          "Representatives vote.",
+          "We measure.",
+          "We remember.",
+          "",
+          "This is foremost a tool for accountability.",
+          "",
+          "Representation requires accountability.",
+          "Accountability requires memory.",
+          "",
+          "Take part in the Wyoming primary election and party preselection survey:",
+          "https://grassrootsmvt.org/surveys/wy-primary-elections-party-preselection",
+          "",
+          "Join the proof of concept at GrassrootsMVT.org.",
+        ]
+    : slug === "wyoming-voters-choose"
       ? [
           "I want to share a message about what is happening inside Wyoming politics right now.",
           "",
