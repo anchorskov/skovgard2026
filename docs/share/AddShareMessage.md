@@ -125,6 +125,10 @@ Then update the copy:
 8. **`message_slug`** in the `fetch('/api/share', ...)` body — change to `'new-topic'`
 9. **`slug` param** in `buildPreviewUrl()` — change to `'new-topic'`
 10. **`updateSubjectLine()`** — update the default/named subject text to match the new `SHARE_MESSAGES` entry
+11. **Email preview `From:` line** — the hardcoded From address in the email preview header must be `support@grassrootsmvt.org`, not `share@skovgard2026.org`. Search the new file for `share@skovgard2026.org` and replace it. The correct line is:
+    ```html
+    <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
+    ```
 
 Do not add a `buildMailtoBody()` function, a mailto button, or any `window.location.href = 'mailto:...'` handler. The detail page send flow is server-side Resend only.
 
