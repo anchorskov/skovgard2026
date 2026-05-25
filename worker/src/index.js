@@ -2238,6 +2238,27 @@ export default {
         }
       }
 
+      // GET /api/surveys — active Wyoming-scoped surveys for civ-tech page dropdown
+      if (req.method === "GET" && path === "/api/surveys") {
+        if (!env.WY_DB) {
+          return json(req, env, { error: "Survey database unavailable." }, 503);
+        }
+        try {
+          const { results = [] } = await env.WY_DB.prepare(
+            "SELECT slug, title FROM surveys WHERE status = 'active' AND scope = 'wy' ORDER BY id DESC"
+          ).all();
+          return new Response(JSON.stringify({ surveys: results }), {
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "public, max-age=300",
+              "Access-Control-Allow-Origin": req.headers.get("origin") || "*",
+            },
+          });
+        } catch (err) {
+          return json(req, env, { error: "Failed to load surveys." }, 500);
+        }
+      }
+
       // ---------------- SMS OPT-IN ----------------
       if (req.method === "POST" && path === "/api/optin") {
         const b = await req.json().catch(() => ({}));

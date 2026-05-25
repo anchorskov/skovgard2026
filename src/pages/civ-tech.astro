@@ -79,6 +79,75 @@ import { MEDIA_BASE_URL } from '../constants';
       </div>
     </section>
 
+    <!-- Active Wyoming Surveys -->
+    <section class='bg-white py-20 px-4'>
+      <div class='max-w-4xl mx-auto'>
+        <p class='text-wy-gold font-semibold uppercase tracking-widest text-sm mb-2'>Wyoming Surveys</p>
+        <h2 class='text-4xl font-serif font-bold text-wy-navy mb-4'>Take Part in Active Surveys</h2>
+        <p class='text-gray-600 text-lg mb-8 max-w-2xl'>
+          Verified Wyoming voters participate in structured feedback surveys on GrassrootsMVT.org.
+          Your responses help measure constituent priorities against legislative action.
+        </p>
+
+        <!-- View toggle -->
+        <div class='survey-toggle-bar' role='group' aria-label='Survey view'>
+          <button id='toggle-dropdown' class='stoggle stoggle-active' aria-pressed='true'>
+            <svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2'
+                d='M8 9l4-4 4 4m0 6l-4 4-4-4' />
+            </svg>
+            Quick select
+          </button>
+          <button id='toggle-cards' class='stoggle' aria-pressed='false'>
+            <svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2'
+                d='M4 6h16M4 10h16M4 14h16M4 18h16' />
+            </svg>
+            Browse all
+          </button>
+        </div>
+
+        <!-- Loading / error states -->
+        <div id='survey-loading' class='survey-feedback'>Loading surveys&hellip;</div>
+        <div id='survey-error' class='survey-feedback survey-error hidden'>
+          Could not load surveys. Visit <a href='https://grassrootsmvt.org/surveys' target='_blank' rel='noopener' class='underline'>GrassrootsMVT.org</a> directly.
+        </div>
+
+        <!-- Panel: dropdown -->
+        <div id='panel-dropdown' class='survey-panel hidden'>
+          <div class='flex flex-col sm:flex-row gap-3 items-start sm:items-center'>
+            <select id='survey-select'
+              class='flex-1 px-4 py-3 border-2 border-wy-navy rounded-lg text-wy-navy font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-wy-gold text-base'>
+              <option value=''>Select a survey&hellip;</option>
+            </select>
+            <button id='survey-go-btn'
+              class='survey-go-btn'
+              disabled>
+              Take Survey
+              <svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M17 8l4 4m0 0l-4 4m4-4H3' />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Panel: cards -->
+        <div id='panel-cards' class='survey-panel hidden'>
+          <div id='survey-cards-grid' class='grid sm:grid-cols-2 gap-4'></div>
+        </div>
+
+        <!-- External link notice -->
+        <p class='flex items-center gap-1.5 text-sm text-gray-400 mt-6'>
+          <svg class='w-4 h-4 shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2'
+              d='M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14' />
+          </svg>
+          Surveys open on <strong class='text-gray-500'>GrassrootsMVT.org</strong> in a new tab.
+          You will be leaving skovgard2026.org.
+        </p>
+      </div>
+    </section>
+
     <!-- Principles -->
     <section class='bg-wy-navy py-20 px-4'>
       <div class='max-w-4xl mx-auto'>
@@ -134,3 +203,179 @@ import { MEDIA_BASE_URL } from '../constants';
   </main>
   <Footer />
 </Base>
+
+<style>
+  /* Toggle bar */
+  .survey-toggle-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .stoggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 2px solid #0f2742;
+    background: transparent;
+    color: #0f2742;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .stoggle:hover { background: #0f2742; color: #f1ece1; }
+  .stoggle-active { background: #0f2742; color: #f1ece1; }
+
+  /* Panels */
+  .survey-panel { margin-top: 4px; }
+  .survey-panel.hidden { display: none; }
+
+  /* Feedback text */
+  .survey-feedback { font-size: 0.9375rem; color: #6b7280; margin-bottom: 8px; }
+  .survey-feedback.hidden { display: none; }
+  .survey-error a { color: #0f2742; }
+
+  /* Go button */
+  .survey-go-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    background: #0f2742;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s;
+  }
+  .survey-go-btn:hover:not(:disabled) { background: #b22234; }
+  .survey-go-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Survey cards */
+  .survey-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 22px;
+    background: #f8f6f1;
+    border: 1px solid #ddd8ce;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  }
+  .survey-card:hover {
+    border-color: #0f2742;
+    box-shadow: 0 4px 14px rgba(15,39,66,0.1);
+    transform: translateY(-2px);
+  }
+  .survey-card-title {
+    font-family: 'Bitter', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f2742;
+    line-height: 1.4;
+  }
+  .survey-card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #b22234;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+</style>
+
+<script>
+(function () {
+  const loading      = document.getElementById('survey-loading');
+  const errorEl      = document.getElementById('survey-error');
+  const panelDrop    = document.getElementById('panel-dropdown');
+  const panelCards   = document.getElementById('panel-cards');
+  const selectEl     = document.getElementById('survey-select');
+  const goBtn        = document.getElementById('survey-go-btn');
+  const cardsGrid    = document.getElementById('survey-cards-grid');
+  const btnDrop      = document.getElementById('toggle-dropdown');
+  const btnCards     = document.getElementById('toggle-cards');
+
+  const BASE = 'https://grassrootsmvt.org/surveys/';
+  let surveys = [];
+  let activePanel = 'dropdown';
+
+  function showPanel(which) {
+    activePanel = which;
+    panelDrop.classList.toggle('hidden', which !== 'dropdown');
+    panelCards.classList.toggle('hidden', which !== 'cards');
+    btnDrop.classList.toggle('stoggle-active', which === 'dropdown');
+    btnCards.classList.toggle('stoggle-active', which === 'cards');
+    btnDrop.setAttribute('aria-pressed', which === 'dropdown');
+    btnCards.setAttribute('aria-pressed', which === 'cards');
+  }
+
+  btnDrop.addEventListener('click', () => showPanel('dropdown'));
+  btnCards.addEventListener('click', () => showPanel('cards'));
+
+  function buildDropdown(list) {
+    list.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.slug;
+      opt.textContent = s.title;
+      selectEl.appendChild(opt);
+    });
+  }
+
+  function buildCards(list) {
+    list.forEach(s => {
+      const a = document.createElement('a');
+      a.href = BASE + s.slug;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.className = 'survey-card';
+      a.innerHTML =
+        `<span class="survey-card-title">${s.title}</span>` +
+        `<span class="survey-card-cta">` +
+          `Take survey` +
+          `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">` +
+            `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>` +
+          `</svg>` +
+        `</span>`;
+      cardsGrid.appendChild(a);
+    });
+  }
+
+  selectEl.addEventListener('change', () => {
+    goBtn.disabled = !selectEl.value;
+  });
+
+  goBtn.addEventListener('click', () => {
+    if (selectEl.value) window.open(BASE + selectEl.value, '_blank', 'noopener');
+  });
+
+  async function loadSurveys() {
+    try {
+      const resp = await fetch('/api/surveys');
+      if (!resp.ok) throw new Error('non-ok');
+      const data = await resp.json();
+      surveys = data.surveys || [];
+      if (!surveys.length) throw new Error('empty');
+
+      loading.classList.add('hidden');
+      buildDropdown(surveys);
+      buildCards(surveys);
+      panelDrop.classList.remove('hidden');
+    } catch (_) {
+      loading.classList.add('hidden');
+      errorEl.classList.remove('hidden');
+    }
+  }
+
+  loadSurveys();
+})();
+</script>
