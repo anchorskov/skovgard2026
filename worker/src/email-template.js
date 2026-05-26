@@ -294,6 +294,15 @@ const WYOMING_VOTERS_CHOOSE_BODY_HTML = `
     I believe the people choose. The party serves. The government answers to us.
   </p>
 
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Wyoming voters can weigh in directly. Take the Wyoming primary elections and party
+    pre-selection survey and add your voice to the public record:
+    <a href="https://grassrootsmvt.org/surveys/wy-primary-elections-party-preselection"
+        style="color:#0f2742;font-weight:bold;">
+      grassrootsmvt.org/surveys/wy-primary-elections-party-preselection
+    </a>
+  </p>
+
   <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
     <a href="https://skovgard2026.org/share/wyoming-voters-choose/sources/"
         style="color:#0f2742;font-weight:bold;">
@@ -681,6 +690,9 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "That turns the primary upside down.",
           "",
           "I believe the people choose. The party serves. The government answers to us.",
+          "",
+          "Take the Wyoming primary elections and party pre-selection survey:",
+          "https://grassrootsmvt.org/surveys/wy-primary-elections-party-preselection",
           "",
           "Read and share the full message:",
           "https://skovgard2026.org/share/wyoming-voters-choose/",
