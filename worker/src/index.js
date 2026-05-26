@@ -2696,6 +2696,29 @@ export default {
         });
       }
 
+      // GET /api/share/stats — public per-slug send counts for the share index page
+      if (req.method === "GET" && path === "/api/share/stats") {
+        if (!env.DB) return json(req, env, { stats: {} });
+        try {
+          const { results = [] } = await env.DB.prepare(
+            "SELECT message_slug, COUNT(*) AS total FROM share_sends WHERE status = 'sent' GROUP BY message_slug"
+          ).all();
+          const stats = {};
+          for (const row of results) stats[row.message_slug] = row.total;
+          return new Response(JSON.stringify({ stats }), {
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "public, max-age=120",
+              "Access-Control-Allow-Origin": req.headers.get("origin") || "*",
+            },
+          });
+        } catch {
+          return new Response(JSON.stringify({ stats: {} }), {
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      }
+
       // GET /api/admin/share/audit — share send log with optional filters
       if (req.method === "GET" && path === "/api/admin/share/audit") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);

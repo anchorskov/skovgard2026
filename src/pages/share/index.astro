@@ -184,6 +184,9 @@ const cards = [
                 role="img"
                 aria-label={card.memeAlt}
               >
+                <!-- Sunburst "New" badge -->
+                <div class="card-new-badge" aria-hidden="true">New</div>
+
                 <!-- Quick-share bar (always visible on touch, slides up on hover on desktop) -->
                 <div class="quick-bar" aria-label="Quick share">
                   <button
@@ -249,6 +252,7 @@ const cards = [
                 <span class="card-kicker">{card.label}</span>
                 <h2 class="card-title">{card.title}</h2>
                 <p class="card-teaser">{card.teaser}</p>
+                <p class="card-send-count" data-slug-count={card.slug}></p>
                 <p class="card-hint">Choose a quick-share button above, or click below to review the full message before sending.</p>
                 <a href={card.href} class="card-cta">
                   Read full message &amp; send
@@ -417,6 +421,52 @@ const cards = [
   }
   .card-cta:hover { background: #8b1a26; }
 
+  /* Sunburst "New" badge */
+  .card-new-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    width: 54px;
+    height: 54px;
+    background: #b22234;
+    clip-path: polygon(
+      50% 0%,   61% 18%,  79%  7%,  74% 26%,  96% 26%,
+      82% 41%,  98% 55%,  78% 57%,  79% 79%,  60% 69%,
+      50% 90%,  40% 69%,  21% 79%,  22% 57%,   2% 55%,
+      18% 41%,   4% 26%,  26% 26%,  21%  7%,  39% 18%
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f1ece1;
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    animation: burst-pulse 2.4s ease-in-out infinite;
+    pointer-events: none;
+    user-select: none;
+  }
+  @keyframes burst-pulse {
+    0%, 100% { transform: scale(1) rotate(-6deg); }
+    50%       { transform: scale(1.1) rotate(-6deg); }
+  }
+
+  /* Send count */
+  .card-send-count {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #c68a4a;
+    margin: 0 0 8px;
+  }
+  .card-send-count.has-count {
+    display: flex;
+  }
+
   /* Toast */
   #share-toast {
     position: fixed;
@@ -489,5 +539,27 @@ const cards = [
       window.location.href = url;
     }
   });
+})();
+
+/* Share send-count loader */
+(function () {
+  fetch('/api/share/stats')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (data) {
+      if (!data || !data.stats) return;
+      const stats = data.stats;
+      document.querySelectorAll('[data-slug-count]').forEach(function (el) {
+        const slug  = el.dataset.slugCount;
+        const count = stats[slug];
+        if (!count) return;
+        el.innerHTML =
+          '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">' +
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>' +
+          '</svg>' +
+          count.toLocaleString() + ' sent';
+        el.classList.add('has-count');
+      });
+    })
+    .catch(function () { /* silently ignore — counts are decorative */ });
 })();
 </script>
