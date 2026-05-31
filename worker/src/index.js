@@ -2619,8 +2619,11 @@ export default {
           slug:         messageSlug,
         });
 
-        const sends = recipients.map((to) =>
-          sendResendEmail(apiKey, {
+        // Send sequentially with 200ms gap to avoid Resend rate-limit bursts
+        const results = [];
+        for (const [idx, to] of recipients.entries()) {
+          if (idx > 0) await new Promise(r => setTimeout(r, 200));
+          const res = await sendResendEmail(apiKey, {
             from: fromAddr,
             to: [to],
             subject,
@@ -2632,11 +2635,10 @@ export default {
               { name: "kind", value: "friend_share" },
             ],
           })
-            .then((res) => ({ ok: true,  email: to, resendId: res?.id || null }))
-            .catch((err) => ({ ok: false, email: to, error: String(err?.message || err) }))
-        );
-
-        const results = await Promise.all(sends);
+            .then((r) => ({ ok: true,  email: to, resendId: r?.id || null }))
+            .catch((err) => ({ ok: false, email: to, error: String(err?.message || err) }));
+          results.push(res);
+        }
         const sent   = results.filter((r) => r.ok).length;
         const failed = results.length - sent;
 

@@ -94,7 +94,7 @@
 
 <script>
 (function () {
-  const BATCH = 10;
+  const BATCH = 5;
 
   const keyEl     = document.getElementById('cfg-key');
   const slugEl    = document.getElementById('cfg-slug');
@@ -150,9 +150,9 @@
 
   async function sendBatchWithRetry(recipients, adminKey, slug, senderName) {
     const first = await sendBatch(recipients, adminKey, slug, senderName);
-    // If entire batch failed (HTTP 500 / rate limit), wait 4s and retry once
+    // If entire batch failed (HTTP 500 / rate limit), wait 10s and retry once
     if (!first.ok && first.status === 500) {
-      await new Promise(r => setTimeout(r, 4000));
+      await new Promise(r => setTimeout(r, 10000));
       return sendBatch(recipients, adminKey, slug, senderName);
     }
     return first;
