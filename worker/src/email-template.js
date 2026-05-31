@@ -385,6 +385,153 @@ const REPRESENTATIVES_WORK_FOR_BODY_HTML = `
   </p>
 `;
 
+const WY_VOTER_ACCESS_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Wyoming voices matter.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I am asking voters to take a short survey about voter access in Wyoming.
+  </p>
+
+  <p style="margin:0 0 6px;font-size:16px;line-height:1.65;color:#111827;">
+    Should Wyoming create a statewide voting holiday?
+  </p>
+  <p style="margin:0 0 6px;font-size:16px;line-height:1.65;color:#111827;">
+    Should eligible residents be automatically registered to vote when getting or renewing
+    a driver&#8217;s license or state ID?
+  </p>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Should Wyoming protect same-day voter registration?
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    <a href="https://grassrootsmvt.org/surveys/wy-voter-access"
+        style="color:#2b2b2b;font-weight:bold;">
+      Take the short survey
+    </a>
+  </p>
+
+  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
+    <a href="https://skovgard2026.org/surveys/wy-voter-access/info"
+        style="color:#2b2b2b;font-weight:bold;">
+      Want to know more?
+    </a>:
+    skovgard2026.org/surveys/wy-voter-access/info
+  </p>
+
+  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
+    Exact questions and results will be published in aggregate.
+  </p>
+`;
+
+const UNTRAMMELED_SUFFRAGE_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I wanted to share a tool I have been building called <strong>Untrammeled Suffrage</strong>.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The name comes from Wyoming&#8217;s constitutional promise that elections shall be open,
+    free, and equal. In plain language, <strong>untrammeled suffrage means the unrestricted
+    right to vote</strong>.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I built this tool because when we need a tool, the Wyoming way is to build it.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Untrammeled Suffrage is a phone-friendly voter outreach and volunteer coordination
+    tool created for Wyoming candidates and civic efforts that support every eligible
+    voter&#8217;s right to vote and to choose a preferred candidate.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The app is currently a <strong>test product</strong>. The free version is set up
+    primarily to support <strong>Skovgard for Senate</strong> field activity, data
+    collection, volunteer follow-up, Pulse opt-ins, and voter outreach reporting. This
+    gives your campaign a way to review the tool, test the workflow, and decide whether a
+    campaign-specific version would be useful.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Skovgard for Senate campaign volunteers are granted free access through the volunteer page:
+    <a href="https://skovgard2026.org/volunteer"
+        style="color:#0f2742;font-weight:bold;">
+      skovgard2026.org/volunteer
+    </a>
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;background:#f3f4f6;border-radius:8px;">
+    <tr>
+      <td style="padding:18px 22px;">
+        <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#374151;">
+          For another candidate&#8217;s campaign, Skovgard for Senate is offering one test seat as a
+          <strong>$100 in-kind contribution to your campaign</strong>.
+        </p>
+        <p style="margin:0 0 6px;font-size:15px;line-height:1.6;color:#374151;">
+          To opt in, email Jimmy at
+          <a href="mailto:jimmy@grassrootsmvt.org" style="color:#0f2742;font-weight:bold;">jimmy@grassrootsmvt.org</a>
+          with the subject line: <strong>Untrammeled Suffrage Test Seat</strong>
+        </p>
+        <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#374151;">
+          In the email, include your name, campaign name, office sought, preferred contact
+          number, and the email address for the person who should receive access.
+        </p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#374151;">
+          If you would rather talk first, call or text Jimmy at
+          <a href="tel:+13072772260" style="color:#0f2742;font-weight:bold;">307-277-2260</a>.
+        </p>
+        <p style="margin:0 0 6px;font-size:13px;line-height:1.5;color:#6b7280;font-style:italic;">Suggested filing description:</p>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#374151;font-style:italic;">
+          In-kind contribution from Skovgard for Senate: Untrammeled Suffrage voter
+          outreach software test access, one active user seat, fair-market value $100.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Access is personally granted by me, one candidate at a time. Additional seats are
+    available by request and are negotiable based on campaign needs, platform capacity,
+    compliance requirements, and whether your campaign wants a campaign-specific setup.
+    Any additional access would require a separate written understanding before activation.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    For another campaign&#8217;s active use, the tool can be upgraded or configured for
+    that campaign. A campaign-specific setup would separate campaign users, campaign notes,
+    contact activity, opt-ins, reports, and follow-up workflows so your campaign&#8217;s
+    outreach work is organized for your own use.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #b22234;background:#fef7f7;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 6px;font-size:15px;line-height:1.6;color:#374151;">
+          This is software access. Voter registry data is never sold.
+        </p>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#374151;">
+          Voter registry data may be used only for lawful political, campaign, voter outreach,
+          voter participation, or election-related purposes. Commercial use is prohibited.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    This tool is offered because voter participation belongs to us, and our system works
+    best when more citizens can be reached, heard, and respected.
+  </p>
+
+  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
+    I would be glad to walk through the app with you, provide one test seat, and discuss
+    whether a campaign-specific setup makes sense for your team.
+  </p>
+`;
+
 // ── Message registry ───────────────────────────────────────────────────────────
 // One entry per shareable message. subject() and intro() accept an optional senderName.
 
@@ -447,6 +594,34 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted to share this Wyoming accountability effort with you.`
         : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "wy-voter-access": {
+    title:        "Wyoming Voter Access Survey",
+    body_html:    WY_VOTER_ACCESS_BODY_HTML,
+    preview_text: "Take a short Wyoming survey about voter access and registration.",
+    subject() {
+      return "Wyoming Voter Access Survey";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this survey with you.`
+        : "A Wyoming neighbor wanted to share this survey with you.";
+    },
+  },
+  "untrammeled-suffrage": {
+    title:        "Untrammeled Suffrage",
+    body_html:    UNTRAMMELED_SUFFRAGE_BODY_HTML,
+    preview_text: "Test access to Untrammeled Suffrage, a Wyoming voter outreach tool.",
+    subject(n) {
+      return n
+        ? `${n} — Test access to Untrammeled Suffrage, a Wyoming voter outreach tool`
+        : "Test access to Untrammeled Suffrage, a Wyoming voter outreach tool";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this with you.`
+        : "Jimmy Skovgard wanted to share this with you.";
     },
   },
 };
@@ -729,6 +904,78 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Read the full breakdown with sources:",
           "https://skovgard2026.org/share/freedom-vs-control",
+        ]
+    : slug === "wy-voter-access"
+      ? [
+          "Wyoming voices matter.",
+          "",
+          "I am asking voters to take a short survey about voter access in Wyoming.",
+          "",
+          "Should Wyoming create a statewide voting holiday?",
+          "Should eligible residents be automatically registered to vote when getting or renewing",
+          "a driver's license or state ID?",
+          "Should Wyoming protect same-day voter registration?",
+          "",
+          "Take the short survey:",
+          "https://grassrootsmvt.org/surveys/wy-voter-access",
+          "",
+          "Want to know more?",
+          "https://skovgard2026.org/surveys/wy-voter-access/info",
+          "",
+          "Exact questions and results will be published in aggregate.",
+        ]
+    : slug === "untrammeled-suffrage"
+      ? [
+          "I wanted to share a tool I have been building called Untrammeled Suffrage.",
+          "",
+          "The name comes from Wyoming's constitutional promise that elections shall be open,",
+          "free, and equal. In plain language, untrammeled suffrage means the unrestricted",
+          "right to vote.",
+          "",
+          "I built this tool because when we need a tool, the Wyoming way is to build it.",
+          "",
+          "Untrammeled Suffrage is a phone-friendly voter outreach and volunteer coordination",
+          "tool created for Wyoming candidates and civic efforts that support every eligible",
+          "voter's right to vote and to choose a preferred candidate.",
+          "",
+          "The app is currently a test product. The free version is set up primarily to support",
+          "Skovgard for Senate field activity, data collection, volunteer follow-up, Pulse",
+          "opt-ins, and voter outreach reporting. This gives your campaign a way to review the",
+          "tool, test the workflow, and decide whether a campaign-specific setup would be useful.",
+          "",
+          "Skovgard for Senate campaign volunteers are granted free access through the volunteer page:",
+          "https://skovgard2026.org/volunteer",
+          "",
+          "For another candidate's campaign, Skovgard for Senate is offering one test seat as a",
+          "$100 in-kind contribution to your campaign.",
+          "",
+          "To opt in, email Jimmy at jimmy@grassrootsmvt.org",
+          "Subject line: Untrammeled Suffrage Test Seat",
+          "",
+          "In the email, include your name, campaign name, office sought, preferred contact",
+          "number, and the email address for the person who should receive access.",
+          "",
+          "If you would rather talk first, call or text Jimmy at 307-277-2260.",
+          "",
+          "Suggested filing description:",
+          "  In-kind contribution from Skovgard for Senate: Untrammeled Suffrage voter",
+          "  outreach software test access, one active user seat, fair-market value $100.",
+          "",
+          "Access is personally granted by me, one candidate at a time. Additional seats are",
+          "available by request and are negotiable based on campaign needs, platform capacity,",
+          "compliance requirements, and whether your campaign wants a campaign-specific setup.",
+          "",
+          "This is software access. Voter registry data is never sold.",
+          "Voter registry data may be used only for lawful political, campaign, voter outreach,",
+          "voter participation, or election-related purposes. Commercial use is prohibited.",
+          "",
+          "This tool is offered because voter participation belongs to us, and our system works",
+          "best when more citizens can be reached, heard, and respected.",
+          "",
+          "I would be glad to walk through the app with you, provide one test seat, and discuss",
+          "whether a campaign-specific setup makes sense for your team.",
+          "",
+          "Read more: https://skovgard2026.org/share/untrammeled-suffrage",
         ]
       : [
           "This campaign is built around two simple beliefs.",

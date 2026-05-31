@@ -1,0 +1,571 @@
+---
+// src/pages/share/untrammeled-suffrage.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="Untrammeled Suffrage — Skovgard 2026"
+  description="Test access to Untrammeled Suffrage, a Wyoming voter outreach and volunteer coordination tool."
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Breadcrumb bar -->
+    <div class="bg-wy-bone border-b border-gray-200 py-3 px-4">
+      <div class="max-w-3xl mx-auto flex items-center gap-3">
+        <a href="/share" class="inline-flex items-center gap-1.5 text-gray-400 hover:text-wy-ember text-xs font-semibold uppercase tracking-widest transition-colors shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          All messages
+        </a>
+        <span class="text-gray-300 text-sm">/</span>
+        <span class="text-sm font-semibold text-wy-charcoal truncate">Untrammeled Suffrage</span>
+      </div>
+    </div>
+
+    <!-- ① Share on social media -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+
+        <p class="section-kicker">Share on social media</p>
+        <p class="section-desc">
+          This image and link are what people see when you post on Facebook or X.
+          When someone clicks the link, they land on this page.
+        </p>
+
+        <figure class="rounded-xl overflow-hidden shadow-lg mb-7">
+          <img
+            src="/images/share/meme-untrammeled-suffrage.png"
+            alt="Untrammeled Suffrage — the unrestricted right to vote, a Wyoming voter outreach tool"
+            class="w-full block"
+            style="background-color:#2b2b2b;min-height:180px;"
+            loading="eager"
+          />
+        </figure>
+
+        <div class="flex flex-wrap gap-3">
+          <a id="social-facebook" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+            </svg>
+            Share on Facebook
+          </a>
+          <a id="social-twitter" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Share on X
+          </a>
+          <button id="social-copy-link" type="button" class="social-btn-outline">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy link
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ② Send by email -->
+    <section class="bg-white py-12 px-4">
+      <div class="max-w-2xl mx-auto">
+
+        <p class="section-kicker">Send by email to your contacts</p>
+        <p class="section-desc">
+          This is the written message your contacts receive in their inbox.
+          It is not the image above — it is a personal email that comes from you.
+        </p>
+
+        <div class="bg-wy-bone rounded-2xl border border-gray-200 p-8">
+
+          <!-- Your name -->
+          <div class="mb-6">
+            <label for="share-sender" class="block text-sm font-semibold text-gray-700 mb-1">
+              Your name <span class="font-normal text-gray-400">(optional — personalises the message)</span>
+            </label>
+            <input
+              id="share-sender"
+              type="text"
+              autocomplete="given-name"
+              placeholder="e.g. Sarah"
+              maxlength="80"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-wy-ember focus:border-wy-ember"
+            />
+          </div>
+
+          <!-- Email tag input -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-sm font-semibold text-gray-700">
+                Friends' email addresses
+              </label>
+              <button
+                id="share-contacts-btn"
+                type="button"
+                hidden
+                class="text-xs font-semibold text-wy-ember hover:text-wy-ember-dark flex items-center gap-1"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.47-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.47.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Add from contacts
+              </button>
+            </div>
+
+            <div
+              id="share-tag-box"
+              class="min-h-[48px] w-full px-2 py-1.5 border border-gray-300 rounded-lg bg-white cursor-text flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-wy-ember focus-within:border-wy-ember"
+              aria-label="Email address list"
+            >
+              <input
+                id="share-email-input"
+                type="email"
+                inputmode="email"
+                autocomplete="off"
+                autocapitalize="off"
+                placeholder="Type an address and press Enter"
+                class="flex-1 min-w-[180px] border-0 outline-none text-sm py-1 px-1 bg-transparent"
+              />
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">
+              Press <kbd>Enter</kbd> or <kbd>,</kbd> after each address. Paste a comma-separated list to add several at once. Up to 10 recipients.
+            </p>
+          </div>
+
+          <!-- Honeypot -->
+          <input id="share-trap" name="share_trap" type="text" autocomplete="off" tabindex="-1"
+            style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+
+          <!-- Live HTML email preview -->
+          <div class="email-preview-wrap mb-6">
+            <div class="email-preview-header">
+              <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
+              <div class="epf"><span class="epl">Subject:</span> <span id="preview-subject-line">Test access to Untrammeled Suffrage, a Wyoming voter outreach tool</span></div>
+            </div>
+            <iframe
+              id="email-preview-iframe"
+              title="Preview of the email your contacts will receive"
+              sandbox="allow-same-origin"
+              scrolling="yes"
+              class="email-preview-iframe"
+            ></iframe>
+          </div>
+
+          <!-- Status message -->
+          <div id="share-status" role="status" aria-live="polite" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+          <!-- Actions -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button
+              id="share-send-btn"
+              type="button"
+              class="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              <span id="share-send-label">Have us send it</span>
+            </button>
+          </div>
+
+          <p class="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+            We send a campaign-branded email on your behalf. Recipients are not added to any mailing list.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Why share -->
+    <section class="bg-white py-16 px-4">
+      <div class="max-w-3xl mx-auto text-center">
+        <h2 class="text-2xl font-serif font-bold text-wy-charcoal mb-4">Why it matters</h2>
+        <p class="text-gray-600 leading-relaxed mb-10 max-w-xl mx-auto">
+          Campaigns are built one conversation at a time. A message from someone you know carries
+          more weight than any ad. If you believe Wyoming deserves better, share it.
+        </p>
+        <div class="grid sm:grid-cols-3 gap-6 text-left">
+          {[
+            { n: '1', head: 'Takes 30 seconds', body: 'Enter a few email addresses and hit send. That\'s it.' },
+            { n: '2', head: 'Comes from you', body: 'Use your own inbox so it arrives as a personal note, not a campaign blast.' },
+            { n: '3', head: 'No strings', body: 'People you share with are not added to our list — they choose that for themselves.' },
+          ].map(item => (
+            <div class="flex gap-4">
+              <span class="text-wy-ember font-serif font-extrabold text-2xl leading-none mt-0.5">{item.n}.</span>
+              <div>
+                <h3 class="font-semibold text-wy-charcoal mb-1">{item.head}</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">{item.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div class="mt-12">
+          <a href="/share" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-wy-ember transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            More messages to share
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .share-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1ece1;
+    border: 1px solid #c68a4a33;
+    color: #2b2b2b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 8px 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+  .share-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .share-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: #c68a4a55;
+    color: #2b2b2b;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .share-chip button:hover { background: #b22234; color: #fff; }
+
+  /* Section headers */
+  .section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 52ch;
+  }
+
+  /* Social share buttons */
+  .social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.15s;
+  }
+  .social-btn:hover { background: #b22234; }
+  .social-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: transparent;
+    color: #2b2b2b;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 2px solid #2b2b2b;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .social-btn-outline:hover { background: #2b2b2b; color: #f1ece1; }
+
+  #share-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  #share-status.status-error  { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  #share-status.status-success{ background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  #share-status.status-info   { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+
+  kbd {
+    padding: 1px 5px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    color: #6b7280;
+  }
+
+  /* Email preview frame */
+  .email-preview-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .email-preview-header {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .epf {
+    font-size: 0.8125rem;
+    color: #374151;
+    line-height: 1.6;
+  }
+  .epl {
+    font-weight: 700;
+    color: #6b7280;
+    margin-right: 4px;
+  }
+  .email-preview-iframe {
+    display: block;
+    width: 100%;
+    height: 460px;
+    border: none;
+  }
+</style>
+
+<script>
+(function () {
+  const PAGE_URL = 'https://skovgard2026.org/share/untrammeled-suffrage';
+
+  /* ── Social share links ──────────────────────────────────── */
+  const tweetText = 'Untrammeled suffrage means the unrestricted right to vote. Wyoming\'s constitutional promise. A voter outreach tool built the Wyoming way. #Wyoming';
+  const fbUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
+  const twUrl = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_URL) +
+    '&text=' + encodeURIComponent(tweetText);
+
+  const elFb = document.getElementById('social-facebook');
+  if (elFb) elFb.href = fbUrl;
+  const elTw = document.getElementById('social-twitter');
+  if (elTw) elTw.href = twUrl;
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(PAGE_URL);
+      setStatus('Link copied!', 'success');
+      setTimeout(() => setStatus('', ''), 3000);
+    } catch {
+      setStatus('Could not copy automatically — please copy the URL manually.', 'error');
+    }
+  }
+
+  const copyLinkBtn = document.getElementById('social-copy-link');
+  if (copyLinkBtn) copyLinkBtn.addEventListener('click', copyLink);
+
+  /* ── Email state ─────────────────────────────────────────── */
+  const emails = [];
+  const MAX = 10;
+
+  const tagBox             = document.getElementById('share-tag-box');
+  const emailInput         = document.getElementById('share-email-input');
+  const senderInput        = document.getElementById('share-sender');
+  const contactsBtn        = document.getElementById('share-contacts-btn');
+  const previewIframe      = document.getElementById('email-preview-iframe');
+  const previewSubjectLine = document.getElementById('preview-subject-line');
+  const sendBtn            = document.getElementById('share-send-btn');
+  const sendLabel          = document.getElementById('share-send-label');
+  const statusEl           = document.getElementById('share-status');
+  const trapEl             = document.getElementById('share-trap');
+
+  function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
+
+  function setStatus(msg, type) {
+    if (!msg) { statusEl.classList.add('hidden'); statusEl.textContent = ''; return; }
+    statusEl.className = `mb-4 px-4 py-3 rounded-lg text-sm font-medium status-${type}`;
+    statusEl.textContent = msg;
+    statusEl.classList.remove('hidden');
+  }
+
+  function renderTags() {
+    Array.from(tagBox.querySelectorAll('.share-chip')).forEach(c => c.remove());
+    emails.forEach((email, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'share-chip';
+      chip.innerHTML = `<span title="${email}">${email}</span><button type="button" aria-label="Remove ${email}">✕</button>`;
+      chip.querySelector('button').addEventListener('click', () => removeEmail(i));
+      tagBox.insertBefore(chip, emailInput);
+    });
+    updateButtons();
+    schedulePreview();
+  }
+
+  function addEmail(raw) {
+    const e = raw.trim().toLowerCase();
+    if (!e) return;
+    if (!isValidEmail(e)) { setStatus(`"${e}" doesn't look like a valid email address.`, 'error'); return; }
+    if (emails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
+    if (emails.length >= MAX) { setStatus(`Maximum ${MAX} recipients per send.`, 'info'); return; }
+    setStatus('', '');
+    emails.push(e);
+    renderTags();
+  }
+
+  function removeEmail(index) { emails.splice(index, 1); setStatus('', ''); renderTags(); }
+
+  function updateButtons() {
+    sendBtn.disabled = emails.length === 0;
+  }
+
+  /* ── Live email preview via Worker ──────────────────────── */
+  let previewTimer = null;
+
+  function buildPreviewUrl() {
+    const name = senderInput.value.trim().slice(0, 80);
+    const params = new URLSearchParams({ slug: 'untrammeled-suffrage' });
+    if (name) params.set('sender_name', name);
+    return '/api/share/preview?' + params.toString();
+  }
+
+  function updateSubjectLine() {
+    const name = senderInput.value.trim();
+    if (previewSubjectLine) {
+      previewSubjectLine.textContent = name
+        ? `${name} — Test access to Untrammeled Suffrage, a Wyoming voter outreach tool`
+        : 'Test access to Untrammeled Suffrage, a Wyoming voter outreach tool';
+    }
+  }
+
+  async function fetchPreview() {
+    updateSubjectLine();
+    if (!previewIframe) return;
+    try {
+      const resp = await fetch(buildPreviewUrl());
+      if (resp.ok) {
+        previewIframe.srcdoc = await resp.text();
+      }
+    } catch (_) {
+      // Worker not running locally — leave the iframe blank; no error shown
+    }
+  }
+
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(fetchPreview, 300);
+  }
+
+  senderInput.addEventListener('input', schedulePreview);
+
+  emailInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addEmail(emailInput.value);
+      emailInput.value = '';
+    } else if (e.key === 'Backspace' && emailInput.value === '' && emails.length > 0) {
+      removeEmail(emails.length - 1);
+    }
+  });
+
+  emailInput.addEventListener('blur', () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+  });
+
+  emailInput.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    pasted.split(/[,;\s\n]+/).forEach(part => { if (part.trim()) addEmail(part); });
+    emailInput.value = '';
+  });
+
+  tagBox.addEventListener('click', () => emailInput.focus());
+
+  (async () => {
+    if (!('contacts' in navigator)) return;
+    try {
+      const props = await navigator.contacts.getProperties();
+      if (!props.includes('email')) return;
+      contactsBtn.hidden = false;
+      contactsBtn.addEventListener('click', async () => {
+        try {
+          const picked = await navigator.contacts.select(['name', 'email'], { multiple: true });
+          picked.forEach(c => (c.email || []).forEach(e => addEmail(e)));
+        } catch (_) {}
+      });
+    } catch (_) {}
+  })();
+
+  sendBtn.addEventListener('click', async () => {
+    if (emails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
+    if (trapEl.value.trim()) return;
+
+    sendBtn.disabled = true;
+    sendLabel.textContent = 'Sending…';
+    setStatus('', '');
+
+    try {
+      const resp = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message_slug: 'untrammeled-suffrage',
+          sender_name:  senderInput.value.trim(),
+          recipients:   emails.slice(),
+          _trap: trapEl.value,
+          _t:    Date.now(),
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) {
+        const isLocal = ['localhost','127.0.0.1'].includes(window.location.hostname);
+        setStatus(
+          resp.status === 404 && isLocal
+            ? 'Route not found — make sure the Worker is running: cd worker && npx wrangler dev'
+            : resp.status === 503
+            ? 'Share feature is not enabled on this environment yet.'
+            : data.error || 'Something went wrong. Please try again.',
+          'error'
+        );
+      } else {
+        const n = data.sent || emails.length;
+        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} delivered. Thank you for spreading the word.`, 'success');
+        emails.length = 0;
+        renderTags();
+      }
+    } catch (_) {
+      setStatus(
+        ['localhost','127.0.0.1'].includes(window.location.hostname)
+          ? 'Worker not reachable. Run `cd worker && npx wrangler dev` in a second terminal.'
+          : 'Network error — please check your connection and try again.',
+        'error'
+      );
+    } finally {
+      sendLabel.textContent = 'Have us send it';
+      updateButtons();
+    }
+  });
+
+  updateButtons();
+  fetchPreview();
+
+  if (['localhost','127.0.0.1'].includes(window.location.hostname)) {
+    setStatus(
+      'Local dev: "Have us send it" needs the Worker running. ' +
+      'In a second terminal: cd worker && npx wrangler dev.',
+      'info'
+    );
+  }
+})();
+</script>
