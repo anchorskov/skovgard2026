@@ -1,0 +1,126 @@
+---
+// src/pages/surveys/wy-voter-access/info.astro
+import Base from '../../../layouts/Base.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+---
+<Base
+  title="Wyoming Voter Access - Skovgard 2026"
+  description="Background on the Wyoming Voter Access Survey covering voting time, registration access, and election-day participation."
+>
+  <Nav />
+  <main class="pt-20 bg-wy-bone min-h-screen">
+    <section class="px-4 py-14 border-b border-black/10">
+      <div class="max-w-3xl mx-auto">
+        <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Want to Know More?</p>
+        <h1 class="text-4xl sm:text-5xl font-serif font-bold text-wy-charcoal mb-5">Wyoming Voter Access</h1>
+        <p class="text-lg text-wy-charcoal/80 leading-relaxed">
+          Voting should be simple, secure, and open to every eligible citizen.
+        </p>
+      </div>
+    </section>
+
+    <section class="px-4 py-12">
+      <div class="max-w-3xl mx-auto space-y-6 text-wy-charcoal/90 leading-relaxed">
+        <p>
+          Wyoming already has a local election system run by county clerks, election workers,
+          and community volunteers. The goal is to build on that system.
+        </p>
+        <p>
+          This survey focuses on three simple ideas:
+        </p>
+        <ol class="space-y-4 list-decimal pl-5">
+          <li>
+            <strong>Give people time to vote.</strong>
+            Create a statewide voting holiday for the primary and general election, or expand
+            voting time access so working people have a fair chance to cast a ballot.
+          </li>
+          <li>
+            <strong>Make registration easier.</strong>
+            Automatically register eligible Wyoming residents when getting or renewing a Wyoming
+            driver&#8217;s license or state ID.
+          </li>
+          <li>
+            <strong>Protect same-day registration.</strong>
+            Keep the ability for eligible citizens to register and vote on Election Day.
+          </li>
+        </ol>
+        <p>
+          The principle is simple: keep elections secure, verify eligibility, and make voting
+          as easy as possible for every eligible Wyoming citizen.
+        </p>
+      </div>
+    </section>
+
+    <section class="px-4 pb-12">
+      <div class="max-w-3xl mx-auto bg-white border border-black/10 rounded-xl p-6 sm:p-8">
+        <h2 class="text-2xl font-serif font-bold text-wy-charcoal mb-4">Exact Survey Questions</h2>
+        <ol class="space-y-5 list-decimal pl-5 text-wy-charcoal/90">
+          <li>
+            Should Wyoming create a statewide voting holiday for election days so eligible voters have time to vote?
+            <ul class="mt-2 space-y-1 list-disc pl-5 text-sm text-wy-charcoal/80">
+              <li>Yes, for both Primary Election Day and General Election Day</li>
+              <li>Yes, for Primary Election Day only</li>
+              <li>Yes, for General Election Day only</li>
+              <li>Keep the current voting rules</li>
+              <li>Not sure</li>
+            </ul>
+          </li>
+          <li>
+            Should eligible Wyoming residents be automatically registered to vote when getting or renewing a Wyoming driver&#8217;s license or state ID?
+            <ul class="mt-2 space-y-1 list-disc pl-5 text-sm text-wy-charcoal/80">
+              <li>Yes</li>
+              <li>No</li>
+              <li>Not sure</li>
+            </ul>
+          </li>
+          <li>
+            Should Wyoming protect same-day voter registration, so eligible citizens can register and vote on Election Day?
+            <ul class="mt-2 space-y-1 list-disc pl-5 text-sm text-wy-charcoal/80">
+              <li>Yes</li>
+              <li>No</li>
+              <li>Not sure</li>
+            </ul>
+          </li>
+          <li>
+            What would make voting access work better in Wyoming while keeping elections secure?
+            <p class="mt-2 text-sm text-wy-charcoal/80">Optional long-text response.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="px-4 pb-14">
+      <div class="max-w-3xl mx-auto grid gap-6 sm:grid-cols-2">
+        <article class="bg-white border border-black/10 rounded-xl p-6">
+          <h2 class="text-xl font-serif font-bold text-wy-charcoal mb-3">Fact Notes</h2>
+          <ul class="space-y-3 text-sm text-wy-charcoal/85 leading-relaxed list-disc pl-5">
+            <li>The 2026 Wyoming primary election is August 18, 2026.</li>
+            <li>The 2026 Wyoming general election is November 3, 2026.</li>
+            <li>Wyoming&#8217;s 2026 Secretary of State election calendar says voters may register and vote at polling places on Election Day.</li>
+            <li>Wyoming law currently provides one hour of paid voting leave in certain circumstances under W.S. 22-2-111.</li>
+          </ul>
+        </article>
+
+        <article class="bg-white border border-black/10 rounded-xl p-6">
+          <h2 class="text-xl font-serif font-bold text-wy-charcoal mb-3">Source Notes</h2>
+          <ul class="space-y-3 text-sm text-wy-charcoal/85 leading-relaxed list-disc pl-5">
+            <li>
+              Wyoming Secretary of State 2026 Key Election Dates:
+              <a class="underline text-wy-ember hover:text-wy-ember-dark break-all"
+                href="https://sos.wyo.gov/Elections/Docs/2026/2026_Key_Election_Dates.pdf"
+                target="_blank" rel="noopener">sos.wyo.gov/Elections/Docs/2026/2026_Key_Election_Dates.pdf</a>
+            </li>
+            <li>
+              Wyoming Statute 22-2-111, Employees time off to vote:
+              <a class="underline text-wy-ember hover:text-wy-ember-dark break-all"
+                href="https://wyoleg.gov/statutes/compress/title22.pdf"
+                target="_blank" rel="noopener">wyoleg.gov/statutes/compress/title22.pdf</a>
+            </li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Base>

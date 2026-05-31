@@ -1,0 +1,47 @@
+---
+// src/pages/surveys/wy-voter-access/index.astro
+import Base from '../../../layouts/Base.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+
+const EXTERNAL_SURVEY_URL = 'https://grassrootsmvt.org/surveys/wy-voter-access';
+---
+<Base
+  title="Wyoming Voter Access Survey - Skovgard 2026"
+  description="Take the Wyoming Voter Access Survey on GrassrootsMVT.org."
+>
+  <Nav />
+  <main class="pt-20 bg-wy-bone min-h-screen">
+    <section class="px-4 py-16">
+      <div class="max-w-3xl mx-auto bg-white border border-black/10 rounded-xl p-6 sm:p-10">
+        <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Wyoming Voter Access Survey</p>
+        <h1 class="text-4xl font-serif font-bold text-wy-charcoal mb-4">Take the Survey</h1>
+        <p class="text-wy-charcoal/85 leading-relaxed mb-6">
+          Help measure where Wyoming voters stand on voter access, registration, and election-day participation.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-3 mb-5">
+          <a
+            href={EXTERNAL_SURVEY_URL}
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center justify-center rounded-lg bg-wy-ember text-wy-bone px-5 py-3 font-semibold hover:bg-wy-ember-dark transition-colors"
+          >
+            Open Survey on GrassrootsMVT.org
+          </a>
+          <a
+            href="/surveys/wy-voter-access/info"
+            class="inline-flex items-center justify-center rounded-lg border-2 border-wy-charcoal text-wy-charcoal px-5 py-3 font-semibold hover:bg-wy-charcoal hover:text-wy-bone transition-colors"
+          >
+            Want to know more?
+          </a>
+        </div>
+
+        <p class="text-sm text-wy-charcoal/65">
+          This survey opens in a new tab and uses the existing GrassrootsMVT survey submission flow.
+        </p>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Base>

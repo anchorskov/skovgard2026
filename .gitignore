@@ -5,6 +5,7 @@ hugo_stats.json
 .hugo_build.lock
 
 # Node (any depth)
+.claude
 node_modules/
 dist/
 .astro/
