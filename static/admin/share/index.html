@@ -84,6 +84,7 @@
     <div id="progress-label" style="font-size:0.8125rem;color:#6b7280;margin-bottom:8px;display:none;"></div>
     <div class="button-row">
       <button id="btn-send" type="button">Send all</button>
+      <button id="btn-copy-failed" type="button" class="secondary" style="display:none">Copy failed addresses</button>
       <button id="btn-reset" type="button" class="secondary">Reset</button>
     </div>
     <div id="status-box"></div>
@@ -100,9 +101,10 @@
   const senderEl  = document.getElementById('cfg-sender');
   const emailsEl  = document.getElementById('cfg-emails');
   const countEl   = document.getElementById('parsed-count');
-  const sendBtn   = document.getElementById('btn-send');
-  const resetBtn  = document.getElementById('btn-reset');
-  const statusEl  = document.getElementById('status-box');
+  const sendBtn       = document.getElementById('btn-send');
+  const resetBtn      = document.getElementById('btn-reset');
+  const copyFailedBtn = document.getElementById('btn-copy-failed');
+  const statusEl      = document.getElementById('status-box');
   const progressWrap  = document.getElementById('progress-wrap');
   const progressFill  = document.getElementById('progress-fill');
   const progressLabel = document.getElementById('progress-label');
@@ -143,7 +145,17 @@
       }),
     });
     const data = await resp.json().catch(() => ({}));
-    return { ok: resp.ok && data.ok, sent: data.sent || 0, error: data.error || null, status: resp.status };
+    return { ok: resp.ok && data.ok, sent: data.sent || 0, failed_emails: data.failed_emails || [], error: data.error || null, status: resp.status };
+  }
+
+  async function sendBatchWithRetry(recipients, adminKey, slug, senderName) {
+    const first = await sendBatch(recipients, adminKey, slug, senderName);
+    // If entire batch failed (HTTP 500 / rate limit), wait 4s and retry once
+    if (!first.ok && first.status === 500) {
+      await new Promise(r => setTimeout(r, 4000));
+      return sendBatch(recipients, adminKey, slug, senderName);
+    }
+    return first;
   }
 
   sendBtn.addEventListener('click', async () => {
@@ -159,6 +171,7 @@
     setStatus('');
     progressWrap.style.display = '';
     progressLabel.style.display = '';
+    copyFailedBtn.style.display = 'none';
 
     const batches = [];
     for (let i = 0; i < emails.length; i += BATCH) {
@@ -166,8 +179,8 @@
     }
 
     let totalSent = 0;
-    let totalFailed = 0;
-    const errors = [];
+    const allFailed = [];
+    const batchErrors = [];
 
     for (let i = 0; i < batches.length; i++) {
       const pct = Math.round((i / batches.length) * 100);
@@ -175,30 +188,39 @@
       progressLabel.textContent = `Batch ${i + 1} of ${batches.length} — ${totalSent} sent so far…`;
 
       try {
-        const result = await sendBatch(batches[i], adminKey, slug, sender);
+        const result = await sendBatchWithRetry(batches[i], adminKey, slug, sender);
         if (result.ok) {
           totalSent += result.sent || batches[i].length;
+          if (result.failed_emails.length) {
+            allFailed.push(...result.failed_emails);
+          }
         } else {
-          totalFailed += batches[i].length;
-          errors.push(`Batch ${i + 1}: ${result.error || 'unknown error'} (HTTP ${result.status})`);
+          allFailed.push(...batches[i]);
+          batchErrors.push(`Batch ${i + 1}: ${result.error || 'unknown error'} (HTTP ${result.status})`);
         }
       } catch (err) {
-        totalFailed += batches[i].length;
-        errors.push(`Batch ${i + 1}: network error — ${err.message}`);
+        allFailed.push(...batches[i]);
+        batchErrors.push(`Batch ${i + 1}: network error — ${err.message}`);
       }
 
-      // Small pause between batches to avoid hammering Resend
+      // 2s pause between batches to stay within Resend rate limits
       if (i < batches.length - 1) {
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 2000));
       }
     }
 
     progressFill.style.width = '100%';
     progressLabel.style.display = 'none';
 
-    const summary = `Done. ${totalSent} sent, ${totalFailed} failed out of ${emails.length} total.`;
-    const detail  = errors.length ? '\n\nErrors:\n' + errors.join('\n') : '';
-    setStatus(summary + detail, totalFailed === 0 ? 'success' : 'error');
+    const summary = `Done. ${totalSent} sent, ${allFailed.length} failed out of ${emails.length} total.`;
+    let detail = '';
+    if (batchErrors.length) detail += '\n\nBatch errors:\n' + batchErrors.join('\n');
+    if (allFailed.length) {
+      detail += `\n\nFailed addresses (${allFailed.length}):`;
+      copyFailedBtn.style.display = 'inline-flex';
+      copyFailedBtn.dataset.emails = allFailed.join('\n');
+    }
+    setStatus(summary + detail, allFailed.length === 0 ? 'success' : 'error');
     sendBtn.disabled = false;
   });
 
@@ -209,8 +231,22 @@
     progressWrap.style.display = 'none';
     progressLabel.style.display = 'none';
     progressFill.style.width = '0%';
+    copyFailedBtn.style.display = 'none';
+    copyFailedBtn.dataset.emails = '';
     setStatus('');
     sendBtn.disabled = false;
+  });
+
+  copyFailedBtn.addEventListener('click', async () => {
+    const text = copyFailedBtn.dataset.emails || '';
+    try {
+      await navigator.clipboard.writeText(text);
+      const orig = copyFailedBtn.textContent;
+      copyFailedBtn.textContent = 'Copied!';
+      setTimeout(() => { copyFailedBtn.textContent = orig; }, 2000);
+    } catch {
+      prompt('Copy these failed addresses:', text);
+    }
   });
 })();
 </script>

@@ -2671,7 +2671,8 @@ export default {
           return json(req, env, { error: "Failed to send. Please try again shortly." }, 500);
         }
 
-        return json(req, env, { ok: true, sent, failed });
+        const failedEmails = results.filter(r => !r.ok).map(r => r.email);
+        return json(req, env, { ok: true, sent, failed, failed_emails: failedEmails });
       }
 
       // GET /api/share/preview — returns the full rendered HTML email for iframe preview
