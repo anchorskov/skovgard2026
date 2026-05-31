@@ -2564,9 +2564,13 @@ export default {
         }
 
         // IP rate limit — max 50 sends per IP per 60 minutes
+        // Admin key bypass: if SHARE_ADMIN_KEY is set and request includes matching admin_key, skip rate limit
+        const adminKey = String(env.SHARE_ADMIN_KEY || "").trim();
+        const isAdminSend = adminKey && String(b.admin_key || "").trim() === adminKey;
+
         const ip = req.headers.get("cf-connecting-ip") || "";
         const ipHash = await sha256Hex(ip);
-        if (env.DB) {
+        if (!isAdminSend && env.DB) {
           try {
             const rlRow = await env.DB.prepare(
               "SELECT COUNT(*) AS n FROM share_sends WHERE sender_ip_hash = ?1 AND created_at >= datetime('now', '-60 minutes')"
