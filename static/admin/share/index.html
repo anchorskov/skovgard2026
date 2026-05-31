@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Bulk Share Send</title>
+  <link rel="stylesheet" href="/css/global.css?v=1">
+  <style>
+    body { background: #f1ece1; font-family: 'Source Sans 3', Arial, sans-serif; color: #2b2b2b; margin: 0; padding: 24px 16px; }
+    .shell { max-width: 680px; margin: 0 auto; }
+    h1 { font-family: 'Bitter', Georgia, serif; font-size: 1.6rem; color: #2b2b2b; margin: 0 0 4px; }
+    .sub { font-size: 0.875rem; color: #6b7280; margin: 0 0 28px; }
+    label { display: block; font-size: 0.8125rem; font-weight: 700; color: #374151; margin-bottom: 4px; }
+    input, select, textarea {
+      width: 100%; box-sizing: border-box;
+      padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-size: 0.9375rem; color: #2b2b2b; background: #fff;
+      margin-bottom: 18px;
+    }
+    textarea { min-height: 140px; resize: vertical; font-family: ui-monospace, monospace; font-size: 0.8125rem; }
+    #admin-share-shell .button-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+    #admin-share-shell .button-row button {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 2.75rem; padding: .6rem 1.4rem;
+      border: 1px solid #2563eb; border-radius: .7rem;
+      background: #2563eb; color: #fff; font-weight: 700; font-size: 0.9375rem;
+      cursor: pointer;
+    }
+    #admin-share-shell .button-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #admin-share-shell .button-row button.secondary {
+      background: #f1ece1; color: #2b2b2b; border-color: #6b7280;
+    }
+    .progress-bar-wrap { background: #e5e7eb; border-radius: 999px; height: 10px; margin: 16px 0 8px; }
+    .progress-bar-fill { height: 10px; border-radius: 999px; background: #2563eb; transition: width 0.3s; width: 0%; }
+    #status-box { font-size: 0.875rem; line-height: 1.6; margin-top: 14px; white-space: pre-wrap; }
+    #status-box.error { color: #991b1b; }
+    #status-box.success { color: #166534; }
+    .kicker { font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #c68a4a; margin-bottom: 18px; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 24px; margin-bottom: 24px; }
+    .nav-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; font-weight: 700; color: #6b7280; text-decoration: none; margin-bottom: 20px; }
+    .nav-link:hover { color: #b22234; }
+  </style>
+</head>
+<body>
+<div class="shell" id="admin-share-shell">
+
+  <a href="/admin/emails/index.html" class="nav-link">← Emails admin</a>
+
+  <h1>Bulk Share Send</h1>
+  <p class="sub">Admin tool — sends share emails in batches of 10, bypassing the public rate limit.</p>
+
+  <div class="card">
+    <p class="kicker">Configuration</p>
+
+    <label for="cfg-key">Admin key</label>
+    <input id="cfg-key" type="password" placeholder="SHARE_ADMIN_KEY value" autocomplete="off" />
+
+    <label for="cfg-slug">Message</label>
+    <select id="cfg-slug">
+      <option value="untrammeled-suffrage">Untrammeled Suffrage</option>
+      <option value="jimmys-story">Jimmy's Story</option>
+      <option value="freedom-vs-control">Freedom vs. Control</option>
+      <option value="wyoming-voters-choose">Wyoming Voters Should Choose</option>
+      <option value="representatives-work-for">Who Do Our Representatives Work For?</option>
+      <option value="wy-voter-access">Wyoming Voter Access Survey</option>
+    </select>
+
+    <label for="cfg-sender">Sender name <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
+    <input id="cfg-sender" type="text" placeholder="e.g. Jimmy Skovgard" maxlength="80" />
+  </div>
+
+  <div class="card">
+    <p class="kicker">Recipients</p>
+    <label for="cfg-emails">Email addresses — one per line, or comma/semicolon separated</label>
+    <textarea id="cfg-emails" placeholder="alice@example.com&#10;bob@example.com&#10;carol@example.com"></textarea>
+    <div id="parsed-count" style="font-size:0.8125rem;color:#6b7280;margin-top:-14px;margin-bottom:18px;"></div>
+  </div>
+
+  <div class="card">
+    <p class="kicker">Send</p>
+    <div class="progress-bar-wrap" id="progress-wrap" style="display:none">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <div id="progress-label" style="font-size:0.8125rem;color:#6b7280;margin-bottom:8px;display:none;"></div>
+    <div class="button-row">
+      <button id="btn-send" type="button">Send all</button>
+      <button id="btn-reset" type="button" class="secondary">Reset</button>
+    </div>
+    <div id="status-box"></div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  const BATCH = 10;
+
+  const keyEl     = document.getElementById('cfg-key');
+  const slugEl    = document.getElementById('cfg-slug');
+  const senderEl  = document.getElementById('cfg-sender');
+  const emailsEl  = document.getElementById('cfg-emails');
+  const countEl   = document.getElementById('parsed-count');
+  const sendBtn   = document.getElementById('btn-send');
+  const resetBtn  = document.getElementById('btn-reset');
+  const statusEl  = document.getElementById('status-box');
+  const progressWrap  = document.getElementById('progress-wrap');
+  const progressFill  = document.getElementById('progress-fill');
+  const progressLabel = document.getElementById('progress-label');
+
+  function parseEmails(raw) {
+    return [...new Set(
+      raw.split(/[\n,;]+/)
+        .map(e => e.trim().toLowerCase())
+        .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e))
+    )];
+  }
+
+  function updateCount() {
+    const emails = parseEmails(emailsEl.value);
+    const batches = Math.ceil(emails.length / BATCH);
+    countEl.textContent = emails.length > 0
+      ? `${emails.length} valid address${emails.length !== 1 ? 'es' : ''} — ${batches} batch${batches !== 1 ? 'es' : ''} of ${BATCH}`
+      : '';
+  }
+
+  emailsEl.addEventListener('input', updateCount);
+
+  function setStatus(msg, type = '') {
+    statusEl.className = type;
+    statusEl.textContent = msg;
+  }
+
+  async function sendBatch(recipients, adminKey, slug, senderName) {
+    const resp = await fetch('/api/share', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        message_slug: slug,
+        sender_name:  senderName,
+        recipients,
+        admin_key:    adminKey,
+        _t:           Date.now(),
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    return { ok: resp.ok && data.ok, sent: data.sent || 0, error: data.error || null, status: resp.status };
+  }
+
+  sendBtn.addEventListener('click', async () => {
+    const adminKey  = keyEl.value.trim();
+    const slug      = slugEl.value;
+    const sender    = senderEl.value.trim();
+    const emails    = parseEmails(emailsEl.value);
+
+    if (!adminKey) { setStatus('Enter the admin key.', 'error'); return; }
+    if (emails.length === 0) { setStatus('No valid email addresses found.', 'error'); return; }
+
+    sendBtn.disabled = true;
+    setStatus('');
+    progressWrap.style.display = '';
+    progressLabel.style.display = '';
+
+    const batches = [];
+    for (let i = 0; i < emails.length; i += BATCH) {
+      batches.push(emails.slice(i, i + BATCH));
+    }
+
+    let totalSent = 0;
+    let totalFailed = 0;
+    const errors = [];
+
+    for (let i = 0; i < batches.length; i++) {
+      const pct = Math.round((i / batches.length) * 100);
+      progressFill.style.width = pct + '%';
+      progressLabel.textContent = `Batch ${i + 1} of ${batches.length} — ${totalSent} sent so far…`;
+
+      try {
+        const result = await sendBatch(batches[i], adminKey, slug, sender);
+        if (result.ok) {
+          totalSent += result.sent || batches[i].length;
+        } else {
+          totalFailed += batches[i].length;
+          errors.push(`Batch ${i + 1}: ${result.error || 'unknown error'} (HTTP ${result.status})`);
+        }
+      } catch (err) {
+        totalFailed += batches[i].length;
+        errors.push(`Batch ${i + 1}: network error — ${err.message}`);
+      }
+
+      // Small pause between batches to avoid hammering Resend
+      if (i < batches.length - 1) {
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+
+    progressFill.style.width = '100%';
+    progressLabel.style.display = 'none';
+
+    const summary = `Done. ${totalSent} sent, ${totalFailed} failed out of ${emails.length} total.`;
+    const detail  = errors.length ? '\n\nErrors:\n' + errors.join('\n') : '';
+    setStatus(summary + detail, totalFailed === 0 ? 'success' : 'error');
+    sendBtn.disabled = false;
+  });
+
+  resetBtn.addEventListener('click', () => {
+    emailsEl.value = '';
+    senderEl.value = '';
+    countEl.textContent = '';
+    progressWrap.style.display = 'none';
+    progressLabel.style.display = 'none';
+    progressFill.style.width = '0%';
+    setStatus('');
+    sendBtn.disabled = false;
+  });
+})();
+</script>
+</body>
+</html>
