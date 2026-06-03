@@ -1,5 +1,6 @@
 // worker/src/telnyx.js
 import { lookupWyLegislativeDistricts, normalizeZip5 } from "./address-districts.js";
+import { sendResendEmail } from "./resend.js";
 
 const STOP_KEYWORDS = new Set(["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"]);
 const START_KEYWORDS = new Set(["START", "UNSTOP", "JOIN"]);
@@ -735,6 +736,28 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
         autoresponseType: payload?.autoresponse_type ?? null,
       }),
     });
+
+    // Notify staff of non-keyword replies (STOP/START/HELP are handled separately)
+    if (!keyword) {
+      const notifyTo = String(env?.INBOUND_SMS_NOTIFY_TO || "").trim();
+      const notifyFrom = String(env?.ADMIN_EMAIL_FROM || "support@grassrootsmvt.org").trim();
+      if (notifyTo && env?.RESEND_API_KEY) {
+        sendResendEmail(env.RESEND_API_KEY, {
+          from: notifyFrom,
+          to: [notifyTo],
+          subject: `New text reply from ${phoneFrom}`,
+          text: [
+            `You received a text reply on the campaign number (${phoneTo}).`,
+            ``,
+            `From: ${phoneFrom}`,
+            `Message: ${text ?? "(no text)"}`,
+            `Received: ${receivedAt || new Date().toISOString()}`,
+            ``,
+            `View in admin: https://www.skovgard2026.org/admin/texting/index.html`,
+          ].join("\n"),
+        }).catch(() => {}); // fire-and-forget — don't fail the webhook if email fails
+      }
+    }
 
     if (keywordOperation(keyword) === "STOP") {
       await upsertConsentStatus(db, {

@@ -4,6 +4,7 @@ import Nav from '../../components/Nav.astro';
 import Footer from '../../components/Footer.astro';
 
 const expensePDFs = [
+  { label: 'May 2026',      path: '/finance/2026-05-Expenses.pdf' },
   { label: 'April 2026',    path: '/finance/2026-04-Expenses.pdf' },
   { label: 'March 2026',    path: '/finance/2026-03-Expenses.pdf' },
   { label: 'February 2026', path: '/finance/2026-02-Expenses.pdf' },
@@ -17,6 +18,7 @@ const expensePDFs = [
 ];
 
 const contributionPDFs = [
+  { label: 'May 2026',      path: '/finance/contributions/2026-05-Contributions.pdf' },
   { label: 'April 2026',    path: '/finance/contributions/2026-04-Contributions.pdf' },
   { label: 'March 2026',    path: '/finance/contributions/2026-03-Contributions.pdf' },
   { label: 'February 2026', path: '/finance/contributions/2026-02-Contributions.pdf' },
@@ -42,13 +44,13 @@ const contributionPDFs = [
 
       <!-- Current Month Summary -->
       <section class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-10">
-        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-6">Current Month Summary: April 2026</h2>
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-6">Current Month Summary: May 2026</h2>
         <dl class="grid sm:grid-cols-2 gap-4 mb-6">
           {[
-            ['Balance forward (as of Apr 1)',          '$2,618.60'],
-            ['Contributions received in April',        '$1,511.85'],
-            ['Expenditures in April',                  '$1,621.04'],
-            ['Cash on hand at Apr 30',                 '$2,412.61'],
+            ['Balance forward (as of May 1)',          '$2,462.61'],
+            ['Contributions received in May',         '$1,015.00'],
+            ['Expenditures in May',                   '$937.19'],
+            ['Cash on hand at May 31',                '$2,637.22'],
             ['Debts and obligations',                  '$0.00'],
           ].map(([label, value]) => (
             <div class="bg-wy-stone rounded-lg px-5 py-4">
@@ -58,16 +60,14 @@ const contributionPDFs = [
           ))}
         </dl>
         <p class="text-sm text-gray-500 leading-relaxed">
-          April contributions include $1,000.00 from Eric and Pamela Hutchins, $250.00 from Wendy Henderson,
-          $100.00 from Beverly Dye, $100.00 from William Plumer, $15.00 from C. Jolley, an additional $46.85
-          in WinRed contributions, and processor-held Stripe funds of about $96.80 at month-end. Expenditures
-          include $342.50 to The Hangar for event space, $157.50 to The Hangar for venue rental, $625.00 to the
-          Wyoming Republican Party for state GOP table rental, $400.00 to KOSA for a candidate announcement,
-          $50.00 to the Natrona County Republican Party, and $46.04 in processor fees and fee adjustments.
-          Check 1007 ($200.00) was an internal transfer to the Hilltop account and is not counted as an
-          expenditure. Cash on hand reflects confirmed bank balances: primary Wells Fargo ($2,212.61 after
-          Check 1008 cleared May 1) plus Hilltop ($200.00). The Plumer Stripe payout is expected in May
-          and is not included in the April cash figure.
+          May contributions include $1,000.00 from Eric Hutchins and $15.00 from A. Jolley. The May Wells Fargo
+          deposits also include the $96.80 net Stripe payout from William Plumer's April contribution, which had
+          already been counted in April contributions and was paid into the account in May. Processing fees in May
+          include a $29.30 Stripe fee on the Hutchins contribution and a $0.90 Anedot fee on the Jolley
+          contribution, both deducted at source before deposit. May expenditures include $50.00 to the Natrona
+          County Republican Party for the May 5 fundraiser, $105.99 to Staples for business cards, and $751.00
+          to the Wyoming Secretary of State for the Wyoming primary registration fee. Cash on hand reflects the
+          primary Wells Fargo balance of $2,437.22 plus $200.00 in the Hilltop account.
         </p>
       </section>
 
@@ -76,9 +76,9 @@ const contributionPDFs = [
         <h2 class="text-2xl font-serif font-bold mb-6">Campaign Totals</h2>
         <dl class="grid sm:grid-cols-3 gap-6">
           {[
-            ['Total contributions\nthrough Apr 30, 2026', '$8,758.06'],
-            ['Total expenditures\nsince launch 04/24/2025', '$6,248.65'],
-            ['Cash on hand\nas of Apr 30', '$2,412.61'],
+            ['Total contributions\nthrough May 31, 2026', '$9,773.06'],
+            ['Total expenditures\nsince launch 04/24/2025', '$7,135.84'],
+            ['Cash on hand\nas of May 31', '$2,637.22'],
           ].map(([label, value]) => (
             <div>
               <dt class="text-white/50 text-xs font-semibold uppercase tracking-wider mb-1 whitespace-pre-line">{label}</dt>

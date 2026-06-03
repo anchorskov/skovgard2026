@@ -11,6 +11,19 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 DATA_BY_MONTH = {
+    "2026-05": {
+        "contributions": [
+            ("2026-05-08", "A. Jolley", "Campaign Contribution (Anedot)", 15.00),
+            ("2026-05-11", "Eric Hutchins", "Campaign Contribution (Stripe)", 1000.00),
+        ],
+        "expenses": [
+            ("2026-05-01", "Natrona County Republican Party", "May 5 Fundraiser Fee (Check 1008)", 50.00),
+            ("2026-05-08", "Anedot", "Processing Fee (Jolley contribution)", 0.90),
+            ("2026-05-11", "Stripe", "Processing Fee (Hutchins contribution)", 29.30),
+            ("2026-05-15", "Staples", "Business Cards (Check 1052)", 105.99),
+            ("2026-05-22", "Wyoming Secretary of State", "Primary Registration Fee", 751.00),
+        ],
+    },
     "2026-03": {
         "contributions": [
             ("2026-03-09", "C. Jolley", "Campaign Contribution", 15.00),
