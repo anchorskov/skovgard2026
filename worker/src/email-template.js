@@ -427,10 +427,6 @@ const WY_VOTER_ACCESS_BODY_HTML = `
 
 const WY_CITIZEN_BALLOT_BODY_HTML = `
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
-    I wanted to share this idea with you.
-  </p>
-
-  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
     The Citizens Nonpartisan Ballot is a civic project through The Integrity Project:
     People&#8217;s Primary. The idea is simple: list every candidate for each office in one
     place and let voters choose one candidate per office, regardless of party label.
@@ -1080,8 +1076,6 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
         ]
     : slug === "wy-citizen-ballot"
       ? [
-          "I wanted to share this idea with you.",
-          "",
           "The Citizens Nonpartisan Ballot is a civic project through The Integrity Project:",
           "People's Primary. The idea is simple: list every candidate for each office in one",
           "place and let voters choose one candidate per office, regardless of party label.",
