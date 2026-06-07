@@ -970,6 +970,7 @@ const smsText = `Wyoming voters should be able to compare every candidate and ch
   })();
 
   sendBtn.addEventListener('click', async () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
     if (emails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
     if (trapEl.value.trim()) return;
 

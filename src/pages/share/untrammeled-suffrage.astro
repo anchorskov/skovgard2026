@@ -508,6 +508,7 @@ import Footer from '../../components/Footer.astro';
   })();
 
   sendBtn.addEventListener('click', async () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
     if (emails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
     if (trapEl.value.trim()) return;
 
