@@ -2619,12 +2619,17 @@ export default {
           slug:         messageSlug,
         });
 
+        // Use "Display Name <addr>" format; bare address from env stays as-is if already formatted
+        const fromFormatted = fromAddr.includes('<')
+          ? fromAddr
+          : `The Integrity Project <${fromAddr}>`;
+
         // Send sequentially with 200ms gap to avoid Resend rate-limit bursts
         const results = [];
         for (const [idx, to] of recipients.entries()) {
           if (idx > 0) await new Promise(r => setTimeout(r, 200));
           const res = await sendResendEmail(apiKey, {
-            from: fromAddr,
+            from: fromFormatted,
             to: [to],
             subject,
             text: textBody,
@@ -2636,7 +2641,10 @@ export default {
             ],
           })
             .then((r) => ({ ok: true,  email: to, resendId: r?.id || null }))
-            .catch((err) => ({ ok: false, email: to, error: String(err?.message || err) }));
+            .catch((err) => {
+              console.error(`[share] Resend error for ${to} (slug=${messageSlug}):`, err?.message, JSON.stringify(err?.body ?? {}));
+              return { ok: false, email: to, error: String(err?.message || err) };
+            });
           results.push(res);
         }
         const sent   = results.filter((r) => r.ok).length;
@@ -2670,7 +2678,8 @@ export default {
         }
 
         if (sent === 0) {
-          return json(req, env, { error: "Failed to send. Please try again shortly." }, 500);
+          console.error(`[share] All sends failed for slug=${messageSlug}. Errors:`, JSON.stringify(results.map(r => r.error)));
+          return json(req, env, { error: "We could not send the email right now. Please try again or copy the share text manually." }, 500);
         }
 
         const failedEmails = results.filter(r => !r.ok).map(r => r.email);
