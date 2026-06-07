@@ -742,20 +742,24 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
       const notifyTo = String(env?.INBOUND_SMS_NOTIFY_TO || "").trim();
       const notifyFrom = String(env?.ADMIN_EMAIL_FROM || "support@grassrootsmvt.org").trim();
       if (notifyTo && env?.RESEND_API_KEY) {
-        sendResendEmail(env.RESEND_API_KEY, {
-          from: notifyFrom,
-          to: [notifyTo],
-          subject: `New text reply from ${phoneFrom}`,
-          text: [
-            `You received a text reply on the campaign number (${phoneTo}).`,
-            ``,
-            `From: ${phoneFrom}`,
-            `Message: ${text ?? "(no text)"}`,
-            `Received: ${receivedAt || new Date().toISOString()}`,
-            ``,
-            `View in admin: https://www.skovgard2026.org/admin/texting/index.html`,
-          ].join("\n"),
-        }).catch(() => {}); // fire-and-forget — don't fail the webhook if email fails
+        try {
+          await sendResendEmail(env.RESEND_API_KEY, {
+            from: notifyFrom,
+            to: [notifyTo],
+            subject: `New text reply from ${phoneFrom}`,
+            text: [
+              `You received a text reply on the campaign number (${phoneTo}).`,
+              ``,
+              `From: ${phoneFrom}`,
+              `Message: ${text ?? "(no text)"}`,
+              `Received: ${receivedAt || new Date().toISOString()}`,
+              ``,
+              `View in admin: https://www.skovgard2026.org/admin/texting/index.html`,
+            ].join("\n"),
+          });
+        } catch (_) {
+          // don't fail the webhook if email fails
+        }
       }
     }
 

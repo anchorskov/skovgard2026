@@ -80,13 +80,20 @@ export const SHARE_MESSAGES = {
 
 ### 3c. Add the plain-text block to `buildShareEmailText()`
 
-The function uses a `slug ===` chain to select the correct plain-text body. Add a new branch **before** the default `else`:
+The function uses a `slug ===` chain to select the correct plain-text body. There are currently
+**eight named branches** before the default `else` (jimmys-story). Add your new branch anywhere
+before the final `: [` default block:
 
 ```js
 export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" }) {
   const specificLines =
-    slug === "freedom-vs-control"
-      ? [ /* existing */ ]
+    slug === "representatives-work-for" ? [ /* existing */ ]
+    : slug === "wyoming-voters-choose"  ? [ /* existing */ ]
+    : slug === "freedom-vs-control"     ? [ /* existing */ ]
+    : slug === "wy-primary-election-participation" ? [ /* existing */ ]
+    : slug === "wy-voter-access"        ? [ /* existing */ ]
+    : slug === "wy-citizen-ballot"      ? [ /* existing */ ]
+    : slug === "untrammeled-suffrage"   ? [ /* existing */ ]
     : slug === "new-topic"
       ? [
           "Opening line in plain text.",
@@ -95,19 +102,21 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Read more: https://skovgard2026.org/share/new-topic",
         ]
-    : [ /* existing jimmys-story default */ ];
-
-  return [ sender_intro, "", "Hi,", "", ...specificLines, /* footer lines */ ].join("\n");
+    : [ /* jimmys-story default */ ];
+  ...
 }
 ```
 
-This is **not** auto-generated from `body_html`. Write the plain-text lines by hand alongside the HTML. Keep them in sync when the HTML changes. `stripHtmlToText()` is exported for future Phase 2 D1 use but is not currently wired into the send flow.
+This is **not** auto-generated from `body_html`. Write the plain-text lines by hand alongside
+the HTML. Keep them in sync when the HTML changes. `stripHtmlToText()` is exported for future
+Phase 2 D1 use but is not currently wired into the send flow.
 
 ---
 
 ## 4. Create the Astro page
 
-Copy `src/pages/share/jimmys-story.astro` as a starting point:
+Copy `src/pages/share/jimmys-story.astro` as a starting point — it is the canonical template.
+Do **not** copy `wy-primary-election-participation.astro`; it has a deprecated button pattern (see §9).
 
 ```
 cp src/pages/share/jimmys-story.astro src/pages/share/new-topic.astro
@@ -119,16 +128,28 @@ Then update the copy:
 2. **`<Base>` title and description** — update to match the message
 3. **Breadcrumb label** — change `"Jimmy's Story"` to the new title
 4. **Section description text** — update to describe the new message
-5. **Meme image** — update `src`, `alt`, `style="background-color:..."` and the shadow `min-height` fallback
+5. **Meme image** — update `src`, `alt`, `style="background-color:..."` and the `min-height` fallback
 6. **`PAGE_URL`** in `<script>` — change to `'https://skovgard2026.org/share/new-topic'`
 7. **`tweetText`** in `<script>` — write a 200-character-max tweet for this topic
 8. **`message_slug`** in the `fetch('/api/share', ...)` body — change to `'new-topic'`
 9. **`slug` param** in `buildPreviewUrl()` — change to `'new-topic'`
-10. **`updateSubjectLine()`** — update the default/named subject text to match the new `SHARE_MESSAGES` entry
-11. **Email preview `From:` line** — the hardcoded From address in the email preview header must be `support@grassrootsmvt.org`, not `share@skovgard2026.org`. Search the new file for `share@skovgard2026.org` and replace it. The correct line is:
-    ```html
-    <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
+10. **`updateSubjectLine()`** — mirror the `subject()` logic from the matching `SHARE_MESSAGES` entry. If `subject()` returns different text for named vs. unnamed senders, reflect that here too:
+    ```js
+    function updateSubjectLine() {
+      const name = senderInput.value.trim();
+      if (previewSubjectLine) {
+        previewSubjectLine.textContent = name
+          ? `${name} wanted you to see this`          // mirrors subject(n) with n
+          : 'A Wyoming neighbor wanted you to see this'; // mirrors subject() with no arg
+      }
+    }
     ```
+
+The `jimmys-story.astro` template already has `support@grassrootsmvt.org` in the From line — no
+search-and-replace needed. Verify it is present before publishing:
+```html
+<div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
+```
 
 Do not add a `buildMailtoBody()` function, a mailto button, or any `window.location.href = 'mailto:...'` handler. The detail page send flow is server-side Resend only.
 
@@ -224,8 +245,16 @@ The `mailto:` flow was intentionally removed from detail pages. Do not add:
 - A `buildMailtoBody()` function
 - A `mailtoBtn` element or event listener
 - Any `window.location.href = 'mailto:...'` call in the detail page script
+- A `#email-share-btn` "Share by email" button in the social buttons section, even one
+  that scrolls to `#send-email` instead of opening mailto. The send section is visible
+  on the page without a button to reach it.
 
-The index quick-bar retains an "Email" button for quick-share convenience — that is the only acceptable `mailto:` path and it lives in `index.astro`, not in detail pages.
+`wy-primary-election-participation.astro` has a `#email-share-btn` from an earlier
+iteration; do not treat it as a pattern to copy. The canonical template (`jimmys-story.astro`)
+does not have it.
+
+The index quick-bar retains an "Email" button for quick-share convenience — that is the only
+acceptable `mailto:` path and it lives in `index.astro`, not in detail pages.
 
 ---
 
@@ -266,18 +295,47 @@ npx wrangler d1 execute ballot_sources --command "SELECT * FROM share_sends ORDE
 ## 12. Production checklist
 
 1. Run `npm run build` locally — confirm no Astro build errors
-2. Check that `SHARE_MESSAGES['new-topic']` exists and `subject()` / `intro()` return expected strings
-3. Test GET `/api/share/preview?slug=new-topic` from the deployed Worker before announcing the page
-4. Confirm `share_sends` rows are written after a real send:
+2. **Confirm slug registration** — check that `SHARE_MESSAGES['new-topic']` exists in
+   `worker/src/email-template.js` AND that a plain-text branch for the slug exists in
+   `buildShareEmailText()`. A detail page whose slug is missing from either will silently
+   fail on send. Grep to be sure:
+   ```bash
+   grep -n '"new-topic"' worker/src/email-template.js
+   grep -n '"new-topic"' worker/src/email-template.js | grep -c .   # should be ≥ 2
+   ```
+3. Check that `subject()` / `intro()` return expected strings
+4. Test GET `/api/share/preview?slug=new-topic` from the deployed Worker before announcing the page
+5. Confirm `share_sends` rows are written after a real send:
    ```bash
    npx wrangler d1 execute ballot_sources --remote --env production \
      --command "SELECT * FROM share_sends WHERE message_slug='new-topic' ORDER BY created_at DESC LIMIT 5;"
    ```
-5. Deploy with `./scripts/deploy_cf.sh` (Astro Pages) and `./scripts/deploy_worker.sh` (Worker) — both must run
+6. Deploy with `./scripts/deploy_cf.sh` (Astro Pages) and `./scripts/deploy_worker.sh` (Worker) — both must run
 
 ---
 
-## 13. Naming conventions
+## 13. Orphan prevention
+
+An **orphan** is an Astro detail page whose `message_slug` has no matching entry in
+`SHARE_MESSAGES`. The page loads fine in the browser, but "Have us send it" fails silently
+because the Worker can't find the slug.
+
+`wy-primary-election-participation.astro` was an orphan until it was registered in June 2026.
+Do not let this happen again.
+
+**Before publishing any new detail page, verify three things are all consistent:**
+
+| Check | Where |
+|-------|-------|
+| `message_slug: 'new-topic'` in the fetch body | `src/pages/share/new-topic.astro` `<script>` |
+| `"new-topic": { ... }` registry entry | `worker/src/email-template.js` `SHARE_MESSAGES` |
+| `slug === "new-topic" ? [...]` branch | `worker/src/email-template.js` `buildShareEmailText()` |
+
+All three must match, or the send flow is broken. The §12 production checklist grep catches this.
+
+---
+
+## 14. Naming conventions
 
 - Slug: lowercase kebab-case, no underscores, no uppercase (`new-topic` not `New_Topic`)
 - Astro file: `src/pages/share/<slug>.astro` — first line must be `// src/pages/share/<slug>.astro`

@@ -1,0 +1,1033 @@
+---
+// src/pages/share/wy-citizen-ballot.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+
+const PAGE_URL = 'https://skovgard2026.org/share/wy-citizen-ballot';
+
+const socialText = `Wyoming voters should be able to compare every candidate and choose one candidate per office.
+
+The Citizens Nonpartisan Ballot is an unofficial civic project through The Integrity Project: People's Primary.
+
+Some voters choose by party. Some voters choose by candidate. Wyoming should respect both.
+
+Keep party ballots. Add voter choice.
+
+Learn more: ${PAGE_URL}`;
+
+const emailBody = `Hi,
+
+I wanted to share this idea with you.
+
+The Citizens Nonpartisan Ballot is a civic project through The Integrity Project: People's Primary. The idea is simple: list every candidate for each office in one place and let voters choose one candidate per office, regardless of party label.
+
+This is not an official election and does not replace the official Wyoming primary. It is a voter education and public survey project to show what voter choice could look like.
+
+Some voters choose by party. Some voters choose by candidate. Wyoming should respect both.
+
+Take a look here:
+${PAGE_URL}`;
+
+const smsText = `Wyoming voters should be able to compare every candidate and choose one per office. The Citizens Nonpartisan Ballot is an unofficial civic project to show what voter choice could look like. Learn more: ${PAGE_URL}`;
+---
+<Base
+  title="Citizens Nonpartisan Ballot | Skovgard 2026"
+  description="The Citizens Nonpartisan Ballot is an unofficial civic project through The Integrity Project: People's Primary. Compare every candidate. Choose one per office. Keep party ballots. Add voter choice."
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Breadcrumb -->
+    <div class="bg-wy-bone border-b border-gray-200 py-3 px-4">
+      <div class="max-w-3xl mx-auto flex items-center gap-3">
+        <a href="/share" class="inline-flex items-center gap-1.5 text-gray-400 hover:text-wy-ember text-xs font-semibold uppercase tracking-widest transition-colors shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          All messages
+        </a>
+        <span class="text-gray-300 text-sm">/</span>
+        <span class="text-sm font-semibold text-wy-charcoal truncate">Citizens Nonpartisan Ballot</span>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-20 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="text-wy-sandstone font-bold uppercase tracking-widest text-xs mb-5">The Integrity Project: People's Primary</p>
+        <h1 class="text-4xl sm:text-5xl font-serif font-extrabold text-wy-bone mb-4 leading-tight">
+          Citizens Nonpartisan Ballot
+        </h1>
+        <p class="text-wy-bone/80 text-xl font-semibold mb-7 leading-snug">
+          Compare every candidate. Choose one per office.
+        </p>
+        <p class="text-wy-bone/70 text-base leading-relaxed mb-4 max-w-2xl">
+          Some Wyoming voters choose by party. Some Wyoming voters choose by candidate. Our election system should respect both.
+        </p>
+        <p class="text-wy-bone/70 text-base leading-relaxed mb-4 max-w-2xl">
+          The Citizens Nonpartisan Ballot is a simple civic idea: list every candidate for each office in one place and let voters choose one candidate per office, regardless of party label.
+        </p>
+        <p class="text-wy-bone/50 text-sm leading-relaxed mb-9 max-w-2xl">
+          This does not replace the official Wyoming primary. It is an unofficial voter education and public survey project through The Integrity Project: People's Primary.
+        </p>
+        <div class="flex flex-wrap gap-4">
+          <a href="#share-section" class="inline-flex items-center gap-2 px-6 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            Share This Idea
+          </a>
+          <a href="https://grassrootsmvt.org" target="_blank" rel="noopener"
+            class="inline-flex items-center gap-2 px-6 py-3 border-2 border-wy-bone/40 text-wy-bone font-bold rounded-lg hover:border-wy-bone/80 hover:bg-white/5 transition-colors text-sm">
+            Learn About the People's Primary
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Three-card overview -->
+    <div class="bg-wy-bone py-14 px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="overview-grid">
+          {[
+            {
+              icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+              head: 'Compare',
+              body: 'Every candidate for each office listed together. Compare people, records, service, character, and ideas — all in one place.',
+            },
+            {
+              icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+              head: 'Choose',
+              body: 'One voter. One ballot. One choice per office. No party filter required.',
+            },
+            {
+              icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+              head: 'Share',
+              body: 'Spread the idea. The more Wyoming voters who see this, the stronger the case for reform.',
+            },
+          ].map(c => (
+            <div class="overview-card">
+              <div class="overview-icon" aria-hidden="true">
+                <svg class="w-5 h-5 text-wy-ember" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={c.icon} />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-serif font-bold text-wy-charcoal text-lg mb-1">{c.head}</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">{c.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1: What is it -->
+    <section class="bg-white py-16 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">What is it</p>
+        <h2 class="section-h2">What is the Citizens Nonpartisan Ballot?</h2>
+        <p class="section-body">
+          The Citizens Nonpartisan Ballot is an unofficial civic model for voter choice.
+        </p>
+        <p class="section-body">
+          Instead of forcing voters to compare candidates through separate party ballots, it shows every candidate for each office together. Voters can compare people, records, service, character, and ideas in one place.
+        </p>
+        <div class="pull-quote" aria-label="The rule is simple">
+          <p class="pull-line">One voter.</p>
+          <p class="pull-line">One ballot.</p>
+          <p class="pull-line pull-line--accent">One choice per office.</p>
+        </div>
+        <p class="section-body">
+          This is not an official election. It is a public education and survey project designed to show what voter choice could look like in Wyoming.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 2: Why this matters -->
+    <section class="bg-wy-bone py-16 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">Why it matters</p>
+        <h2 class="section-h2">Why this matters</h2>
+        <p class="section-body">
+          I met a Wyoming voter who stopped registering because the current primary system did not allow support for preferred candidates across party lines.
+        </p>
+        <p class="section-body">
+          That should make us pause.
+        </p>
+        <p class="section-body">
+          Many Wyoming voters do not think only by party. We know candidates as neighbors, veterans, workers, business owners, parents, public servants, and community members. We may believe the best person for one office appears on one ballot and the best person for another office appears on another ballot.
+        </p>
+        <p class="section-body">
+          The current system can force voters into one lane. The Citizens Nonpartisan Ballot asks a better question:
+        </p>
+        <blockquote class="block-quote">
+          <p>Who has earned our trust for each office?</p>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- Section 3: What stays the same -->
+    <section class="bg-white py-16 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">What stays the same</p>
+        <h2 class="section-h2">What stays the same?</h2>
+        <p class="section-body">
+          This idea does not take away party ballots.
+        </p>
+        <p class="section-body">
+          Voters who want to choose a party ballot should be able to do so. Parties should remain free to organize, endorse, recruit, support, and speak.
+        </p>
+        <p class="section-body">
+          The Citizens Nonpartisan Ballot simply adds another path for voters who choose candidates by character, service, judgment, and trust.
+        </p>
+        <div class="slogan-box">
+          <p class="slogan-line">Keep party ballots.</p>
+          <p class="slogan-line slogan-line--accent">Add voter choice.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: What we are building -->
+    <section class="bg-wy-bone py-16 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">What we're building</p>
+        <h2 class="section-h2">What we are building</h2>
+        <p class="section-body">
+          Through The Integrity Project: People's Primary, we can build the public model now.
+        </p>
+        <p class="section-body">We can:</p>
+        <ul class="build-list" role="list">
+          <li>List every candidate by office</li>
+          <li>Let voters compare candidates side by side</li>
+          <li>Ask voters who they would choose if every candidate appeared together</li>
+          <li>Collect voter stories</li>
+          <li>Publish transparent survey results</li>
+          <li>Use the results to support future legislative reform</li>
+        </ul>
+        <p class="section-body mt-8">
+          This is how we move from complaint to construction.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 5: Legislative reform idea -->
+    <section class="bg-white py-16 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">The long-term goal</p>
+        <h2 class="section-h2">The legislative reform idea</h2>
+        <p class="section-body">
+          The long-term goal is the <strong>Wyoming Voter Choice Primary Act</strong>.
+        </p>
+        <p class="section-body">
+          The idea is simple: Wyoming should offer voters an optional all-candidate primary ballot, in addition to existing party primary ballots.
+        </p>
+        <p class="section-body">
+          A voter would choose one ballot. On the all-candidate ballot, every candidate for each office would be listed, and the voter would choose one candidate per office.
+        </p>
+        <p class="section-body">
+          This would respect party voters and candidate-based voters.
+        </p>
+      </div>
+    </section>
+
+    <!-- Disclaimer -->
+    <div class="bg-wy-bone py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <div class="disclaimer-box" role="note" aria-label="Important disclaimer">
+          <p class="disclaimer-label">Important</p>
+          <p class="disclaimer-body">
+            The Citizens Nonpartisan Ballot and The Integrity Project: People's Primary are
+            <strong>not official elections</strong> and do not replace the official Wyoming primary.
+            Official voting must be done through Wyoming's lawful election process and county clerks.
+          </p>
+          <p class="disclaimer-body mt-3">
+            This project is an unofficial civic survey and voter education effort.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share section: social + copy boxes -->
+    <section class="bg-white py-16 px-4" id="share-section">
+      <div class="max-w-3xl mx-auto">
+
+        <p class="section-kicker">Spread the word</p>
+        <h2 class="section-h2">Share the Citizens Nonpartisan Ballot</h2>
+        <p class="section-desc">Help us start a better conversation about voter choice in Wyoming.</p>
+
+        <!-- Social share buttons -->
+        <div class="flex flex-wrap gap-3 mb-12">
+          <a id="social-facebook" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+            </svg>
+            Share on Facebook
+          </a>
+          <a id="social-twitter" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Share on X
+          </a>
+          <button id="social-copy-link" type="button" class="social-btn-outline">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy link
+          </button>
+        </div>
+
+        <!-- Copy text boxes -->
+        <div class="copy-blocks">
+
+          <!-- Social text -->
+          <div class="copy-block">
+            <div class="copy-block-hd">
+              <span class="copy-block-label">Social media</span>
+              <button type="button" class="copy-btn" data-target="social-copy-text" aria-label="Copy social media text">
+                Copy text
+              </button>
+            </div>
+            <pre id="social-copy-text" class="copy-pre" aria-label="Prewritten social media text">{socialText}</pre>
+          </div>
+
+          <!-- Email -->
+          <div class="copy-block">
+            <div class="copy-block-hd">
+              <span class="copy-block-label">Email</span>
+              <div class="copy-btn-group">
+                <button type="button" class="copy-btn copy-btn--sm" data-target="email-subject-copy" aria-label="Copy email subject">
+                  Copy subject
+                </button>
+                <button type="button" class="copy-btn" data-target="email-body-copy" aria-label="Copy email body">
+                  Copy body
+                </button>
+              </div>
+            </div>
+            <div class="copy-subject-row">
+              <span class="copy-field-label">Subject:</span>
+              <span id="email-subject-copy" class="copy-field-value">Wyoming voter choice: Citizens Nonpartisan Ballot</span>
+            </div>
+            <pre id="email-body-copy" class="copy-pre" aria-label="Prewritten email body">{emailBody}</pre>
+          </div>
+
+          <!-- Text message -->
+          <div class="copy-block">
+            <div class="copy-block-hd">
+              <span class="copy-block-label">Text message</span>
+              <button type="button" class="copy-btn" data-target="sms-copy-text" aria-label="Copy text message">
+                Copy
+              </button>
+            </div>
+            <pre id="sms-copy-text" class="copy-pre" aria-label="Prewritten text message">{smsText}</pre>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Send by email (campaign Resend flow) -->
+    <section class="bg-wy-bone py-12 px-4" id="send-email">
+      <div class="max-w-2xl mx-auto">
+
+        <p class="section-kicker">Or have us send it</p>
+        <p class="section-desc">
+          Enter your contacts' addresses and we'll send a campaign-branded message on your behalf.
+          Recipients are not added to any mailing list.
+        </p>
+
+        <div class="bg-white rounded-2xl border border-gray-200 p-8">
+
+          <div class="mb-6">
+            <label for="share-sender" class="block text-sm font-semibold text-gray-700 mb-1">
+              Your name <span class="font-normal text-gray-400">(optional — personalizes the message)</span>
+            </label>
+            <input
+              id="share-sender"
+              type="text"
+              autocomplete="given-name"
+              placeholder="e.g. Sarah"
+              maxlength="80"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-wy-ember focus:border-wy-ember"
+            />
+          </div>
+
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-sm font-semibold text-gray-700">Friends' email addresses</label>
+              <button id="share-contacts-btn" type="button" hidden
+                class="text-xs font-semibold text-wy-ember hover:text-wy-ember-dark flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.47-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.47.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Add from contacts
+              </button>
+            </div>
+            <div
+              id="share-tag-box"
+              class="min-h-[48px] w-full px-2 py-1.5 border border-gray-300 rounded-lg bg-white cursor-text flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-wy-ember focus-within:border-wy-ember"
+              aria-label="Email address list"
+            >
+              <input
+                id="share-email-input"
+                type="email"
+                inputmode="email"
+                autocomplete="off"
+                autocapitalize="off"
+                placeholder="Type an address and press Enter"
+                class="flex-1 min-w-[180px] border-0 outline-none text-sm py-1 px-1 bg-transparent"
+              />
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">
+              Press <kbd>Enter</kbd> or <kbd>,</kbd> after each address. Paste a comma-separated list to add several at once. Up to 10 recipients.
+            </p>
+          </div>
+
+          <input id="share-trap" name="share_trap" type="text" autocomplete="off" tabindex="-1"
+            style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+
+          <div class="email-preview-wrap mb-6">
+            <div class="email-preview-header">
+              <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
+              <div class="epf"><span class="epl">Subject:</span> <span id="preview-subject-line">Wyoming voter choice: Citizens Nonpartisan Ballot</span></div>
+            </div>
+            <iframe
+              id="email-preview-iframe"
+              title="Preview of the email your contacts will receive"
+              sandbox="allow-same-origin"
+              scrolling="yes"
+              class="email-preview-iframe"
+            ></iframe>
+          </div>
+
+          <div id="share-status" role="status" aria-live="polite" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+          <button id="share-send-btn" type="button"
+            class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            <span id="share-send-label">Have us send it</span>
+          </button>
+
+          <p class="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+            We send a campaign-branded email on your behalf. Recipients are not added to any mailing list.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Closing CTA -->
+    <section class="bg-wy-charcoal py-20 px-4">
+      <div class="max-w-3xl mx-auto text-center">
+        <p class="text-wy-sandstone font-bold uppercase tracking-widest text-xs mb-5">The People's Primary</p>
+        <h2 class="text-3xl sm:text-4xl font-serif font-extrabold text-wy-bone mb-6 leading-tight">
+          Help build the People's Primary
+        </h2>
+        <p class="text-wy-bone/70 leading-relaxed mb-6 max-w-xl mx-auto">
+          We do not have to wait for a better system to begin modeling one.
+        </p>
+        <div class="text-wy-bone/60 text-sm leading-loose mb-6 max-w-sm mx-auto text-left">
+          <p>We can compare every candidate.</p>
+          <p>We can listen to voters.</p>
+          <p>We can collect stories.</p>
+          <p>We can show lawmakers that Wyoming is ready for more voter choice.</p>
+        </div>
+        <p class="text-wy-bone/70 leading-relaxed mb-10 max-w-xl mx-auto">
+          Public office belongs to the people. The ballot should trust us.
+        </p>
+        <a href="#share-section"
+          class="inline-flex items-center gap-2 px-8 py-4 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-base">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+          Share This Page
+        </a>
+        <div class="mt-10">
+          <a href="/share" class="inline-flex items-center gap-2 text-sm text-wy-bone/40 hover:text-wy-bone/70 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            More messages to share
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  /* Overview cards grid */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  @media (max-width: 640px) { .overview-grid { grid-template-columns: 1fr; } }
+
+  .overview-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 1.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid #f0ebe3;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .overview-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(178, 34, 52, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Section text helpers */
+  .section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .section-h2 {
+    font-family: 'Bitter', serif;
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #2b2b2b;
+    line-height: 1.25;
+    margin: 0 0 1.25rem;
+  }
+  .section-body {
+    font-size: 1rem;
+    color: #374151;
+    line-height: 1.75;
+    margin: 0 0 1.125rem;
+    max-width: 65ch;
+  }
+  .section-desc {
+    font-size: 0.9375rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 1.75rem;
+    max-width: 54ch;
+  }
+
+  /* Pull quote */
+  .pull-quote {
+    margin: 2.5rem 0;
+    padding: 1.5rem 1.75rem;
+    border-left: 5px solid #b22234;
+    background: #fbf8f1;
+    border-radius: 0 10px 10px 0;
+  }
+  .pull-line {
+    font-family: 'Bitter', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2b2b2b;
+    line-height: 1.4;
+    margin: 0 0 4px;
+  }
+  .pull-line--accent { color: #b22234; }
+
+  /* Block quote */
+  .block-quote {
+    margin: 2.5rem 0;
+    padding-left: 1.5rem;
+    border-left: 4px solid #b22234;
+  }
+  .block-quote p {
+    font-family: 'Bitter', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-style: italic;
+    color: #2b2b2b;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* Slogan box */
+  .slogan-box {
+    margin: 2.5rem 0;
+    padding: 1.5rem 1.75rem;
+    background: #f1ece1;
+    border: 1px solid rgba(198, 138, 74, 0.25);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .slogan-line {
+    font-family: 'Bitter', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2b2b2b;
+    margin: 0 0 4px;
+  }
+  .slogan-line--accent { color: #b22234; }
+
+  /* Build list */
+  .build-list {
+    list-style: none;
+    margin: 1.25rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  .build-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    font-size: 1rem;
+    color: #374151;
+    line-height: 1.6;
+  }
+  .build-list li::before {
+    content: '';
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #b22234;
+    margin-top: 0.55em;
+  }
+
+  /* Disclaimer */
+  .disclaimer-box {
+    border: 2px solid #fca5a5;
+    background: #fef2f2;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+  }
+  .disclaimer-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #b22234;
+    margin: 0 0 0.5rem;
+  }
+  .disclaimer-body {
+    font-size: 0.9rem;
+    color: #374151;
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  /* Social share buttons */
+  .social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.15s;
+  }
+  .social-btn:hover { background: #b22234; }
+  .social-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: transparent;
+    color: #2b2b2b;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 2px solid #2b2b2b;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .social-btn-outline:hover { background: #2b2b2b; color: #f1ece1; }
+
+  /* Copy text boxes */
+  .copy-blocks { display: flex; flex-direction: column; gap: 1.75rem; }
+
+  .copy-block {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .copy-block-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .copy-block-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+  }
+  .copy-btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    white-space: nowrap;
+  }
+  .copy-btn:hover { background: #b22234; }
+  .copy-btn--sm { background: #6b7280; }
+  .copy-btn--sm:hover { background: #4b5563; }
+
+  .copy-subject-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.875rem;
+  }
+  .copy-field-label { font-weight: 700; color: #6b7280; flex-shrink: 0; }
+  .copy-field-value { color: #111827; }
+
+  .copy-pre {
+    display: block;
+    margin: 0;
+    padding: 1rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    line-height: 1.65;
+    color: #374151;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #fff;
+  }
+
+  /* Email send form */
+  .share-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1ece1;
+    border: 1px solid #c68a4a33;
+    color: #2b2b2b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 8px 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+  .share-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .share-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: #c68a4a55;
+    color: #2b2b2b;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .share-chip button:hover { background: #b22234; color: #fff; }
+
+  #share-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  #share-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  #share-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  #share-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+
+  kbd {
+    padding: 1px 5px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    color: #6b7280;
+  }
+
+  .email-preview-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .email-preview-header {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .epf { font-size: 0.8125rem; color: #374151; line-height: 1.6; }
+  .epl { font-weight: 700; color: #6b7280; margin-right: 4px; }
+  .email-preview-iframe { display: block; width: 100%; height: 460px; border: none; }
+</style>
+
+<script>
+(function () {
+  const PAGE_URL = 'https://skovgard2026.org/share/wy-citizen-ballot';
+
+  /* Social share */
+  const tweetText = 'Wyoming voters should compare every candidate and choose one per office. Citizens Nonpartisan Ballot: an unofficial civic project. Keep party ballots. Add voter choice. #Wyoming';
+  const fbUrl  = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
+  const twUrl  = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_URL) + '&text=' + encodeURIComponent(tweetText);
+
+  const elFb = document.getElementById('social-facebook');
+  if (elFb) elFb.href = fbUrl;
+  const elTw = document.getElementById('social-twitter');
+  if (elTw) elTw.href = twUrl;
+
+  /* Generic clipboard copy */
+  async function copyToClipboard(text, btn) {
+    try {
+      await navigator.clipboard.writeText(text);
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = orig; }, 2200);
+    } catch {
+      btn.textContent = 'Copy manually';
+    }
+  }
+
+  /* Copy link button */
+  const copyLinkBtn = document.getElementById('social-copy-link');
+  if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', function () {
+      copyToClipboard(PAGE_URL, this);
+    });
+  }
+
+  /* Copy text boxes — delegated via data-target */
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-target]');
+    if (!btn) return;
+    const el = document.getElementById(btn.dataset.target);
+    if (el) copyToClipboard(el.textContent.trim(), btn);
+  });
+
+  /* Email state */
+  const emails = [];
+  const MAX    = 10;
+
+  const tagBox             = document.getElementById('share-tag-box');
+  const emailInput         = document.getElementById('share-email-input');
+  const senderInput        = document.getElementById('share-sender');
+  const contactsBtn        = document.getElementById('share-contacts-btn');
+  const previewIframe      = document.getElementById('email-preview-iframe');
+  const previewSubjectLine = document.getElementById('preview-subject-line');
+  const sendBtn            = document.getElementById('share-send-btn');
+  const sendLabel          = document.getElementById('share-send-label');
+  const statusEl           = document.getElementById('share-status');
+  const trapEl             = document.getElementById('share-trap');
+
+  function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
+
+  function setStatus(msg, type) {
+    if (!msg) { statusEl.classList.add('hidden'); statusEl.textContent = ''; return; }
+    statusEl.className = `mb-4 px-4 py-3 rounded-lg text-sm font-medium status-${type}`;
+    statusEl.textContent = msg;
+    statusEl.classList.remove('hidden');
+  }
+
+  function renderTags() {
+    Array.from(tagBox.querySelectorAll('.share-chip')).forEach(c => c.remove());
+    emails.forEach((email, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'share-chip';
+      chip.innerHTML = `<span title="${email}">${email}</span><button type="button" aria-label="Remove ${email}">✕</button>`;
+      chip.querySelector('button').addEventListener('click', () => removeEmail(i));
+      tagBox.insertBefore(chip, emailInput);
+    });
+    updateButtons();
+    schedulePreview();
+  }
+
+  function addEmail(raw) {
+    const e = raw.trim().toLowerCase();
+    if (!e) return;
+    if (!isValidEmail(e)) { setStatus(`"${e}" doesn't look like a valid email address.`, 'error'); return; }
+    if (emails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
+    if (emails.length >= MAX) { setStatus(`Maximum ${MAX} recipients per send.`, 'info'); return; }
+    setStatus('', '');
+    emails.push(e);
+    renderTags();
+  }
+
+  function removeEmail(i) { emails.splice(i, 1); setStatus('', ''); renderTags(); }
+
+  function updateButtons() { sendBtn.disabled = emails.length === 0; }
+
+  let previewTimer = null;
+
+  function buildPreviewUrl() {
+    const name   = senderInput.value.trim().slice(0, 80);
+    const params = new URLSearchParams({ slug: 'wy-citizen-ballot' });
+    if (name) params.set('sender_name', name);
+    return '/api/share/preview?' + params.toString();
+  }
+
+  function updateSubjectLine() {
+    const n = senderInput.value.trim();
+    if (previewSubjectLine) {
+      previewSubjectLine.textContent = n
+        ? `${n} wanted you to see this: Citizens Nonpartisan Ballot`
+        : 'Wyoming voter choice: Citizens Nonpartisan Ballot';
+    }
+  }
+
+  async function fetchPreview() {
+    updateSubjectLine();
+    if (!previewIframe) return;
+    try {
+      const resp = await fetch(buildPreviewUrl());
+      if (resp.ok) { previewIframe.srcdoc = await resp.text(); }
+    } catch (_) { /* Worker not running locally — iframe stays blank */ }
+  }
+
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(fetchPreview, 300);
+  }
+
+  senderInput.addEventListener('input', schedulePreview);
+
+  emailInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addEmail(emailInput.value);
+      emailInput.value = '';
+    } else if (e.key === 'Backspace' && emailInput.value === '' && emails.length > 0) {
+      removeEmail(emails.length - 1);
+    }
+  });
+
+  emailInput.addEventListener('blur', () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+  });
+
+  emailInput.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    pasted.split(/[,;\s\n]+/).forEach(p => { if (p.trim()) addEmail(p); });
+    emailInput.value = '';
+  });
+
+  tagBox.addEventListener('click', () => emailInput.focus());
+
+  (async () => {
+    if (!('contacts' in navigator)) return;
+    try {
+      const props = await navigator.contacts.getProperties();
+      if (!props.includes('email')) return;
+      contactsBtn.hidden = false;
+      contactsBtn.addEventListener('click', async () => {
+        try {
+          const picked = await navigator.contacts.select(['name', 'email'], { multiple: true });
+          picked.forEach(c => (c.email || []).forEach(e => addEmail(e)));
+        } catch (_) {}
+      });
+    } catch (_) {}
+  })();
+
+  sendBtn.addEventListener('click', async () => {
+    if (emails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
+    if (trapEl.value.trim()) return;
+
+    sendBtn.disabled = true;
+    sendLabel.textContent = 'Sending…';
+    setStatus('', '');
+
+    try {
+      const resp = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message_slug: 'wy-citizen-ballot',
+          sender_name:  senderInput.value.trim(),
+          recipients:   emails.slice(),
+          _trap: trapEl.value,
+          _t:    Date.now(),
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        setStatus(
+          resp.status === 404 && isLocal
+            ? 'Route not found — make sure the Worker is running: cd worker && npx wrangler dev'
+            : resp.status === 503
+            ? 'Share feature is not enabled on this environment yet.'
+            : data.error || 'Something went wrong. Please try again.',
+          'error'
+        );
+      } else {
+        const n = data.sent || emails.length;
+        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} delivered. Thank you for spreading the word.`, 'success');
+        emails.length = 0;
+        renderTags();
+      }
+    } catch (_) {
+      setStatus(
+        ['localhost', '127.0.0.1'].includes(window.location.hostname)
+          ? 'Worker not reachable — run `cd worker && npx wrangler dev` in a second terminal.'
+          : 'Network error. Please check your connection and try again.',
+        'error'
+      );
+    } finally {
+      sendLabel.textContent = 'Have us send it';
+      updateButtons();
+    }
+  });
+
+  updateButtons();
+  fetchPreview();
+
+  if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    setStatus(
+      'Local dev: "Have us send it" needs the Worker running. ' +
+      'In a second terminal: cd worker && npx wrangler dev.',
+      'info'
+    );
+  }
+})();
+</script>

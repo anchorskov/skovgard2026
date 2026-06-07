@@ -425,6 +425,63 @@ const WY_VOTER_ACCESS_BODY_HTML = `
   </p>
 `;
 
+const WY_CITIZEN_BALLOT_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I wanted to share this idea with you.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The Citizens Nonpartisan Ballot is a civic project through The Integrity Project:
+    People&#8217;s Primary. The idea is simple: list every candidate for each office in one
+    place and let voters choose one candidate per office, regardless of party label.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #d8b46a;background:#fbf8f1;">
+    <tr>
+      <td style="padding:18px 20px;">
+        <p style="margin:0 0 8px;font-size:17px;line-height:1.65;color:#111827;font-weight:bold;">
+          One voter. One ballot. One choice per office.
+        </p>
+        <p style="margin:0;font-size:16px;line-height:1.65;color:#111827;">
+          Every candidate for each office listed in one place. Voters compare people,
+          records, service, character, and ideas &#8212; and choose.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:0 0 22px;background:#fef7f7;border-left:5px solid #b22234;">
+    <tr>
+      <td style="padding:14px 18px;">
+        <p style="margin:0;font-size:15px;line-height:1.65;color:#111827;font-style:italic;">
+          <strong>This is not an official election.</strong>
+          It is a voter education and public survey project to show what voter choice
+          could look like in Wyoming.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Some voters choose by party. Some voters choose by candidate.
+    Wyoming should respect both.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Keep party ballots. Add voter choice.
+  </p>
+
+  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
+    Take a look here:
+    <a href="https://skovgard2026.org/share/wy-citizen-ballot"
+        style="color:#0f2742;font-weight:bold;">
+      skovgard2026.org/share/wy-citizen-ballot
+    </a>
+  </p>
+`;
+
 const UNTRAMMELED_SUFFRAGE_BODY_HTML = `
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
     I wanted to share a tool I have been building called <strong>Untrammeled Suffrage</strong>.
@@ -532,6 +589,55 @@ const UNTRAMMELED_SUFFRAGE_BODY_HTML = `
   </p>
 `;
 
+const WY_PRIMARY_ELECTION_PARTICIPATION_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I thought you might want to take this short Wyoming Primary Election Participation Survey.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The survey asks how Wyoming primary elections should work, including:
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:0 0 22px;border-left:5px solid #d8b46a;background:#fbf8f1;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#111827;">
+          Who should be able to participate in Wyoming primary elections
+        </p>
+        <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#111827;">
+          When party-affiliation deadlines should be set
+        </p>
+        <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#111827;">
+          How voter access and party nomination rights should be balanced
+        </p>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;">
+          How results should be reported
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    This survey is designed to gather registered Wyoming voter input. Responses may be
+    verified against a Wyoming registered voter file obtained from the Secretary of State.
+    Verified and unverified results can be reported separately, and individual responses
+    remain confidential.
+  </p>
+
+  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
+    <a href="https://grassrootsmvt.org/surveys/wy-primary-election-participation"
+        style="color:#0f2742;font-weight:bold;">
+      Take the survey
+    </a>
+    at grassrootsmvt.org/surveys/wy-primary-election-participation
+  </p>
+
+  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
+    Your voice helps build a clearer public record of what Wyoming voters want.
+  </p>
+`;
+
 // ── Message registry ───────────────────────────────────────────────────────────
 // One entry per shareable message. subject() and intro() accept an optional senderName.
 
@@ -607,6 +713,34 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted to share this survey with you.`
         : "A Wyoming neighbor wanted to share this survey with you.";
+    },
+  },
+  "wy-primary-election-participation": {
+    title:        "Wyoming Primary Election Participation Survey",
+    body_html:    WY_PRIMARY_ELECTION_PARTICIPATION_BODY_HTML,
+    preview_text: "Take a short survey on how Wyoming primary elections should work.",
+    subject() {
+      return "Wyoming Primary Election Participation Survey";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming survey with you.`
+        : "A Wyoming neighbor wanted to share this survey with you.";
+    },
+  },
+  "wy-citizen-ballot": {
+    title:        "Citizens Nonpartisan Ballot",
+    body_html:    WY_CITIZEN_BALLOT_BODY_HTML,
+    preview_text: "One voter. One ballot. One choice per office. An unofficial civic project for Wyoming voter choice.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this: Citizens Nonpartisan Ballot`
+        : "Wyoming voter choice: Citizens Nonpartisan Ballot";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this idea with you.`
+        : "A Wyoming neighbor wanted to share this idea with you.";
     },
   },
   "untrammeled-suffrage": {
@@ -905,6 +1039,26 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "Read the full breakdown with sources:",
           "https://skovgard2026.org/share/freedom-vs-control",
         ]
+    : slug === "wy-primary-election-participation"
+      ? [
+          "I thought you might want to take this short Wyoming Primary Election Participation Survey.",
+          "",
+          "The survey asks how Wyoming primary elections should work, including:",
+          "  - Who should be able to participate in Wyoming primary elections",
+          "  - When party-affiliation deadlines should be set",
+          "  - How voter access and party nomination rights should be balanced",
+          "  - How results should be reported",
+          "",
+          "This survey is designed to gather registered Wyoming voter input. Responses may be",
+          "verified against a Wyoming registered voter file obtained from the Secretary of State.",
+          "Verified and unverified results can be reported separately, and individual responses",
+          "remain confidential.",
+          "",
+          "Take the survey:",
+          "https://grassrootsmvt.org/surveys/wy-primary-election-participation",
+          "",
+          "Your voice helps build a clearer public record of what Wyoming voters want.",
+        ]
     : slug === "wy-voter-access"
       ? [
           "Wyoming voices matter.",
@@ -923,6 +1077,27 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "https://skovgard2026.org/surveys/wy-voter-access/info",
           "",
           "Exact questions and results will be published in aggregate.",
+        ]
+    : slug === "wy-citizen-ballot"
+      ? [
+          "I wanted to share this idea with you.",
+          "",
+          "The Citizens Nonpartisan Ballot is a civic project through The Integrity Project:",
+          "People's Primary. The idea is simple: list every candidate for each office in one",
+          "place and let voters choose one candidate per office, regardless of party label.",
+          "",
+          "One voter. One ballot. One choice per office.",
+          "",
+          "This is NOT an official election. It is a voter education and public survey project",
+          "to show what voter choice could look like in Wyoming.",
+          "",
+          "Some voters choose by party. Some voters choose by candidate.",
+          "Wyoming should respect both.",
+          "",
+          "Keep party ballots. Add voter choice.",
+          "",
+          "Take a look here:",
+          "https://skovgard2026.org/share/wy-citizen-ballot",
         ]
     : slug === "untrammeled-suffrage"
       ? [
