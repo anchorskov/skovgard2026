@@ -335,7 +335,58 @@ All three must match, or the send flow is broken. The §12 production checklist 
 
 ---
 
-## 14. Naming conventions
+## 14. Troubleshooting: "Sent!" shows but email never reaches Resend
+
+**Symptom:** The share page shows a green "Sent! N messages accepted for delivery" banner, the button re-enables, but:
+- No new row appears in D1 `share_sends`
+- No new entry appears in the Resend "Sending" dashboard
+- The recipient never receives the email
+
+This is the **server-side honeypot firing on a legitimate send**. The Worker silently returns `{ ok: true, sent: 0 }` without calling Resend or writing to D1 when the `_trap` field is non-empty.
+
+**Root cause:** Browser password managers and autofill can fill any visible text input — including hidden honeypot fields — even when `autocomplete="off"` and `tabindex="-1"` are set. When the user clicks send, `trapEl.value` is non-empty, so the JS reads that value into the fetch payload as `_trap: trapEl.value`. The Worker interprets this as a bot and drops the send.
+
+**How to confirm:**
+
+1. Check D1 — if no new row exists for the slug after a "Sent!" success, the send never reached Resend:
+   ```bash
+   npx wrangler d1 execute ballot_sources --remote --env production \
+     --command "SELECT * FROM share_sends ORDER BY created_at DESC LIMIT 5;"
+   ```
+2. Check the Resend dashboard "Sending" tab — browser sends that reach Resend appear there immediately.
+3. In browser dev tools → Network tab, click send and inspect the `/api/share` response body. If `sent: 0`, the honeypot fired.
+
+**The fix (already applied to all share pages):**
+
+In the fetch body, always hardcode `_trap: ""` instead of reading from `trapEl.value`:
+
+```js
+// WRONG — autofill silently blocks sends
+body: JSON.stringify({
+  message_slug: 'new-topic',
+  sender_name:  senderInput.value.trim(),
+  recipients:   emails.slice(),
+  _trap: trapEl.value,   // ← autofill fills this
+  _t:    Date.now(),
+}),
+
+// CORRECT — server-side check still catches direct-POST bots
+body: JSON.stringify({
+  message_slug: 'new-topic',
+  sender_name:  senderInput.value.trim(),
+  recipients:   emails.slice(),
+  _trap: "",             // ← always empty from the browser
+  _t:    Date.now(),
+}),
+```
+
+The server-side honeypot check in the Worker (`if (String(b._trap || "").trim())`) still catches bots that POST directly with a non-empty `_trap`. Only browser autofill — which fills the DOM input but has no effect on a hardcoded JS string — is neutralized.
+
+**When adding a new detail page**, always use `_trap: ""` in the fetch body. Do not reference `trapEl.value`.
+
+---
+
+## 15. Naming conventions
 
 - Slug: lowercase kebab-case, no underscores, no uppercase (`new-topic` not `New_Topic`)
 - Astro file: `src/pages/share/<slug>.astro` — first line must be `// src/pages/share/<slug>.astro`
@@ -345,7 +396,7 @@ All three must match, or the send flow is broken. The §12 production checklist 
 
 ---
 
-## 14. Sources pages
+## 16. Sources pages
 
 Messages that make verifiable public claims must have a matching sources page.
 
