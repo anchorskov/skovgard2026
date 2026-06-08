@@ -587,7 +587,7 @@ import Footer from '../../components/Footer.astro';
         );
       } else {
         const n = data.sent || emails.length;
-        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} delivered. Thank you for spreading the word.`, 'success');
+        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} accepted for delivery. Thank you for spreading the word.`, 'success');
         emails.length = 0;
         renderTags();
       }

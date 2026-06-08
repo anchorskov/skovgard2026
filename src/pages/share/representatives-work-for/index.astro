@@ -696,7 +696,7 @@ import Footer from '../../../components/Footer.astro';
         );
       } else {
         const n = data.sent || rwfEmails.length;
-        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} delivered. Thank you for spreading the word.`, 'success');
+        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} accepted for delivery. Thank you for spreading the word.`, 'success');
         rwfEmails.length = 0;
         renderTags();
       }
