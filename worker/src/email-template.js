@@ -634,6 +634,43 @@ const WY_PRIMARY_ELECTION_PARTICIPATION_BODY_HTML = `
   </p>
 `;
 
+const WY_DATA_CENTERS_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Wyoming is seeing more discussion about large data centers and other large-load facilities.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    These projects may bring investment, jobs, tax revenue, and technology infrastructure.
+    They may also affect water, electric rates, roads, housing, wildlife, agriculture, and local planning.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    This survey does not take a position for or against data centers. It asks what safeguards,
+    benefits, and public-review standards Wyoming voters believe should apply before large
+    projects move forward.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+    <tr>
+      <td style="text-align:center;padding:4px 0 20px;">
+        <a href="https://grassrootsmvt.org/surveys/wy-data-centers"
+           style="display:inline-block;padding:14px 28px;background:#b22234;color:#f1ece1;font-weight:bold;font-size:16px;text-decoration:none;border-radius:8px;">
+          Take the Survey
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#111827;">
+    Please share with three Wyoming neighbors. The more Wyoming voices, the clearer the picture.
+  </p>
+
+  <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#6b7280;">
+    Individual responses are not published. Results are reported only in aggregate &#8212; statewide,
+    county, State House district, or State Senate district totals when enough responses are available.
+  </p>
+`;
+
 // ── Message registry ───────────────────────────────────────────────────────────
 // One entry per shareable message. subject() and intro() accept an optional senderName.
 
@@ -752,6 +789,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted to share this with you.`
         : "Jimmy Skovgard wanted to share this with you.";
+    },
+  },
+  "wy-data-centers": {
+    title:        "Wyoming Data Centers Survey",
+    body_html:    WY_DATA_CENTERS_BODY_HTML,
+    preview_text: "Wyoming voters should help set the standards: water, power, rates, local input, transparency.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this: Wyoming Data Centers Survey`
+        : "Wyoming data centers: what safeguards should come first?";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this survey with you.`
+        : "A Wyoming neighbor wanted to share this survey with you.";
     },
   },
 };
@@ -1092,6 +1144,21 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Take a look here:",
           "https://skovgard2026.org/share/wy-citizen-ballot",
+        ]
+    : slug === "wy-data-centers"
+      ? [
+          "Wyoming is seeing more discussion about large data centers and other large-load facilities.",
+          "",
+          "These projects may bring investment, jobs, tax revenue, and technology infrastructure.",
+          "They may also affect water, electric rates, roads, housing, wildlife, agriculture, and",
+          "local planning.",
+          "",
+          "This survey does not take a position for or against data centers. It asks what safeguards,",
+          "benefits, and public-review standards Wyoming voters believe should apply before large",
+          "projects move forward.",
+          "",
+          "Please take the survey and share it with three Wyoming neighbors:",
+          "https://grassrootsmvt.org/surveys/wy-data-centers",
         ]
     : slug === "untrammeled-suffrage"
       ? [
