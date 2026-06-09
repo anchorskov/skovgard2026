@@ -1,0 +1,507 @@
+---
+// src/pages/share/wy-four-pillars.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="Wyoming Four Pillars Survey | Skovgard 2026"
+  description="Life. Religious Liberty. Family Values. Education Freedom. Wyoming voters deserve clear questions and accountable answers."
+  ogImage="/images/share/meme-wy-four-pillars.png"
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Breadcrumb bar -->
+    <div class="bg-wy-bone border-b border-gray-200 py-3 px-4">
+      <div class="max-w-3xl mx-auto flex items-center gap-3">
+        <a href="/share" class="inline-flex items-center gap-1.5 text-gray-400 hover:text-wy-ember text-xs font-semibold uppercase tracking-widest transition-colors shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          All messages
+        </a>
+        <span class="text-gray-300 text-sm">/</span>
+        <span class="text-sm font-semibold text-wy-charcoal truncate">Wyoming Four Pillars Survey</span>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-16 px-4 text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Survey</p>
+      <h1 class="text-3xl sm:text-4xl font-serif font-extrabold text-wy-bone mb-2 leading-tight max-w-2xl mx-auto">
+        Wyoming Four Pillars Survey
+      </h1>
+      <p class="text-wy-sandstone font-semibold text-base sm:text-lg mb-6 tracking-wide">
+        Life. Religious Liberty. Family Values. Education Freedom.
+      </p>
+      <p class="text-wy-bone/75 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto mb-8">
+        Wyoming voters deserve more than slogans. These questions ask where we stand, what we value,
+        and what limits our Constitution places on lawmaking.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a
+          href="https://grassrootsmvt.org/surveys/wy-four-pillars"
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          Take the Survey
+        </a>
+        <button
+          id="hero-copy-link"
+          type="button"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-transparent border-2 border-wy-bone/60 text-wy-bone font-bold rounded-lg hover:border-wy-bone transition-colors text-sm"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <span id="hero-copy-label">Copy Share Link</span>
+        </button>
+      </div>
+      <p id="hero-copy-confirm" class="mt-4 text-wy-sandstone text-sm font-semibold hidden">
+        Link copied. Share it with your Wyoming neighbors.
+      </p>
+    </div>
+
+    <!-- About the survey -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-2xl mx-auto">
+        <p class="body-prose">
+          This survey is non-binding. Individual answers remain confidential. Results will be
+          published in aggregate so we can see where Wyoming voters agree, where we differ, and
+          where lawmakers need to listen.
+        </p>
+        <p class="body-prose">
+          It is not a poll. It is not a petition. It is a public-input project built on the belief
+          that Wyoming voters can handle serious questions — and that serious questions deserve
+          honest answers.
+        </p>
+      </div>
+    </section>
+
+    <!-- Four pillars cards -->
+    <section class="bg-white py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">The four pillars</p>
+        <div class="pillars-grid">
+
+          <div class="pillar-card">
+            <div class="pillar-icon" aria-hidden="true">I</div>
+            <h2 class="pillar-title">Life</h2>
+            <p class="pillar-body">
+              Questions about abortion law, unborn life, exceptions, enforcement,
+              medical decision-making, and pregnancy support.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon" aria-hidden="true">II</div>
+            <h2 class="pillar-title">Religious Liberty</h2>
+            <p class="pillar-body">
+              Questions about conscience, public programs, schools, public meetings,
+              religious expression, and equal access.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon" aria-hidden="true">III</div>
+            <h2 class="pillar-title">Family Values</h2>
+            <p class="pillar-body">
+              Questions about parental rights, school transparency, child safety,
+              online access, libraries, medical consent, and due process.
+            </p>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon" aria-hidden="true">IV</div>
+            <h2 class="pillar-title">Education Freedom</h2>
+            <p class="pillar-body">
+              Questions about public schools, private schools, religious schools,
+              homeschool families, school choice funding, rural schools, and accountability.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Survey CTA -->
+        <div class="callout-box mt-10">
+          <p class="callout-label">Take the survey</p>
+          <p class="callout-text">
+            Specific questions. Confidential answers. Aggregate results.
+          </p>
+          <a
+            href="https://grassrootsmvt.org/surveys/wy-four-pillars"
+            target="_blank"
+            rel="noopener"
+            class="callout-link"
+          >
+            Take the Wyoming Four Pillars Survey
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </a>
+          <p class="survey-url">grassrootsmvt.org/surveys/wy-four-pillars</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Social image preview -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">Share on social media</p>
+        <p class="section-desc">
+          This is what people see when you post the link on Facebook or X.
+        </p>
+        <figure class="rounded-xl overflow-hidden shadow-lg mb-7">
+          <img
+            src="/images/share/meme-wy-four-pillars.png"
+            alt="Wyoming Four Pillars Survey — Life, Religious Liberty, Family Values, Education Freedom"
+            class="w-full block"
+            style="background-color:#2b2b2b;min-height:180px;"
+            loading="eager"
+          />
+        </figure>
+      </div>
+    </section>
+
+    <!-- Suggested share message + share buttons -->
+    <section class="bg-white py-12 px-4">
+      <div class="max-w-2xl mx-auto">
+        <p class="section-kicker">Suggested share message</p>
+        <p class="section-desc">
+          Copy this message and send it to Wyoming neighbors. The more Wyoming voices, the clearer the picture.
+        </p>
+
+        <div class="share-text-box">
+          <p id="share-message-text">
+            Wyoming voters should have a clear voice on Life, Religious Liberty, Family Values, and
+            Education Freedom. This survey asks specific questions and publishes results in aggregate.
+            Take it, share it, and help us hear from more Wyoming voters.
+          </p>
+          <p class="share-message-url">https://www.skovgard2026.org/share/wy-four-pillars/</p>
+        </div>
+
+        <div class="flex flex-wrap gap-3 mt-5">
+          <a id="social-facebook" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+            </svg>
+            Share on Facebook
+          </a>
+          <a id="social-email" href="#" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Share by Email
+          </a>
+          <button id="social-copy-link" type="button" class="social-btn-outline">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <span id="copy-link-label">Copy Link</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Disclaimer -->
+    <section class="bg-wy-bone py-10 px-4">
+      <div class="max-w-2xl mx-auto">
+        <div class="disclaimer-box">
+          <p class="disclaimer-label">About this survey</p>
+          <p class="disclaimer-text">
+            This survey is a public-input proof of concept by Skovgard for Senate. It is not
+            affiliated with, endorsed by, or reviewed by Wyoming Family Alliance. Results do not
+            create binding policy, legal action, or an official position for any organization.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why share -->
+    <section class="bg-white pt-4 pb-16 px-4">
+      <div class="max-w-3xl mx-auto text-center">
+        <div class="grid sm:grid-cols-3 gap-6 text-left mb-12">
+          {[
+            { n: '1', head: 'Specific questions', body: 'No vague slogans. Each pillar covers concrete policy questions Wyoming voters can answer honestly.' },
+            { n: '2', head: 'Confidential answers', body: 'Individual responses are never published. Results are reported only in aggregate.' },
+            { n: '3', head: 'Public results', body: 'Aggregate results will be published so Wyoming voters and lawmakers can see where we stand.' },
+          ].map(item => (
+            <div class="flex gap-4">
+              <span class="text-wy-ember font-serif font-extrabold text-2xl leading-none mt-0.5">{item.n}.</span>
+              <div>
+                <h3 class="font-semibold text-wy-charcoal mb-1">{item.head}</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">{item.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <a href="/share" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-wy-ember transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          More messages to share
+        </a>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .body-prose {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #2b2b2b;
+    margin: 0 0 20px;
+  }
+
+  /* Section headers */
+  .section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 52ch;
+  }
+
+  /* Four pillars grid */
+  .pillars-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+    margin-top: 1rem;
+  }
+  @media (max-width: 540px) {
+    .pillars-grid { grid-template-columns: 1fr; }
+  }
+
+  .pillar-card {
+    background: #f9f6f0;
+    border: 1px solid #e5ddd0;
+    border-radius: 12px;
+    padding: 22px 20px;
+  }
+  .pillar-icon {
+    font-family: 'Bitter', serif;
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #c68a4a;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .pillar-title {
+    font-family: 'Bitter', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2b2b2b;
+    margin: 0 0 8px;
+    line-height: 1.3;
+  }
+  .pillar-body {
+    font-size: 0.875rem;
+    color: #4b4b4b;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Callout box */
+  .callout-box {
+    background: #2b2b2b;
+    border-radius: 14px;
+    padding: 24px 28px;
+    color: #f1ece1;
+  }
+  .callout-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin: 0 0 8px;
+  }
+  .callout-text {
+    font-family: 'Bitter', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #f1ece1;
+    margin: 0 0 16px;
+  }
+  .callout-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: #b22234;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.15s;
+    margin-bottom: 12px;
+  }
+  .callout-link:hover { background: #8b1a26; }
+  .survey-url {
+    font-size: 0.8rem;
+    color: #c68a4a;
+    margin: 4px 0 0;
+    font-family: ui-monospace, monospace;
+  }
+
+  /* Share message text box */
+  .share-text-box {
+    background: #f9f6f0;
+    border: 1px solid #e5ddd0;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .share-text-box p {
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: #2b2b2b;
+    margin: 0 0 10px;
+  }
+  .share-text-box p:last-child { margin-bottom: 0; }
+  .share-message-url {
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem !important;
+    color: #c68a4a !important;
+  }
+
+  /* Social share buttons */
+  .social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.15s;
+  }
+  .social-btn:hover { background: #b22234; }
+  .social-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: transparent;
+    color: #2b2b2b;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 2px solid #2b2b2b;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .social-btn-outline:hover { background: #2b2b2b; color: #f1ece1; }
+
+  /* Disclaimer box */
+  .disclaimer-box {
+    background: #f9f6f0;
+    border: 1px solid #e5ddd0;
+    border-left: 4px solid #c68a4a;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .disclaimer-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #7a8a6b;
+    margin: 0 0 6px;
+  }
+  .disclaimer-text {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #4b4b4b;
+    margin: 0;
+  }
+</style>
+
+<script>
+(function () {
+  const PAGE_URL = 'https://www.skovgard2026.org/share/wy-four-pillars/';
+
+  const EMAIL_SUBJECT = 'Wyoming Four Pillars Survey';
+  const EMAIL_BODY =
+    'Wyoming voters should have a clear voice on Life, Religious Liberty, Family Values, and Education Freedom.\n\n' +
+    'This survey asks specific public policy questions and publishes results in aggregate.\n\n' +
+    'Take the survey here:\n' +
+    'https://grassrootsmvt.org/surveys/wy-four-pillars\n\n' +
+    'Share page:\n' +
+    PAGE_URL;
+
+  /* ── Social share links ──────────────────────────────────── */
+  const fbUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
+  const mailtoHref = 'mailto:?subject=' + encodeURIComponent(EMAIL_SUBJECT) +
+    '&body=' + encodeURIComponent(EMAIL_BODY);
+
+  const elFb = document.getElementById('social-facebook');
+  if (elFb) elFb.href = fbUrl;
+
+  const elEmail = document.getElementById('social-email');
+  if (elEmail) elEmail.href = mailtoHref;
+
+  /* ── Copy link (social section) ──────────────────────────── */
+  const copyLinkBtn  = document.getElementById('social-copy-link');
+  const copyLinkLabel = document.getElementById('copy-link-label');
+  if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(PAGE_URL);
+        if (copyLinkLabel) copyLinkLabel.textContent = 'Copied!';
+        setTimeout(() => { if (copyLinkLabel) copyLinkLabel.textContent = 'Copy Link'; }, 3000);
+      } catch {
+        if (copyLinkLabel) copyLinkLabel.textContent = 'Please copy the URL manually.';
+        setTimeout(() => { if (copyLinkLabel) copyLinkLabel.textContent = 'Copy Link'; }, 3500);
+      }
+    });
+  }
+
+  /* ── Copy link (hero) ────────────────────────────────────── */
+  const heroCopyBtn     = document.getElementById('hero-copy-link');
+  const heroCopyLabel   = document.getElementById('hero-copy-label');
+  const heroCopyConfirm = document.getElementById('hero-copy-confirm');
+  if (heroCopyBtn) {
+    heroCopyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(PAGE_URL);
+        if (heroCopyLabel) heroCopyLabel.textContent = 'Copied!';
+        if (heroCopyConfirm) heroCopyConfirm.classList.remove('hidden');
+        setTimeout(() => {
+          if (heroCopyLabel) heroCopyLabel.textContent = 'Copy Share Link';
+          if (heroCopyConfirm) heroCopyConfirm.classList.add('hidden');
+        }, 3500);
+      } catch {
+        if (heroCopyLabel) heroCopyLabel.textContent = 'Please copy the URL manually.';
+        setTimeout(() => { if (heroCopyLabel) heroCopyLabel.textContent = 'Copy Share Link'; }, 3500);
+      }
+    });
+  }
+})();
+</script>

@@ -634,6 +634,48 @@ const WY_PRIMARY_ELECTION_PARTICIPATION_BODY_HTML = `
   </p>
 `;
 
+const WY_FOUR_PILLARS_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Wyoming voters deserve more than slogans. The Wyoming Four Pillars Survey asks specific public
+    policy questions and publishes results in aggregate &#8212; so we can see where Wyoming voters
+    agree, where we differ, and where lawmakers need to listen.
+  </p>
+
+  <p style="margin:0 0 8px;font-size:15px;font-weight:bold;color:#2b2b2b;">The four pillars covered:</p>
+  <ul style="margin:0 0 18px;padding-left:22px;font-size:15px;line-height:1.7;color:#111827;">
+    <li><strong>Life</strong> &#8212; abortion law, unborn life, exceptions, enforcement, medical decision-making, pregnancy support</li>
+    <li><strong>Religious Liberty</strong> &#8212; conscience, public programs, schools, public meetings, religious expression, equal access</li>
+    <li><strong>Family Values</strong> &#8212; parental rights, school transparency, child safety, online access, libraries, medical consent, due process</li>
+    <li><strong>Education Freedom</strong> &#8212; public schools, private schools, religious schools, homeschool families, school choice funding, rural schools, accountability</li>
+  </ul>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The survey is non-binding. Individual answers remain confidential. Results will be published
+    in aggregate.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+    <tr>
+      <td style="text-align:center;padding:4px 0 20px;">
+        <a href="https://grassrootsmvt.org/surveys/wy-four-pillars"
+           style="display:inline-block;padding:14px 28px;background:#b22234;color:#f1ece1;font-weight:bold;font-size:16px;text-decoration:none;border-radius:8px;">
+          Take the Survey
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#111827;">
+    Please share with three Wyoming neighbors. The more Wyoming voices, the clearer the picture.
+  </p>
+
+  <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#6b7280;">
+    This survey is a public-input proof of concept by Skovgard for Senate. It is not affiliated
+    with, endorsed by, or reviewed by Wyoming Family Alliance. Results do not create binding
+    policy, legal action, or an official position for any organization.
+  </p>
+`;
+
 const WY_DATA_CENTERS_BODY_HTML = `
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
     Wyoming is seeing more discussion about large data centers and other large-load facilities.
@@ -799,6 +841,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted you to see this: Wyoming Data Centers Survey`
         : "Wyoming data centers: what safeguards should come first?";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this survey with you.`
+        : "A Wyoming neighbor wanted to share this survey with you.";
+    },
+  },
+  "wy-four-pillars": {
+    title:        "Wyoming Four Pillars Survey",
+    body_html:    WY_FOUR_PILLARS_BODY_HTML,
+    preview_text: "Life. Religious Liberty. Family Values. Education Freedom. Wyoming voters deserve clear questions and accountable answers.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this: Wyoming Four Pillars Survey`
+        : "Wyoming Four Pillars Survey";
     },
     intro(n) {
       return n
@@ -1144,6 +1201,37 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Take a look here:",
           "https://skovgard2026.org/share/wy-citizen-ballot",
+        ]
+    : slug === "wy-four-pillars"
+      ? [
+          "Wyoming voters deserve more than slogans. The Wyoming Four Pillars Survey asks",
+          "specific public policy questions and publishes results in aggregate.",
+          "",
+          "The four pillars covered:",
+          "",
+          "  LIFE — abortion law, unborn life, exceptions, enforcement, medical",
+          "    decision-making, and pregnancy support.",
+          "",
+          "  RELIGIOUS LIBERTY — conscience, public programs, schools, public meetings,",
+          "    religious expression, and equal access.",
+          "",
+          "  FAMILY VALUES — parental rights, school transparency, child safety,",
+          "    online access, libraries, medical consent, and due process.",
+          "",
+          "  EDUCATION FREEDOM — public schools, private schools, religious schools,",
+          "    homeschool families, school choice funding, rural schools, and accountability.",
+          "",
+          "The survey is non-binding. Individual answers remain confidential.",
+          "Results will be published in aggregate.",
+          "",
+          "Take the survey:",
+          "https://grassrootsmvt.org/surveys/wy-four-pillars",
+          "",
+          "Share page:",
+          "https://www.skovgard2026.org/share/wy-four-pillars/",
+          "",
+          "This survey is a public-input proof of concept by Skovgard for Senate.",
+          "It is not affiliated with, endorsed by, or reviewed by Wyoming Family Alliance.",
         ]
     : slug === "wy-data-centers"
       ? [
