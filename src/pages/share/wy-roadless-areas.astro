@@ -1,0 +1,890 @@
+---
+// src/pages/share/wy-roadless-areas.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="Wyoming Roadless Areas Survey | Skovgard 2026"
+  description="Wyoming has 3M+ acres of inventoried roadless areas. A federal rulemaking may rescind the 2001 rule. Water, wildlife, access, fire risk, local voice — Wyoming voters deserve a say."
+  ogImage="/images/share/meme-wy-roadless-areas.png"
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Breadcrumb bar -->
+    <div class="bg-wy-bone border-b border-gray-200 py-3 px-4">
+      <div class="max-w-3xl mx-auto flex items-center gap-3">
+        <a href="/share" class="inline-flex items-center gap-1.5 text-gray-400 hover:text-wy-ember text-xs font-semibold uppercase tracking-widest transition-colors shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          All messages
+        </a>
+        <span class="text-gray-300 text-sm">/</span>
+        <span class="text-sm font-semibold text-wy-charcoal truncate">Wyoming Roadless Areas Survey</span>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-16 px-4 text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Survey</p>
+      <h1 class="text-3xl sm:text-4xl font-serif font-extrabold text-wy-bone mb-2 leading-tight max-w-2xl mx-auto">
+        Wyoming Roadless Areas Survey
+      </h1>
+      <p class="text-wy-sandstone font-semibold text-base sm:text-lg mb-6 tracking-wide">
+        Water. Wildlife. Access. Fire Risk. Local Voice.
+      </p>
+      <p class="text-wy-bone/75 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto mb-8">
+        Wyoming has more than 3 million acres of inventoried roadless areas on National Forest System lands.
+        A federal rulemaking is considering rescission of the 2001 Roadless Rule. This survey asks Wyoming
+        voters what standards should guide the decision.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a
+          href="https://grassrootsmvt.org/surveys/wy-roadless-areas"
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          Take the Survey
+        </a>
+        <button
+          id="hero-copy-msg"
+          type="button"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-transparent border-2 border-wy-bone/60 text-wy-bone font-bold rounded-lg hover:border-wy-bone transition-colors text-sm"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <span id="hero-copy-label">Copy Share Message</span>
+        </button>
+      </div>
+      <p id="hero-copy-confirm" class="mt-4 text-wy-sandstone text-sm font-semibold hidden">
+        Copied. Now send it to three Wyoming neighbors.
+      </p>
+    </div>
+
+    <!-- About the survey -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-2xl mx-auto">
+        <p class="body-prose">
+          This survey is non-binding and education-focused. Individual answers remain confidential.
+          Results will be published in aggregate so we can see where Wyoming voters stand on water,
+          wildlife, access, wildfire risk, and local voice.
+        </p>
+        <p class="body-prose">
+          The survey presents both sides honestly&#8212;the case for returning more flexibility to
+          local land managers, and the case for maintaining roadless protections for water, wildlife
+          habitat, and backcountry hunting and fishing. Wyoming voters can handle both arguments and
+          deserve to be heard before decisions are made.
+        </p>
+        <p class="body-prose">
+          Survey results create a public record that can be compared with future agency decisions,
+          proposed legislation, and votes related to roadless areas and forest management.
+        </p>
+      </div>
+    </section>
+
+    <!-- Five issue cards -->
+    <section class="bg-white py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">What the survey covers</p>
+        <div class="issues-grid">
+
+          <div class="issue-card">
+            <div class="issue-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c0 4-4 6-4 8h8c0-2-4-4-4-8z" />
+              </svg>
+            </div>
+            <h2 class="issue-title">Water</h2>
+            <p class="issue-body">
+              Questions about watershed protection, water supply, and what water-impact information
+              should be required before project decisions on roadless lands.
+            </p>
+          </div>
+
+          <div class="issue-card">
+            <div class="issue-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2c-1 3-4 5-4 8a4 4 0 008 0c0-3-3-5-4-8z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 17c0 2 1.8 3 4 3s4-1 4-3" />
+              </svg>
+            </div>
+            <h2 class="issue-title">Wildlife</h2>
+            <p class="issue-body">
+              Questions about big-game habitat, backcountry hunting and fishing, and what wildlife
+              standards should apply when road construction or timber work is proposed.
+            </p>
+          </div>
+
+          <div class="issue-card">
+            <div class="issue-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </div>
+            <h2 class="issue-title">Access</h2>
+            <p class="issue-body">
+              Questions about recreational and emergency access, the difference between temporary
+              and permanent roads, and who should decide when roads are necessary.
+            </p>
+          </div>
+
+          <div class="issue-card">
+            <div class="issue-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+              </svg>
+            </div>
+            <h2 class="issue-title">Fire Risk</h2>
+            <p class="issue-body">
+              Questions about wildfire management, forest health treatment, and whether road access
+              improves or complicates fire response in Wyoming&#8217;s forests.
+            </p>
+          </div>
+
+          <div class="issue-card">
+            <div class="issue-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.47-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.47.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <h2 class="issue-title">Local Voice</h2>
+            <p class="issue-body">
+              Questions about how Wyoming input should be gathered, reported, and compared with
+              future agency decisions and legislative votes on roadless areas.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Survey CTA -->
+        <div class="callout-box mt-10">
+          <p class="callout-label">Take the survey</p>
+          <p class="callout-text">
+            Specific questions. Confidential answers. Aggregate results.
+          </p>
+          <a
+            href="https://grassrootsmvt.org/surveys/wy-roadless-areas"
+            target="_blank"
+            rel="noopener"
+            class="callout-link"
+          >
+            Take the Wyoming Roadless Areas Survey
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </a>
+          <p class="survey-url">grassrootsmvt.org/surveys/wy-roadless-areas</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ① Share on social media -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">Share on social media</p>
+        <p class="section-desc">
+          This is what people see when you post the link on Facebook or X.
+        </p>
+        <figure class="rounded-xl overflow-hidden shadow-lg mb-7">
+          <img
+            src="/images/share/meme-wy-roadless-areas.png"
+            alt="Wyoming Roadless Areas Survey — Water, Wildlife, Access, Fire Risk, Local Voice"
+            class="w-full block"
+            style="background-color:#0f2742;min-height:180px;"
+            loading="eager"
+          />
+        </figure>
+
+        <div class="flex flex-wrap gap-3">
+          <a id="social-facebook" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+            </svg>
+            Share on Facebook
+          </a>
+          <a id="social-twitter" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Share on X
+          </a>
+          <button id="social-copy-link" type="button" class="social-btn-outline">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy link
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ② Send by email -->
+    <section class="bg-white py-12 px-4" id="send-email">
+      <div class="max-w-2xl mx-auto">
+
+        <p class="section-kicker">Send by email to your contacts</p>
+        <p class="section-desc">
+          This is the written message your contacts receive in their inbox.
+          It is not the image above — it is a personal email that comes from you.
+        </p>
+
+        <div class="bg-wy-bone rounded-2xl border border-gray-200 p-8">
+
+          <!-- Your name -->
+          <div class="mb-6">
+            <label for="share-sender" class="block text-sm font-semibold text-gray-700 mb-1">
+              Your name <span class="font-normal text-gray-400">(optional — personalises the message)</span>
+            </label>
+            <input
+              id="share-sender"
+              type="text"
+              autocomplete="given-name"
+              placeholder="e.g. Sarah"
+              maxlength="80"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:ring-2 focus:ring-wy-ember focus:border-wy-ember"
+            />
+          </div>
+
+          <!-- Email tag input -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-sm font-semibold text-gray-700">
+                Friends' email addresses
+              </label>
+              <button
+                id="share-contacts-btn"
+                type="button"
+                hidden
+                class="text-xs font-semibold text-wy-ember hover:text-wy-ember-dark flex items-center gap-1"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.47-.356-1.857M7 20v-2c0-.768.231-1.47.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Add from contacts
+              </button>
+            </div>
+
+            <div
+              id="share-tag-box"
+              class="min-h-[48px] w-full px-2 py-1.5 border border-gray-300 rounded-lg bg-white cursor-text flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-wy-ember focus-within:border-wy-ember"
+              aria-label="Email address list"
+            >
+              <input
+                id="share-email-input"
+                type="email"
+                inputmode="email"
+                autocomplete="off"
+                autocapitalize="off"
+                placeholder="Type an address and press Enter"
+                class="flex-1 min-w-[180px] border-0 outline-none text-sm py-1 px-1 bg-transparent"
+              />
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">
+              Press <kbd>Enter</kbd> or <kbd>,</kbd> after each address. Paste a comma-separated list to add several at once. Up to 10 recipients.
+            </p>
+          </div>
+
+          <!-- Honeypot -->
+          <input id="share-trap" name="share_trap" type="text" autocomplete="off" tabindex="-1"
+            style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+
+          <!-- Live HTML email preview -->
+          <div class="email-preview-wrap mb-6">
+            <div class="email-preview-header">
+              <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
+              <div class="epf"><span class="epl">Subject:</span> <span id="preview-subject-line">Wyoming roadless areas: what standards should come first?</span></div>
+            </div>
+            <iframe
+              id="email-preview-iframe"
+              title="Preview of the email your contacts will receive"
+              sandbox="allow-same-origin"
+              scrolling="yes"
+              class="email-preview-iframe"
+            ></iframe>
+          </div>
+
+          <!-- Status message -->
+          <div id="share-status" role="status" aria-live="polite" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+          <!-- Actions -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button
+              id="share-send-btn"
+              type="button"
+              class="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              <span id="share-send-label">Have us send it</span>
+            </button>
+          </div>
+
+          <p class="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+            We send a campaign-branded email on your behalf. Recipients are not added to any mailing list.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Disclaimer -->
+    <section class="bg-wy-bone py-10 px-4">
+      <div class="max-w-2xl mx-auto">
+        <div class="disclaimer-box">
+          <p class="disclaimer-label">About this survey</p>
+          <p class="disclaimer-text">
+            This survey is a public-input project by Skovgard for Senate. It is not affiliated with,
+            endorsed by, or reviewed by any land management agency, conservation organization, or
+            industry group. Results do not create binding policy, legal action, or an official position
+            for any organization.
+            <a href="/share/wy-roadless-areas/sources/" class="disclaimer-link">Sources and background &rarr;</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why share -->
+    <section class="bg-white pt-4 pb-16 px-4">
+      <div class="max-w-3xl mx-auto text-center">
+        <div class="grid sm:grid-cols-3 gap-6 text-left mb-12">
+          {[
+            { n: '1', head: 'Specific questions', body: 'No vague slogans. Each topic covers concrete questions Wyoming voters can answer honestly — water, wildlife, access, fire risk, local voice.' },
+            { n: '2', head: 'Confidential answers', body: 'Individual responses are never published. Results are reported only in aggregate — statewide, county, or district when privacy can be protected.' },
+            { n: '3', head: 'Public record', body: 'Results can be compared with future agency decisions, proposed legislation, and votes. Wyoming voters deserve a documented voice before decisions are made.' },
+          ].map(item => (
+            <div class="flex gap-4">
+              <span class="text-wy-ember font-serif font-extrabold text-2xl leading-none mt-0.5">{item.n}.</span>
+              <div>
+                <h3 class="font-semibold text-wy-charcoal mb-1">{item.head}</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">{item.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <a href="/share" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-wy-ember transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          More messages to share
+        </a>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .body-prose {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #2b2b2b;
+    margin: 0 0 20px;
+  }
+
+  .section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 52ch;
+  }
+
+  /* Five issues grid */
+  .issues-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+    margin-top: 1rem;
+  }
+  @media (max-width: 540px) {
+    .issues-grid { grid-template-columns: 1fr; }
+  }
+
+  .issue-card {
+    background: #f9f6f0;
+    border: 1px solid #e5ddd0;
+    border-radius: 12px;
+    padding: 22px 20px;
+  }
+  .issue-icon {
+    color: #c68a4a;
+    margin-bottom: 8px;
+  }
+  .issue-title {
+    font-family: 'Bitter', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2b2b2b;
+    margin: 0 0 8px;
+    line-height: 1.3;
+  }
+  .issue-body {
+    font-size: 0.875rem;
+    color: #4b4b4b;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Callout box */
+  .callout-box {
+    background: #2b2b2b;
+    border-radius: 14px;
+    padding: 24px 28px;
+    color: #f1ece1;
+  }
+  .callout-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin: 0 0 8px;
+  }
+  .callout-text {
+    font-family: 'Bitter', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #f1ece1;
+    margin: 0 0 16px;
+  }
+  .callout-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: #b22234;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.15s;
+    margin-bottom: 12px;
+  }
+  .callout-link:hover { background: #8b1a26; }
+  .survey-url {
+    font-size: 0.8rem;
+    color: #c68a4a;
+    margin: 4px 0 0;
+    font-family: ui-monospace, monospace;
+  }
+
+  /* Social share buttons */
+  .social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.15s;
+  }
+  .social-btn:hover { background: #b22234; }
+  .social-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: transparent;
+    color: #2b2b2b;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 2px solid #2b2b2b;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .social-btn-outline:hover { background: #2b2b2b; color: #f1ece1; }
+
+  /* Email chip tags */
+  .share-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1ece1;
+    border: 1px solid #c68a4a33;
+    color: #2b2b2b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 8px 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+  .share-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .share-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: #c68a4a55;
+    color: #2b2b2b;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .share-chip button:hover { background: #b22234; color: #fff; }
+
+  #share-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  #share-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  #share-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  #share-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+
+  kbd {
+    padding: 1px 5px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    color: #6b7280;
+  }
+
+  /* Email preview frame */
+  .email-preview-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .email-preview-header {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .epf {
+    font-size: 0.8125rem;
+    color: #374151;
+    line-height: 1.6;
+  }
+  .epl {
+    font-weight: 700;
+    color: #6b7280;
+    margin-right: 4px;
+  }
+  .email-preview-iframe {
+    display: block;
+    width: 100%;
+    height: 460px;
+    border: none;
+  }
+
+  /* Disclaimer box */
+  .disclaimer-box {
+    background: #f9f6f0;
+    border: 1px solid #e5ddd0;
+    border-left: 4px solid #c68a4a;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .disclaimer-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #7a8a6b;
+    margin: 0 0 6px;
+  }
+  .disclaimer-text {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #4b4b4b;
+    margin: 0;
+  }
+  .disclaimer-link {
+    display: inline-block;
+    margin-top: 6px;
+    color: #0f2742;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-decoration: none;
+  }
+  .disclaimer-link:hover { text-decoration: underline; }
+</style>
+
+<script>
+(function () {
+  const PAGE_URL = 'https://skovgard2026.org/share/wy-roadless-areas/';
+
+  const SHARE_MESSAGE =
+    'Wyoming has more than 3 million acres of inventoried roadless areas on National Forest System lands.\n\n' +
+    'A federal rulemaking is considering rescinding the 2001 Roadless Rule. This survey asks Wyoming voters ' +
+    'what standards should guide those decisions — water, wildlife, access, fire risk, and local voice.\n\n' +
+    'Take the survey and share it:\n\n' +
+    'https://grassrootsmvt.org/surveys/wy-roadless-areas';
+
+  /* ── Social share links ──────────────────────────────────── */
+  const tweetText = 'Wyoming has 3M+ acres of inventoried roadless areas. A federal rulemaking may rescind the 2001 Roadless Rule. Water, wildlife, access, fire risk, local voice — take the survey. #Wyoming';
+  const fbUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
+  const twUrl = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_URL) +
+    '&text=' + encodeURIComponent(tweetText);
+
+  const elFb = document.getElementById('social-facebook');
+  if (elFb) elFb.href = fbUrl;
+  const elTw = document.getElementById('social-twitter');
+  if (elTw) elTw.href = twUrl;
+
+  /* ── Copy share message (hero) ───────────────────────────── */
+  async function copyShareMessage(labelEl, confirmEl) {
+    try {
+      await navigator.clipboard.writeText(SHARE_MESSAGE);
+      if (labelEl) labelEl.textContent = 'Copied!';
+      if (confirmEl) confirmEl.classList.remove('hidden');
+      setTimeout(() => {
+        if (labelEl) labelEl.textContent = 'Copy Share Message';
+        if (confirmEl) confirmEl.classList.add('hidden');
+      }, 3500);
+    } catch {
+      if (labelEl) labelEl.textContent = 'Copy failed — try selecting the text above.';
+      setTimeout(() => { if (labelEl) labelEl.textContent = 'Copy Share Message'; }, 3500);
+    }
+  }
+
+  const heroCopyBtn     = document.getElementById('hero-copy-msg');
+  const heroCopyLabel   = document.getElementById('hero-copy-label');
+  const heroCopyConfirm = document.getElementById('hero-copy-confirm');
+  if (heroCopyBtn) {
+    heroCopyBtn.addEventListener('click', () => copyShareMessage(heroCopyLabel, heroCopyConfirm));
+  }
+
+  /* ── Copy link (social section) ──────────────────────────── */
+  const copyLinkBtn = document.getElementById('social-copy-link');
+  if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(PAGE_URL);
+        setStatus('Link copied!', 'success');
+        setTimeout(() => setStatus('', ''), 3000);
+      } catch {
+        setStatus('Could not copy automatically. Please copy the URL manually.', 'error');
+      }
+    });
+  }
+
+  /* ── Email send state ────────────────────────────────────── */
+  const emails = [];
+  const MAX = 10;
+
+  const tagBox             = document.getElementById('share-tag-box');
+  const emailInput         = document.getElementById('share-email-input');
+  const senderInput        = document.getElementById('share-sender');
+  const contactsBtn        = document.getElementById('share-contacts-btn');
+  const previewIframe      = document.getElementById('email-preview-iframe');
+  const previewSubjectLine = document.getElementById('preview-subject-line');
+  const sendBtn            = document.getElementById('share-send-btn');
+  const sendLabel          = document.getElementById('share-send-label');
+  const statusEl           = document.getElementById('share-status');
+
+  function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
+
+  function setStatus(msg, type) {
+    if (!msg) { statusEl.classList.add('hidden'); statusEl.textContent = ''; return; }
+    statusEl.className = `mb-4 px-4 py-3 rounded-lg text-sm font-medium status-${type}`;
+    statusEl.textContent = msg;
+    statusEl.classList.remove('hidden');
+  }
+
+  function renderTags() {
+    Array.from(tagBox.querySelectorAll('.share-chip')).forEach(c => c.remove());
+    emails.forEach((email, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'share-chip';
+      chip.innerHTML = `<span title="${email}">${email}</span><button type="button" aria-label="Remove ${email}">✕</button>`;
+      chip.querySelector('button').addEventListener('click', () => removeEmail(i));
+      tagBox.insertBefore(chip, emailInput);
+    });
+    updateButtons();
+    schedulePreview();
+  }
+
+  function addEmail(raw) {
+    const e = raw.trim().toLowerCase();
+    if (!e) return;
+    if (!isValidEmail(e)) { setStatus(`"${e}" doesn't look like a valid email address.`, 'error'); return; }
+    if (emails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
+    if (emails.length >= MAX) { setStatus(`Maximum ${MAX} recipients per send.`, 'info'); return; }
+    setStatus('', '');
+    emails.push(e);
+    renderTags();
+  }
+
+  function removeEmail(index) { emails.splice(index, 1); setStatus('', ''); renderTags(); }
+
+  function updateButtons() {
+    sendBtn.disabled = emails.length === 0;
+  }
+
+  /* ── Live email preview ──────────────────────────────────── */
+  let previewTimer = null;
+
+  function buildPreviewUrl() {
+    const name = senderInput.value.trim().slice(0, 80);
+    const params = new URLSearchParams({ slug: 'wy-roadless-areas' });
+    if (name) params.set('sender_name', name);
+    return '/api/share/preview?' + params.toString();
+  }
+
+  function updateSubjectLine() {
+    const name = senderInput.value.trim();
+    if (previewSubjectLine) {
+      previewSubjectLine.textContent = name
+        ? `${name} wanted you to see this: Wyoming Roadless Areas Survey`
+        : 'Wyoming roadless areas: what standards should come first?';
+    }
+  }
+
+  async function fetchPreview() {
+    updateSubjectLine();
+    if (!previewIframe) return;
+    try {
+      const resp = await fetch(buildPreviewUrl());
+      if (resp.ok) {
+        previewIframe.srcdoc = await resp.text();
+      }
+    } catch (_) {
+      // Worker not running locally — leave the iframe blank
+    }
+  }
+
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(fetchPreview, 300);
+  }
+
+  senderInput.addEventListener('input', schedulePreview);
+
+  emailInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addEmail(emailInput.value);
+      emailInput.value = '';
+    } else if (e.key === 'Backspace' && emailInput.value === '' && emails.length > 0) {
+      removeEmail(emails.length - 1);
+    }
+  });
+
+  emailInput.addEventListener('blur', () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+  });
+
+  emailInput.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    pasted.split(/[,;\s\n]+/).forEach(part => { if (part.trim()) addEmail(part); });
+    emailInput.value = '';
+  });
+
+  tagBox.addEventListener('click', () => emailInput.focus());
+
+  (async () => {
+    if (!('contacts' in navigator)) return;
+    try {
+      const props = await navigator.contacts.getProperties();
+      if (!props.includes('email')) return;
+      contactsBtn.hidden = false;
+      contactsBtn.addEventListener('click', async () => {
+        try {
+          const picked = await navigator.contacts.select(['name', 'email'], { multiple: true });
+          picked.forEach(c => (c.email || []).forEach(e => addEmail(e)));
+        } catch (_) {}
+      });
+    } catch (_) {}
+  })();
+
+  sendBtn.addEventListener('click', async () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+    if (emails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
+
+    sendBtn.disabled = true;
+    sendLabel.textContent = 'Sending…';
+    setStatus('', '');
+
+    try {
+      const resp = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message_slug: 'wy-roadless-areas',
+          sender_name:  senderInput.value.trim(),
+          recipients:   emails.slice(),
+          _trap: "",
+          _t:    Date.now(),
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        setStatus(
+          resp.status === 404 && isLocal
+            ? 'Route not found — make sure the Worker is running: cd worker && npx wrangler dev'
+            : resp.status === 503
+            ? 'Share feature is not enabled on this environment yet.'
+            : data.error || 'Something went wrong. Please try again.',
+          'error'
+        );
+      } else {
+        const n = data.sent || emails.length;
+        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} accepted for delivery. Thank you for spreading the word.`, 'success');
+        emails.length = 0;
+        renderTags();
+      }
+    } catch (_) {
+      setStatus(
+        ['localhost', '127.0.0.1'].includes(window.location.hostname)
+          ? 'Worker not reachable. Run `cd worker && npx wrangler dev` in a second terminal.'
+          : 'Network error — please check your connection and try again.',
+        'error'
+      );
+    } finally {
+      sendLabel.textContent = 'Have us send it';
+      updateButtons();
+    }
+  });
+
+  updateButtons();
+  fetchPreview();
+
+  if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    setStatus(
+      'Local dev: "Have us send it" needs the Worker running. ' +
+      'In a second terminal: cd worker && npx wrangler dev.',
+      'info'
+    );
+  }
+})();
+</script>

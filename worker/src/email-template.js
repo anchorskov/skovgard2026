@@ -713,6 +713,62 @@ const WY_DATA_CENTERS_BODY_HTML = `
   </p>
 `;
 
+const WY_ROADLESS_AREAS_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Wyoming has more than 3 million acres of inventoried roadless areas on National Forest System lands.
+    A current federal rulemaking process is considering rescission of the 2001 Roadless Rule, which would
+    return more decisions to local land managers. This survey asks Wyoming voters what standards should
+    guide those decisions.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The questions cover water, wildlife, access, wildfire risk, and local voice. The survey presents
+    both sides &#8212; management flexibility versus long-term land protection &#8212; and asks Wyoming
+    voters to weigh in. Individual answers remain confidential. Results will be published in aggregate.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+    <tr>
+      <td style="background:#f7f3ec;border-left:4px solid #c68a4a;padding:14px 18px;border-radius:6px;">
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#374151;">
+          <strong style="color:#2b2b2b;">This survey is non-binding and education-focused.</strong>
+          Individual responses are never published. Results are reported in aggregate only &#8212;
+          statewide, by county, or by legislative district when enough responses are available.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+    <tr>
+      <td style="text-align:center;padding:4px 0 20px;">
+        <a href="https://grassrootsmvt.org/surveys/wy-roadless-areas"
+           style="display:inline-block;padding:14px 28px;background:#b22234;color:#f1ece1;font-weight:bold;font-size:16px;text-decoration:none;border-radius:8px;">
+          Take the Survey
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Please share with three Wyoming neighbors. The more Wyoming voices, the clearer the picture.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:15px;line-height:1.65;color:#111827;">
+    <a href="https://skovgard2026.org/share/wy-roadless-areas/sources/"
+        style="color:#0f2742;font-weight:bold;">
+      Read the full background with sources
+    </a>
+    at skovgard2026.org/share/wy-roadless-areas/sources/
+  </p>
+
+  <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#6b7280;">
+    This survey is a public-input project by Skovgard for Senate. Results create a public record
+    that can be compared with future agency decisions and legislation. Results do not create binding
+    policy or legal action.
+  </p>
+`;
+
 // ── Message registry ───────────────────────────────────────────────────────────
 // One entry per shareable message. subject() and intro() accept an optional senderName.
 
@@ -856,6 +912,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted you to see this: Wyoming Four Pillars Survey`
         : "Wyoming Four Pillars Survey";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this survey with you.`
+        : "A Wyoming neighbor wanted to share this survey with you.";
+    },
+  },
+  "wy-roadless-areas": {
+    title:        "Wyoming Roadless Areas Survey",
+    body_html:    WY_ROADLESS_AREAS_BODY_HTML,
+    preview_text: "Wyoming has 3M+ acres of inventoried roadless areas. Water, wildlife, access, fire risk, local voice — Wyoming voters deserve a say.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this: Wyoming Roadless Areas Survey`
+        : "Wyoming roadless areas: what standards should come first?";
     },
     intro(n) {
       return n
@@ -1247,6 +1318,26 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Please take the survey and share it with three Wyoming neighbors:",
           "https://grassrootsmvt.org/surveys/wy-data-centers",
+        ]
+    : slug === "wy-roadless-areas"
+      ? [
+          "Wyoming has more than 3 million acres of inventoried roadless areas on National Forest",
+          "System lands. A federal rulemaking process is considering rescission of the 2001 Roadless Rule.",
+          "",
+          "This survey asks Wyoming voters what standards should guide decisions about these areas.",
+          "The questions cover water, wildlife, access, wildfire risk, and local voice.",
+          "",
+          "The survey presents both sides — management flexibility versus long-term land protection.",
+          "Individual answers remain confidential. Results are published in aggregate only.",
+          "",
+          "Take the survey:",
+          "https://grassrootsmvt.org/surveys/wy-roadless-areas",
+          "",
+          "Read the sources and background:",
+          "https://skovgard2026.org/share/wy-roadless-areas/sources/",
+          "",
+          "Share page:",
+          "https://skovgard2026.org/share/wy-roadless-areas/",
         ]
     : slug === "untrammeled-suffrage"
       ? [
