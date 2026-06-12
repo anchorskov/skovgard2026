@@ -81,6 +81,17 @@ import Footer from '../../components/Footer.astro';
             <div class="quote-box">
               <p class="quote-label">From the mailing footer</p>
               <p class="quote-text">"PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES."</p>
+              <a
+                href="/docs/hageman-nothing-burger-letter.pdf"
+                target="_blank"
+                rel="noopener"
+                class="view-letter-link"
+              >
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                View the original letter (PDF)
+              </a>
             </div>
           </div>
         </div>
@@ -482,6 +493,19 @@ import Footer from '../../components/Footer.astro';
     margin: 0;
     line-height: 1.4;
   }
+
+  /* View-letter link inside quote box */
+  .view-letter-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+    color: #0f2742;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .view-letter-link:hover { text-decoration: underline; }
 
   /* Sources link */
   .sources-link {
