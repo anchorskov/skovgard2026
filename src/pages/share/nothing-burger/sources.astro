@@ -41,54 +41,6 @@ import Footer from '../../../components/Footer.astro';
       </p>
     </div>
 
-    <!-- Wording cautions -->
-    <section class="bg-wy-bone py-10 px-4">
-      <div class="max-w-2xl mx-auto">
-        <p class="section-kicker">Responsible wording</p>
-        <p class="body-prose">
-          Use these cautions before sharing or adapting the message.
-        </p>
-        <div class="caution-list">
-          <div class="caution-item">
-            <div class="caution-icon ok">&#10003;</div>
-            <div>
-              <strong>Say:</strong> "taxpayer-funded congressional mailing" — the safest shorthand is
-              to quote the footer exactly: "PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES."
-            </div>
-          </div>
-          <div class="caution-item">
-            <div class="caution-icon ok">&#10003;</div>
-            <div>
-              <strong>Say:</strong> Montana was "carved out," "excluded," or "exempted in the proposal."
-            </div>
-          </div>
-          <div class="caution-item">
-            <div class="caution-icon warn">&#9888;</div>
-            <div>
-              <strong>Do not say</strong> Hageman voted <em>for</em> the Senate land-sale proposal.
-              The stronger and accurate claim is that Wyoming was listed while Montana was not, and
-              the official mailing does not explain that contrast.
-            </div>
-          </div>
-          <div class="caution-item">
-            <div class="caution-icon warn">&#9888;</div>
-            <div>
-              <strong>Do not say</strong> Montana "opted out" unless new documentation proves a
-              formal legal opt-out mechanism. Current reporting says Montana was excluded or exempted —
-              the exact mechanism was not publicly confirmed as of the research date.
-            </div>
-          </div>
-          <div class="caution-item">
-            <div class="caution-icon warn">&#9888;</div>
-            <div>
-              <strong>Do not say</strong> the proposal became law. It was removed before debate.
-              The Montana Senators confirmed this in a joint statement.
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Claims table -->
     <section class="bg-white py-10 px-4">
       <div class="max-w-3xl mx-auto">
@@ -344,31 +296,6 @@ import Footer from '../../../components/Footer.astro';
     color: #c68a4a;
     margin-bottom: 10px;
   }
-
-  /* Wording cautions */
-  .caution-list { display: flex; flex-direction: column; gap: 14px; }
-  .caution-item {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    font-size: 0.9rem;
-    color: #4b4b4b;
-    line-height: 1.6;
-  }
-  .caution-icon {
-    flex-shrink: 0;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    margin-top: 1px;
-  }
-  .caution-icon.ok   { background: #dcfce7; color: #15803d; }
-  .caution-icon.warn { background: #fef9c3; color: #a16207; }
 
   /* Claims table */
   .claims-table { display: flex; flex-direction: column; gap: 0; }
