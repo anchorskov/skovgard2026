@@ -769,6 +769,104 @@ const WY_ROADLESS_AREAS_BODY_HTML = `
   </p>
 `;
 
+const NOTHING_BURGER_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I want to share a breakdown of a taxpayer-funded congressional mailing about Wyoming&#8217;s public lands &#8212; and the question it does not answer.
+  </p>
+
+  <h2 style="margin:26px 0 10px;font-size:20px;line-height:1.3;color:#0f2742;">
+    1. The mailing
+  </h2>
+
+  <p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#111827;">
+    Rep. Harriet Hageman sent Wyoming constituents a letter about federal public lands. The footer states:
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:0 0 18px;border-left:5px solid #c68a4a;background:#fbf8f1;">
+    <tr>
+      <td style="padding:14px 18px;">
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;font-style:italic;">
+          &#8220;PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES.&#8221;
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The letter says Hageman &#8220;never voted for the mass sale&#8221; of public lands. That narrow denial is consistent with the record &#8212; the 2025 Senate land-sale provision was removed before any final vote.
+  </p>
+
+  <h2 style="margin:26px 0 10px;font-size:20px;line-height:1.3;color:#0f2742;">
+    2. What the mailing does not explain
+  </h2>
+
+  <p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#111827;">
+    The Senate budget bill included language that would have required federal land managers to dispose of land in 11 western states. Wyoming was on that list. Montana was not.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:0 0 18px;border:1px solid #e5e7eb;">
+    <tr style="background:#f8fafc;">
+      <td style="padding:8px 14px;font-size:12px;font-weight:bold;text-transform:uppercase;
+          letter-spacing:0.08em;color:#6b7280;border-bottom:1px solid #e5e7eb;width:50%;">
+        Wyoming
+      </td>
+      <td style="padding:8px 14px;font-size:12px;font-weight:bold;text-transform:uppercase;
+          letter-spacing:0.08em;color:#b22234;border-bottom:1px solid #e5e7eb;">
+        Montana
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:12px 14px;font-size:15px;color:#111827;border-right:1px solid #e5e7eb;">
+        Listed in the Senate proposal.
+      </td>
+      <td style="padding:12px 14px;font-size:15px;color:#111827;">
+        Carved out. Not listed.
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#111827;">
+    When asked why Montana was excluded, Hageman told Cowboy State Daily she was not sure and said: <em>&#8220;This is a Senate bill. I didn&#8217;t write it.&#8221;</em>
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The mailing answers the narrow vote question. It does not explain why Wyoming did not receive the same protection Montana received.
+  </p>
+
+  <h2 style="margin:26px 0 10px;font-size:20px;line-height:1.3;color:#0f2742;">
+    3. What Wyoming deserves
+  </h2>
+
+  <p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#111827;">
+    The proposal was removed before it became law &#8212; that is good news. But the question remains on the record:
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:0 0 22px;border-left:5px solid #b22234;background:#fef7f7;">
+    <tr>
+      <td style="padding:14px 18px;">
+        <p style="margin:0;font-size:16px;line-height:1.65;color:#111827;font-weight:bold;">
+          Why did Montana get a carve-out that Wyoming did not get?
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
+    Wyoming public lands belong to Wyoming families. A taxpayer-funded mailing should answer that question directly, not leave it hanging. Wyoming deserves straight answers.
+  </p>
+
+  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
+    <a href="https://skovgard2026.org/share/nothing-burger/sources/"
+        style="color:#0f2742;font-weight:bold;">
+      Read the full breakdown with sources
+    </a>
+    at skovgard2026.org/share/nothing-burger/sources/
+  </p>
+`;
+
 // ── Message registry ───────────────────────────────────────────────────────────
 // One entry per shareable message. subject() and intro() accept an optional senderName.
 
@@ -932,6 +1030,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted to share this survey with you.`
         : "A Wyoming neighbor wanted to share this survey with you.";
+    },
+  },
+  "nothing-burger": {
+    title:        "Taxpayer-Funded Nothing Burger",
+    body_html:    NOTHING_BURGER_BODY_HTML,
+    preview_text: "Wyoming was listed. Montana was carved out. Why? Wyoming public lands deserve straight answers.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this: Wyoming public lands`
+        : "Wyoming public lands: why did Montana get protection Wyoming didn't?";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming public lands breakdown with you.`
+        : "A Wyoming neighbor wanted to share this Wyoming public lands breakdown with you.";
     },
   },
 };
@@ -1338,6 +1451,42 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Share page:",
           "https://skovgard2026.org/share/wy-roadless-areas/",
+        ]
+    : slug === "nothing-burger"
+      ? [
+          "I want to share a breakdown of a taxpayer-funded congressional mailing about Wyoming's public lands — and the question it does not answer.",
+          "",
+          "THE MAILING",
+          "",
+          "Rep. Harriet Hageman sent Wyoming constituents a letter. The footer states:",
+          "\"PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES.\"",
+          "",
+          "The letter says Hageman \"never voted for the mass sale\" of public lands.",
+          "That narrow denial is consistent with the record — the 2025 Senate land-sale",
+          "provision was removed before any final vote.",
+          "",
+          "WHAT THE MAILING DOES NOT EXPLAIN",
+          "",
+          "The Senate budget bill included language that would have required federal land",
+          "managers to dispose of land in 11 western states. Wyoming was on that list.",
+          "Montana was not.",
+          "",
+          "When asked why Montana was excluded, Hageman told Cowboy State Daily she was",
+          "not sure and said: \"This is a Senate bill. I didn't write it.\"",
+          "",
+          "The mailing answers the narrow vote question. It does not explain why Wyoming",
+          "did not receive the same protection Montana received.",
+          "",
+          "WHAT WYOMING DESERVES",
+          "",
+          "The proposal was removed before it became law — that is good news.",
+          "But the question remains: why did Montana get a carve-out that Wyoming did not?",
+          "",
+          "Wyoming public lands belong to Wyoming families. A taxpayer-funded mailing",
+          "should answer that question directly. Wyoming deserves straight answers.",
+          "",
+          "Read the full breakdown with sources:",
+          "https://skovgard2026.org/share/nothing-burger/sources/",
         ]
     : slug === "untrammeled-suffrage"
       ? [

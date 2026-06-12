@@ -1,0 +1,870 @@
+---
+// src/pages/share/nothing-burger.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="Taxpayer-Funded Nothing Burger — Wyoming Public Lands | Skovgard 2026"
+  description="Wyoming was listed in a federal land-sale proposal. Montana was carved out. Rep. Hageman's taxpayer-funded mailing leaves the Montana question unanswered. Wyoming deserves straight answers."
+  ogImage="/images/share/meme-nothing-burger-fb.png"
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Breadcrumb bar -->
+    <div class="bg-wy-bone border-b border-gray-200 py-3 px-4">
+      <div class="max-w-3xl mx-auto flex items-center gap-3">
+        <a href="/share" class="inline-flex items-center gap-1.5 text-gray-400 hover:text-wy-ember text-xs font-semibold uppercase tracking-widest transition-colors shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          All messages
+        </a>
+        <span class="text-gray-300 text-sm">/</span>
+        <span class="text-sm font-semibold text-wy-charcoal truncate">Taxpayer-Funded Nothing Burger</span>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-16 px-4 text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Public Lands</p>
+      <h1 class="text-3xl sm:text-4xl font-serif font-extrabold text-wy-bone mb-3 leading-tight max-w-2xl mx-auto">
+        Taxpayer-Funded Nothing Burger
+      </h1>
+      <p class="text-wy-sandstone font-semibold text-base sm:text-lg mb-6 tracking-wide">
+        Wyoming was listed. Montana was carved out. Why?
+      </p>
+      <p class="text-wy-bone/75 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto mb-8">
+        Rep. Hageman sent Wyoming constituents a taxpayer-funded letter about federal public lands.
+        The letter answers a narrow vote question. It does not explain why Montana was excluded from
+        a Senate land-sale proposal that included Wyoming.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <button
+          id="hero-copy-msg"
+          type="button"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <span id="hero-copy-label">Copy Share Message</span>
+        </button>
+      </div>
+      <p id="hero-copy-confirm" class="mt-4 text-wy-sandstone text-sm font-semibold hidden">
+        Copied. Now send it to three Wyoming neighbors.
+      </p>
+    </div>
+
+    <!-- Three-section summary -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-2xl mx-auto">
+
+        <p class="section-kicker">The Issue</p>
+
+        <!-- Section 1: The Mailing -->
+        <div class="summary-section">
+          <div class="summary-num">1</div>
+          <div class="summary-body">
+            <h2 class="summary-head">The mailing</h2>
+            <p class="body-prose">
+              Rep. Harriet Hageman sent Wyoming constituents a letter about federal public lands.
+              The letter's own footer states: <strong>"PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY
+              THE HOUSE OF REPRESENTATIVES."</strong>
+            </p>
+            <p class="body-prose">
+              Inside, Hageman says she "never voted for the mass sale" of public lands. That
+              narrow denial is consistent with the record&#8212;the 2025 Senate land-sale
+              provision was removed before any final vote on it.
+            </p>
+            <div class="quote-box">
+              <p class="quote-label">From the mailing footer</p>
+              <p class="quote-text">"PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES."</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: What the mailing doesn't explain -->
+        <div class="summary-section">
+          <div class="summary-num">2</div>
+          <div class="summary-body">
+            <h2 class="summary-head">What the mailing does not explain</h2>
+            <p class="body-prose">
+              The Senate budget bill included language that would have required federal land managers
+              to dispose of land across 11 western states. Wyoming was on that list. Montana was not.
+            </p>
+            <div class="compare-table">
+              <div class="compare-row header-row">
+                <div class="compare-cell">Wyoming</div>
+                <div class="compare-cell red">Montana</div>
+              </div>
+              <div class="compare-row">
+                <div class="compare-cell">Listed in the Senate proposal.</div>
+                <div class="compare-cell red">Carved out. Not listed.</div>
+              </div>
+            </div>
+            <p class="body-prose">
+              WyoFile reported the proposal would have covered 0.25&#8211;0.5% of BLM lands and
+              0.5&#8211;0.75% of Forest Service lands&#8212;an upper estimate of more than 2.5 million
+              acres across the West.
+            </p>
+            <p class="body-prose">
+              When asked why Montana was excluded, Hageman told Cowboy State Daily she was not sure
+              and said: <em>"This is a Senate bill. I didn't write it."</em>
+            </p>
+            <p class="body-prose">
+              The mailing answers the narrow vote question. It does not explain why Wyoming did not
+              receive the same protection Montana received.
+            </p>
+          </div>
+        </div>
+
+        <!-- Section 3: What Wyoming deserves -->
+        <div class="summary-section">
+          <div class="summary-num">3</div>
+          <div class="summary-body">
+            <h2 class="summary-head">What Wyoming deserves</h2>
+            <p class="body-prose">
+              The proposal was removed before it became law&#8212;that is good news. Montana
+              Sens. Daines and Sheehy confirmed the provision was blocked before debate.
+            </p>
+            <p class="body-prose">
+              But the question remains on the record. Wyoming public lands have long been a
+              point of pride and a practical resource for Wyoming families&#8212;ranchers,
+              hunters, anglers, outfitters, and outdoor recreation.
+            </p>
+            <div class="callout-box">
+              <p class="callout-text">
+                Why did Montana get a carve-out that Wyoming did not get?
+              </p>
+            </div>
+            <p class="body-prose">
+              A taxpayer-funded mailing that answers a narrow procedural question while leaving
+              that contrast unexplained is not a full accounting. Wyoming public lands deserve
+              straight answers.
+            </p>
+            <p class="body-prose">
+              <a href="/share/nothing-burger/sources/" class="sources-link">
+                Read the full breakdown with sources &rarr;
+              </a>
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ① Share on social media -->
+    <section class="bg-white py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">Share on social media</p>
+        <p class="section-desc">
+          This is what people see when you post the link on Facebook or X.
+        </p>
+        <figure class="rounded-xl overflow-hidden shadow-lg mb-7">
+          <img
+            src="/images/share/meme-nothing-burger.png"
+            alt="Taxpayer-Funded Nothing Burger — Wyoming was listed, Montana was carved out. Why? Public lands deserve straight answers."
+            class="w-full block"
+            style="background-color:#2a1e0e;min-height:180px;"
+            loading="eager"
+          />
+        </figure>
+
+        <div class="flex flex-wrap gap-3">
+          <a id="social-facebook" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+            </svg>
+            Share on Facebook
+          </a>
+          <a id="social-twitter" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Share on X
+          </a>
+          <button id="social-copy-link" type="button" class="social-btn-outline">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy link
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ② Send by email -->
+    <section class="bg-wy-bone py-12 px-4" id="send-email">
+      <div class="max-w-2xl mx-auto">
+
+        <p class="section-kicker">Send by email to your contacts</p>
+        <p class="section-desc">
+          This is the written message your contacts receive in their inbox.
+          It is not the image above&#8212;it is a personal email that comes from you.
+        </p>
+
+        <div class="bg-white rounded-2xl border border-gray-200 p-8">
+
+          <!-- Your name -->
+          <div class="mb-6">
+            <label for="share-sender" class="block text-sm font-semibold text-gray-700 mb-1">
+              Your name <span class="font-normal text-gray-400">(optional — personalises the message)</span>
+            </label>
+            <input
+              id="share-sender"
+              type="text"
+              autocomplete="given-name"
+              placeholder="e.g. Sarah"
+              maxlength="80"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base bg-white focus:outline-none focus:ring-2 focus:ring-wy-ember focus:border-wy-ember"
+            />
+          </div>
+
+          <!-- Email tag input -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-sm font-semibold text-gray-700">
+                Friends' email addresses
+              </label>
+              <button
+                id="share-contacts-btn"
+                type="button"
+                hidden
+                class="text-xs font-semibold text-wy-ember hover:text-wy-ember-dark flex items-center gap-1"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.47-.356-1.857M7 20v-2c0-.768.231-1.47.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Add from contacts
+              </button>
+            </div>
+
+            <div
+              id="share-tag-box"
+              class="min-h-[48px] w-full px-2 py-1.5 border border-gray-300 rounded-lg bg-white cursor-text flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-wy-ember focus-within:border-wy-ember"
+              aria-label="Email address list"
+            >
+              <input
+                id="share-email-input"
+                type="email"
+                inputmode="email"
+                autocomplete="off"
+                autocapitalize="off"
+                placeholder="Type an address and press Enter"
+                class="flex-1 min-w-[180px] border-0 outline-none text-sm py-1 px-1 bg-transparent"
+              />
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">
+              Press <kbd>Enter</kbd> or <kbd>,</kbd> after each address. Paste a comma-separated list to add several at once. Up to 10 recipients.
+            </p>
+          </div>
+
+          <!-- Honeypot -->
+          <input id="share-trap" name="share_trap" type="text" autocomplete="off" tabindex="-1"
+            style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+
+          <!-- Live HTML email preview -->
+          <div class="email-preview-wrap mb-6">
+            <div class="email-preview-header">
+              <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
+              <div class="epf"><span class="epl">Subject:</span> <span id="preview-subject-line">Wyoming public lands: why did Montana get protection Wyoming didn't?</span></div>
+            </div>
+            <iframe
+              id="email-preview-iframe"
+              title="Preview of the email your contacts will receive"
+              sandbox="allow-same-origin"
+              scrolling="yes"
+              class="email-preview-iframe"
+            ></iframe>
+          </div>
+
+          <!-- Status message -->
+          <div id="share-status" role="status" aria-live="polite" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+          <!-- Actions -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button
+              id="share-send-btn"
+              type="button"
+              class="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              <span id="share-send-label">Have us send it</span>
+            </button>
+          </div>
+
+          <p class="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+            We send a campaign-branded email on your behalf. Recipients are not added to any mailing list.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Disclaimer -->
+    <section class="bg-white py-10 px-4">
+      <div class="max-w-2xl mx-auto">
+        <div class="disclaimer-box">
+          <p class="disclaimer-label">Important note</p>
+          <p class="disclaimer-text">
+            This page summarizes publicly reported facts about the 2025 Senate public lands proposal.
+            The proposal did not become law. Sources are listed on the
+            <a href="/share/nothing-burger/sources/" class="disclaimer-link">sources page</a>.
+            Do not overstate: the strongest accurate claim is that Wyoming was listed while Montana
+            was excluded, and that the official mailing does not fully explain why.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why share -->
+    <section class="bg-wy-bone pt-4 pb-16 px-4">
+      <div class="max-w-3xl mx-auto text-center">
+        <div class="grid sm:grid-cols-3 gap-6 text-left mb-12">
+          {[
+            { n: '1', head: 'Verifiable claims', body: "Every fact on this page is sourced. The mailing exists. Wyoming was listed. Montana was not. Hageman's quote is from Cowboy State Daily." },
+            { n: '2', head: 'Accurate framing', body: 'The proposal was removed before it became law — that is good news. The unanswered question is why Montana was protected and Wyoming was not.' },
+            { n: '3', head: 'Wyoming deserves more', body: 'A taxpayer-funded mailing should answer the question it raises. Wyoming voters can decide whether that standard was met.' },
+          ].map(item => (
+            <div class="flex gap-4">
+              <span class="text-wy-ember font-serif font-extrabold text-2xl leading-none mt-0.5">{item.n}.</span>
+              <div>
+                <h3 class="font-semibold text-wy-charcoal mb-1">{item.head}</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">{item.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <a href="/share" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-wy-ember transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          More messages to share
+        </a>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .body-prose {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #2b2b2b;
+    margin: 0 0 18px;
+  }
+  .section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 52ch;
+  }
+
+  /* Summary sections */
+  .summary-section {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 36px;
+    padding-bottom: 36px;
+    border-bottom: 1px solid #e5ddd0;
+  }
+  .summary-section:last-child { border-bottom: none; margin-bottom: 0; }
+  .summary-num {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #b22234;
+    color: #f1ece1;
+    font-family: 'Bitter', serif;
+    font-weight: 800;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 4px;
+  }
+  .summary-body { flex: 1; min-width: 0; }
+  .summary-head {
+    font-family: 'Bitter', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0f2742;
+    margin: 0 0 14px;
+    line-height: 1.3;
+  }
+
+  /* Comparison table */
+  .compare-table {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 0 0 18px;
+  }
+  .compare-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .header-row { background: #f8fafc; }
+  .compare-cell {
+    padding: 10px 14px;
+    font-size: 0.875rem;
+    color: #2b2b2b;
+    line-height: 1.5;
+    border-right: 1px solid #e5e7eb;
+  }
+  .compare-cell:last-child { border-right: none; }
+  .header-row .compare-cell {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .header-row .compare-cell.red { color: #b22234; }
+  .compare-cell.red { color: #b22234; font-weight: 600; }
+
+  /* Quote box */
+  .quote-box {
+    background: #f9f6f0;
+    border-left: 4px solid #c68a4a;
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    margin: 0 0 18px;
+  }
+  .quote-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #c68a4a;
+    margin: 0 0 6px;
+  }
+  .quote-text {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: #2b2b2b;
+    margin: 0;
+    font-style: italic;
+  }
+
+  /* Callout */
+  .callout-box {
+    background: #0f2742;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 0 0 18px;
+  }
+  .callout-text {
+    font-family: 'Bitter', serif;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #f1ece1;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  /* Sources link */
+  .sources-link {
+    color: #0f2742;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+  }
+  .sources-link:hover { text-decoration: underline; }
+
+  /* Social share buttons */
+  .social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.15s;
+  }
+  .social-btn:hover { background: #b22234; }
+  .social-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: transparent;
+    color: #2b2b2b;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 2px solid #2b2b2b;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .social-btn-outline:hover { background: #2b2b2b; color: #f1ece1; }
+
+  /* Email chips */
+  .share-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1ece1;
+    border: 1px solid #c68a4a33;
+    color: #2b2b2b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 8px 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+  .share-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .share-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: #c68a4a55;
+    color: #2b2b2b;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .share-chip button:hover { background: #b22234; color: #fff; }
+
+  #share-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #share-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  #share-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  #share-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+
+  kbd {
+    padding: 1px 5px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    color: #6b7280;
+  }
+
+  .email-preview-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .email-preview-header {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .epf { font-size: 0.8125rem; color: #374151; line-height: 1.6; }
+  .epl { font-weight: 700; color: #6b7280; margin-right: 4px; }
+  .email-preview-iframe { display: block; width: 100%; height: 460px; border: none; }
+
+  /* Disclaimer */
+  .disclaimer-box {
+    background: #f9f6f0;
+    border: 1px solid #e5ddd0;
+    border-left: 4px solid #c68a4a;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .disclaimer-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #7a8a6b;
+    margin: 0 0 6px;
+  }
+  .disclaimer-text {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #4b4b4b;
+    margin: 0;
+  }
+  .disclaimer-link {
+    color: #0f2742;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+  }
+  .disclaimer-link:hover { text-decoration: underline; }
+</style>
+
+<script>
+(function () {
+  const PAGE_URL = 'https://skovgard2026.org/share/nothing-burger/';
+
+  const SHARE_MESSAGE =
+    'Rep. Hageman sent Wyoming constituents a taxpayer-funded letter about public lands.\n\n' +
+    'The letter says she never voted for the mass sale of public lands — ' +
+    'that narrow denial is consistent with the record.\n\n' +
+    'But the Senate budget bill listed Wyoming among 11 states for potential land disposal. ' +
+    'Montana was excluded. When asked why, Hageman said she was not sure: ' +
+    '"This is a Senate bill. I didn\'t write it."\n\n' +
+    'Wyoming public lands deserve straight answers.\n\n' +
+    'Read the full breakdown:\n' +
+    'https://skovgard2026.org/share/nothing-burger/';
+
+  /* ── Social share links ──────────────────────────────────── */
+  const tweetText = 'Wyoming was listed in a federal land-sale proposal. Montana was carved out. The taxpayer-funded mailing doesn\'t explain why. Wyoming deserves straight answers. #Wyoming #PublicLands';
+  const fbUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
+  const twUrl = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_URL) +
+    '&text=' + encodeURIComponent(tweetText);
+
+  const elFb = document.getElementById('social-facebook');
+  if (elFb) elFb.href = fbUrl;
+  const elTw = document.getElementById('social-twitter');
+  if (elTw) elTw.href = twUrl;
+
+  /* ── Copy share message (hero) ───────────────────────────── */
+  async function copyShareMessage(labelEl, confirmEl) {
+    try {
+      await navigator.clipboard.writeText(SHARE_MESSAGE);
+      if (labelEl) labelEl.textContent = 'Copied!';
+      if (confirmEl) confirmEl.classList.remove('hidden');
+      setTimeout(() => {
+        if (labelEl) labelEl.textContent = 'Copy Share Message';
+        if (confirmEl) confirmEl.classList.add('hidden');
+      }, 3500);
+    } catch {
+      if (labelEl) labelEl.textContent = 'Copy failed — try selecting the text above.';
+      setTimeout(() => { if (labelEl) labelEl.textContent = 'Copy Share Message'; }, 3500);
+    }
+  }
+
+  const heroCopyBtn     = document.getElementById('hero-copy-msg');
+  const heroCopyLabel   = document.getElementById('hero-copy-label');
+  const heroCopyConfirm = document.getElementById('hero-copy-confirm');
+  if (heroCopyBtn) {
+    heroCopyBtn.addEventListener('click', () => copyShareMessage(heroCopyLabel, heroCopyConfirm));
+  }
+
+  /* ── Copy link ───────────────────────────────────────────── */
+  const copyLinkBtn = document.getElementById('social-copy-link');
+  if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(PAGE_URL);
+        setStatus('Link copied!', 'success');
+        setTimeout(() => setStatus('', ''), 3000);
+      } catch {
+        setStatus('Could not copy automatically. Please copy the URL manually.', 'error');
+      }
+    });
+  }
+
+  /* ── Email send state ────────────────────────────────────── */
+  const emails = [];
+  const MAX = 10;
+
+  const tagBox             = document.getElementById('share-tag-box');
+  const emailInput         = document.getElementById('share-email-input');
+  const senderInput        = document.getElementById('share-sender');
+  const contactsBtn        = document.getElementById('share-contacts-btn');
+  const previewIframe      = document.getElementById('email-preview-iframe');
+  const previewSubjectLine = document.getElementById('preview-subject-line');
+  const sendBtn            = document.getElementById('share-send-btn');
+  const sendLabel          = document.getElementById('share-send-label');
+  const statusEl           = document.getElementById('share-status');
+
+  function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
+
+  function setStatus(msg, type) {
+    if (!msg) { statusEl.classList.add('hidden'); statusEl.textContent = ''; return; }
+    statusEl.className = `mb-4 px-4 py-3 rounded-lg text-sm font-medium status-${type}`;
+    statusEl.textContent = msg;
+    statusEl.classList.remove('hidden');
+  }
+
+  function renderTags() {
+    Array.from(tagBox.querySelectorAll('.share-chip')).forEach(c => c.remove());
+    emails.forEach((email, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'share-chip';
+      chip.innerHTML = `<span title="${email}">${email}</span><button type="button" aria-label="Remove ${email}">✕</button>`;
+      chip.querySelector('button').addEventListener('click', () => removeEmail(i));
+      tagBox.insertBefore(chip, emailInput);
+    });
+    updateButtons();
+    schedulePreview();
+  }
+
+  function addEmail(raw) {
+    const e = raw.trim().toLowerCase();
+    if (!e) return;
+    if (!isValidEmail(e)) { setStatus(`"${e}" doesn't look like a valid email address.`, 'error'); return; }
+    if (emails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
+    if (emails.length >= MAX) { setStatus(`Maximum ${MAX} recipients per send.`, 'info'); return; }
+    setStatus('', '');
+    emails.push(e);
+    renderTags();
+  }
+
+  function removeEmail(index) { emails.splice(index, 1); setStatus('', ''); renderTags(); }
+
+  function updateButtons() { sendBtn.disabled = emails.length === 0; }
+
+  /* ── Live email preview ──────────────────────────────────── */
+  let previewTimer = null;
+
+  function buildPreviewUrl() {
+    const name = senderInput.value.trim().slice(0, 80);
+    const params = new URLSearchParams({ slug: 'nothing-burger' });
+    if (name) params.set('sender_name', name);
+    return '/api/share/preview?' + params.toString();
+  }
+
+  function updateSubjectLine() {
+    const name = senderInput.value.trim();
+    if (previewSubjectLine) {
+      previewSubjectLine.textContent = name
+        ? `${name} wanted you to see this: Wyoming public lands`
+        : "Wyoming public lands: why did Montana get protection Wyoming didn't?";
+    }
+  }
+
+  async function fetchPreview() {
+    updateSubjectLine();
+    if (!previewIframe) return;
+    try {
+      const resp = await fetch(buildPreviewUrl());
+      if (resp.ok) { previewIframe.srcdoc = await resp.text(); }
+    } catch (_) {}
+  }
+
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(fetchPreview, 300);
+  }
+
+  senderInput.addEventListener('input', schedulePreview);
+
+  emailInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addEmail(emailInput.value);
+      emailInput.value = '';
+    } else if (e.key === 'Backspace' && emailInput.value === '' && emails.length > 0) {
+      removeEmail(emails.length - 1);
+    }
+  });
+
+  emailInput.addEventListener('blur', () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+  });
+
+  emailInput.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    pasted.split(/[,;\s\n]+/).forEach(part => { if (part.trim()) addEmail(part); });
+    emailInput.value = '';
+  });
+
+  tagBox.addEventListener('click', () => emailInput.focus());
+
+  (async () => {
+    if (!('contacts' in navigator)) return;
+    try {
+      const props = await navigator.contacts.getProperties();
+      if (!props.includes('email')) return;
+      contactsBtn.hidden = false;
+      contactsBtn.addEventListener('click', async () => {
+        try {
+          const picked = await navigator.contacts.select(['name', 'email'], { multiple: true });
+          picked.forEach(c => (c.email || []).forEach(e => addEmail(e)));
+        } catch (_) {}
+      });
+    } catch (_) {}
+  })();
+
+  sendBtn.addEventListener('click', async () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+    if (emails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
+
+    sendBtn.disabled = true;
+    sendLabel.textContent = 'Sending…';
+    setStatus('', '');
+
+    try {
+      const resp = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message_slug: 'nothing-burger',
+          sender_name:  senderInput.value.trim(),
+          recipients:   emails.slice(),
+          _trap: "",
+          _t:    Date.now(),
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        setStatus(
+          resp.status === 404 && isLocal
+            ? 'Route not found — make sure the Worker is running: cd worker && npx wrangler dev'
+            : resp.status === 503
+            ? 'Share feature is not enabled on this environment yet.'
+            : data.error || 'Something went wrong. Please try again.',
+          'error'
+        );
+      } else {
+        const n = data.sent || emails.length;
+        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} accepted for delivery. Thank you for spreading the word.`, 'success');
+        emails.length = 0;
+        renderTags();
+      }
+    } catch (_) {
+      setStatus(
+        ['localhost', '127.0.0.1'].includes(window.location.hostname)
+          ? 'Worker not reachable. Run `cd worker && npx wrangler dev` in a second terminal.'
+          : 'Network error — please check your connection and try again.',
+        'error'
+      );
+    } finally {
+      sendLabel.textContent = 'Have us send it';
+      updateButtons();
+    }
+  });
+
+  updateButtons();
+  fetchPreview();
+
+  if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    setStatus(
+      'Local dev: "Have us send it" needs the Worker running. ' +
+      'In a second terminal: cd worker && npx wrangler dev.',
+      'info'
+    );
+  }
+})();
+</script>

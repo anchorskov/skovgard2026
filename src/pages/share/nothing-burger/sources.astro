@@ -1,0 +1,446 @@
+---
+// src/pages/share/nothing-burger/sources.astro
+import Base from '../../../layouts/Base.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+---
+<Base
+  title="Sources — Taxpayer-Funded Nothing Burger | Skovgard 2026"
+  description="Sources and fact-check notes for the Wyoming public lands Nothing Burger share page. Hageman mailing, Senate land-sale proposal, Montana carve-out, BLM guidance, and wildfire research."
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Breadcrumb -->
+    <div class="bg-wy-bone border-b border-gray-200 py-3 px-4">
+      <div class="max-w-3xl mx-auto flex items-center gap-3 flex-wrap">
+        <a href="/share" class="inline-flex items-center gap-1.5 text-gray-400 hover:text-wy-ember text-xs font-semibold uppercase tracking-widest transition-colors shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          All messages
+        </a>
+        <span class="text-gray-300 text-sm">/</span>
+        <a href="/share/nothing-burger/" class="text-sm font-semibold text-gray-400 hover:text-wy-ember transition-colors truncate">
+          Taxpayer-Funded Nothing Burger
+        </a>
+        <span class="text-gray-300 text-sm">/</span>
+        <span class="text-sm font-semibold text-wy-charcoal">Sources</span>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-12 px-4 text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Research Aid</p>
+      <h1 class="text-3xl sm:text-4xl font-serif font-extrabold text-wy-bone mb-3 leading-tight max-w-2xl mx-auto">
+        Sources &amp; Fact-Check Notes
+      </h1>
+      <p class="text-wy-bone/70 text-base leading-relaxed max-w-xl mx-auto">
+        This page lists sources for the Wyoming public lands Nothing Burger share message.
+        It is a research aid, not a legal opinion or a formal campaign position.
+      </p>
+    </div>
+
+    <!-- Wording cautions -->
+    <section class="bg-wy-bone py-10 px-4">
+      <div class="max-w-2xl mx-auto">
+        <p class="section-kicker">Responsible wording</p>
+        <p class="body-prose">
+          Use these cautions before sharing or adapting the message.
+        </p>
+        <div class="caution-list">
+          <div class="caution-item">
+            <div class="caution-icon ok">&#10003;</div>
+            <div>
+              <strong>Say:</strong> "taxpayer-funded congressional mailing" — the safest shorthand is
+              to quote the footer exactly: "PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES."
+            </div>
+          </div>
+          <div class="caution-item">
+            <div class="caution-icon ok">&#10003;</div>
+            <div>
+              <strong>Say:</strong> Montana was "carved out," "excluded," or "exempted in the proposal."
+            </div>
+          </div>
+          <div class="caution-item">
+            <div class="caution-icon warn">&#9888;</div>
+            <div>
+              <strong>Do not say</strong> Hageman voted <em>for</em> the Senate land-sale proposal.
+              The stronger and accurate claim is that Wyoming was listed while Montana was not, and
+              the official mailing does not explain that contrast.
+            </div>
+          </div>
+          <div class="caution-item">
+            <div class="caution-icon warn">&#9888;</div>
+            <div>
+              <strong>Do not say</strong> Montana "opted out" unless new documentation proves a
+              formal legal opt-out mechanism. Current reporting says Montana was excluded or exempted —
+              the exact mechanism was not publicly confirmed as of the research date.
+            </div>
+          </div>
+          <div class="caution-item">
+            <div class="caution-icon warn">&#9888;</div>
+            <div>
+              <strong>Do not say</strong> the proposal became law. It was removed before debate.
+              The Montana Senators confirmed this in a joint statement.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Claims table -->
+    <section class="bg-white py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">Claims and source support</p>
+
+        <div class="claims-table">
+
+          <div class="claim-row">
+            <div class="claim-col">
+              <p class="claim-label">Claim</p>
+              <p class="claim-text">The Hageman mailing was official, House-funded communication.</p>
+            </div>
+            <div class="source-col">
+              <p class="source-label">Primary source</p>
+              <p class="source-text">
+                Hageman constituent letter (CCF_000069.pdf), pages 2–3: footer states
+                "PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES."
+                Quote the footer directly.
+              </p>
+            </div>
+          </div>
+
+          <div class="claim-row">
+            <div class="claim-col">
+              <p class="claim-label">Claim</p>
+              <p class="claim-text">The letter says Hageman never voted for the "mass sale" of public lands.</p>
+            </div>
+            <div class="source-col">
+              <p class="source-label">Primary source</p>
+              <p class="source-text">
+                Hageman constituent letter, page 3, section titled "Correcting the Record on Public
+                Land Sales." This narrow denial is consistent with the record — the Senate provision
+                was removed before any final vote.
+              </p>
+            </div>
+          </div>
+
+          <div class="claim-row">
+            <div class="claim-col">
+              <p class="claim-label">Claim</p>
+              <p class="claim-text">The Senate proposal listed Wyoming and did not list Montana.</p>
+            </div>
+            <div class="source-col">
+              <p class="source-label">Primary source</p>
+              <p class="source-text">
+                Hageman official op-ed, June 20, 2025 — lists eleven states including Wyoming;
+                Montana is absent from the list.
+                <a href="https://hageman.house.gov/media/op-eds/setting-record-straight-federal-land-sale-proposal" class="src-link" target="_blank" rel="noopener">hageman.house.gov &rarr;</a>
+              </p>
+              <p class="source-text mt-2">
+                WyoFile, June 11, 2025: reports the provision would cover 11 possible states
+                with Montana as a notable exception.
+                <a href="https://wyofile.com/new-provision-in-senate-budget-bill-would-put-wyoming-public-lands-up-for-sale/" class="src-link" target="_blank" rel="noopener">wyofile.com &rarr;</a>
+              </p>
+            </div>
+          </div>
+
+          <div class="claim-row">
+            <div class="claim-col">
+              <p class="claim-label">Claim</p>
+              <p class="claim-text">Hageman did not explain why Montana was excluded.</p>
+            </div>
+            <div class="source-col">
+              <p class="source-label">Primary source</p>
+              <p class="source-text">
+                Cowboy State Daily, June 20, 2025: Hageman reportedly said she was not sure why
+                Montana was excluded and said, "This is a Senate bill. I didn't write it."
+                <a href="https://cowboystatedaily.com/2025/06/20/hageman-says-claims-of-huge-selloff-of-federal-public-land-is-silly/" class="src-link" target="_blank" rel="noopener">cowboystatedaily.com &rarr;</a>
+              </p>
+            </div>
+          </div>
+
+          <div class="claim-row">
+            <div class="claim-col">
+              <p class="claim-label">Claim</p>
+              <p class="claim-text">The proposal was real but died before becoming law.</p>
+            </div>
+            <div class="source-col">
+              <p class="source-label">Primary source</p>
+              <p class="source-text">
+                Sen. Steve Daines &amp; Sen. Tim Sheehy joint statement, June 29, 2025: the provision
+                was blocked and removed before debate on the bill.
+                <a href="https://www.daines.senate.gov/2025/06/29/daines-sheehy-joint-statement-on-blocking-sale-of-public-lands/" class="src-link" target="_blank" rel="noopener">daines.senate.gov &rarr;</a>
+              </p>
+            </div>
+          </div>
+
+          <div class="claim-row">
+            <div class="claim-col">
+              <p class="claim-label">Claim</p>
+              <p class="claim-text">The proposal used broad acreage targets — an upper estimate of 2.5M+ acres.</p>
+            </div>
+            <div class="source-col">
+              <p class="source-label">Primary source</p>
+              <p class="source-text">
+                WyoFile, June 11, 2025: reports 0.25–0.5% of BLM lands and 0.5–0.75% of Forest
+                Service lands, with an upper estimate of more than 2.5 million acres across the West.
+                <a href="https://wyofile.com/new-provision-in-senate-budget-bill-would-put-wyoming-public-lands-up-for-sale/" class="src-link" target="_blank" rel="noopener">wyofile.com &rarr;</a>
+              </p>
+            </div>
+          </div>
+
+          <div class="claim-row">
+            <div class="claim-col">
+              <p class="claim-label">Context</p>
+              <p class="claim-text">BLM already has an ordinary land-sale process with land-use planning review.</p>
+            </div>
+            <div class="source-col">
+              <p class="source-label">Supporting source</p>
+              <p class="source-text">
+                BLM Federal Public Land Sales FAQs: BLM occasionally sells parcels where land-use
+                planning finds a sale appropriate and in the public interest. This distinguishes
+                careful local review from broad budget-bill mandates.
+                <a href="https://www.blm.gov/programs/lands-and-realty/sales-and-exchanges/federal-public-land-sales-faqs" class="src-link" target="_blank" rel="noopener">blm.gov &rarr;</a>
+              </p>
+            </div>
+          </div>
+
+          <div class="claim-row">
+            <div class="claim-col">
+              <p class="claim-label">Context</p>
+              <p class="claim-text">Montana was also reported as exempt in additional Wyoming and Montana press coverage.</p>
+            </div>
+            <div class="source-col">
+              <p class="source-label">Supporting source</p>
+              <p class="source-text">
+                Cowboy State Daily, June 18, 2025: reports the Montana carve-out/exemption and
+                frames the question of why Wyoming remained potentially exposed.
+                <a href="https://cowboystatedaily.com/2025/06/18/by-the-way-montana-is-exempt-from-public-land-sales-in-budget-bill/" class="src-link" target="_blank" rel="noopener">cowboystatedaily.com &rarr;</a>
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Full source list -->
+    <section class="bg-wy-bone py-10 px-4">
+      <div class="max-w-2xl mx-auto">
+        <p class="section-kicker">Full annotated source list</p>
+        <ol class="source-list">
+
+          <li class="source-item">
+            <p class="src-title">Harriet M. Hageman, "To My Fellow Wyomingite" constituent letter, undated</p>
+            <p class="src-note">
+              Primary source for the rebuttal. Pages 2–3 include the section "Correcting the Record on
+              Public Land Sales" and the footer: "PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF
+              REPRESENTATIVES." Source document: CCF_000069.pdf.
+            </p>
+          </li>
+
+          <li class="source-item">
+            <p class="src-title">Harriet Hageman, "Setting The Record Straight On Federal Land Sale Proposal," June 20, 2025</p>
+            <p class="src-url"><a href="https://hageman.house.gov/media/op-eds/setting-record-straight-federal-land-sale-proposal" class="src-link" target="_blank" rel="noopener">hageman.house.gov</a></p>
+            <p class="src-note">
+              Hageman's official op-ed describes Sen. Lee's proposal and lists eleven western states
+              including Wyoming. Montana is absent from the list. This is Hageman's own official
+              explanation, not an outside characterization.
+            </p>
+          </li>
+
+          <li class="source-item">
+            <p class="src-title">Cowboy State Daily, "Hageman Says Claims Of Huge Selloff Of Federal Public Land Is 'Silly'," June 20, 2025</p>
+            <p class="src-url"><a href="https://cowboystatedaily.com/2025/06/20/hageman-says-claims-of-huge-selloff-of-federal-public-land-is-silly/" class="src-link" target="_blank" rel="noopener">cowboystatedaily.com</a></p>
+            <p class="src-note">
+              Reports Hageman fielding questions about the land-sale proposal. Key quote: when asked
+              why Montana was excluded, she reportedly said she was not sure and said, "This is a
+              Senate bill. I didn't write it."
+            </p>
+          </li>
+
+          <li class="source-item">
+            <p class="src-title">Cowboy State Daily, "By The Way, Montana Is Exempt From Public Land Sales In Budget Bill," June 18, 2025</p>
+            <p class="src-url"><a href="https://cowboystatedaily.com/2025/06/18/by-the-way-montana-is-exempt-from-public-land-sales-in-budget-bill/" class="src-link" target="_blank" rel="noopener">cowboystatedaily.com</a></p>
+            <p class="src-note">
+              Reports the Montana carve-out/exemption and frames the question of why Wyoming remained
+              potentially exposed while Montana was excluded.
+            </p>
+          </li>
+
+          <li class="source-item">
+            <p class="src-title">WyoFile, "New provision in Senate budget bill could put Wyoming public lands up for sale," June 11, 2025</p>
+            <p class="src-url"><a href="https://wyofile.com/new-provision-in-senate-budget-bill-would-put-wyoming-public-lands-up-for-sale/" class="src-link" target="_blank" rel="noopener">wyofile.com</a></p>
+            <p class="src-note">
+              Reports the Senate language covering 11 possible western states with Montana as a notable
+              exception. Includes the 0.25–0.5% BLM and 0.5–0.75% Forest Service figures and an upper
+              estimate of more than 2.5 million acres across the West.
+            </p>
+          </li>
+
+          <li class="source-item">
+            <p class="src-title">Sen. Steve Daines &amp; Sen. Tim Sheehy, "Daines-Sheehy Joint Statement on Blocking Sale of Public Lands," June 29, 2025</p>
+            <p class="src-url"><a href="https://www.daines.senate.gov/2025/06/29/daines-sheehy-joint-statement-on-blocking-sale-of-public-lands/" class="src-link" target="_blank" rel="noopener">daines.senate.gov</a></p>
+            <p class="src-note">
+              Official Montana delegation source confirming the provision was blocked and removed before
+              debate. Use for the factual claim that the land-sale provision did not become law.
+            </p>
+          </li>
+
+          <li class="source-item">
+            <p class="src-title">Bureau of Land Management, "Federal Public Land Sales FAQs"</p>
+            <p class="src-url"><a href="https://www.blm.gov/programs/lands-and-realty/sales-and-exchanges/federal-public-land-sales-faqs" class="src-link" target="_blank" rel="noopener">blm.gov</a></p>
+            <p class="src-note">
+              Official BLM source explaining that BLM does occasionally sell parcels, but generally
+              retains public lands and uses land-use planning to determine whether a sale is
+              appropriate and in the public interest. Distinguishes ordinary parcel review from
+              broad budget-bill sale mandates.
+            </p>
+          </li>
+
+        </ol>
+      </div>
+    </section>
+
+    <!-- Back CTA -->
+    <section class="bg-wy-charcoal py-12 px-4 text-center">
+      <p class="text-wy-bone/70 text-sm mb-4">Read the full summary and share with Wyoming neighbors.</p>
+      <a
+        href="/share/nothing-burger/"
+        class="inline-flex items-center gap-2 px-6 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow"
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to the share page
+      </a>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .body-prose {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #2b2b2b;
+    margin: 0 0 18px;
+  }
+  .section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin-bottom: 10px;
+  }
+
+  /* Wording cautions */
+  .caution-list { display: flex; flex-direction: column; gap: 14px; }
+  .caution-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 0.9rem;
+    color: #4b4b4b;
+    line-height: 1.6;
+  }
+  .caution-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-top: 1px;
+  }
+  .caution-icon.ok   { background: #dcfce7; color: #15803d; }
+  .caution-icon.warn { background: #fef9c3; color: #a16207; }
+
+  /* Claims table */
+  .claims-table { display: flex; flex-direction: column; gap: 0; }
+  .claim-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 0;
+    border: 1px solid #e5e7eb;
+    border-bottom: none;
+  }
+  .claim-row:first-child { border-radius: 10px 10px 0 0; }
+  .claim-row:last-child  { border-bottom: 1px solid #e5e7eb; border-radius: 0 0 10px 10px; }
+  .claim-col, .source-col {
+    padding: 14px 16px;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #2b2b2b;
+  }
+  .claim-col { background: #f8fafc; border-right: 1px solid #e5e7eb; }
+  .claim-label, .source-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    margin: 0 0 6px;
+  }
+  .claim-text, .source-text { margin: 0; }
+  .mt-2 { margin-top: 8px; }
+  @media (max-width: 600px) {
+    .claim-row { grid-template-columns: 1fr; }
+    .claim-col { border-right: none; border-bottom: 1px solid #e5e7eb; }
+  }
+
+  /* Source list */
+  .source-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 22px; counter-reset: src-counter; }
+  .source-item {
+    counter-increment: src-counter;
+    padding: 16px 18px 16px 52px;
+    background: #fff;
+    border: 1px solid #e5ddd0;
+    border-radius: 10px;
+    position: relative;
+  }
+  .source-item::before {
+    content: counter(src-counter);
+    position: absolute;
+    left: 14px;
+    top: 16px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #0f2742;
+    color: #f1ece1;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .src-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #2b2b2b;
+    margin: 0 0 4px;
+    line-height: 1.4;
+  }
+  .src-url { margin: 0 0 6px; }
+  .src-note {
+    font-size: 0.875rem;
+    color: #4b4b4b;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .src-link {
+    color: #0f2742;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .src-link:hover { text-decoration: underline; }
+</style>
