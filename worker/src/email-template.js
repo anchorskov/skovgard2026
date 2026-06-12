@@ -786,8 +786,14 @@ const NOTHING_BURGER_BODY_HTML = `
       style="margin:0 0 18px;border-left:5px solid #c68a4a;background:#fbf8f1;">
     <tr>
       <td style="padding:14px 18px;">
-        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;font-style:italic;">
+        <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#111827;font-style:italic;">
           &#8220;PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES.&#8221;
+        </p>
+        <p style="margin:0;font-size:13px;line-height:1.5;color:#374151;">
+          <a href="https://www.skovgard2026.org/docs/hageman-nothing-burger-letter.pdf"
+              style="color:#0f2742;font-weight:bold;text-decoration:none;">
+            View the original mailing (PDF) &#8594;
+          </a>
         </p>
       </td>
     </tr>
