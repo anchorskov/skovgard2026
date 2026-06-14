@@ -876,7 +876,57 @@ const NOTHING_BURGER_BODY_HTML = `
 // ── Message registry ───────────────────────────────────────────────────────────
 // One entry per shareable message. subject() and intro() accept an optional senderName.
 
+const CITIZENS_DEFEND_THE_CONSTITUTION_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I wanted to share a short video message from Jimmy Skovgard &#8212; filmed in Wyoming &#8212;
+    on three things that drive this campaign.
+  </p>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The message is simple: citizens defend the Constitution. Public servants swear the oath.
+    Wyoming deserves a Senator who takes that oath seriously.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
+    <tr>
+      <td style="padding:16px 20px;background:#f7f3ec;border-left:4px solid #b22234;border-radius:4px;">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#b22234;">Three Pillars of the Campaign</p>
+        <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#111827;"><strong>1. Defend the Constitution</strong> &#8212; The oath still matters.</p>
+        <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#111827;"><strong>2. Restore Accountability</strong> &#8212; Public servants answer to Wyoming.</p>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;"><strong>3. Listen to Wyoming</strong> &#8212; Real decisions require real input.</p>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    The video runs about five minutes and was filmed at Heart Mountain. No teleprompter.
+    No handlers. Just Wyoming and the Golden Rule.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
+    <tr>
+      <td>
+        <a href="https://skovgard2026.org/share/citizens-defend-the-constitution/"
+           style="display:inline-block;background:#b22234;color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;padding:12px 28px;border-radius:4px;">
+          Watch the Video
+        </a>
+      </td>
+    </tr>
+  </table>
+`;
+
 export const SHARE_MESSAGES = {
+  "citizens-defend-the-constitution": {
+    title:        "Citizens Defend the Constitution",
+    body_html:    CITIZENS_DEFEND_THE_CONSTITUTION_BODY_HTML,
+    preview_text: "Heart Mountain. The Golden Rule. The three pillars of this campaign.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — Citizens Defend the Constitution`
+        : "Citizens defend the Constitution — a Wyoming message from Jimmy Skovgard";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming message with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
   "jimmys-story": {
     title:        "Jimmy's Story",
     body_html:    JIMMYS_STORY_BODY_HTML,
@@ -1246,7 +1296,27 @@ export function buildShareEmailHtml({ sender_name = "", sender_intro, body_html,
  */
 export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" }) {
   const specificLines =
-    slug === "representatives-work-for"
+    slug === "citizens-defend-the-constitution"
+      ? [
+          "I wanted to share a short video message from Jimmy Skovgard — filmed in Wyoming —",
+          "on three things that drive this campaign.",
+          "",
+          "The message is simple: citizens defend the Constitution. Public servants swear the",
+          "oath. Wyoming deserves a Senator who takes that oath seriously.",
+          "",
+          "THREE PILLARS OF THE CAMPAIGN",
+          "",
+          "  1. Defend the Constitution — The oath still matters.",
+          "  2. Restore Accountability — Public servants answer to Wyoming.",
+          "  3. Listen to Wyoming — Real decisions require real input.",
+          "",
+          "The video runs about five minutes and was filmed at Heart Mountain.",
+          "No teleprompter. No handlers. Just Wyoming and the Golden Rule.",
+          "",
+          "Watch the video:",
+          "https://skovgard2026.org/share/citizens-defend-the-constitution/",
+        ]
+    : slug === "representatives-work-for"
       ? [
           "For too long, the voice of the constituency has been reduced to headlines,",
           "polls, social media arguments, and election-year promises. Then the election",
