@@ -896,7 +896,7 @@ const CITIZENS_DEFEND_THE_CONSTITUTION_BODY_HTML = `
     </tr>
   </table>
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
-    The video runs about five minutes and was filmed at Heart Mountain. No teleprompter.
+    The video runs about five minutes, recorded with Heart Mountain as the backdrop. No teleprompter.
     No handlers. Just Wyoming and the Golden Rule.
   </p>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
@@ -915,7 +915,7 @@ export const SHARE_MESSAGES = {
   "citizens-defend-the-constitution": {
     title:        "Citizens Defend the Constitution",
     body_html:    CITIZENS_DEFEND_THE_CONSTITUTION_BODY_HTML,
-    preview_text: "Heart Mountain. The Golden Rule. The three pillars of this campaign.",
+    preview_text: "Heart Mountain as the backdrop. The Golden Rule. The three pillars of this campaign.",
     subject(n) {
       return n
         ? `${n} wanted you to see this — Citizens Defend the Constitution`
@@ -1310,7 +1310,7 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "  2. Restore Accountability — Public servants answer to Wyoming.",
           "  3. Listen to Wyoming — Real decisions require real input.",
           "",
-          "The video runs about five minutes and was filmed at Heart Mountain.",
+          "The video runs about five minutes, recorded with Heart Mountain as the backdrop.",
           "No teleprompter. No handlers. Just Wyoming and the Golden Rule.",
           "",
           "Watch the video:",
