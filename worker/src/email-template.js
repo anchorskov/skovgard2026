@@ -876,6 +876,51 @@ const NOTHING_BURGER_BODY_HTML = `
 // ── Message registry ───────────────────────────────────────────────────────────
 // One entry per shareable message. subject() and intro() accept an optional senderName.
 
+const POSTAGE_BANDIT_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    We have a situation. Our representative gets to Washington, looks at the House franking
+    privilege, and decides that taxpayer-funded tool belongs to her reelection campaign.
+  </p>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I just filed an official FEC complaint against Representative Harriet Hageman for using
+    public funds to send out a mass political mailing right in the middle of a statutory
+    pre-election blackout period. By law, using congressional resources like this during a
+    blackout window is strictly prohibited.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
+    <tr>
+      <td style="padding:16px 20px;background:#fff5f5;border-left:4px solid #b22234;border-radius:4px;">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#b22234;">The cost to Wyoming taxpayers</p>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;">
+          An estimated <strong>$130,000 to $145,000 in public money</strong> was spent to blast a
+          defensive campaign letter on official letterhead to households across Wyoming.
+        </p>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    This speaks to an endemic disregard for the rule of law &#8212; a mindset that the rules apply
+    to the citizens but never to the people who write them. When a candidate uses the financial
+    machinery of the United States government as a personal piggy bank to protect a seat, it
+    undermines the very foundation of fair elections.
+  </p>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    You do not have to take my word for it. The original mailing and the full text of the complaint
+    are both available to review. We must hold our leaders to the letter of the law, or the law
+    ceases to mean anything at all.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
+    <tr>
+      <td>
+        <a href="https://skovgard2026.org/share/postage-bandit/sources/"
+           style="display:inline-block;background:#b22234;color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;padding:12px 28px;border-radius:4px;">
+          Read the complaint and sources &#8594;
+        </a>
+      </td>
+    </tr>
+  </table>
+`;
+
 const CITIZENS_DEFEND_THE_CONSTITUTION_BODY_HTML = `
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
     I wanted to share a short video message from Jimmy Skovgard &#8212; filmed in Wyoming &#8212;
@@ -912,6 +957,21 @@ const CITIZENS_DEFEND_THE_CONSTITUTION_BODY_HTML = `
 `;
 
 export const SHARE_MESSAGES = {
+  "postage-bandit": {
+    title:        "Postage Bandit",
+    body_html:    POSTAGE_BANDIT_BODY_HTML,
+    preview_text: "FEC complaint filed: est. $130K–$145K in public funds used for a campaign mailing during a blackout period.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — Postage Bandit`
+        : "Postage Bandit: FEC complaint filed against Rep. Hageman";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming accountability message with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
   "citizens-defend-the-constitution": {
     title:        "Citizens Defend the Constitution",
     body_html:    CITIZENS_DEFEND_THE_CONSTITUTION_BODY_HTML,
@@ -1296,7 +1356,35 @@ export function buildShareEmailHtml({ sender_name = "", sender_intro, body_html,
  */
 export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" }) {
   const specificLines =
-    slug === "citizens-defend-the-constitution"
+    slug === "postage-bandit"
+      ? [
+          "We have a situation. Our representative gets to Washington, looks at the House",
+          "franking privilege, and decides that taxpayer-funded tool belongs to her reelection campaign.",
+          "",
+          "I just filed an official FEC complaint against Representative Harriet Hageman for using",
+          "public funds to send out a mass political mailing right in the middle of a statutory",
+          "pre-election blackout period. By law, using congressional resources like this during a",
+          "blackout window is strictly prohibited.",
+          "",
+          "THE COST TO WYOMING TAXPAYERS",
+          "",
+          "An estimated $130,000 to $145,000 in public money was spent to blast a defensive campaign",
+          "letter on official letterhead to households across Wyoming.",
+          "",
+          "This speaks to an endemic disregard for the rule of law — a mindset that the rules apply",
+          "to the citizens but never to the people who write them. When a candidate uses the financial",
+          "machinery of the United States government as a personal piggy bank to protect a seat,",
+          "it undermines the very foundation of fair elections.",
+          "",
+          "You do not have to take my word for it. The original mailing and the full text of the",
+          "complaint are both available to review.",
+          "",
+          "We must hold our leaders to the letter of the law, or the law ceases to mean anything at all.",
+          "",
+          "Read the complaint and sources:",
+          "https://skovgard2026.org/share/postage-bandit/sources/",
+        ]
+    : slug === "citizens-defend-the-constitution"
       ? [
           "I wanted to share a short video message from Jimmy Skovgard — filmed in Wyoming —",
           "on three things that drive this campaign.",

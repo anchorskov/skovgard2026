@@ -1,0 +1,144 @@
+---
+// src/pages/share/postage-bandit/sources.astro
+import Base from '../../../layouts/Base.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+---
+<Base
+  title="Postage Bandit — Sources | Skovgard 2026"
+  description="Sources and background for the FEC complaint against Rep. Harriet Hageman for franking abuse during a statutory pre-election blackout period."
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Breadcrumb -->
+    <div class="bg-wy-bone border-b border-gray-200 py-3 px-4">
+      <div class="max-w-3xl mx-auto flex items-center gap-3">
+        <a href="/share" class="inline-flex items-center gap-1.5 text-gray-400 hover:text-wy-ember text-xs font-semibold uppercase tracking-widest transition-colors shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          All messages
+        </a>
+        <span class="text-gray-300 text-sm">/</span>
+        <a href="/share/postage-bandit/" class="text-sm font-semibold text-wy-ember hover:underline truncate">Postage Bandit</a>
+        <span class="text-gray-300 text-sm">/</span>
+        <span class="text-sm font-semibold text-wy-charcoal">Sources</span>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="bg-wy-charcoal py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Research Aid</p>
+        <h1 class="text-3xl font-serif font-extrabold text-wy-bone mb-3">Postage Bandit — Sources</h1>
+        <p class="text-wy-bone/70 text-base leading-relaxed max-w-xl">
+          This page is a research aid, not a legal opinion. It identifies the primary documents and
+          statutory basis behind the claims in the share message. The FEC complaint is a filing&#8212;not
+          a finding. The outcome will be determined by the FEC.
+        </p>
+      </div>
+    </div>
+
+    <!-- Sources table -->
+    <section class="bg-wy-bone py-14 px-4">
+      <div class="max-w-3xl mx-auto">
+
+        <h2 class="sources-heading">Primary documents</h2>
+
+        <div class="sources-table">
+          <div class="sources-row">
+            <div class="sources-claim">
+              "I just filed an official FEC complaint against Representative Harriet Hageman."
+            </div>
+            <div class="sources-support">
+              <p class="support-note">The complaint is the primary source. It is an official filing submitted to the Federal Election Commission.</p>
+              <a href="/docs/hageman-fec-complaint.pdf" target="_blank" rel="noopener" class="source-link">
+                Hageman FEC Complaint — Full Text (PDF) ↗
+              </a>
+            </div>
+          </div>
+
+          <div class="sources-row">
+            <div class="sources-claim">
+              "A defensive campaign letter on official congressional letterhead, sent to households across Wyoming."
+            </div>
+            <div class="sources-support">
+              <p class="support-note">The mailing itself is the source. The footer states: "PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES."</p>
+              <a href="/docs/hageman-nothing-burger-letter.pdf" target="_blank" rel="noopener" class="source-link">
+                Original Hageman Mailing (PDF) ↗
+              </a>
+            </div>
+          </div>
+
+          <div class="sources-row">
+            <div class="sources-claim">
+              "Statutory pre-election blackout period" / "by law, using congressional resources like this during a blackout window is strictly prohibited."
+            </div>
+            <div class="sources-support">
+              <p class="support-note">
+                The House franking statute (2 U.S.C. § 59e) prohibits members from sending mass mailings
+                (500 or more pieces of substantially identical mail) using official resources during the
+                90-day period before a general or primary election in which the member is a candidate.
+                The Wyoming primary is August 18, 2026. The applicable blackout window begins May 20, 2026.
+              </p>
+              <a href="https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title2-section59e&num=0&edition=prelim" target="_blank" rel="noopener" class="source-link">
+                2 U.S.C. § 59e — House.gov ↗
+              </a>
+            </div>
+          </div>
+
+          <div class="sources-row">
+            <div class="sources-claim">
+              "An estimated $130,000 to $145,000 in public money."
+            </div>
+            <div class="sources-support">
+              <p class="support-note">
+                This is an estimate derived from Wyoming household counts and USPS congressional
+                nonprofit/franked mail postage rates. The exact cost will be a matter of public record
+                through the FEC process and House administrative disclosures. The range reflects
+                uncertainty in the total piece count. Do not cite as a confirmed figure.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="sources-heading mt-10">Responsible use guidance</h2>
+        <ul class="guidance-list">
+          <li>The FEC complaint is a <strong>filing</strong>, not a finding. The FEC has not ruled on the merits.</li>
+          <li>The dollar figure is an <strong>estimate</strong>. Use the range ($130,000&#8211;$145,000) and note it is estimated.</li>
+          <li>The blackout period claim is based on the statute and the mailing date relative to the primary. If the mailing date falls outside the 90-day window, this claim requires revision.</li>
+          <li>The original mailing is publicly available and its footer is verifiable by anyone who reads it.</li>
+        </ul>
+
+        <div class="mt-10 pt-8 border-t border-gray-200">
+          <a href="/share/postage-bandit/" class="inline-flex items-center gap-2 text-sm font-semibold text-wy-ember hover:underline">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Postage Bandit share page
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .sources-heading { font-family: 'Bitter', serif; font-size: 1.1rem; font-weight: 700; color: #2b2b2b; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 20px; }
+  .sources-table { border: 1px solid #e5ddd0; border-radius: 12px; overflow: hidden; }
+  .sources-row { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #e5ddd0; }
+  .sources-row:last-child { border-bottom: none; }
+  .sources-claim { padding: 18px 20px; font-size: 0.9rem; font-style: italic; color: #2b2b2b; line-height: 1.6; background: #f9f6f0; border-right: 1px solid #e5ddd0; }
+  .sources-support { padding: 18px 20px; font-size: 0.875rem; color: #374151; line-height: 1.6; background: #fff; }
+  .support-note { margin: 0 0 10px; }
+  .source-link { display: inline-block; font-size: 0.8125rem; font-weight: 700; color: #b22234; text-decoration: none; }
+  .source-link:hover { text-decoration: underline; }
+  .guidance-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .guidance-list li { font-size: 0.9375rem; color: #374151; line-height: 1.6; padding-left: 20px; position: relative; }
+  .guidance-list li::before { content: '—'; position: absolute; left: 0; color: #c68a4a; font-weight: 700; }
+  @media (max-width: 600px) { .sources-row { grid-template-columns: 1fr; } .sources-claim { border-right: none; border-bottom: 1px solid #e5ddd0; } }
+</style>
