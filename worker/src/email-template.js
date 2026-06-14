@@ -879,35 +879,30 @@ const NOTHING_BURGER_BODY_HTML = `
 const POSTAGE_BANDIT_BODY_HTML = `
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
     We have a situation. Our representative gets to Washington, looks at the House franking
-    privilege, and decides that taxpayer-funded tool belongs to her reelection campaign.
+    privilege&#8212;a taxpayer-funded mailing right meant for official constituent communication&#8212;
+    and decides it belongs to her reelection campaign.
   </p>
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
-    I just filed an official FEC complaint against Representative Harriet Hageman for using
-    public funds to send out a mass political mailing right in the middle of a statutory
-    pre-election blackout period. By law, using congressional resources like this during a
-    blackout window is strictly prohibited.
+    I just filed an official FEC complaint against Representative Harriet Hageman. The 2025 House
+    Communications Standards Manual is clear: official mass mailings paid for with public funds may
+    not contain campaign content, electioneering, fundraising, or content that disparages individuals.
   </p>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
     <tr>
       <td style="padding:16px 20px;background:#fff5f5;border-left:4px solid #b22234;border-radius:4px;">
-        <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#b22234;">The cost to Wyoming taxpayers</p>
-        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;">
-          An estimated <strong>$130,000 to $145,000 in public money</strong> was spent to blast a
-          defensive campaign letter on official letterhead to households across Wyoming.
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#b22234;">What the mailing actually says</p>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;font-style:italic;">
+          Critics are called &#8220;fearmongering radicals&#8221; who are &#8220;conveniently
+          fundraising off their dishonesty.&#8221; On official letterhead. Paid for with
+          <strong>an estimated $130,000&#8211;$145,000 in public money</strong>.
         </p>
       </td>
     </tr>
   </table>
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
-    This speaks to an endemic disregard for the rule of law &#8212; a mindset that the rules apply
-    to the citizens but never to the people who write them. When a candidate uses the financial
-    machinery of the United States government as a personal piggy bank to protect a seat, it
-    undermines the very foundation of fair elections.
-  </p>
-  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
-    You do not have to take my word for it. The original mailing and the full text of the complaint
-    are both available to review. We must hold our leaders to the letter of the law, or the law
-    ceases to mean anything at all.
+    That is not policy explanation. That is a campaign-style political attack on the public dime.
+    You do not have to take my word for it&#8212;the original mailing and the full text of the
+    complaint are both available to review.
   </p>
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
     <tr>
@@ -960,7 +955,7 @@ export const SHARE_MESSAGES = {
   "postage-bandit": {
     title:        "Postage Bandit",
     body_html:    POSTAGE_BANDIT_BODY_HTML,
-    preview_text: "FEC complaint filed: est. $130K–$145K in public funds used for a campaign mailing during a blackout period.",
+    preview_text: "FEC complaint filed: official funds used to attack critics on taxpayer-funded letterhead. House rules prohibit this.",
     subject(n) {
       return n
         ? `${n} wanted you to see this — Postage Bandit`

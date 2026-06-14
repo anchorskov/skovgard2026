@@ -33,12 +33,12 @@ import Footer from '../../components/Footer.astro';
         Postage Bandit
       </h1>
       <p class="text-wy-sandstone font-semibold text-base sm:text-lg mb-6 tracking-wide">
-        An estimated $130,000–$145,000 in public money. One campaign letter. One blackout window violation.
+        An estimated $130,000–$145,000 in public money. One campaign letter. Official funds used for political attacks.
       </p>
       <p class="text-wy-bone/75 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto mb-8">
         I filed an official FEC complaint against Representative Harriet Hageman for using taxpayer-funded
-        congressional resources to send a mass political mailing during a statutory pre-election blackout period.
-        The rules apply to everyone&#8212;or they apply to no one.
+        congressional resources to send a mass political mailing that appears to violate House rules on
+        campaign content and disparagement. The rules apply to everyone&#8212;or they apply to no one.
       </p>
       <div class="flex flex-wrap justify-center gap-3">
         <button id="hero-copy-msg" type="button"
@@ -90,26 +90,27 @@ import Footer from '../../components/Footer.astro';
           </div>
         </div>
 
-        <!-- 2 — The blackout period -->
+        <!-- 2 — What the rules prohibit -->
         <div class="summary-section">
           <div class="summary-num">2</div>
           <div class="summary-body">
-            <h2 class="summary-head">The statutory blackout period</h2>
+            <h2 class="summary-head">What the rules prohibit</h2>
             <p class="body-prose">
-              Federal law prohibits members of Congress from sending mass mailings using official
-              resources during a pre-election blackout window when they are candidates on the ballot.
-              By law, using congressional franking privileges in this window is strictly prohibited.
+              The 2025 House Communications Standards Manual governs all official taxpayer-funded
+              congressional mail. It explicitly prohibits campaign content, electioneering,
+              fundraising, and content that disparages or personally attacks individuals.
             </p>
             <p class="body-prose">
-              This is not a procedural technicality. The blackout period exists precisely to prevent
-              incumbents from using the government&#8217;s printing and mailing infrastructure as a
-              campaign advantage. It is a line written into the law for a reason. The mailing arrived
-              in my mailbox on June 12, 2026&#8212;well within the window that opened May 19.
+              Policy criticism is allowed. A franked mailing can explain a vote or defend a position.
+              But the manual is clear: official communications &#8220;critical of policy may not be
+              personalized or politicized, and may not be used to disparage&#8230; individuals.&#8221;
             </p>
-            <div class="callout-box">
-              <p class="callout-text">
-                When a candidate uses the financial machinery of the United States government as a
-                personal piggy bank to protect a seat, it undermines the very foundation of fair elections.
+            <div class="quote-box">
+              <p class="quote-label">What the Hageman mailing says</p>
+              <p class="quote-text">
+                Critics are called &#8220;fearmongering radicals&#8221; who are &#8220;conveniently
+                fundraising off their dishonesty.&#8221; That is not policy explanation.
+                That is campaign-style disparagement&#8212;on official letterhead, on the public dime.
               </p>
             </div>
           </div>
@@ -285,7 +286,7 @@ import Footer from '../../components/Footer.astro';
           {[
             { n: '1', head: 'The complaint is filed', body: 'This is not speculation. An official FEC complaint has been submitted and is a matter of public record.' },
             { n: '2', head: 'The mailing is documented', body: 'The original mailing exists and is linked on this page. "PAID FOR BY OFFICIAL FUNDS" is printed on the mailing itself.' },
-            { n: '3', head: 'The law is the law', body: 'The pre-election blackout period for mass franked mail is a federal statute. It was not invented for this complaint.' },
+            { n: '3', head: 'The rules are the rules', body: 'The 2025 House Communications Standards Manual prohibits campaign content and disparagement in official taxpayer-funded mail. It applies to every member.' },
           ].map(item => (
             <div class="flex gap-4">
               <span class="text-wy-ember font-serif font-extrabold text-2xl leading-none mt-0.5">{item.n}.</span>
@@ -369,10 +370,12 @@ import Footer from '../../components/Footer.astro';
 
   const SHARE_MESSAGE =
     'Jimmy Skovgard filed an official FEC complaint against Rep. Harriet Hageman.\n\n' +
-    'An estimated $130,000–$145,000 in public money was spent to send a mass campaign ' +
-    'letter on official congressional letterhead to Wyoming households—right in the middle ' +
-    'of a statutory pre-election blackout period.\n\n' +
-    'By law, using congressional franking privileges during a blackout window is strictly prohibited.\n\n' +
+    'The 2025 House Communications Standards Manual says taxpayer-funded official mail ' +
+    'may not contain campaign content, fundraising, or disparagement of individuals.\n\n' +
+    'The Hageman mailing—sent at an estimated cost of $130,000–$145,000 in public money—' +
+    'called critics "fearmongering radicals" who were "conveniently fundraising off their ' +
+    'dishonesty." On official letterhead. Paid for by Wyoming taxpayers.\n\n' +
+    'That is not policy explanation. That is a campaign-style attack on the public dime.\n\n' +
     'The rules apply to everyone—or they apply to no one.\n\n' +
     'Read the complaint and the mailing:\n' +
     'https://skovgard2026.org/share/postage-bandit/';
