@@ -68,12 +68,12 @@ import { MEDIA_BASE_URL } from '../../constants';
         </p>
 
         <!-- Video player -->
-        <div class="rounded-xl overflow-hidden shadow-lg mb-7 bg-black">
+        <div class="rounded-xl overflow-hidden shadow-lg mb-7" style="line-height:0;">
           <video
             controls
             preload="metadata"
             class="w-full block"
-            style="max-height:480px;"
+            style="max-height:480px;border-radius:inherit;"
           >
             <source src={`${MEDIA_BASE_URL}/videos/Jimmy_6-14.mp4`} type="video/mp4" />
           </video>
