@@ -84,45 +84,39 @@ import { MEDIA_BASE_URL } from '../constants';
     </div>
   </section>
 
-  <!-- TOWNHALL VIDEO -->
+  <!-- FEATURED MESSAGE VIDEO -->
   <section class="bg-wy-navy py-20 px-4">
     <div class="max-w-5xl mx-auto">
-      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-3">Town Hall</p>
-      <h2 class="text-4xl font-serif font-bold text-white mb-4">Hear Jimmy</h2>
-      <p class="text-white/70 text-lg mb-10 max-w-xl">
-        A recent conversation: unscripted, unfiltered, Wyoming straight talk on the issues that matter.
+      <p class="text-wy-sandstone font-semibold uppercase tracking-wider text-sm mb-3">Featured Message</p>
+      <h2 class="text-4xl font-serif font-bold text-white mb-4">Citizens Defend the Constitution</h2>
+      <p class="text-white/70 text-lg mb-10 max-w-2xl">
+        A short Wyoming message on Heart Mountain, the Golden Rule, and the three pillars of this campaign: defend the Constitution, restore accountability, and listen to Wyoming.
       </p>
+      <!-- Video player -->
+      <div class="w-full rounded-sm overflow-hidden shadow-2xl shadow-black/40 mb-10">
+        <video
+          controls
+          preload="metadata"
+          class="w-full block"
+          style="max-height: 540px; background: #000;"
+        >
+          <source src={`${MEDIA_BASE_URL}/videos/Jimmy_6-14.mp4`} type="video/mp4" />
+        </video>
+      </div>
+      <!-- Meta + context + CTA -->
       <div class="flex flex-col md:flex-row gap-10 items-start">
-        <!-- Audio player -->
-        <div class="w-full md:w-80 flex-shrink-0 mx-auto md:mx-0">
-          <audio controls preload="metadata" class="w-full rounded">
-            <source src={`${MEDIA_BASE_URL}/townhall/SpecialAsk.mp3`} type="audio/mpeg" />
-          </audio>
-          <a
-            href={`${MEDIA_BASE_URL}/townhall/SpecialAsk.mp3`}
-            target="_blank"
-            rel="noopener"
-            class="mt-3 inline-block text-sm font-semibold text-wy-sandstone hover:text-wy-ember hover:underline"
-          >
-            Open audio directly
-          </a>
-        </div>
-        <!-- Context + CTA -->
-        <div class="flex-1 pt-2">
-          <p class="text-wy-sandstone font-bold text-sm uppercase tracking-[0.18em] mb-2">April 2026 · Part 1 · 4:45</p>
-          <h3 class="text-2xl font-serif font-extrabold text-wy-bone mb-4">Opening: Why I'm Running</h3>
-          <p class="text-wy-bone/70 mb-4 leading-relaxed">
-            Jimmy opens the town hall with a direct answer to the question voters keep asking: why now, why you, and what's actually broken in Washington. No teleprompter. No handlers.
-          </p>
-          <p class="text-wy-bone/70 mb-8 leading-relaxed">
-            Five generations of Wyoming land. A neighbor who shows up. Real answers on water rights, federal overreach, rural healthcare, and what sovereignty actually means.
+        <div class="flex-1">
+          <p class="text-wy-sandstone font-bold text-sm uppercase tracking-[0.18em] mb-2">June 2026 · Video · 4:54</p>
+          <h3 class="text-2xl font-serif font-extrabold text-wy-bone mb-3">Three Pillars of the Campaign</h3>
+          <p class="text-wy-bone/70 text-lg leading-relaxed mb-8">
+            Citizens defend the Constitution. Public servants swear the oath.
           </p>
           <div class="flex flex-col sm:flex-row gap-4">
-            <a href="/podcast" class="inline-block bg-wy-ember text-wy-bone font-bold px-6 py-3 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
-              All Episodes →
+            <a href="/volunteer" class="inline-block bg-wy-ember text-wy-bone font-bold px-6 py-3 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
+              Get Involved →
             </a>
-            <a href="/volunteer" class="inline-block border-2 border-wy-bone/40 text-wy-bone font-bold px-6 py-3 rounded-sm hover:border-wy-bone transition-colors">
-              Get Involved
+            <a href="/podcast" class="inline-block border-2 border-wy-bone/40 text-wy-bone font-bold px-6 py-3 rounded-sm hover:border-wy-bone transition-colors">
+              All Episodes
             </a>
           </div>
         </div>
