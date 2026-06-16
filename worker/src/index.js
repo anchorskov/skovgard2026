@@ -802,6 +802,51 @@ function normalizeMessageText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
+function titleCase(str) {
+  return String(str || "").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Returns number of SMS segments for a given message string.
+// GSM-7: 160 chars single / 153 per part multipart.
+// Unicode: 70 chars single / 67 per part multipart.
+function smsSegmentCount(text) {
+  const gsm7Re = /^[@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-.\/0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà\^{}\\\[\]~|€]*$/;
+  const isGsm  = gsm7Re.test(text);
+  const single  = isGsm ? 160 : 70;
+  const multi   = isGsm ? 153 : 67;
+  const len = text.length;
+  return len <= single ? 1 : Math.ceil(len / multi);
+}
+
+// Returns { segments, baseCost, estimatedMaxCost } given message text and recipient count.
+// Base rate: $0.004/segment (Telnyx 10DLC).
+// Carrier surcharge estimate: +$0.0035/segment (AT&T rate; others vary).
+const SMS_BASE_RATE      = 0.004;
+const SMS_CARRIER_SURCHARGE = 0.0035;
+const SMS_STOP_FOOTER    = "\n\nReply STOP to opt out.";
+function calcBlastCost(messageText, total) {
+  const segments      = smsSegmentCount(messageText + SMS_STOP_FOOTER);
+  const baseCost      = +(segments * SMS_BASE_RATE * total).toFixed(2);
+  const maxCost       = +(segments * (SMS_BASE_RATE + SMS_CARRIER_SURCHARGE) * total).toFixed(2);
+  return { segments, baseCost, maxCost };
+}
+
+function buildVoterBlastPreviewSeed({ county, city, party, districtType, district, text }) {
+  return ["voter_blast", county || "", city || "", party || "", districtType || "", district || "", text].join("|");
+}
+
+function buildVoterBlastWhere(job) {
+  const conditions = ["vbp.phone_e164 IS NOT NULL"];
+  const bindings = [];
+  if (job.county) { conditions.push(`v.county = ?${bindings.length + 1}`); bindings.push(job.county); }
+  if (job.city)   { conditions.push(`van.city = ?${bindings.length + 1}`); bindings.push(job.city); }
+  if (job.party)  { conditions.push(`v.political_party = ?${bindings.length + 1}`); bindings.push(job.party); }
+  // District numbers are stored as zero-padded 2-char strings in WY_DB ("01".."62")
+  if (job.district_type === "senate" && job.district) { conditions.push(`v.senate = ?${bindings.length + 1}`); bindings.push(String(job.district).padStart(2, "0")); }
+  if (job.district_type === "house"  && job.district) { conditions.push(`v.house = ?${bindings.length + 1}`);  bindings.push(String(job.district).padStart(2, "0")); }
+  return { where: `WHERE ${conditions.join(" AND ")}`, bindings };
+}
+
 function positiveInt(value, fallback, max = 1000) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return fallback;
@@ -4107,6 +4152,284 @@ export default {
         const date = new Date().toISOString().slice(0, 10);
         return csvResponse(req, env, `texting-suppressed-${date}.csv`, rowsToCsv(columns, results));
       }
+
+      // ── Voter Blast ────────────────────────────────────────────────────────────
+      // Queries WY_DB for voter phone numbers by county/city/party/district.
+      // Bypasses SMS opt-in; honors opted_out from ballot_sources consent_status.
+      // Rate: 1 msg/sec (10DLC single-number limit). Chunked 20 at a time.
+
+      if (req.method === "GET" && path === "/api/admin/voter-blast/cities") {
+        if (!env.WY_DB) return json(req, env, { error: "WY_DB not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const county = normalizeText(url.searchParams.get("county") || "").toUpperCase() || null;
+
+        const rows = county
+          ? await env.WY_DB.prepare(
+              `SELECT city, county FROM wy_city_county WHERE UPPER(TRIM(county)) = ?1 ORDER BY city ASC`
+            ).bind(county).all()
+          : await env.WY_DB.prepare(
+              `SELECT city, county FROM wy_city_county ORDER BY city ASC`
+            ).all();
+
+        const cities = (rows.results || []).map((r) => ({
+          city:   titleCase(r.city),
+          county: titleCase(r.county),
+        }));
+        return json(req, env, { ok: true, county, cities });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/voter-blast/preview") {
+        if (!env.DB || !env.WY_DB) return json(req, env, { error: "DB or WY_DB not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const county       = normalizeText(url.searchParams.get("county")        || "").toUpperCase() || null;
+        const city         = normalizeText(url.searchParams.get("city")           || "").toUpperCase() || null;
+        const party        = normalizeText(url.searchParams.get("party")          || "") || null;
+        const districtType = normalizeText(url.searchParams.get("district_type")  || "") || null;
+        const district     = normalizeText(url.searchParams.get("district")       || "") || null;
+        const text         = normalizeText(url.searchParams.get("text")           || "");
+
+        if (!text) return json(req, env, { error: "message text required" }, 400);
+
+        const job = { county, city, party, district_type: districtType, district };
+        const { where, bindings } = buildVoterBlastWhere(job);
+
+        const countSql = `SELECT COUNT(*) AS cnt FROM voters v JOIN v_best_phone vbp ON vbp.voter_id=v.voter_id JOIN voters_addr_norm van ON van.voter_id=v.voter_id ${where}`;
+        const sampleSql = `SELECT v.voter_id, van.fn, van.ln, van.city, v.political_party, vbp.phone_e164 FROM voters v JOIN v_best_phone vbp ON vbp.voter_id=v.voter_id JOIN voters_addr_norm van ON van.voter_id=v.voter_id ${where} LIMIT 8`;
+
+        const [countRow, sampleRows] = await Promise.all([
+          env.WY_DB.prepare(countSql).bind(...bindings).first(),
+          env.WY_DB.prepare(sampleSql).bind(...bindings).all(),
+        ]);
+
+        const total = Number(countRow?.cnt || 0);
+        const samples = (sampleRows.results || []).map((r) => ({
+          name: `${titleCase(r.fn)} ${titleCase(r.ln)}`,
+          city: titleCase(r.city || ""),
+          party: r.political_party || "",
+          phoneMasked: String(r.phone_e164 || "").slice(0, 6) + "***" + String(r.phone_e164 || "").slice(-2),
+        }));
+
+        const issuedAt = new Date().toISOString();
+        const seed     = buildVoterBlastPreviewSeed({ county, city, party, districtType, district, text });
+        const token    = await hmacSha256Hex(String(env.ADMIN_EXPORT_KEY || ""), `${seed}|${issuedAt}`);
+
+        const cost = calcBlastCost(text, total);
+
+        return json(req, env, {
+          ok: true, total, samples,
+          estimatedMinutes: Math.ceil(total / 60),
+          cost,
+          preview: { issuedAt, token, expiresAt: new Date(Date.now() + PREVIEW_TOKEN_TTL_MS).toISOString() },
+        });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/voter-blast/job") {
+        if (!env.DB || !env.WY_DB) return json(req, env, { error: "DB or WY_DB not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor        = getAdminActor(req);
+        const body         = await req.json().catch(() => ({}));
+        const county       = normalizeText(body.county        || "").toUpperCase() || null;
+        const city         = normalizeText(body.city          || "").toUpperCase() || null;
+        const party        = normalizeText(body.party         || "") || null;
+        const districtType = normalizeText(body.district_type || "") || null;
+        const district     = normalizeText(body.district      || "") || null;
+        const text         = normalizeText(body.text          || "");
+        const previewToken = normalizeText(body.preview_token || "");
+        const previewIssuedAt = normalizeText(body.preview_issued_at || "");
+
+        if (!text) return json(req, env, { error: "message text required" }, 400);
+        if (!previewToken || !previewIssuedAt) return json(req, env, { error: "Run preview first" }, 400);
+        if (isPreviewExpired(previewIssuedAt)) return json(req, env, { error: "Preview expired — run it again" }, 409);
+
+        const seed          = buildVoterBlastPreviewSeed({ county, city, party, districtType, district, text });
+        const expectedToken = await hmacSha256Hex(String(env.ADMIN_EXPORT_KEY || ""), `${seed}|${previewIssuedAt}`);
+        if (!timingSafeEqual(previewToken, expectedToken)) {
+          return json(req, env, { error: "Preview token mismatch — run preview again" }, 409);
+        }
+
+        const job = { county, city, party, district_type: districtType, district };
+        const { where, bindings } = buildVoterBlastWhere(job);
+        const countRow = await env.WY_DB.prepare(
+          `SELECT COUNT(*) AS cnt FROM voters v JOIN v_best_phone vbp ON vbp.voter_id=v.voter_id JOIN voters_addr_norm van ON van.voter_id=v.voter_id ${where}`
+        ).bind(...bindings).first();
+        const totalAudience = Number(countRow?.cnt || 0);
+
+        const blastId = crypto.randomUUID();
+        await env.DB.prepare(
+          `INSERT INTO voter_blast_jobs
+             (blast_id, county, city, party, district_type, district, message_text,
+              total_audience, status, actor_email, created_at, updated_at)
+           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'created',?9,datetime('now'),datetime('now'))`
+        ).bind(blastId, county, city, party, districtType, district, text, totalAudience, actor.actorEmail).run();
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail, actorUserId: actor.actorUserId,
+          action: "voter_blast_created",
+          detailsJson: JSON.stringify({ blastId, county, city, party, districtType, district, totalAudience }),
+        });
+
+        return json(req, env, { ok: true, blast_id: blastId, total_audience: totalAudience });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/voter-blast/send-chunk") {
+        if (!env.DB || !env.WY_DB) return json(req, env, { error: "DB or WY_DB not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        const actor   = getAdminActor(req);
+        const body    = await req.json().catch(() => ({}));
+        const dryRun  = body.dry_run === true;
+        const blastId = normalizeText(body.blast_id || "");
+
+        if (!dryRun) {
+          if (!String(env.TELNYX_API_KEY    || "").trim()) return json(req, env, { error: "TELNYX_API_KEY not configured"    }, 503);
+          if (!String(env.TELNYX_FROM_NUMBER|| "").trim()) return json(req, env, { error: "TELNYX_FROM_NUMBER not configured" }, 503);
+        }
+        if (!blastId) return json(req, env, { error: "blast_id required" }, 400);
+
+        const job = await env.DB.prepare(
+          `SELECT * FROM voter_blast_jobs WHERE blast_id=?1`
+        ).bind(blastId).first();
+        if (!job) return json(req, env, { error: "Blast job not found" }, 404);
+        if (job.status === "complete")  return json(req, env, { ok: true, done: true, sent: 0, failed: 0, skipped: 0, total_sent: Number(job.sent_count), total_audience: Number(job.total_audience) });
+        if (job.status === "cancelled") return json(req, env, { error: "Blast was cancelled" }, 409);
+
+        // Fetch next 20 voters from WY_DB
+        const offset = Number(job.current_offset || 0);
+        const { where, bindings } = buildVoterBlastWhere(job);
+        const chunkRows = await env.WY_DB.prepare(
+          `SELECT v.voter_id, van.fn, vbp.phone_e164
+           FROM voters v
+           JOIN v_best_phone vbp ON vbp.voter_id=v.voter_id
+           JOIN voters_addr_norm van ON van.voter_id=v.voter_id
+           ${where}
+           ORDER BY v.voter_id
+           LIMIT 20 OFFSET ${offset}`
+        ).bind(...bindings).all();
+
+        const chunk = chunkRows.results || [];
+
+        if (chunk.length === 0) {
+          await env.DB.prepare(
+            `UPDATE voter_blast_jobs SET status='complete', updated_at=datetime('now') WHERE blast_id=?1`
+          ).bind(blastId).run();
+          return json(req, env, { ok: true, done: true, sent: 0, failed: 0, skipped: 0, total_sent: Number(job.sent_count), total_audience: Number(job.total_audience) });
+        }
+
+        // Cross-check opted-out numbers from ballot_sources
+        const phones = chunk.map((r) => r.phone_e164).filter(Boolean);
+        const suppressedResult = phones.length
+          ? await env.DB.prepare(
+              `SELECT phone_e164 FROM consent_status WHERE phone_e164 IN (${phones.map((_,i)=>`?${i+1}`).join(",")}) AND status='opted_out'`
+            ).bind(...phones).all()
+          : { results: [] };
+        const suppressed = new Set((suppressedResult.results || []).map((r) => r.phone_e164));
+
+        const apiKey     = String(env.TELNYX_API_KEY     || "").trim();
+        const fromNumber = String(env.TELNYX_FROM_NUMBER || "").trim();
+        const stopFooter = "\n\nReply STOP to opt out.";
+
+        let chunkSent = 0, chunkFailed = 0, chunkSkipped = 0;
+
+        for (let i = 0; i < chunk.length; i++) {
+          const voter = chunk[i];
+          if (!voter.phone_e164 || suppressed.has(voter.phone_e164)) {
+            await env.DB.prepare(
+              `INSERT INTO voter_blast_log (blast_id, voter_id, phone_e164, status) VALUES (?1,?2,?3,'skipped_suppressed')`
+            ).bind(blastId, voter.voter_id, voter.phone_e164 || "").run();
+            chunkSkipped++;
+            continue;
+          }
+
+          const firstName = titleCase(voter.fn || "there");
+          const msgText   = job.message_text.replace(/\{first_name\}/gi, firstName) + stopFooter;
+
+          if (dryRun) {
+            await env.DB.prepare(
+              `INSERT INTO voter_blast_log (blast_id, voter_id, phone_e164, status, error_message) VALUES (?1,?2,?3,'dry_run','dry run — no message sent')`
+            ).bind(blastId, voter.voter_id, voter.phone_e164).run();
+            chunkSent++;
+          } else {
+            try {
+              const telnyx = await sendSmsWithTelnyx({ apiKey, fromNumber, to: voter.phone_e164, text: msgText });
+              await env.DB.prepare(
+                `INSERT INTO voter_blast_log (blast_id, voter_id, phone_e164, status, telnyx_message_id) VALUES (?1,?2,?3,'sent',?4)`
+              ).bind(blastId, voter.voter_id, voter.phone_e164, telnyx.providerId).run();
+              chunkSent++;
+            } catch (err) {
+              await env.DB.prepare(
+                `INSERT INTO voter_blast_log (blast_id, voter_id, phone_e164, status, error_message) VALUES (?1,?2,?3,'failed',?4)`
+              ).bind(blastId, voter.voter_id, voter.phone_e164, err.message).run();
+              chunkFailed++;
+            }
+
+            if (i < chunk.length - 1) await sleep(1000); // 1 MPS — 10DLC carrier limit
+          }
+        }
+
+        const newOffset = offset + chunk.length;
+        const done      = chunk.length < 20;
+        const newStatus = done ? "complete" : "running";
+
+        await env.DB.prepare(
+          `UPDATE voter_blast_jobs
+           SET current_offset=?2, sent_count=sent_count+?3, failed_count=failed_count+?4,
+               skipped_count=skipped_count+?5, status=?6, updated_at=datetime('now')
+           WHERE blast_id=?1`
+        ).bind(blastId, newOffset, chunkSent, chunkFailed, chunkSkipped, newStatus).run();
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail, actorUserId: actor.actorUserId,
+          action: "voter_blast_chunk",
+          detailsJson: JSON.stringify({ blastId, offset, chunkSent, chunkFailed, chunkSkipped, done }),
+        });
+
+        return json(req, env, {
+          ok: true, done,
+          sent: chunkSent, failed: chunkFailed, skipped: chunkSkipped,
+          total_sent: Number(job.sent_count) + chunkSent,
+          total_audience: Number(job.total_audience),
+          current_offset: newOffset,
+        });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/voter-blast/jobs") {
+        if (!env.DB) return json(req, env, { error: "DB not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const rows = await env.DB.prepare(
+          `SELECT blast_id, county, city, party, district_type, district,
+                  total_audience, current_offset, sent_count, failed_count, skipped_count,
+                  status, actor_email, created_at, updated_at
+           FROM voter_blast_jobs
+           ORDER BY datetime(created_at) DESC
+           LIMIT 20`
+        ).all();
+        return json(req, env, { ok: true, jobs: rows.results || [] });
+      }
+
+      if (req.method === "PATCH" && path === "/api/admin/voter-blast/pause") {
+        if (!env.DB) return json(req, env, { error: "DB not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const body    = await req.json().catch(() => ({}));
+        const blastId = normalizeText(body.blast_id || "");
+        if (!blastId) return json(req, env, { error: "blast_id required" }, 400);
+
+        await env.DB.prepare(
+          `UPDATE voter_blast_jobs SET status='paused', updated_at=datetime('now') WHERE blast_id=?1 AND status='running'`
+        ).bind(blastId).run();
+        return json(req, env, { ok: true });
+      }
+
+      // ── End Voter Blast ────────────────────────────────────────────────────────
 
       if (req.method === "GET" && path === "/api/admin/emails/status") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
