@@ -951,7 +951,60 @@ const CITIZENS_DEFEND_THE_CONSTITUTION_BODY_HTML = `
   </table>
 `;
 
+const FLEECING_LETTERS_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Two letters arrived in Wyoming mailboxes on official congressional letterhead. Both stated
+    &#8220;PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES.&#8221;
+    Both used fear, blame, and campaign-style framing at public expense.
+  </p>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    This is about how our tax dollars &#8212; or should we say our grandchildren&#8217;s tax dollars &#8212;
+    are being misused to shape public opinion. We deserve clean information, honest costs, and public
+    resources that serve the public.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
+    <tr>
+      <td style="padding:16px 20px;background:#f7f3ec;border-left:4px solid #c68a4a;border-radius:4px;">
+        <p style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#c68a4a;">How these letters work</p>
+        <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#111827;"><strong>1. Fear comes first.</strong> Both letters open with danger, crisis, blocked access, fires, outside threats. When fear comes first, we react before we reflect.</p>
+        <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#111827;"><strong>2. Responsibility goes elsewhere.</strong> Rep. Hageman has held office for more than three years while many of the problems described continued to grow &#8212; yet the letters paint responsibility as living somewhere else.</p>
+        <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#111827;"><strong>3. Official authority lends weight.</strong> Congressional letterhead makes a campaign defense look like a public update.</p>
+        <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#111827;"><strong>4. Volume replaces clarity.</strong> A long list of bills, hearings, and agencies feels like proof. It is not the same as facts, costs, and tradeoffs.</p>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;"><strong>5. The middle gets skipped.</strong> What are the options? Costs? Who benefits? Who pays? Good public mail answers these questions. These letters do not.</p>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Public money must serve the public. Read the letters. Follow the money. Ask better questions.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
+    <tr>
+      <td>
+        <a href="https://skovgard2026.org/share/fleecing-letters/"
+           style="display:inline-block;background:#b22234;color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;padding:12px 28px;border-radius:4px;">
+          Read the full analysis &#8594;
+        </a>
+      </td>
+    </tr>
+  </table>
+`;
+
 export const SHARE_MESSAGES = {
+  "fleecing-letters": {
+    title:        "The Fleecing Letters",
+    body_html:    FLEECING_LETTERS_BODY_HTML,
+    preview_text: "Two official letters. 'PAID FOR BY OFFICIAL FUNDS.' Five tactics worth recognizing. Wyoming deserves clean information.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — The Fleecing Letters`
+        : "Official mail paid for by you. Here's what's in it.";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming accountability message with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
   "postage-bandit": {
     title:        "Postage Bandit",
     body_html:    POSTAGE_BANDIT_BODY_HTML,
@@ -1351,7 +1404,40 @@ export function buildShareEmailHtml({ sender_name = "", sender_intro, body_html,
  */
 export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" }) {
   const specificLines =
-    slug === "postage-bandit"
+    slug === "fleecing-letters"
+      ? [
+          "Two letters arrived in Wyoming mailboxes on official congressional letterhead.",
+          "",
+          "Both stated 'PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES.'",
+          "Both used fear, blame, and campaign-style framing at public expense.",
+          "",
+          "This is about how our tax dollars — or should we say our grandchildren's tax dollars —",
+          "are being misused to shape public opinion.",
+          "",
+          "How these letters work:",
+          "",
+          "1. Fear comes first. Both letters open with danger, crisis, fires, blocked access, and outside",
+          "   threats. When fear comes first, we react before we reflect.",
+          "",
+          "2. Responsibility goes elsewhere. Rep. Hageman has held office for more than three years while",
+          "   many of the problems described in these letters continued to grow. Yet the letters paint",
+          "   responsibility as living somewhere else.",
+          "",
+          "3. Official authority lends weight. Congressional letterhead makes a campaign defense look",
+          "   like a public update — that is exactly why official funds require careful guardrails.",
+          "",
+          "4. Volume replaces clarity. A long list of bills, hearings, and agencies feels like proof.",
+          "   It is not the same as plain facts, real costs, and side-by-side tradeoffs.",
+          "",
+          "5. The middle gets skipped. What are the options? What are the costs? Who benefits? Who pays?",
+          "   A good public letter answers those questions clearly.",
+          "",
+          "Public money must serve the public.",
+          "Read the letters. Follow the money. Ask better questions.",
+          "",
+          "Read more: https://skovgard2026.org/share/fleecing-letters/",
+        ]
+    : slug === "postage-bandit"
       ? [
           "We have a situation. Our representative gets to Washington, looks at the House",
           "franking privilege, and decides that taxpayer-funded tool belongs to her reelection campaign.",
