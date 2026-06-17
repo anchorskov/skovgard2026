@@ -1,7 +1,14 @@
 /* static/css/admin-voter-blast.css */
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
+
+/* ID/class display rules can beat the UA [hidden] selector — override explicitly */
+#admin-vb-shell[hidden],
+#vb-resume-notice[hidden] { display: none; }
+
 #admin-vb-shell { display: flex; flex-direction: column; gap: 24px; }
+
+#vb-resume-notice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 .vb-stage {
   background: #fff;

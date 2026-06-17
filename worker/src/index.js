@@ -4424,22 +4424,31 @@ export default {
         if (!auth.ok) return auth.response;
 
         const rows = await env.DB.prepare(
-          `SELECT vbj.blast_id, vbj.county, vbj.city, vbj.party, vbj.district_type, vbj.district,
-                  vbj.total_audience, vbj.current_offset, vbj.sent_count, vbj.failed_count, vbj.skipped_count,
-                  vbj.status, vbj.actor_email, vbj.created_at, vbj.updated_at,
-                  COALESCE(df.delivery_failed_count, 0) AS delivery_failed_count
-           FROM voter_blast_jobs vbj
-           LEFT JOIN (
-             SELECT vbl.blast_id, COUNT(*) AS delivery_failed_count
-             FROM voter_blast_log vbl
-             JOIN outbound_messages om ON om.telnyx_message_id = vbl.telnyx_message_id
-             WHERE om.status IN ('failed','delivery_failed')
-             GROUP BY vbl.blast_id
-           ) df ON df.blast_id = vbj.blast_id
-           ORDER BY datetime(vbj.created_at) DESC
+          `SELECT blast_id, county, city, party, district_type, district,
+                  total_audience, current_offset, sent_count, failed_count, skipped_count,
+                  status, actor_email, created_at, updated_at
+           FROM voter_blast_jobs
+           ORDER BY datetime(created_at) DESC
            LIMIT 20`
         ).all();
-        return json(req, env, { ok: true, jobs: rows.results || [] });
+        const jobs = rows.results || [];
+
+        if (jobs.length > 0) {
+          const ids = jobs.map(j => j.blast_id);
+          const ph  = ids.map((_, i) => `?${i + 1}`).join(',');
+          const dfRows = await env.DB.prepare(
+            `SELECT vbl.blast_id, COUNT(*) AS n
+             FROM voter_blast_log vbl
+             JOIN outbound_messages om ON om.telnyx_message_id = vbl.telnyx_message_id
+             WHERE vbl.blast_id IN (${ph})
+               AND om.status IN ('failed','delivery_failed')
+             GROUP BY vbl.blast_id`
+          ).bind(...ids).all();
+          const dfMap = Object.fromEntries((dfRows.results || []).map(r => [r.blast_id, Number(r.n)]));
+          jobs.forEach(j => { j.delivery_failed_count = dfMap[j.blast_id] || 0; });
+        }
+
+        return json(req, env, { ok: true, jobs });
       }
 
       if (req.method === "PATCH" && path === "/api/admin/voter-blast/pause") {
