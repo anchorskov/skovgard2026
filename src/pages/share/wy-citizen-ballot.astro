@@ -60,17 +60,34 @@ const smsText = `Wyoming voters should be able to compare every candidate and ch
         <h1 class="text-4xl sm:text-5xl font-serif font-extrabold text-wy-bone mb-4 leading-tight">
           Citizens Nonpartisan Ballot
         </h1>
-        <p class="text-wy-bone/80 text-xl font-semibold mb-7 leading-snug">
-          Compare every candidate. Choose one per office.
+        <p class="text-wy-bone/80 text-xl font-semibold mb-8 leading-snug">
+          Three tracks into the general election. Every Wyoming voter's choice in the race.
         </p>
+
+        <!-- Three-track diagram -->
+        <div class="three-track-grid mb-8">
+          <div class="track-box">
+            <p class="track-label">Republican Primary</p>
+            <p class="track-arrow">1 nominee ↓</p>
+          </div>
+          <div class="track-box track-box--accent">
+            <p class="track-label">Citizens Nonpartisan</p>
+            <p class="track-arrow">1 nominee ↓</p>
+          </div>
+          <div class="track-box">
+            <p class="track-label">Democratic Primary</p>
+            <p class="track-arrow">1 nominee ↓</p>
+          </div>
+          <div class="track-general">
+            General Election — Wyoming voters decide
+          </div>
+        </div>
+
         <p class="text-wy-bone/70 text-base leading-relaxed mb-4 max-w-2xl">
-          Some Wyoming voters choose by party. Some Wyoming voters choose by candidate. Our election system should respect both.
+          Today's primary sends two candidates to the general election — one Republican, one Democrat. The Citizens Nonpartisan Ballot adds a third seat at the table: a nominee chosen by voters who do not want a party filter between them and the ballot.
         </p>
-        <p class="text-wy-bone/70 text-base leading-relaxed mb-4 max-w-2xl">
-          The Citizens Nonpartisan Ballot is a simple civic idea: list every candidate for each office in one place and let voters choose one candidate per office, regardless of party label.
-        </p>
-        <p class="text-wy-bone/50 text-sm leading-relaxed mb-9 max-w-2xl">
-          This does not replace the official Wyoming primary. It is an unofficial voter education and public survey project through The Integrity Project: People's Primary.
+        <p class="text-wy-bone/60 text-sm leading-relaxed mb-9 max-w-2xl">
+          Party primaries continue exactly as they are. This adds one more path — not a replacement.
         </p>
         <div class="flex flex-wrap gap-4">
           <a href="#share-section" class="inline-flex items-center gap-2 px-6 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm">
@@ -146,7 +163,10 @@ const smsText = `Wyoming voters should be able to compare every candidate and ch
           <p class="pull-line pull-line--accent">One choice per office.</p>
         </div>
         <p class="section-body">
-          This is not an official election. It is a public education and survey project designed to show what voter choice could look like in Wyoming.
+          The candidate who wins the Citizens Nonpartisan Ballot advances to the general election alongside the Republican and Democratic nominees. Wyoming voters then choose from all three.
+        </p>
+        <p class="section-body">
+          This is not an official election yet. It is a public education and survey project designed to show what voter choice could look like — and to build the case for making it law.
         </p>
       </div>
     </section>
@@ -184,6 +204,9 @@ const smsText = `Wyoming voters should be able to compare every candidate and ch
         </p>
         <p class="section-body">
           Voters who want to choose a party ballot should be able to do so. Parties should remain free to organize, endorse, recruit, support, and speak.
+        </p>
+        <p class="section-body">
+          The Republican primary still produces one Republican nominee. The Democratic primary still produces one Democratic nominee. The Citizens Nonpartisan Ballot produces one more.
         </p>
         <p class="section-body">
           The Citizens Nonpartisan Ballot simply adds another path for voters who choose candidates by character, service, judgment, and trust.
@@ -224,16 +247,18 @@ const smsText = `Wyoming voters should be able to compare every candidate and ch
         <p class="section-kicker">The long-term goal</p>
         <h2 class="section-h2">The legislative reform idea</h2>
         <p class="section-body">
-          The long-term goal is the <strong>Wyoming Voter Choice Primary Act</strong>.
+          The long-term goal is the <strong>Wyoming Voter Choice Primary Act</strong> — legislation that adds the Citizens Nonpartisan Ballot as a third official primary track.
         </p>
         <p class="section-body">
-          The idea is simple: Wyoming should offer voters an optional all-candidate primary ballot, in addition to existing party primary ballots.
+          The winner advances to the general election, the same way Republican and Democratic primary winners do today.
         </p>
+        <div class="pull-quote" aria-label="Three nominees, one general election">
+          <p class="pull-line">Three nominees.</p>
+          <p class="pull-line">One general election.</p>
+          <p class="pull-line pull-line--accent">Wyoming voters decide.</p>
+        </div>
         <p class="section-body">
-          A voter would choose one ballot. On the all-candidate ballot, every candidate for each office would be listed, and the voter would choose one candidate per office.
-        </p>
-        <p class="section-body">
-          This would respect party voters and candidate-based voters.
+          A voter would choose one ballot. Party voters choose the Republican or Democratic primary. Voters who want to compare across party lines choose the Citizens Nonpartisan Ballot. Every ballot produces one nominee who competes in the general election.
         </p>
       </div>
     </section>
@@ -472,6 +497,54 @@ const smsText = `Wyoming voters should be able to compare every candidate and ch
 </Base>
 
 <style>
+  /* Three-track diagram */
+  .three-track-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    max-width: 38rem;
+  }
+  .track-box {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 0.875rem 0.75rem;
+    text-align: center;
+  }
+  .track-box--accent {
+    background: rgba(178,34,52,0.2);
+    border-color: rgba(178,34,52,0.5);
+  }
+  .track-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(241,236,225,0.85);
+    line-height: 1.35;
+    margin: 0 0 4px;
+  }
+  .track-arrow {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #c68a4a;
+    margin: 0;
+  }
+  .track-general {
+    grid-column: 1 / -1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: rgba(241,236,225,0.7);
+    letter-spacing: 0.02em;
+  }
+  @media (max-width: 480px) {
+    .three-track-grid { grid-template-columns: 1fr; max-width: 20rem; }
+    .track-general { grid-column: 1; }
+  }
+
   /* Overview cards grid */
   .overview-grid {
     display: grid;
