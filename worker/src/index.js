@@ -2780,6 +2780,18 @@ export default {
         }
       }
 
+      // GET /api/share/messages — ordered slug+title list derived from SHARE_MESSAGES registry
+      if (req.method === "GET" && path === "/api/share/messages") {
+        const messages = Object.entries(SHARE_MESSAGES).map(([slug, m]) => ({ slug, title: m.title }));
+        return new Response(JSON.stringify({ ok: true, messages }), {
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "public, max-age=300",
+            "Access-Control-Allow-Origin": req.headers.get("origin") || "*",
+          },
+        });
+      }
+
       // GET /api/admin/share/audit — share send log with optional filters
       if (req.method === "GET" && path === "/api/admin/share/audit") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);

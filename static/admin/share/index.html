@@ -57,31 +57,9 @@
 
     <label for="cfg-slug">Message</label>
     <select id="cfg-slug">
-      <optgroup label="— Recent —">
-        <option value="changing-health-care">Changing Health Care</option>
-        <option value="nothing-burger">Taxpayer-Funded Nothing Burger</option>
-        <option value="fleecing-letters">The Fleecing Letters</option>
-        <option value="postage-bandit">Postage Bandit</option>
-        <option value="wy-data-centers">Wyoming Data Centers Survey</option>
-        <option value="wy-roadless-areas">Wyoming Roadless Areas Survey</option>
-      </optgroup>
-      <optgroup label="— Policy &amp; Constitution —">
-        <option value="citizens-defend-the-constitution">Citizens Defend the Constitution</option>
-        <option value="wy-four-pillars">Wyoming Four Pillars Survey</option>
-        <option value="wy-citizen-ballot">Citizens Nonpartisan Ballot</option>
-        <option value="freedom-vs-control">Freedom vs. Control</option>
-      </optgroup>
-      <optgroup label="— Voter Engagement —">
-        <option value="wy-primary-election-participation">Wyoming Primary Election Participation Survey</option>
-        <option value="wy-voter-access">Wyoming Voter Access Survey</option>
-        <option value="untrammeled-suffrage">Untrammeled Suffrage</option>
-      </optgroup>
-      <optgroup label="— Campaign —">
-        <option value="wyoming-voters-choose">Wyoming Voters Should Choose</option>
-        <option value="representatives-work-for">Who Do Our Representatives Work For?</option>
-        <option value="jimmys-story">Jimmy's Story</option>
-      </optgroup>
+      <option value="">Loading messages…</option>
     </select>
+    <div id="slug-load-err" style="display:none;font-size:0.8125rem;color:#991b1b;margin-top:-14px;margin-bottom:10px;"></div>
 
     <label for="cfg-sender">Sender name <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
     <input id="cfg-sender" type="text" placeholder="e.g. Jimmy Skovgard" maxlength="80" />
@@ -114,8 +92,25 @@
 (function () {
   const BATCH = 5;
 
-  const keyEl     = document.getElementById('cfg-key');
-  const slugEl    = document.getElementById('cfg-slug');
+  const keyEl       = document.getElementById('cfg-key');
+  const slugEl      = document.getElementById('cfg-slug');
+  const slugErrEl   = document.getElementById('slug-load-err');
+
+  // Populate message dropdown from Worker registry
+  (async () => {
+    try {
+      const resp = await fetch('/api/share/messages');
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const { messages } = await resp.json();
+      slugEl.innerHTML = messages
+        .map(m => `<option value="${m.slug}">${m.title}</option>`)
+        .join('');
+    } catch (err) {
+      slugErrEl.textContent = 'Could not load message list — is the Worker running? (' + err.message + ')';
+      slugErrEl.style.display = '';
+      slugEl.innerHTML = '<option value="">— failed to load —</option>';
+    }
+  })();
   const senderEl  = document.getElementById('cfg-sender');
   const emailsEl  = document.getElementById('cfg-emails');
   const countEl   = document.getElementById('parsed-count');
