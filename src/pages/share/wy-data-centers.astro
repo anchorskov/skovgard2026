@@ -131,8 +131,29 @@ import Footer from '../../components/Footer.astro';
       </div>
     </section>
 
+    <!-- Facebook Reel -->
+    <section class="bg-white py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker">Watch on Facebook</p>
+        <a
+          href="https://www.facebook.com/reel/2173095483808947"
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-3 px-6 py-3 rounded-lg font-bold text-sm text-wy-bone watch-fb-btn"
+        >
+          <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+          </svg>
+          Watch Jimmy's reel on Facebook
+          <svg class="w-4 h-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      </div>
+    </section>
+
     <!-- ① Share on social media -->
-    <section class="bg-white py-12 px-4">
+    <section class="bg-white py-12 px-4 border-t border-gray-100">
       <div class="max-w-3xl mx-auto">
 
         <p class="section-kicker">Share on social media</p>
@@ -422,6 +443,15 @@ import Footer from '../../components/Footer.astro';
     margin-bottom: 20px;
     max-width: 52ch;
   }
+
+  /* Facebook reel button */
+  .watch-fb-btn {
+    background: #1877f2;
+    transition: background-color 0.15s;
+    margin-top: 12px;
+    display: inline-flex;
+  }
+  .watch-fb-btn:hover { background: #0f5bbf; }
 
   /* Social share buttons */
   .social-btn {
