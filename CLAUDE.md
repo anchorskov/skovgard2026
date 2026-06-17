@@ -119,6 +119,22 @@ When asked whether localhost, the repo, or production are in sync — or before 
 - Do **not** check or reference production — production only mirrors `main`.
 - Limit the sync check to: working tree vs last commit, and local branch vs its remote tracking branch.
 
+## Local Source of Truth
+
+When deciding what is valid for `skovgard2026`, check local files first:
+
+- `astro.config.mjs` — Astro configuration (site URL, publicDir, integrations)
+- `src/pages/` — Astro page routes
+- `src/layouts/` — Astro layouts
+- `src/components/` — Astro components
+- `src/constants.ts` — shared constants (e.g. `MEDIA_BASE_URL`)
+- `static/` — static assets served at site root (CSS, JS, images, standalone admin HTML)
+- `worker/wrangler.toml` — Worker config, env vars, routes
+- `worker/src/` — Worker source code
+- repo docs that explicitly describe this site
+
+Do not reference `config/_default/config.toml`, `layouts/`, or Hugo-era paths — those directories no longer exist. If local files conflict with a generic instruction or prior memory, the repo content wins unless the user directs otherwise.
+
 ## Project Scope Guard
 
 - Do not import policy from other repos or organizations into this repo just because names or files look similar.
@@ -126,10 +142,21 @@ When asked whether localhost, the repo, or production are in sync — or before 
 - Prefer values already established in this repo over values remembered from other work.
 - Before changing public-facing campaign identity fields such as emails, domains, org names, donation links, form destinations, or legal/contact copy, verify them against this repo first.
 
+## WORM Data Protocol
+
+WORM protocol is in effect for this project. Treat operational records as write-once/read-many data unless the user explicitly authorizes a corrective migration or administrative update.
+
+- Do not hard-code dropdown options, form action choices, campaign workflow statuses, or admin-select lists in frontend JavaScript, Astro pages, or standalone HTML when those values represent operational data.
+- Link dropdowns and other form actions to the appropriate database-backed tables or API endpoints. If the table or endpoint does not exist yet, propose or add the table/API path rather than embedding a static list.
+- Keep display labels, ordering, active/inactive flags, and form action metadata in tables or the Worker registry where admins or migrations can maintain them.
+- Static hard-coded lists are acceptable only for true UI constants that are not operational records — view modes, layout preferences, or client-only sorting controls.
+- When converting a hard-coded form list to table-backed or API-backed data, preserve existing submitted values and avoid rewriting historical records unless a user-approved migration requires it.
+
 ## Cloudflare Worker Naming
 
 - Never guess at Worker names for preview or production.
 - Before suggesting `wrangler secret`, `wrangler deploy`, `wrangler tail`, `wrangler d1`, or route-related commands against a named environment, check `worker/wrangler.toml` first and state the exact Worker name implied by the config.
+- Treat Wrangler environment naming as authoritative: if `name = "X"` and the command uses `--env production`, assume Wrangler will target `X-production` unless the repo config explicitly overrides that with `--name`.
 - If the user is about to run a production command and the real remote Worker name has not been verified, tell them to verify it first rather than guessing.
 - Do not recommend creating a new production Worker just because Wrangler prompts for one unless the user explicitly wants a new Worker created.
 
