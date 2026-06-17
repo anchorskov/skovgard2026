@@ -523,8 +523,8 @@
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
       currentBlast.sent    = data.total_sent || 0;
-      currentBlast.failed  = (currentBlast.failed  || 0) + (data.failed  || 0);
-      currentBlast.skipped = (currentBlast.skipped || 0) + (data.skipped || 0);
+      currentBlast.failed  = data.total_failed  !== undefined ? data.total_failed  : (currentBlast.failed  || 0) + (data.failed  || 0);
+      currentBlast.skipped = data.total_skipped !== undefined ? data.total_skipped : (currentBlast.skipped || 0) + (data.skipped || 0);
 
       updateProgress();
 
@@ -595,7 +595,7 @@
         <td>${job.party || 'All'}</td>
         <td>${Number(job.total_audience).toLocaleString()}</td>
         <td>${Number(job.sent_count).toLocaleString()}</td>
-        <td>${Number(job.failed_count).toLocaleString()}</td>
+        <td>${(Number(job.failed_count) + Number(job.delivery_failed_count || 0)).toLocaleString()}</td>
         <td><span class="vb-status-pill ${job.status}">${job.status}</span></td>
         <td>${job.created_at?.slice(0, 10) || ''}</td>
         <td>${(job.status === 'paused' || job.status === 'running') ? `<button class="vb-resume-btn" data-id="${job.blast_id}">Resume</button>` : ''}</td>
@@ -622,7 +622,7 @@
       blast_id:       job.blast_id,
       total_audience: Number(job.total_audience),
       sent:           Number(job.sent_count),
-      failed:         Number(job.failed_count),
+      failed:         Number(job.failed_count) + Number(job.delivery_failed_count || 0),
       skipped:        Number(job.skipped_count),
     };
     sessionStorage.setItem('vb_blast_id', blastId);

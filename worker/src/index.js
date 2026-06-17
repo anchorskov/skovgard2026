@@ -4296,7 +4296,16 @@ export default {
           `SELECT * FROM voter_blast_jobs WHERE blast_id=?1`
         ).bind(blastId).first();
         if (!job) return json(req, env, { error: "Blast job not found" }, 404);
-        if (job.status === "complete")  return json(req, env, { ok: true, done: true, sent: 0, failed: 0, skipped: 0, total_sent: Number(job.sent_count), total_audience: Number(job.total_audience) });
+        if (job.status === "complete")  {
+          const dfRow = await env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM voter_blast_log vbl
+             JOIN outbound_messages om ON om.telnyx_message_id = vbl.telnyx_message_id
+             WHERE vbl.blast_id = ?1 AND om.status IN ('failed','delivery_failed')`
+          ).bind(blastId).first();
+          return json(req, env, { ok: true, done: true, sent: 0, failed: 0, skipped: 0,
+            total_sent: Number(job.sent_count), total_failed: Number(job.failed_count) + Number(dfRow?.n || 0),
+            total_skipped: Number(job.skipped_count), total_audience: Number(job.total_audience) });
+        }
         if (job.status === "cancelled") return json(req, env, { error: "Blast was cancelled" }, 409);
 
         // Fetch next 20 voters from WY_DB
@@ -4389,10 +4398,21 @@ export default {
           detailsJson: JSON.stringify({ blastId, offset, chunkSent, chunkFailed, chunkSkipped, done }),
         });
 
+        const dfRow = await env.DB.prepare(
+          `SELECT COUNT(*) AS n FROM voter_blast_log vbl
+           JOIN outbound_messages om ON om.telnyx_message_id = vbl.telnyx_message_id
+           WHERE vbl.blast_id = ?1 AND om.status IN ('failed','delivery_failed')`
+        ).bind(blastId).first();
+
+        const totalFailed   = Number(job.failed_count) + chunkFailed + Number(dfRow?.n || 0);
+        const totalSkipped  = Number(job.skipped_count) + chunkSkipped;
+
         return json(req, env, {
           ok: true, done,
           sent: chunkSent, failed: chunkFailed, skipped: chunkSkipped,
           total_sent: Number(job.sent_count) + chunkSent,
+          total_failed: totalFailed,
+          total_skipped: totalSkipped,
           total_audience: Number(job.total_audience),
           current_offset: newOffset,
         });
@@ -4404,11 +4424,19 @@ export default {
         if (!auth.ok) return auth.response;
 
         const rows = await env.DB.prepare(
-          `SELECT blast_id, county, city, party, district_type, district,
-                  total_audience, current_offset, sent_count, failed_count, skipped_count,
-                  status, actor_email, created_at, updated_at
-           FROM voter_blast_jobs
-           ORDER BY datetime(created_at) DESC
+          `SELECT vbj.blast_id, vbj.county, vbj.city, vbj.party, vbj.district_type, vbj.district,
+                  vbj.total_audience, vbj.current_offset, vbj.sent_count, vbj.failed_count, vbj.skipped_count,
+                  vbj.status, vbj.actor_email, vbj.created_at, vbj.updated_at,
+                  COALESCE(df.delivery_failed_count, 0) AS delivery_failed_count
+           FROM voter_blast_jobs vbj
+           LEFT JOIN (
+             SELECT vbl.blast_id, COUNT(*) AS delivery_failed_count
+             FROM voter_blast_log vbl
+             JOIN outbound_messages om ON om.telnyx_message_id = vbl.telnyx_message_id
+             WHERE om.status IN ('failed','delivery_failed')
+             GROUP BY vbl.blast_id
+           ) df ON df.blast_id = vbj.blast_id
+           ORDER BY datetime(vbj.created_at) DESC
            LIMIT 20`
         ).all();
         return json(req, env, { ok: true, jobs: rows.results || [] });
