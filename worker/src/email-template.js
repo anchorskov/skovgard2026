@@ -469,8 +469,19 @@ const WY_CITIZEN_BALLOT_BODY_HTML = `
     Keep party ballots. Add voter choice.
   </p>
 
-  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
-    Take a look here:
+  <table cellpadding="0" cellspacing="0" style="margin:4px 0 20px;">
+    <tr>
+      <td style="background:#b22234;border-radius:8px;padding:12px 24px;">
+        <a href="https://grassrootsmvt.org/surveys/wy-citizens-nonpartisan-ballot"
+           style="color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;">
+          Take the Wyoming Citizens Nonpartisan Ballot Survey &#8594;
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 22px;font-size:15px;line-height:1.65;color:#374151;">
+    Learn more about the Citizens Nonpartisan Ballot:
     <a href="https://skovgard2026.org/share/wy-citizen-ballot"
         style="color:#0f2742;font-weight:bold;">
       skovgard2026.org/share/wy-citizen-ballot
@@ -1719,7 +1730,17 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Keep party ballots. Add voter choice.",
           "",
-          "Take a look here:",
+          "THREE NOMINEES. ONE GENERAL ELECTION.",
+          "",
+          "Republican Primary → 1 nominee",
+          "Citizens Nonpartisan → 1 nominee",
+          "Democratic Primary → 1 nominee",
+          "→ General Election — Wyoming voters decide.",
+          "",
+          "Take the survey:",
+          "https://grassrootsmvt.org/surveys/wy-citizens-nonpartisan-ballot",
+          "",
+          "Learn more:",
           "https://skovgard2026.org/share/wy-citizen-ballot",
         ]
     : slug === "wy-four-pillars"

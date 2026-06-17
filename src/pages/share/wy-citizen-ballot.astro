@@ -6,13 +6,15 @@ import Footer from '../../components/Footer.astro';
 
 const PAGE_URL = 'https://skovgard2026.org/share/wy-citizen-ballot';
 
-const socialText = `Wyoming voters should be able to compare every candidate and choose one candidate per office.
+const socialText = `Wyoming's primary sends two candidates to the general election. The Citizens Nonpartisan Ballot adds a third.
 
-The Citizens Nonpartisan Ballot is an unofficial civic project through The Integrity Project: People's Primary.
+Republican Primary → 1 nominee
+Citizens Nonpartisan → 1 nominee
+Democratic Primary → 1 nominee
 
-Some voters choose by party. Some voters choose by candidate. Wyoming should respect both.
+Three nominees. One general election. Wyoming voters decide.
 
-Keep party ballots. Add voter choice.
+Take the survey: https://grassrootsmvt.org/surveys/wy-citizens-nonpartisan-ballot
 
 Learn more: ${PAGE_URL}`;
 
@@ -20,16 +22,22 @@ const emailBody = `Hi,
 
 I wanted to share this idea with you.
 
-The Citizens Nonpartisan Ballot is a civic project through The Integrity Project: People's Primary. The idea is simple: list every candidate for each office in one place and let voters choose one candidate per office, regardless of party label.
+Wyoming's primary sends two candidates to the general election — one Republican, one Democrat. The Citizens Nonpartisan Ballot adds a third: a nominee chosen by voters who don't want a party filter between them and the ballot.
 
-This is not an official election and does not replace the official Wyoming primary. It is a voter education and public survey project to show what voter choice could look like.
+Republican Primary → 1 nominee
+Citizens Nonpartisan → 1 nominee
+Democratic Primary → 1 nominee
+→ General Election
 
-Some voters choose by party. Some voters choose by candidate. Wyoming should respect both.
+Three nominees. One general election. Wyoming voters decide.
 
-Take a look here:
+The survey is open now:
+https://grassrootsmvt.org/surveys/wy-citizens-nonpartisan-ballot
+
+Learn more:
 ${PAGE_URL}`;
 
-const smsText = `Wyoming voters should be able to compare every candidate and choose one per office. The Citizens Nonpartisan Ballot is an unofficial civic project to show what voter choice could look like. Learn more: ${PAGE_URL}`;
+const smsText = `The Citizens Nonpartisan Ballot adds a 3rd nominee to the general election — alongside the Republican and Democratic nominees. Take the survey: https://grassrootsmvt.org/surveys/wy-citizens-nonpartisan-ballot — Learn more: ${PAGE_URL}`;
 ---
 <Base
   title="Citizens Nonpartisan Ballot | Skovgard 2026"
@@ -238,6 +246,22 @@ const smsText = `Wyoming voters should be able to compare every candidate and ch
         <p class="section-body mt-8">
           This is how we move from complaint to construction.
         </p>
+
+        <!-- Survey CTA -->
+        <div class="survey-cta-wrap">
+          <p class="text-sm font-semibold text-gray-500 mb-3">The survey is open now:</p>
+          <a
+            href="https://grassrootsmvt.org/surveys/wy-citizens-nonpartisan-ballot"
+            target="_blank"
+            rel="noopener"
+            class="survey-cta-btn"
+          >
+            Take the Wyoming Citizens Nonpartisan Ballot Survey
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
       </div>
     </section>
 
@@ -684,6 +708,28 @@ const smsText = `Wyoming voters should be able to compare every candidate and ch
     background: #b22234;
     margin-top: 0.55em;
   }
+
+  /* Survey CTA */
+  .survey-cta-wrap {
+    margin-top: 2rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid #e5ddd0;
+  }
+  .survey-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 24px;
+    background: #b22234;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: background-color 0.15s;
+    line-height: 1.35;
+  }
+  .survey-cta-btn:hover { background: #8b1a26; }
 
   /* Disclaimer */
   .disclaimer-box {
