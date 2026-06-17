@@ -989,6 +989,82 @@ const FLEECING_LETTERS_BODY_HTML = `
   </table>
 `;
 
+const CHANGING_HEALTH_CARE_BODY_HTML = `
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Wyoming is facing a hard question. After the Wyoming Supreme Court&#8217;s ruling on abortion policy
+  and Article&nbsp;1, Section&nbsp;38 of the Wyoming Constitution, the path forward should be honest,
+  constitutional, and led by the people of Wyoming.
+</p>
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  This campaign is built on a simple belief: we do not have to let hard issues tear us apart.
+  We can face them directly. We can tell the truth. We can follow the Constitution. And when
+  the Constitution needs to be changed, we can place that question before the people.
+</p>
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  The issue is bigger than one court case, one law, or one headline.
+  It goes to the oath of office itself.
+</p>
+<p style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#111827;">
+  Every elected representative is bound to support, obey, and defend the Constitution.
+  Our representatives do not own that oath. We do.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+  <tr>
+    <td style="background:#f9f6f0;border-left:4px solid #b22234;padding:18px 20px;border-radius:0 8px 8px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#b22234;">The Honest Path</p>
+      <p style="margin:0 0 12px;font-size:15px;line-height:1.65;color:#111827;">
+        If Wyoming wants to change how the Constitution applies to health care and abortion policy,
+        the honest path is a constitutional amendment placed before the people of Wyoming.
+      </p>
+      <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#374151;">
+        That path lets us answer the hard questions directly:
+      </p>
+      <ul style="margin:0;padding:0 0 0 20px;font-size:15px;line-height:1.8;color:#374151;">
+        <li>When does human life begin?</li>
+        <li>When should human life receive the protections of law?</li>
+        <li>What safeguards must exist for medical emergencies, miscarriage care, ectopic pregnancy care, fatal fetal anomalies, rape, incest, and serious threats to a pregnant patient&#8217;s health?</li>
+        <li>How do we protect lawful, medically appropriate decisions between patients and medical providers?</li>
+        <li>And how do we make sure our representatives stay within the guardrails of the Constitution?</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:24px 0 8px;font-size:15px;font-weight:700;color:#0f2742;">GrassrootsMVT: A Proof of Concept</p>
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  GrassrootsMVT.org is being built as a proof of concept for verified public input.
+  The purpose is simple: give registered Wyoming voters a way to weigh in directly on difficult issues,
+  district by district and county by county, so our representatives cannot hide behind noise,
+  pressure, or assumptions.
+</p>
+
+<table cellpadding="0" cellspacing="0" style="margin:4px 0 20px;">
+  <tr>
+    <td style="background:#b22234;border-radius:8px;padding:12px 24px;">
+      <a href="https://grassrootsmvt.org/surveys/wy-health-care-constitutional-process"
+         style="color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;">
+        Take the Wyoming Health Care and Constitutional Process Survey &#8594;
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#374151;">
+  Read the source packet for the constitutional background and court ruling:&nbsp;
+  <a href="https://skovgard2026.org/docs/Wellspring_Completed_Questionnaire_Skovgard_With_Public_Input.pdf"
+     style="color:#0f2742;font-weight:600;text-decoration:underline;">
+    Wellspring Questionnaire with Public Input (PDF)
+  </a>
+</p>
+
+<p style="margin:24px 0 0;font-size:16px;line-height:1.9;color:#111827;font-weight:700;">
+  We are Wyoming.<br />
+  Our representatives work for us.<br />
+  The Constitution belongs to the people.
+</p>
+`;
+
 export const SHARE_MESSAGES = {
   "fleecing-letters": {
     title:        "The Fleecing Letters",
@@ -1209,6 +1285,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted to share this Wyoming public lands breakdown with you.`
         : "A Wyoming neighbor wanted to share this Wyoming public lands breakdown with you.";
+    },
+  },
+  "changing-health-care": {
+    title:        "Changing Health Care",
+    body_html:    CHANGING_HEALTH_CARE_BODY_HTML,
+    preview_text: "Wyoming is facing a hard question. The honest path is constitutional and led by the people.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — Changing Health Care`
+        : "Wyoming health care: the honest constitutional path";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
     },
   },
 };
@@ -1785,6 +1876,48 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "whether a campaign-specific setup makes sense for your team.",
           "",
           "Read more: https://skovgard2026.org/share/untrammeled-suffrage",
+        ]
+    : slug === "changing-health-care"
+      ? [
+          "Wyoming is facing a hard question. After the Wyoming Supreme Court's ruling on abortion",
+          "policy and Article 1, Section 38 of the Wyoming Constitution, the path forward should be",
+          "honest, constitutional, and led by the people of Wyoming.",
+          "",
+          "This campaign is built on a simple belief: we do not have to let hard issues tear us apart.",
+          "We can face them directly. We can tell the truth. We can follow the Constitution. And when",
+          "the Constitution needs to be changed, we can place that question before the people.",
+          "",
+          "Every elected representative is bound to support, obey, and defend the Constitution.",
+          "Our representatives do not own that oath. We do.",
+          "",
+          "THE HONEST PATH",
+          "",
+          "If Wyoming wants to change how the Constitution applies to health care and abortion policy,",
+          "the honest path is a constitutional amendment placed before the people of Wyoming.",
+          "",
+          "That path lets us answer the hard questions directly:",
+          "  - When does human life begin?",
+          "  - When should human life receive the protections of law?",
+          "  - What safeguards must exist for medical emergencies, miscarriage care, ectopic pregnancy",
+          "    care, fatal fetal anomalies, rape, incest, and serious threats to a pregnant patient's health?",
+          "  - How do we protect lawful, medically appropriate decisions between patients and providers?",
+          "  - And how do we make sure our representatives stay within the guardrails of the Constitution?",
+          "",
+          "GRASSROOTSMVT: A PROOF OF CONCEPT",
+          "",
+          "GrassrootsMVT.org is being built as a proof of concept for verified public input —",
+          "giving registered Wyoming voters a way to weigh in directly, district by district,",
+          "so our representatives cannot hide behind noise, pressure, or assumptions.",
+          "",
+          "Take the Wyoming Health Care and Constitutional Process Survey:",
+          "https://grassrootsmvt.org/surveys/wy-health-care-constitutional-process",
+          "",
+          "Read the source packet (PDF):",
+          "https://skovgard2026.org/docs/Wellspring_Completed_Questionnaire_Skovgard_With_Public_Input.pdf",
+          "",
+          "We are Wyoming.",
+          "Our representatives work for us.",
+          "The Constitution belongs to the people.",
         ]
       : [
           "This campaign is built around two simple beliefs.",
