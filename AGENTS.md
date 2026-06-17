@@ -92,6 +92,16 @@ Do not reference `config/_default/config.toml`, `layouts/`, or Hugo-era paths â€
 
 If those files conflict with a generic instruction file or prior memory, the repo content wins unless the user directs otherwise.
 
+## WORM Data Protocol
+
+WORM protocol is in effect for this project. Treat operational records as write-once/read-many data unless the user explicitly authorizes a corrective migration or administrative update.
+
+- Do not hard-code dropdown options, form action choices, campaign workflow statuses, or admin-select lists in frontend JavaScript, Astro pages, or standalone HTML when those values represent operational data.
+- Link dropdowns and other form actions to the appropriate database-backed tables or API endpoints. If the table or endpoint does not exist yet, propose or add the table/API path rather than embedding a static list.
+- Keep display labels, ordering, active/inactive flags, and form action metadata in tables where admins or migrations can maintain them.
+- Static hard-coded lists are acceptable only for true UI constants that are not operational records, such as view modes, layout preferences, or client-only sorting controls.
+- When converting a hard-coded form list to table-backed data, preserve existing submitted values and avoid rewriting historical records unless a user-approved migration requires it.
+
 ## Cloudflare Worker Naming
 
 - Never guess at Worker names for preview or production.
