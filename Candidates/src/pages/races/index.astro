@@ -3,13 +3,14 @@
 import Base from '../../layouts/Base.astro';
 import { env } from 'cloudflare:workers';
 
-const LEVEL_ORDER = ['federal', 'statewide', 'wy_senate', 'wy_house', 'local'];
+const LEVEL_ORDER = ['federal', 'statewide', 'wy_senate', 'wy_house', 'county', 'city'];
 const LEVEL_LABELS: Record<string, string> = {
   federal: 'Federal',
   statewide: 'Statewide',
   wy_senate: 'Wyoming Senate',
   wy_house: 'Wyoming House',
-  local: 'Local',
+  county: 'County & Local',
+  city: 'Municipal',
 };
 
 let grouped: Record<string, any[]> = {};
