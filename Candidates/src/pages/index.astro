@@ -8,7 +8,7 @@ const electionDate = 'August 18, 2026';
 let guideStats = [
   { value: '325', label: 'races tracked' },
   { value: '595', label: 'filed candidates' },
-  { value: '4 of 23', label: 'counties covered' },
+  { value: '4', label: 'of 23 counties' },
 ];
 
 if (env?.WY_DB) {
@@ -24,9 +24,9 @@ if (env?.WY_DB) {
     const row = results[0] as any;
     if (row) {
       guideStats = [
-        { value: String(row.total_races),        label: 'races tracked' },
-        { value: String(row.active_candidates),  label: 'filed candidates' },
-        { value: `${row.county_count} of 23`,    label: 'counties covered' },
+        { value: String(row.total_races),       label: 'races tracked' },
+        { value: String(row.active_candidates), label: 'filed candidates' },
+        { value: String(row.county_count),      label: 'of 23 counties' },
       ];
     }
   } catch { /* fall through to static defaults */ }
