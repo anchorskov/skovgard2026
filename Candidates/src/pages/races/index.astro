@@ -3,42 +3,68 @@
 import Base from '../../layouts/Base.astro';
 import { env } from 'cloudflare:workers';
 
-const LEVEL_ORDER = ['federal', 'statewide', 'wy_senate', 'wy_house', 'county', 'city'];
-const LEVEL_LABELS: Record<string, string> = {
+const STATE_LEVEL_ORDER = ['federal', 'statewide', 'wy_senate', 'wy_house'];
+const STATE_LEVEL_LABELS: Record<string, string> = {
   federal: 'Federal',
   statewide: 'Statewide',
   wy_senate: 'Wyoming Senate',
   wy_house: 'Wyoming House',
-  county: 'County & Local',
-  city: 'Municipal',
 };
 
-let grouped: Record<string, any[]> = {};
+type RaceRow = {
+  id: number;
+  title: string;
+  level: string;
+  district: string | null;
+  county: string | null;
+  sort_order: number;
+  candidate_count: number;
+};
+
+let stateGroups: Record<string, RaceRow[]> = {};
+let countyGroups: Record<string, { county: RaceRow[]; city: RaceRow[] }> = {};
 let dbError = false;
+let totalRaces = 0;
 
 if (env.WY_DB) {
   try {
     const { results } = await env.WY_DB.prepare(`
-      SELECT o.id, o.title, o.level, o.district, o.sort_order,
+      SELECT o.id, o.title, o.level, o.district, o.county, o.sort_order,
              COUNT(c.id) AS candidate_count
         FROM offices o
         LEFT JOIN candidates c ON c.office_id = o.id AND c.withdrawn_at IS NULL
-       GROUP BY o.id, o.title, o.level, o.district, o.sort_order
-       ORDER BY o.sort_order, o.title, o.district
+       GROUP BY o.id
+       ORDER BY o.county NULLS FIRST, o.level, o.sort_order, o.title
     `).all();
 
-    for (const row of results) {
-      const key = String(row.level);
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(row);
+    for (const row of results as RaceRow[]) {
+      totalRaces++;
+      if (row.county) {
+        if (!countyGroups[row.county]) countyGroups[row.county] = { county: [], city: [] };
+        if (row.level === 'city') {
+          countyGroups[row.county].city.push(row);
+        } else {
+          countyGroups[row.county].county.push(row);
+        }
+      } else {
+        const key = row.level;
+        if (!stateGroups[key]) stateGroups[key] = [];
+        stateGroups[key].push(row);
+      }
     }
   } catch {
     dbError = true;
   }
 }
 
-function officeName(row: any): string {
+const sortedCounties = Object.keys(countyGroups).sort();
+
+function officeName(row: RaceRow): string {
   return row.district ? `${row.title} — District ${row.district}` : row.title;
+}
+
+function candidateLabel(n: number): string {
+  return `${n} filed ${n === 1 ? 'candidate' : 'candidates'}`;
 }
 ---
 
@@ -47,7 +73,7 @@ function officeName(row: any): string {
     <p class="eyebrow">Wyoming 2026 Primary</p>
     <h1>Browse all races.</h1>
     <p class="lede">
-      All 86 offices on the 2026 primary ballot. Select a race to see filed candidates.
+      {totalRaces > 0 ? `${totalRaces} offices` : 'Offices'} on the 2026 primary ballot. Select a race to see filed candidates.
       Or <a href="/">enter your address</a> to see only the races on your specific ballot.
     </p>
   </section>
@@ -56,17 +82,15 @@ function officeName(row: any): string {
     <p class="error-note">Race data could not be loaded. Please try again.</p>
   )}
 
-  {LEVEL_ORDER.filter((level) => grouped[level]?.length > 0).map((level) => (
+  {STATE_LEVEL_ORDER.filter((level) => stateGroups[level]?.length > 0).map((level) => (
     <section class="level-group" aria-labelledby={`level-${level}`}>
-      <h2 id={`level-${level}`} class="level-heading">{LEVEL_LABELS[level]}</h2>
+      <h2 id={`level-${level}`} class="level-heading">{STATE_LEVEL_LABELS[level]}</h2>
       <ul class="race-grid" role="list">
-        {grouped[level].map((office) => (
+        {stateGroups[level].map((office) => (
           <li>
             <a href={`/race/${office.id}`} class="race-card">
               <span class="race-card__name">{officeName(office)}</span>
-              <span class="race-card__count">
-                {Number(office.candidate_count)} filed {Number(office.candidate_count) === 1 ? 'candidate' : 'candidates'}
-              </span>
+              <span class="race-card__count">{candidateLabel(Number(office.candidate_count))}</span>
               <span class="race-card__cta" aria-hidden="true">View candidates →</span>
             </a>
           </li>
@@ -74,6 +98,51 @@ function officeName(row: any): string {
       </ul>
     </section>
   ))}
+
+  {sortedCounties.map((county) => {
+    const groups = countyGroups[county];
+    const hasBoth = groups.county.length > 0 && groups.city.length > 0;
+    const totalInCounty = groups.county.length + groups.city.length;
+    const countyId = `county-${county.toLowerCase().replace(/\s+/g, '-')}`;
+    return (
+      <section class="level-group" aria-labelledby={countyId}>
+        <h2 id={countyId} class="level-heading county-heading">
+          {county} County
+          <span class="level-heading__meta">{totalInCounty} {totalInCounty === 1 ? 'race' : 'races'}</span>
+        </h2>
+
+        {hasBoth && <h3 class="sublevel-heading">County offices</h3>}
+        {groups.county.length > 0 && (
+          <ul class="race-grid" role="list">
+            {groups.county.map((office) => (
+              <li>
+                <a href={`/race/${office.id}`} class="race-card">
+                  <span class="race-card__name">{officeName(office)}</span>
+                  <span class="race-card__count">{candidateLabel(Number(office.candidate_count))}</span>
+                  <span class="race-card__cta" aria-hidden="true">View candidates →</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {hasBoth && <h3 class="sublevel-heading">Municipal offices</h3>}
+        {groups.city.length > 0 && (
+          <ul class="race-grid" role="list">
+            {groups.city.map((office) => (
+              <li>
+                <a href={`/race/${office.id}`} class="race-card race-card--municipal">
+                  <span class="race-card__name">{officeName(office)}</span>
+                  <span class="race-card__count">{candidateLabel(Number(office.candidate_count))}</span>
+                  <span class="race-card__cta" aria-hidden="true">View candidates →</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    );
+  })}
 </Base>
 
 <style>
@@ -112,6 +181,9 @@ function officeName(row: any): string {
   }
 
   .level-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
     margin: 0 0 16px;
     font-size: 1rem;
     font-weight: 800;
@@ -120,6 +192,29 @@ function officeName(row: any): string {
     color: var(--rust);
     border-bottom: 2px solid var(--dust);
     padding-bottom: 8px;
+  }
+
+  .county-heading {
+    color: var(--charcoal);
+    border-bottom-color: var(--sandstone);
+    border-bottom-width: 3px;
+  }
+
+  .level-heading__meta {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--dust);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .sublevel-heading {
+    margin: 20px 0 10px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--rust);
   }
 
   .race-grid {
@@ -147,6 +242,16 @@ function officeName(row: any): string {
     border-color: var(--ember);
     box-shadow: 0 4px 0 var(--sandstone);
     outline: none;
+  }
+
+  .race-card--municipal {
+    border-left-color: var(--sandstone);
+  }
+
+  .race-card--municipal:hover,
+  .race-card--municipal:focus-visible {
+    border-color: var(--sandstone);
+    box-shadow: 0 4px 0 var(--dust);
   }
 
   .race-card__name {

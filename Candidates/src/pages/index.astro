@@ -1,13 +1,36 @@
 ---
 // Candidates/src/pages/index.astro
 import '../styles/global.css';
+import { env } from 'cloudflare:workers';
 
 const electionDate = 'August 18, 2026';
-const guideStats = [
-  { value: '86', label: 'offices tracked' },
-  { value: '200', label: 'filed candidates' },
-  { value: '23', label: 'Wyoming counties' },
+
+let guideStats = [
+  { value: '325', label: 'races tracked' },
+  { value: '595', label: 'filed candidates' },
+  { value: '4 of 23', label: 'counties covered' },
 ];
+
+if (env?.WY_DB) {
+  try {
+    const { results } = await env.WY_DB.prepare(`
+      SELECT
+        COUNT(DISTINCT o.id)                                          AS total_races,
+        COUNT(DISTINCT CASE WHEN c.withdrawn_at IS NULL THEN c.id END) AS active_candidates,
+        COUNT(DISTINCT o.county)                                      AS county_count
+      FROM offices o
+      LEFT JOIN candidates c ON c.office_id = o.id
+    `).all();
+    const row = results[0] as any;
+    if (row) {
+      guideStats = [
+        { value: String(row.total_races),        label: 'races tracked' },
+        { value: String(row.active_candidates),  label: 'filed candidates' },
+        { value: `${row.county_count} of 23`,    label: 'counties covered' },
+      ];
+    }
+  } catch { /* fall through to static defaults */ }
+}
 
 const keyDates = [
   { date: 'July 2', label: 'Primary ballots posted in clerk offices' },
