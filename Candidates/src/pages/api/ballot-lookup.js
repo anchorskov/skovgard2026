@@ -531,6 +531,50 @@ function officeAppliesToDistrict(office, districts) {
   return false;
 }
 
+async function getLocalRaces(db, districts, address) {
+  if (!db || !districts?.county) return [];
+  try {
+    const countyNorm = districts.county.toLowerCase().trim();
+    const cityNorm = normalizeLookupKey(address.city);
+
+    const rows = await allD1(
+      db,
+      `SELECT
+         o.id AS office_id,
+         o.title,
+         o.level,
+         o.county,
+         o.municipality,
+         COUNT(c.id) AS candidate_count
+       FROM offices o
+       LEFT JOIN candidates c ON c.office_id = o.id AND c.withdrawn_at IS NULL
+       WHERE o.county IS NOT NULL
+       GROUP BY o.id
+       ORDER BY o.level, o.sort_order, o.title`
+    );
+
+    return rows
+      .filter((row) => {
+        if (!row.county) return false;
+        if (row.county.toLowerCase().trim() !== countyNorm) return false;
+        if (row.level === 'county') return true;
+        if (row.level === 'city') {
+          return normalizeLookupKey(String(row.municipality || '')) === cityNorm;
+        }
+        return false;
+      })
+      .map((row) => ({
+        id: String(row.office_id),
+        name: row.title,
+        level: row.level,
+        municipality: row.municipality || null,
+        candidateCount: Number(row.candidate_count || 0),
+      }));
+  } catch {
+    return [];
+  }
+}
+
 async function getRaceGroups(db, districts) {
   if (!db) return PLACEHOLDER_RACES;
 
@@ -594,8 +638,11 @@ export async function POST({ request }) {
 
   const civicApiConfigured = Boolean(env.GOOGLE_CIVIC_API_KEY);
   const districts = await lookupDistricts(env.LOOKUP_DB, address);
-  const races = await getRaceGroups(env.WY_DB, districts);
-  const pollingDetails = await lookupPollingDetails(address);
+  const [races, localRaces, pollingDetails] = await Promise.all([
+    getRaceGroups(env.WY_DB, districts),
+    getLocalRaces(env.WY_DB, districts, address),
+    lookupPollingDetails(address),
+  ]);
   const isDistrictMatched = Boolean(districts?.wyHouse || districts?.wySenate || districts?.county);
 
   return json({
@@ -611,6 +658,7 @@ export async function POST({ request }) {
     },
     districts,
     races,
+    localRaces,
     pollingDetails,
   });
 }

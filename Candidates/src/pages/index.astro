@@ -166,6 +166,7 @@ const addressFields = [
           <div id="lookup-status" class="lookup-status" role="status" aria-live="polite" hidden></div>
           <div id="district-badges" class="district-badges" hidden></div>
           <div id="results" class="lookup-results" hidden></div>
+          <div id="local-results" class="lookup-results lookup-results--local" hidden></div>
           <div id="polling-section" class="polling-section" hidden></div>
           <p class="form-note">Address data is sent only to this lookup request and is not stored.</p>
         </form>
@@ -182,6 +183,7 @@ const addressFields = [
       const lookupButton = lookupForm?.querySelector('button[type="submit"]');
       const districtBadges = document.querySelector('#district-badges');
       const lookupResults = document.querySelector('#results');
+      const localResults = document.querySelector('#local-results');
       const pollingSection = document.querySelector('#polling-section');
 
       function getFieldValue(name) {
@@ -234,6 +236,51 @@ const addressFields = [
           </ul>
         `;
         setHidden(lookupResults, false);
+      }
+
+      function renderLocalRaces(races) {
+        if (!localResults) return;
+        if (!Array.isArray(races) || races.length === 0) {
+          setHidden(localResults, true);
+          localResults.innerHTML = '';
+          return;
+        }
+
+        const countyRaces = races.filter((r) => r.level === 'county');
+        const cityRaces   = races.filter((r) => r.level === 'city');
+        const hasBoth     = countyRaces.length > 0 && cityRaces.length > 0;
+
+        function raceCards(list) {
+          return list.map((race) => {
+            const count = Number(race.candidateCount);
+            const countText = Number.isFinite(count)
+              ? `${count} filed ${count === 1 ? 'candidate' : 'candidates'}`
+              : '';
+            return `<li>
+              <a class="race-result-card" href="/race/${escapeHtml(String(race.id))}">
+                <span class="race-result-card__body">
+                  <span class="race-result-card__name">${escapeHtml(race.name)}</span>
+                  <span class="race-result-card__count">${escapeHtml(countText)}</span>
+                </span>
+                <span class="race-result-card__cta" aria-hidden="true">View candidates →</span>
+              </a>
+            </li>`;
+          }).join('');
+        }
+
+        let html = '<h3>County &amp; Local races</h3>';
+
+        if (hasBoth) html += '<p class="local-sublabel">County offices</p>';
+        if (countyRaces.length > 0) {
+          html += `<ul class="race-result-list">${raceCards(countyRaces)}</ul>`;
+        }
+        if (hasBoth) html += '<p class="local-sublabel">Municipal offices</p>';
+        if (cityRaces.length > 0) {
+          html += `<ul class="race-result-list">${raceCards(cityRaces)}</ul>`;
+        }
+
+        localResults.innerHTML = html;
+        setHidden(localResults, false);
       }
 
       function escapeHtml(value) {
@@ -373,6 +420,7 @@ const addressFields = [
 
         setHidden(districtBadges, true);
         setHidden(lookupResults, true);
+        setHidden(localResults, true);
         setHidden(pollingSection, true);
 
         if (missing.length > 0) {
@@ -405,6 +453,7 @@ const addressFields = [
           );
           renderDistricts(data.districts);
           renderRaces(data.races);
+          renderLocalRaces(data.localRaces);
           renderPollingDetails(data.pollingDetails);
         } catch {
           setLookupStatus('Lookup route could not be reached. Please try again later.', 'error');
@@ -784,6 +833,19 @@ const addressFields = [
     padding: 12px;
     color: var(--charcoal);
     font-weight: 700;
+  }
+
+  .lookup-results--local {
+    border-left: 4px solid var(--sandstone);
+  }
+
+  .local-sublabel {
+    margin: 14px 0 6px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--rust);
   }
 
   .district-badges {
