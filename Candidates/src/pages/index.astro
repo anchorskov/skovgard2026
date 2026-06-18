@@ -238,17 +238,17 @@ const addressFields = [
         setHidden(lookupResults, false);
       }
 
-      function renderLocalRaces(races) {
+      function renderLocalRaces(races, meta) {
         if (!localResults) return;
-        if (!Array.isArray(races) || races.length === 0) {
+
+        const hasRaces = Array.isArray(races) && races.length > 0;
+        const hasNote  = meta && (meta.hasPrecinctRaces || meta.hasWardRaces);
+
+        if (!hasRaces && !hasNote) {
           setHidden(localResults, true);
           localResults.innerHTML = '';
           return;
         }
-
-        const countyRaces = races.filter((r) => r.level === 'county');
-        const cityRaces   = races.filter((r) => r.level === 'city');
-        const hasBoth     = countyRaces.length > 0 && cityRaces.length > 0;
 
         function raceCards(list) {
           return list.map((race) => {
@@ -270,13 +270,32 @@ const addressFields = [
 
         let html = '<h3>County &amp; Local races</h3>';
 
-        if (hasBoth) html += '<p class="local-sublabel">County offices</p>';
-        if (countyRaces.length > 0) {
-          html += `<ul class="race-result-list">${raceCards(countyRaces)}</ul>`;
+        if (hasRaces) {
+          const countyRaces = races.filter((r) => r.level === 'county');
+          const cityRaces   = races.filter((r) => r.level === 'city');
+          const hasBoth     = countyRaces.length > 0 && cityRaces.length > 0;
+
+          if (hasBoth) html += '<p class="local-sublabel">County offices</p>';
+          if (countyRaces.length > 0) html += `<ul class="race-result-list">${raceCards(countyRaces)}</ul>`;
+          if (hasBoth) html += '<p class="local-sublabel">Municipal offices</p>';
+          if (cityRaces.length > 0)   html += `<ul class="race-result-list">${raceCards(cityRaces)}</ul>`;
         }
-        if (hasBoth) html += '<p class="local-sublabel">Municipal offices</p>';
-        if (cityRaces.length > 0) {
-          html += `<ul class="race-result-list">${raceCards(cityRaces)}</ul>`;
+
+        if (hasNote) {
+          const parts = [];
+          if (meta.hasPrecinctRaces) parts.push('precinct committee races');
+          if (meta.hasWardRaces)     parts.push('ward races');
+          const raceTypes = parts.join(' and ');
+          const countySlug = meta.county
+            ? meta.county.toLowerCase().replace(/\s+/g, '-')
+            : '';
+          const browseHref = countySlug ? `/races#county-${countySlug}` : '/races';
+          html += `<p class="local-precinct-note">
+            Your ballot may also include <strong>${escapeHtml(raceTypes)}</strong> that
+            require your specific precinct or ward — we can't determine those from your
+            address alone.
+            <a href="${escapeHtml(browseHref)}">Browse all ${escapeHtml(meta.county || '')} County races →</a>
+          </p>`;
         }
 
         localResults.innerHTML = html;
@@ -453,7 +472,7 @@ const addressFields = [
           );
           renderDistricts(data.districts);
           renderRaces(data.races);
-          renderLocalRaces(data.localRaces);
+          renderLocalRaces(data.localRaces, data.localMeta);
           renderPollingDetails(data.pollingDetails);
         } catch {
           setLookupStatus('Lookup route could not be reached. Please try again later.', 'error');
@@ -846,6 +865,24 @@ const addressFields = [
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--rust);
+  }
+
+  .local-precinct-note {
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    border-top: 1px solid var(--dust);
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--rust);
+    line-height: 1.5;
+  }
+
+  .local-precinct-note a {
+    display: block;
+    margin-top: 6px;
+    font-weight: 800;
+    color: var(--ember);
+    text-underline-offset: 0.2em;
   }
 
   .district-badges {

@@ -531,8 +531,13 @@ function officeAppliesToDistrict(office, districts) {
   return false;
 }
 
+// Scope kinds that require precinct or ward data we don't have per-address.
+// These are counted and surfaced as a browse prompt rather than shown inline.
+const PRECINCT_SCOPES = new Set(['precinct_party_gender']);
+const WARD_SCOPES = new Set(['municipal_ward']);
+
 async function getLocalRaces(db, districts, address) {
-  if (!db || !districts?.county) return [];
+  if (!db || !districts?.county) return { races: [], hasPrecinctRaces: false, hasWardRaces: false, county: null };
   try {
     const countyNorm = districts.county.toLowerCase().trim();
     const cityNorm = normalizeLookupKey(address.city);
@@ -545,6 +550,7 @@ async function getLocalRaces(db, districts, address) {
          o.level,
          o.county,
          o.municipality,
+         o.scope_kind,
          COUNT(c.id) AS candidate_count
        FROM offices o
        LEFT JOIN candidates c ON c.office_id = o.id AND c.withdrawn_at IS NULL
@@ -553,25 +559,45 @@ async function getLocalRaces(db, districts, address) {
        ORDER BY o.level, o.sort_order, o.title`
     );
 
-    return rows
-      .filter((row) => {
-        if (!row.county) return false;
-        if (row.county.toLowerCase().trim() !== countyNorm) return false;
-        if (row.level === 'county') return true;
-        if (row.level === 'city') {
-          return normalizeLookupKey(String(row.municipality || '')) === cityNorm;
-        }
-        return false;
-      })
-      .map((row) => ({
-        id: String(row.office_id),
-        name: row.title,
-        level: row.level,
-        municipality: row.municipality || null,
-        candidateCount: Number(row.candidate_count || 0),
-      }));
+    // Rows belonging to this voter's county/city
+    const countyRows = rows.filter((row) => {
+      if (!row.county) return false;
+      if (row.county.toLowerCase().trim() !== countyNorm) return false;
+      if (row.level === 'county') return true;
+      if (row.level === 'city') {
+        return normalizeLookupKey(String(row.municipality || '')) === cityNorm;
+      }
+      return false;
+    });
+
+    // Split: matchable now vs. needs precinct/ward data
+    const races = [];
+    let hasPrecinctRaces = false;
+    let hasWardRaces = false;
+
+    for (const row of countyRows) {
+      const scope = row.scope_kind || '';
+      if (PRECINCT_SCOPES.has(scope)) {
+        hasPrecinctRaces = true;
+      } else if (WARD_SCOPES.has(scope)) {
+        hasWardRaces = true;
+      } else {
+        races.push({
+          id: String(row.office_id),
+          name: row.title,
+          level: row.level,
+          municipality: row.municipality || null,
+          candidateCount: Number(row.candidate_count || 0),
+        });
+      }
+    }
+
+    // Canonical county name for the browse link (title-case from DB)
+    const countyLabel = countyRows[0]?.county || districts.county;
+
+    return { races, hasPrecinctRaces, hasWardRaces, county: countyLabel };
   } catch {
-    return [];
+    return { races: [], hasPrecinctRaces: false, hasWardRaces: false, county: null };
   }
 }
 
@@ -658,7 +684,12 @@ export async function POST({ request }) {
     },
     districts,
     races,
-    localRaces,
+    localRaces: localRaces.races,
+    localMeta: {
+      hasPrecinctRaces: localRaces.hasPrecinctRaces,
+      hasWardRaces: localRaces.hasWardRaces,
+      county: localRaces.county,
+    },
     pollingDetails,
   });
 }
