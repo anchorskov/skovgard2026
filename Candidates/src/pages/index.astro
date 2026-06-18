@@ -1,0 +1,1152 @@
+---
+// Candidates/src/pages/index.astro
+import '../styles/global.css';
+
+const electionDate = 'August 18, 2026';
+const guideStats = [
+  { value: '86', label: 'offices tracked' },
+  { value: '200', label: 'filed candidates' },
+  { value: '23', label: 'Wyoming counties' },
+];
+
+const keyDates = [
+  { date: 'July 2', label: 'Primary ballots posted in clerk offices' },
+  { date: 'July 21', label: 'Regular absentee voting begins' },
+  { date: 'Early August', label: 'Sample ballots expected from county clerks' },
+  { date: 'August 18', label: 'Primary election day' },
+];
+
+const flowSteps = [
+  {
+    id: 'find-ballot',
+    title: 'Find your ballot',
+    text: 'Enter your Wyoming voting address to see the federal, statewide, legislative, county, city, and precinct races that apply to you.',
+    detail: 'The lookup matches your address against the Wyoming voter file, Census geocoding, and district coverage tables — returning your house district, senate district, county, and precinct.',
+  },
+  {
+    id: 'compare-races',
+    title: 'Compare each race',
+    text: 'Review candidate summaries, campaign links, filings, finance references, and any manual-review flags before deciding.',
+    detail: 'Race coverage includes federal, statewide, legislative, and local offices from the 2026 candidate database, filtered to the races on your specific ballot.',
+  },
+  {
+    id: 'voting-plan',
+    title: 'Make a voting plan',
+    text: 'Primary ballots are posted in clerk offices by July 2. Absentee voting begins July 21. Sample ballots are expected from county clerks by early August.',
+    detail: `Primary election: ${electionDate}. Ballots are posted in clerk offices by July 2. Regular absentee voting begins July 21. Sample ballots are expected from county clerks no later than early August. Polling-place details will appear here once Google Civic loads Wyoming for this election cycle.`,
+  },
+];
+
+const raceGroups = [
+  { label: 'Federal', detail: 'U.S. Senate and U.S. House races' },
+  { label: 'Statewide', detail: 'Governor and statewide constitutional offices' },
+  { label: 'Legislature', detail: 'Wyoming Senate and House districts' },
+  { label: 'Local', detail: 'County, city, and precinct-level races' },
+];
+
+const addressFields = [
+  {
+    id: 'house-number',
+    name: 'houseNumber',
+    label: 'House / Unit Number',
+    autocomplete: 'address-line2',
+    placeholder: '123',
+  },
+  {
+    id: 'street-name',
+    name: 'street',
+    label: 'Street Name',
+    autocomplete: 'address-line1',
+    placeholder: 'Main St',
+  },
+  {
+    id: 'city',
+    name: 'city',
+    label: 'City',
+    autocomplete: 'address-level2',
+    placeholder: 'Cheyenne',
+  },
+  {
+    id: 'zip-code',
+    name: 'zip',
+    label: 'ZIP Code',
+    autocomplete: 'postal-code',
+    placeholder: '82001',
+  },
+];
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta
+      name="description"
+      content="Wyoming 2026 primary voter guide and candidate lookup for candidates.skovgard2026.org."
+    />
+    <meta name="generator" content={Astro.generator} />
+    <title>Wyoming 2026 Voter Guide | Candidates</title>
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="site-header" aria-label="Candidates voter guide">
+        <a class="brand-mark" href="/" aria-label="Candidates home">
+          <span class="brand-mark__rule"></span>
+          <span>
+            <span class="brand-mark__project">The Integrity Project</span>
+            <strong>Wyoming 2026</strong>
+            <small>Primary Voter Guide</small>
+          </span>
+        </a>
+        <nav class="top-nav" aria-label="Guide sections">
+          <a href="#address-form-section">Find ballot</a>
+          <a href="#races">Races</a>
+          <a href="#status">Status</a>
+        </nav>
+      </header>
+
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero__copy">
+          <p class="eyebrow">Nonpartisan Primary Voter Guide</p>
+          <h1 id="hero-title">Know who is on your Wyoming ballot before primary day.</h1>
+          <p class="lede">
+            This guide turns the 2026 candidate roster into a practical ballot lookup: start with where
+            you vote, see the races that apply to you, and compare candidates from the same source set.
+          </p>
+          <div class="hero__actions" aria-label="Primary actions">
+            <a class="button button--primary" href="#address-form-section">Start lookup</a>
+            <a class="button button--secondary" href="#races">Browse race types</a>
+          </div>
+        </div>
+
+        <aside class="election-card" aria-label="Election snapshot">
+          <p class="election-card__label">Primary election</p>
+          <strong>{electionDate}</strong>
+          <dl class="key-dates">
+            {keyDates.map((item) => (
+              <div class="key-dates__row">
+                <dt>{item.date}</dt>
+                <dd>{item.label}</dd>
+              </div>
+            ))}
+          </dl>
+          <dl class="stats-grid">
+            {guideStats.map((stat) => (
+              <div>
+                <dt>{stat.value}</dt>
+                <dd>{stat.label}</dd>
+              </div>
+            ))}
+          </dl>
+        </aside>
+      </section>
+
+      <section id="address-form-section" class="lookup-panel" aria-labelledby="lookup-title">
+        <div>
+          <p class="eyebrow">Ballot lookup</p>
+          <h2 id="lookup-title">Enter a Wyoming voting address.</h2>
+          <p>
+            The lookup matches your address to your legislative district, county, and precinct using
+            the Wyoming voter file and Census geocoding, then returns the races on your ballot.
+          </p>
+        </div>
+        <form class="address-form" method="get" action="#lookup-status" aria-label="Address lookup preview">
+          <div class="address-form__grid">
+            {addressFields.map((field) => (
+              <label for={field.id}>
+                <span>{field.label}</span>
+                <input
+                  id={field.id}
+                  name={field.name}
+                  type="text"
+                  autocomplete={field.autocomplete}
+                  placeholder={field.placeholder}
+                />
+              </label>
+            ))}
+          </div>
+          <button type="submit">Find My Ballot</button>
+          <div id="lookup-status" class="lookup-status" role="status" aria-live="polite" hidden></div>
+          <div id="district-badges" class="district-badges" hidden></div>
+          <div id="results" class="lookup-results" hidden></div>
+          <div id="polling-section" class="polling-section" hidden></div>
+          <p class="form-note">Address data is sent only to this lookup request and is not stored.</p>
+        </form>
+      </section>
+
+      <section class="flow-grid" aria-label="How the guide will work">
+        {flowSteps.map((step, index) => (
+          <button
+            class="flow-card"
+            type="button"
+            data-step={step.id}
+            data-detail={step.detail}
+            aria-pressed={index === 0 ? 'true' : 'false'}
+          >
+            <span>{index + 1}</span>
+            <h2>{step.title}</h2>
+            <p>{step.text}</p>
+          </button>
+        ))}
+      </section>
+      <section class="step-detail" aria-live="polite" aria-label="Selected guide step">
+        <h2 id="step-detail-title">Find your ballot</h2>
+        <p id="step-detail-copy">{flowSteps[0].detail}</p>
+      </section>
+
+      <section id="races" class="race-section" aria-labelledby="races-title">
+        <div class="section-heading">
+          <p class="eyebrow">Race coverage</p>
+          <h2 id="races-title">Built around the Wyoming 2026 candidate database.</h2>
+        </div>
+        <div class="race-list">
+          {raceGroups.map((group) => (
+            <article>
+              <h3>{group.label}</h3>
+              <p>{group.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="status" class="status-section" aria-labelledby="status-title">
+        <div class="section-heading">
+          <p class="eyebrow">Guide status</p>
+          <h2 id="status-title">What is live, and what is coming.</h2>
+        </div>
+        <div class="status-board">
+          <article>
+            <h3>Live now</h3>
+            <ul>
+              <li>86 offices and 200 filed candidates seeded and enriched</li>
+              <li>Ballot lookup with voter-file, Census geocoder, and district-coverage fallbacks</li>
+              <li>House district, senate district, county, and precinct returned per address</li>
+              <li>Race filtering by district — lookup returns only the races on your ballot</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Coming before primary day</h3>
+            <ul>
+              <li>Candidate profile pages with bios, social links, and finance references</li>
+              <li>Polling-place details once Wyoming loads into Google Civic for this cycle</li>
+              <li>Sample ballot links once county clerks post them (expected early August)</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+    <script>
+      const lookupForm = document.querySelector('.address-form');
+      const lookupStatus = document.querySelector('#lookup-status');
+      const lookupButton = lookupForm?.querySelector('button[type="submit"]');
+      const districtBadges = document.querySelector('#district-badges');
+      const lookupResults = document.querySelector('#results');
+      const pollingSection = document.querySelector('#polling-section');
+      const flowCards = Array.from(document.querySelectorAll('.flow-card'));
+      const stepDetailTitle = document.querySelector('#step-detail-title');
+      const stepDetailCopy = document.querySelector('#step-detail-copy');
+      const addressSection = document.querySelector('#address-form-section');
+      const racesSection = document.querySelector('#races');
+      const statusSection = document.querySelector('#status');
+
+      function getFieldValue(name) {
+        const field = lookupForm?.querySelector(`[name="${name}"]`);
+        return field instanceof HTMLInputElement ? field.value.trim() : '';
+      }
+
+      function setLookupStatus(message, tone = 'neutral') {
+        if (!lookupStatus) return;
+        lookupStatus.textContent = message;
+        lookupStatus.dataset.tone = tone;
+        lookupStatus.removeAttribute('hidden');
+      }
+
+      function setHidden(element, hidden) {
+        if (!element) return;
+        if (hidden) {
+          element.setAttribute('hidden', '');
+        } else {
+          element.removeAttribute('hidden');
+        }
+      }
+
+      function renderRaces(races) {
+        if (!lookupResults) return;
+        if (!Array.isArray(races) || races.length === 0) {
+          setHidden(lookupResults, true);
+          lookupResults.innerHTML = '';
+          return;
+        }
+
+        lookupResults.innerHTML = `
+          <h3>Returned race groups</h3>
+          <ul>
+            ${races
+              .map((race) => {
+                const count = Number(race.candidateCount);
+                const line = Number.isFinite(count)
+                  ? formatRaceGroupLine(race.name, count)
+                  : `${race.name}: ${race.status}`;
+                return `<li>${escapeHtml(line)}</li>`;
+              })
+              .join('')}
+          </ul>
+        `;
+        setHidden(lookupResults, false);
+      }
+
+      function formatRaceGroupLine(raceName, count) {
+        const noun = Number(count) === 1 ? 'candidate' : 'candidates';
+        return `${raceName}: ${count} filed ${noun} in the seeded roster.`;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function formatCivicAddress(address) {
+        if (!address) return '';
+        return [address.locationName, address.line1, address.line2, address.line3, [address.city, address.state, address.zip].filter(Boolean).join(', ')]
+          .filter(Boolean)
+          .join('<br />');
+      }
+
+      function renderLocationList(title, locations) {
+        if (!Array.isArray(locations) || locations.length === 0) return '';
+        return `
+          <section class="polling-subsection">
+            <h4>${escapeHtml(title)}</h4>
+            <ul>
+              ${locations.map((location) => `
+                <li>
+                  ${location.name ? `<strong>${escapeHtml(location.name)}</strong>` : ''}
+                  ${location.address ? `<p>${formatCivicAddress(location.address)}</p>` : ''}
+                  ${location.pollingHours ? `<p><span>Hours:</span> ${escapeHtml(location.pollingHours)}</p>` : ''}
+                  ${location.startDate || location.endDate ? `<p><span>Dates:</span> ${escapeHtml([location.startDate, location.endDate].filter(Boolean).join(' - '))}</p>` : ''}
+                  ${location.notes ? `<p>${escapeHtml(location.notes)}</p>` : ''}
+                </li>
+              `).join('')}
+            </ul>
+          </section>
+        `;
+      }
+
+      function renderElectionOffice(body) {
+        if (!body) return '';
+        const officials = Array.isArray(body.electionOfficials) ? body.electionOfficials : [];
+        return `
+          <section class="polling-subsection">
+            <h4>Election office</h4>
+            ${body.name ? `<strong>${escapeHtml(body.name)}</strong>` : ''}
+            ${body.correspondenceAddress ? `<p>${formatCivicAddress(body.correspondenceAddress)}</p>` : ''}
+            ${officials.map((official) => `
+              <p>
+                ${escapeHtml([official.title, official.name].filter(Boolean).join(': '))}
+                ${official.officePhoneNumber ? `<br />${escapeHtml(official.officePhoneNumber)}` : ''}
+                ${official.emailAddress ? `<br />${escapeHtml(official.emailAddress)}` : ''}
+              </p>
+            `).join('')}
+            ${body.electionInfoUrl ? `<p><a href="${escapeHtml(body.electionInfoUrl)}" rel="noopener noreferrer">Election information</a></p>` : ''}
+            ${body.votingLocationFinderUrl ? `<p><a href="${escapeHtml(body.votingLocationFinderUrl)}" rel="noopener noreferrer">Voting location finder</a></p>` : ''}
+          </section>
+        `;
+      }
+
+      function renderPollingDetails(details) {
+        if (!pollingSection) return;
+        const status = details?.status || 'not_available';
+        const messages = {
+          not_available: 'Polling-place details are not available yet for this address/election. The ballot races above are based on the seeded district lookup.',
+          api_not_configured: 'Polling-place lookup is not configured yet. Add GOOGLE_CIVIC_API_KEY and GOOGLE_CIVIC_ELECTION_ID to the Cloudflare environment to enable it.',
+          error: 'Polling-place lookup could not be completed right now. Please try again later.',
+        };
+
+        if (status !== 'found') {
+          pollingSection.innerHTML = `<strong>Polling details</strong><p>${messages[status] || messages.not_available}</p>`;
+          setHidden(pollingSection, false);
+          return;
+        }
+
+        pollingSection.innerHTML = `
+          <strong>Polling details</strong>
+          ${renderLocationList('Polling places', details.pollingLocations)}
+          ${renderLocationList('Early voting sites', details.earlyVoteSites)}
+          ${renderLocationList('Drop-off locations', details.dropOffLocations)}
+          ${renderElectionOffice(details.electionAdministrationBody)}
+        `;
+        setHidden(pollingSection, false);
+      }
+
+      function renderDistricts(districts) {
+        if (!districtBadges) return;
+        const chips = [
+          districts?.wyHouse   ? { label: 'House',    value: districts.wyHouse }   : null,
+          districts?.wySenate  ? { label: 'Senate',   value: districts.wySenate }  : null,
+          districts?.county    ? { label: 'County',   value: toTitleCase(districts.county) } : null,
+          districts?.precinct  ? { label: 'Precinct', value: districts.precinct }  : null,
+        ].filter(Boolean);
+
+        if (chips.length === 0) {
+          districtBadges.innerHTML = '<span class="district-badge--pending">District information not found for this address. Try adding a unit number or check the street name.</span>';
+        } else {
+          districtBadges.innerHTML = chips
+            .map((chip) => `<span class="district-badge"><span class="district-badge__label">${chip.label}</span>${escapeHtml(chip.value)}</span>`)
+            .join('');
+        }
+        setHidden(districtBadges, false);
+      }
+
+      function toTitleCase(str) {
+        return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+      }
+
+      lookupForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const payload = {
+          houseNumber: getFieldValue('houseNumber'),
+          street: getFieldValue('street'),
+          city: getFieldValue('city'),
+          zip: getFieldValue('zip'),
+        };
+        const missing = Object.entries(payload)
+          .filter(([, value]) => !value)
+          .map(([key]) => key);
+
+        setHidden(districtBadges, true);
+        setHidden(lookupResults, true);
+        setHidden(pollingSection, true);
+
+        if (missing.length > 0) {
+          setLookupStatus('Please complete house number, street name, city, and ZIP Code.', 'error');
+          return;
+        }
+
+        if (lookupButton instanceof HTMLButtonElement) {
+          lookupButton.disabled = true;
+          lookupButton.textContent = 'Looking up...';
+        }
+        setLookupStatus('Looking up ballot information...', 'loading');
+
+        try {
+          const response = await fetch('/api/ballot-lookup', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await response.json();
+
+          if (!response.ok || !data.success) {
+            setLookupStatus(data.message || 'Lookup failed. Please check the address fields.', 'error');
+            return;
+          }
+
+          setLookupStatus(
+            `${data.message} Resolved address: ${data.address.combined}`,
+            'success'
+          );
+          renderDistricts(data.districts);
+          renderRaces(data.races);
+          renderPollingDetails(data.pollingDetails);
+        } catch {
+          setLookupStatus('Lookup route could not be reached. Please try again later.', 'error');
+        } finally {
+          if (lookupButton instanceof HTMLButtonElement) {
+            lookupButton.disabled = false;
+            lookupButton.textContent = 'Find My Ballot';
+          }
+        }
+      });
+
+      flowCards.forEach((card) => {
+        card.addEventListener('click', () => {
+          flowCards.forEach((item) => item.setAttribute('aria-pressed', 'false'));
+          card.setAttribute('aria-pressed', 'true');
+          if (stepDetailTitle) stepDetailTitle.textContent = card.querySelector('h2')?.textContent || '';
+          if (stepDetailCopy) stepDetailCopy.textContent = card.dataset.detail || '';
+
+          if (card.dataset.step === 'find-ballot') {
+            addressSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            lookupForm?.querySelector('input')?.focus({ preventScroll: true });
+          }
+          if (card.dataset.step === 'compare-races') {
+            racesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          if (card.dataset.step === 'voting-plan') {
+            statusSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  :root {
+    --charcoal: #2B2B2B;
+    --ember: #B22234;
+    --ember-dark: #8B1A26;
+    --sandstone: #C68A4A;
+    --sage: #7A8A6B;
+    --bone: #F1ECE1;
+    --rust: #8A3D23;
+    --dust: #B7A88A;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    color: var(--charcoal);
+    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+    line-height: 1.5;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+
+  .page-shell {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 22px 0 56px;
+  }
+
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 64px;
+  }
+
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+
+  .brand-mark__rule {
+    display: block;
+    width: 10px;
+    height: 42px;
+    background: var(--ember);
+    border-right: 4px solid var(--sandstone);
+  }
+
+  .brand-mark strong,
+  h1,
+  h2,
+  h3 {
+    font-family: 'Bitter', 'Merriweather', Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+
+  .brand-mark strong {
+    display: block;
+    font-size: 1.1rem;
+    line-height: 1.05;
+  }
+
+  .brand-mark__project {
+    display: block;
+    color: var(--charcoal);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.05;
+  }
+
+  .brand-mark small {
+    display: block;
+    color: var(--rust);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+
+  .top-nav {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-weight: 700;
+  }
+
+  .top-nav a {
+    text-decoration-color: transparent;
+    text-underline-offset: 0.25em;
+  }
+
+  .top-nav a:hover,
+  .top-nav a:focus-visible {
+    color: var(--ember);
+    text-decoration-color: var(--ember);
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+    gap: 36px;
+    align-items: stretch;
+    padding: 68px 0 40px;
+  }
+
+  .hero__copy {
+    padding: 18px 0;
+  }
+
+  .eyebrow {
+    margin: 0 0 12px;
+    color: var(--rust);
+    font-size: 0.86rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    max-width: 13ch;
+    margin: 0;
+    font-size: clamp(3.25rem, 8vw, 6.8rem);
+    line-height: 0.93;
+  }
+
+  .lede {
+    max-width: 660px;
+    margin: 24px 0 0;
+    color: var(--charcoal);
+    font-size: clamp(1.1rem, 2vw, 1.32rem);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+  }
+
+  .button,
+  .address-form button,
+  .flow-card {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0.7rem 1.1rem;
+    border: 2px solid var(--charcoal);
+    border-radius: 4px;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .button--primary,
+  .address-form button {
+    border-color: var(--ember);
+    background: var(--ember);
+    color: var(--bone);
+  }
+
+  .button--primary:hover,
+  .button--primary:focus-visible,
+  .address-form button:hover,
+  .address-form button:focus-visible {
+    border-color: var(--ember-dark);
+    background: var(--ember-dark);
+  }
+
+  .button--secondary {
+    background: transparent;
+    color: var(--charcoal);
+  }
+
+  .button--secondary:hover,
+  .button--secondary:focus-visible {
+    border-color: var(--rust);
+    color: var(--rust);
+  }
+
+  .election-card,
+  .lookup-panel,
+  .flow-grid article,
+  .race-list article,
+  .status-board article {
+    border: 1px solid var(--dust);
+    background: var(--bone);
+    box-shadow: 0 10px 0 var(--dust);
+  }
+
+  .election-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 28px;
+    min-height: 420px;
+    border-top: 8px solid var(--charcoal);
+  }
+
+  .election-card__label {
+    margin: 0;
+    color: var(--rust);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+
+  .election-card strong {
+    display: block;
+    margin-top: 10px;
+    font-family: 'Bitter', 'Merriweather', Georgia, serif;
+    font-size: clamp(2.2rem, 4vw, 3.8rem);
+    line-height: 0.98;
+  }
+
+  .election-card p:not(.election-card__label) {
+    margin: 18px 0 0;
+    font-size: 1.05rem;
+  }
+
+  .key-dates {
+    display: grid;
+    gap: 0;
+    margin: 20px 0 0;
+    border-top: 1px solid var(--dust);
+  }
+
+  .key-dates__row {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 8px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--dust);
+    font-size: 0.92rem;
+  }
+
+  .key-dates dt {
+    font-weight: 800;
+    color: var(--rust);
+  }
+
+  .key-dates dd {
+    margin: 0;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    margin: 26px 0 0;
+    background: var(--dust);
+    border: 1px solid var(--dust);
+  }
+
+  .stats-grid div {
+    padding: 14px 10px;
+    background: var(--bone);
+  }
+
+  .stats-grid dt {
+    font-family: 'Bitter', 'Merriweather', Georgia, serif;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .stats-grid dd {
+    margin: 6px 0 0;
+    color: var(--rust);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .lookup-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+    gap: 28px;
+    align-items: center;
+    margin-top: 28px;
+    padding: 30px;
+    border-left: 8px solid var(--sandstone);
+  }
+
+  .lookup-panel h2,
+  .section-heading h2 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    line-height: 1;
+  }
+
+  .lookup-panel p,
+  .section-heading p + h2 + p {
+    margin: 14px 0 0;
+  }
+
+  .address-form {
+    display: grid;
+    gap: 14px;
+  }
+
+  .address-form label {
+    display: grid;
+    gap: 6px;
+    font-weight: 800;
+  }
+
+  .address-form label span {
+    display: block;
+  }
+
+  .address-form__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .address-form input {
+    width: 100%;
+    min-height: 48px;
+    border: 2px solid var(--dust);
+    border-radius: 4px;
+    background: var(--bone);
+    color: var(--charcoal);
+    padding: 0 0.9rem;
+  }
+
+  .address-form input:focus {
+    border-color: var(--ember);
+    outline: 3px solid var(--dust);
+  }
+
+  .form-note {
+    margin: 0;
+    color: var(--rust);
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+
+  .lookup-status,
+  .district-badges,
+  .lookup-results,
+  .polling-section {
+    border: 1px solid var(--dust);
+    padding: 12px;
+    color: var(--charcoal);
+    font-weight: 700;
+  }
+
+  .district-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .district-badge,
+  .district-badge--pending {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    border: 1px solid var(--sage);
+    padding: 4px 10px;
+    background: var(--bone);
+    gap: 6px;
+  }
+
+  .district-badge--pending {
+    border-color: var(--dust);
+    color: var(--rust);
+    font-size: 0.92rem;
+  }
+
+  .district-badge__label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--rust);
+  }
+
+  .flow-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-top: 46px;
+  }
+
+  .flow-card,
+  .race-list article,
+  .status-board article {
+    padding: 24px;
+  }
+
+  .flow-card {
+    align-items: start;
+    border: 1px solid var(--dust);
+    background: var(--bone);
+    box-shadow: 0 10px 0 var(--dust);
+    color: var(--charcoal);
+    display: grid;
+    justify-content: stretch;
+    min-height: auto;
+    padding: 24px;
+    text-align: left;
+    width: 100%;
+  }
+
+  .flow-card[aria-pressed='true'] {
+    border-color: var(--ember);
+    box-shadow: 0 10px 0 var(--sandstone);
+  }
+
+  .flow-card:focus-visible {
+    outline: 3px solid var(--dust);
+    outline-offset: 3px;
+  }
+
+  .flow-card span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--charcoal);
+    color: var(--bone);
+    font-weight: 800;
+  }
+
+  .flow-card h2,
+  .race-list h3,
+  .status-board h3 {
+    margin: 18px 0 0;
+    font-size: 1.45rem;
+  }
+
+  .flow-card p,
+  .race-list p {
+    margin: 10px 0 0;
+  }
+
+  .step-detail {
+    margin-top: 18px;
+    border-left: 8px solid var(--ember);
+    padding: 20px 24px;
+    background: var(--charcoal);
+    color: var(--bone);
+  }
+
+  .step-detail h2 {
+    margin: 0;
+    font-size: 1.55rem;
+  }
+
+  .step-detail p {
+    margin: 8px 0 0;
+  }
+
+  .lookup-status[data-tone='error'] {
+    border-color: var(--ember);
+    color: var(--ember-dark);
+  }
+
+  .lookup-status[data-tone='success'] {
+    border-color: var(--sage);
+  }
+
+  .lookup-results h3,
+  .polling-section strong {
+    display: block;
+    margin: 0 0 8px;
+    font-family: 'Bitter', 'Merriweather', Georgia, serif;
+  }
+
+  .lookup-results ul {
+    display: grid;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .lookup-results li {
+    display: block;
+    border-top: 1px solid var(--dust);
+    padding-top: 8px;
+  }
+
+  .lookup-results li:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .lookup-results span,
+  .polling-section p {
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .polling-subsection {
+    display: grid;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .polling-subsection h4 {
+    margin: 0;
+    font-family: 'Bitter', 'Merriweather', Georgia, serif;
+    font-size: 1.08rem;
+  }
+
+  .polling-subsection ul {
+    display: grid;
+    gap: 10px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .polling-subsection li {
+    border-top: 1px solid var(--dust);
+    padding-top: 10px;
+  }
+
+  .polling-subsection li:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .polling-subsection span {
+    font-weight: 800;
+  }
+
+  .race-section,
+  .status-section {
+    margin-top: 62px;
+  }
+
+  .section-heading {
+    max-width: 720px;
+  }
+
+  .race-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 24px;
+  }
+
+  .race-list article {
+    border-top: 6px solid var(--sage);
+  }
+
+  .status-board {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-top: 24px;
+  }
+
+  .status-board article:first-child {
+    border-top: 6px solid var(--sandstone);
+  }
+
+  .status-board article:last-child {
+    border-top: 6px solid var(--ember);
+  }
+
+  .status-board ul {
+    margin: 14px 0 0;
+    padding-left: 1.1rem;
+  }
+
+  .status-board li + li {
+    margin-top: 8px;
+  }
+
+  @media (max-width: 860px) {
+    .site-header,
+    .hero,
+    .lookup-panel,
+    .status-board {
+      grid-template-columns: 1fr;
+    }
+
+    .site-header {
+      align-items: flex-start;
+    }
+
+    .hero {
+      padding-top: 42px;
+    }
+
+    .election-card {
+      min-height: auto;
+    }
+
+    .flow-grid,
+    .race-list {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 620px) {
+    .page-shell {
+      width: min(100% - 24px, 1120px);
+      padding-top: 14px;
+    }
+
+    .top-nav {
+      width: 100%;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.95rem;
+    }
+
+    h1 {
+      font-size: clamp(3rem, 17vw, 4.7rem);
+    }
+
+    .hero__actions,
+    .address-form__grid {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .button,
+    .address-form button,
+    .flow-card {
+      width: 100%;
+    }
+
+    .stats-grid,
+    .flow-grid,
+    .race-list {
+      grid-template-columns: 1fr;
+    }
+
+    .lookup-panel,
+    .flow-card,
+    .race-list article,
+    .status-board article {
+      padding: 20px;
+    }
+  }
+</style>

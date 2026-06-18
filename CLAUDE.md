@@ -80,6 +80,17 @@ This project migrated from Hugo to Astro in early April 2026. **All code changes
 - The canonical production deploy path in this repo uses `--env production`, so production behavior should be checked against `[env.production.vars]` first, then against shared `[vars]` defaults.
 - When a feature looks wired correctly in code but behaves differently in production, check the relevant flags in both blocks before changing app logic.
 
+## Candidates Sub-project (Wyoming 2026 Voter Guide)
+
+The voter guide lives in `Candidates/` — a standalone Astro 6 SSR project deployed to `candidates.skovgard2026.org`. It has its own Wrangler config, D1 databases, and package separate from the main campaign site.
+
+**Data reference:** `Candidates/candidate_data.md` — full D1 schema, field definitions, migration history, enrichment batch workflow, and database bindings.
+
+- D1 tables: `offices` and `candidates`; binding name `WY_DB` in both environments.
+- Enrichment CSVs live in `Candidates/db/seed/`. Regenerate UPDATE SQL with `node Candidates/scripts/generate_enrichment_sql.mjs`.
+- Worker name: `skovgard-candidates` (see `Candidates/wrangler.toml`). Never mix with `skovgard2026-api`.
+- All 10 enrichment batches (rows 1–200) are complete in `Candidates/db/seed/`.
+
 ## Share Message Workflow
 
 To add a new shareable message at `/share/<slug>`, follow the checklist in

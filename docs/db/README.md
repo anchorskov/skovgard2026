@@ -1,7 +1,7 @@
 <!-- docs/db/README.md -->
 # Skovgard2026 Database Notes
 
-Last updated: 2026-04-05
+Last updated: 2026-06-18
 
 Purpose: document the current D1 data model, the operational source of truth for opt-ins and texting, and the local mirror/export paths used by the project.
 
@@ -119,6 +119,21 @@ These objects are not managed by this repo's `worker/migrations/` files. The Wor
 | `v_voter_targeting` | View used to attempt a unique Wyoming voter match from submitted name/address/city/zip data. |
 | `voter_phones` | Mirror table of observed phone numbers keyed by voter and normalized phone. |
 | `v_best_phone` | Current preferred/best phone per voter. |
+
+## `WY_DB` objects managed by the Candidates voter guide
+
+The `wy` (production) and `wy_preview` (local) databases also host the Wyoming 2026 primary voter guide tables, written by migrations in `Candidates/db/migrations/` and deployed by the `skovgard-candidates` Worker. These tables coexist alongside the voter/phone objects above.
+
+| Table | Purpose |
+|---|---|
+| `offices` | 86 Wyoming offices (federal, statewide, legislative, county, city) with level, district, and sort_order. |
+| `candidates` | 200 primary candidates with base filing data plus 40+ enrichment columns (social URLs, FEC IDs, WYCFIS links, incumbency, photo metadata, data confidence). |
+
+**Bindings:**
+- `skovgard2026-api` Worker: `WY_DB` → `wy` / `wy_preview` (voter matching only — does not read `offices`/`candidates`)
+- `skovgard-candidates` Worker: `WY_DB` → `wy` / `wy_preview` (voter guide reads/writes `offices` and `candidates`)
+
+**Detailed field reference:** `Candidates/candidate_data.md`
 
 ## Consent field conventions
 

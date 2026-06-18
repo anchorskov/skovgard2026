@@ -88,6 +88,14 @@ When deciding what is valid for `skovgard2026`, check local files first:
 - `worker/src/` — Worker source code
 - repo docs that explicitly describe this site
 
+## Database Reference
+
+**Primary data reference:** `docs/db/README.md` — covers all D1 databases used by this repo, the canonical consent/opt-in model, data flow, district lookup, and which Worker reads/writes each table. Read this before touching any database-related code.
+
+- `ballot_sources` D1 (`DB` binding) — campaign app tables: `consent_status`, `contacts`, `newsletter_subscribers`, texting/email audit logs, district lookup mirrors.
+- `wy` / `wy_preview` D1 (`WY_DB` binding) — Wyoming voter data (voter matching, `voter_phones`, `v_best_phone`) plus the voter guide tables (`offices`, `candidates`).
+- Voter guide detail: `Candidates/candidate_data.md` — field-by-field reference for `offices` and `candidates`.
+
 Do not reference `config/_default/config.toml`, `layouts/`, or Hugo-era paths — those directories no longer exist.
 
 If those files conflict with a generic instruction file or prior memory, the repo content wins unless the user directs otherwise.
@@ -192,6 +200,21 @@ When a user provides a signup-sheet CSV to add contacts to the SMS/email systems
 - Do not silently import rows with known-invalid phone numbers.
 - Do not reactivate opted-out contacts (the upsert script is conservative by design).
 - Never commit raw signup CSVs, normalized CSVs, or generated SQL/CSV output.
+
+## Candidates Sub-project (Wyoming 2026 Voter Guide)
+
+The voter guide lives in `Candidates/` — a standalone Astro 6 SSR project deployed to `candidates.skovgard2026.org` via Cloudflare Pages. It has its own `wrangler.toml`, D1 databases, and package.
+
+**Data reference:** `Candidates/candidate_data.md` — start there for the full D1 schema, field definitions, migration history, and enrichment batch workflow.
+
+Key points for agents:
+
+- Two D1 tables: `offices` (86 rows) and `candidates` (200 rows), binding name `WY_DB`.
+- Local D1: `wy_preview`. Production D1: `wy`.
+- Enrichment data comes from batch CSVs in `Candidates/db/seed/`. All 10 batches (rows 1–200) are complete.
+- To regenerate enrichment SQL after adding new batch CSVs: `node Candidates/scripts/generate_enrichment_sql.mjs` then apply the output to D1.
+- `Candidates/wrangler.toml` is the authoritative config for the sub-project's Worker name (`skovgard-candidates`), D1 bindings, and environment vars.
+- Do not mix Candidates Worker names or D1 bindings with the main `skovgard2026-api` Worker.
 
 ## Share Message Workflow
 
