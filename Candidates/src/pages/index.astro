@@ -88,8 +88,8 @@ const addressFields = [
             you vote, see the races that apply to you, and compare candidates from the same source set.
           </p>
           <div class="hero__actions" aria-label="Primary actions">
-            <a class="button button--primary" href="#address-form-section">Start lookup</a>
-            <a class="button button--secondary" href="#races">Browse race types</a>
+            <a class="button button--primary" href="#address-form-section">Find my ballot</a>
+            <a class="button button--secondary" href="/races">Browse all races</a>
           </div>
         </div>
 
@@ -149,6 +149,10 @@ const addressFields = [
       </section>
 
     </main>
+    <footer class="site-footer" aria-label="Campaign disclaimer">
+      <span class="site-footer__rule"></span>
+      <p>Paid for by Skovgard for Senate</p>
+    </footer>
     <script>
       const lookupForm = document.querySelector('.address-form');
       const lookupStatus = document.querySelector('#lookup-status');
@@ -188,16 +192,19 @@ const addressFields = [
 
         lookupResults.innerHTML = `
           <h3>Races on your ballot</h3>
-          <ul>
+          <ul class="race-result-list">
             ${races.map((race) => {
               const count = Number(race.candidateCount);
               const countText = Number.isFinite(count)
                 ? `${count} filed ${count === 1 ? 'candidate' : 'candidates'}`
                 : race.status;
               return `<li>
-                <a class="race-result-link" href="/race/${escapeHtml(String(race.id))}">
-                  <span class="race-result-link__name">${escapeHtml(race.name)}</span>
-                  <span class="race-result-link__count">${escapeHtml(countText)}</span>
+                <a class="race-result-card" href="/race/${escapeHtml(String(race.id))}">
+                  <span class="race-result-card__body">
+                    <span class="race-result-card__name">${escapeHtml(race.name)}</span>
+                    <span class="race-result-card__count">${escapeHtml(countText)}</span>
+                  </span>
+                  <span class="race-result-card__cta" aria-hidden="true">View candidates →</span>
                 </a>
               </li>`;
             }).join('')}
@@ -266,25 +273,42 @@ const addressFields = [
       function renderPollingDetails(details) {
         if (!pollingSection) return;
         const status = details?.status || 'not_available';
-        const messages = {
-          not_available: 'Polling-place details are not available yet for this address/election. The ballot races above are based on the seeded district lookup.',
-          api_not_configured: 'Polling-place lookup is not configured yet. Add GOOGLE_CIVIC_API_KEY and GOOGLE_CIVIC_ELECTION_ID to the Cloudflare environment to enable it.',
-          error: 'Polling-place lookup could not be completed right now. Please try again later.',
-        };
 
-        if (status !== 'found') {
-          pollingSection.innerHTML = `<strong>Polling details</strong><p>${messages[status] || messages.not_available}</p>`;
-          setHidden(pollingSection, false);
+        // api_not_configured is an ops issue, not a user-facing message
+        if (status === 'api_not_configured') {
+          setHidden(pollingSection, true);
           return;
         }
 
-        pollingSection.innerHTML = `
-          <strong>Polling details</strong>
-          ${renderLocationList('Polling places', details.pollingLocations)}
-          ${renderLocationList('Early voting sites', details.earlyVoteSites)}
-          ${renderLocationList('Drop-off locations', details.dropOffLocations)}
-          ${renderElectionOffice(details.electionAdministrationBody)}
-        `;
+        const polling  = Array.isArray(details?.pollingLocations)  ? details.pollingLocations  : [];
+        const early    = Array.isArray(details?.earlyVoteSites)     ? details.earlyVoteSites    : [];
+        const dropOff  = Array.isArray(details?.dropOffLocations)   ? details.dropOffLocations  : [];
+        const officeHtml = renderElectionOffice(details?.electionAdministrationBody);
+
+        const parts = [];
+
+        if (polling.length > 0) {
+          parts.push(renderLocationList('Election Day voting locations for this address', polling));
+        }
+        if (early.length > 0) {
+          parts.push(renderLocationList('Early voting sites', early));
+        }
+        if (dropOff.length > 0) {
+          parts.push(renderLocationList('Ballot drop-off locations', dropOff));
+        }
+
+        // No location arrays returned — show a contextual message
+        if (parts.length === 0) {
+          const note = status === 'error'
+            ? 'Polling-place lookup could not be completed. Please try again or contact your county clerk.'
+            : 'Election Day polling locations for this address are not yet available from Google Civic. Check back closer to the primary, or contact your county clerk.';
+          parts.push(`<p class="polling-note">${note}</p>`);
+        }
+
+        // Always append election office contact if returned, regardless of polling data
+        if (officeHtml) parts.push(officeHtml);
+
+        pollingSection.innerHTML = `<strong>Polling details</strong>${parts.join('')}`;
         setHidden(pollingSection, false);
       }
 
@@ -782,63 +806,75 @@ const addressFields = [
   .lookup-results h3,
   .polling-section strong {
     display: block;
-    margin: 0 0 8px;
+    margin: 0 0 4px;
     font-family: 'Bitter', 'Merriweather', Georgia, serif;
   }
 
-  .lookup-results ul {
+  .race-result-list {
     display: grid;
     gap: 8px;
     list-style: none;
-    margin: 0;
+    margin: 10px 0 0;
     padding: 0;
   }
 
-  .lookup-results li {
-    display: block;
-    border-top: 1px solid var(--dust);
-  }
-
-  .lookup-results li:first-child {
-    border-top: 0;
-  }
-
-  .race-result-link {
+  .race-result-card {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 9px 0;
+    gap: 16px;
+    padding: 11px 14px 11px 12px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--ember);
+    background: var(--bone);
     text-decoration: none;
     color: var(--charcoal);
+    transition: border-color 0.1s, box-shadow 0.1s;
   }
 
-  .race-result-link:hover,
-  .race-result-link:focus-visible {
-    color: var(--ember);
+  .race-result-card:hover,
+  .race-result-card:focus-visible {
+    border-color: var(--ember);
+    box-shadow: 0 3px 0 var(--sandstone);
     outline: none;
   }
 
-  .race-result-link__name {
-    font-weight: 700;
+  .race-result-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
   }
 
-  .race-result-link__count {
-    font-size: 0.82rem;
+  .race-result-card__name {
+    font-weight: 700;
+    font-size: 0.97rem;
+    line-height: 1.2;
+  }
+
+  .race-result-card__count {
+    font-size: 0.8rem;
     font-weight: 600;
     color: var(--rust);
-    white-space: nowrap;
-    flex-shrink: 0;
   }
 
-  .race-result-link:hover .race-result-link__count,
-  .race-result-link:focus-visible .race-result-link__count {
-    color: var(--ember-dark);
+  .race-result-card__cta {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--ember);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .polling-section p {
     font-weight: 600;
     margin: 0;
+  }
+
+  .polling-note {
+    margin: 8px 0 0;
+    font-size: 0.92rem;
+    color: var(--rust);
   }
 
   .polling-subsection {
@@ -873,6 +909,33 @@ const addressFields = [
 
   .polling-subsection span {
     font-weight: 800;
+  }
+
+  .site-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--dust);
+  }
+
+  .site-footer__rule {
+    display: block;
+    width: 8px;
+    height: 28px;
+    background: var(--ember);
+    border-right: 3px solid var(--sandstone);
+    flex-shrink: 0;
+  }
+
+  .site-footer p {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--rust);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   @media (max-width: 860px) {

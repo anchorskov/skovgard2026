@@ -44,6 +44,10 @@ const {
       <main>
         <slot />
       </main>
+      <footer class="site-footer" aria-label="Campaign disclaimer">
+        <span class="site-footer__rule"></span>
+        <p>Paid for by Skovgard for Senate</p>
+      </footer>
     </div>
   </body>
 </html>
@@ -193,6 +197,33 @@ const {
   .badge--party-other {
     background: var(--charcoal);
     color: var(--bone);
+  }
+
+  .site-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--dust);
+  }
+
+  .site-footer__rule {
+    display: block;
+    width: 8px;
+    height: 28px;
+    background: var(--ember);
+    border-right: 3px solid var(--sandstone);
+    flex-shrink: 0;
+  }
+
+  .site-footer p {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--rust);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   @media (max-width: 620px) {
