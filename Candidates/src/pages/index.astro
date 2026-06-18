@@ -325,7 +325,7 @@ const addressFields = [
           districtBadges.innerHTML = '<span class="district-badge--pending">District information not found for this address. Try adding a unit number or check the street name.</span>';
         } else {
           districtBadges.innerHTML = chips
-            .map((chip) => `<span class="district-badge"><span class="district-badge__label">${chip.label}</span>${escapeHtml(chip.value)}</span>`)
+            .map((chip) => `<span class="district-badge"><span class="district-badge__label">${chip.label}:</span> ${escapeHtml(chip.value)}</span>`)
             .join('');
         }
         setHidden(districtBadges, false);
