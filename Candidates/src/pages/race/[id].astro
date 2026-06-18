@@ -15,7 +15,7 @@ if (!office) {
 
 const { results: candidates } = await env.WY_DB.prepare(`
   SELECT id, full_name, party, summary,
-         website_url, photo_url,
+         website_url, photo_url, email,
          facebook_url, twitter_url, campaign_finance_url,
          incumbency_status, data_confidence
     FROM candidates
@@ -102,6 +102,9 @@ function isAbsoluteUrl(url: string | null): boolean {
             ) : null}
             {isAbsoluteUrl(String(c.twitter_url)) ? (
               <a href={String(c.twitter_url)} target="_blank" rel="noopener noreferrer" class="cand-link cand-link--x">X / Twitter</a>
+            ) : null}
+            {c.email ? (
+              <a href={`mailto:${String(c.email)}`} class="cand-link cand-link--contact">Contact</a>
             ) : null}
           </div>
         </li>
@@ -231,6 +234,17 @@ function isAbsoluteUrl(url: string | null): boolean {
   .cand-link:focus-visible {
     border-color: var(--ember);
     color: var(--ember);
+  }
+
+  .cand-link--contact {
+    border-color: var(--sage);
+    color: var(--sage);
+  }
+
+  .cand-link--contact:hover,
+  .cand-link--contact:focus-visible {
+    border-color: var(--charcoal);
+    color: var(--charcoal);
   }
 
   .race-footer {
