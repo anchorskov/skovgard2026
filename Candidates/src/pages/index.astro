@@ -16,33 +16,6 @@ const keyDates = [
   { date: 'August 18', label: 'Primary election day' },
 ];
 
-const flowSteps = [
-  {
-    id: 'find-ballot',
-    title: 'Find your ballot',
-    text: 'Enter your Wyoming voting address to see the federal, statewide, legislative, county, city, and precinct races that apply to you.',
-    detail: 'The lookup matches your address against the Wyoming voter file, Census geocoding, and district coverage tables — returning your house district, senate district, county, and precinct.',
-  },
-  {
-    id: 'compare-races',
-    title: 'Compare each race',
-    text: 'Review candidate summaries, campaign links, filings, finance references, and any manual-review flags before deciding.',
-    detail: 'Race coverage includes federal, statewide, legislative, and local offices from the 2026 candidate database, filtered to the races on your specific ballot.',
-  },
-  {
-    id: 'voting-plan',
-    title: 'Make a voting plan',
-    text: 'Primary ballots are posted in clerk offices by July 2. Absentee voting begins July 21. Sample ballots are expected from county clerks by early August.',
-    detail: `Primary election: ${electionDate}. Ballots are posted in clerk offices by July 2. Regular absentee voting begins July 21. Sample ballots are expected from county clerks no later than early August. Polling-place details will appear here once Google Civic loads Wyoming for this election cycle.`,
-  },
-];
-
-const raceGroups = [
-  { label: 'Federal', detail: 'U.S. Senate and U.S. House races' },
-  { label: 'Statewide', detail: 'Governor and statewide constitutional offices' },
-  { label: 'Legislature', detail: 'Wyoming Senate and House districts' },
-  { label: 'Local', detail: 'County, city, and precinct-level races' },
-];
 
 const addressFields = [
   {
@@ -102,8 +75,7 @@ const addressFields = [
         </a>
         <nav class="top-nav" aria-label="Guide sections">
           <a href="#address-form-section">Find ballot</a>
-          <a href="#races">Races</a>
-          <a href="#status">Status</a>
+          <a href="/races">Browse races</a>
         </nav>
       </header>
 
@@ -176,66 +148,6 @@ const addressFields = [
         </form>
       </section>
 
-      <section class="flow-grid" aria-label="How the guide will work">
-        {flowSteps.map((step, index) => (
-          <button
-            class="flow-card"
-            type="button"
-            data-step={step.id}
-            data-detail={step.detail}
-            aria-pressed={index === 0 ? 'true' : 'false'}
-          >
-            <span>{index + 1}</span>
-            <h2>{step.title}</h2>
-            <p>{step.text}</p>
-          </button>
-        ))}
-      </section>
-      <section class="step-detail" aria-live="polite" aria-label="Selected guide step">
-        <h2 id="step-detail-title">Find your ballot</h2>
-        <p id="step-detail-copy">{flowSteps[0].detail}</p>
-      </section>
-
-      <section id="races" class="race-section" aria-labelledby="races-title">
-        <div class="section-heading">
-          <p class="eyebrow">Race coverage</p>
-          <h2 id="races-title">Built around the Wyoming 2026 candidate database.</h2>
-        </div>
-        <div class="race-list">
-          {raceGroups.map((group) => (
-            <article>
-              <h3>{group.label}</h3>
-              <p>{group.detail}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="status" class="status-section" aria-labelledby="status-title">
-        <div class="section-heading">
-          <p class="eyebrow">Guide status</p>
-          <h2 id="status-title">What is live, and what is coming.</h2>
-        </div>
-        <div class="status-board">
-          <article>
-            <h3>Live now</h3>
-            <ul>
-              <li>86 offices and 200 filed candidates seeded and enriched</li>
-              <li>Ballot lookup with voter-file, Census geocoder, and district-coverage fallbacks</li>
-              <li>House district, senate district, county, and precinct returned per address</li>
-              <li>Race filtering by district — lookup returns only the races on your ballot</li>
-            </ul>
-          </article>
-          <article>
-            <h3>Coming before primary day</h3>
-            <ul>
-              <li>Candidate profile pages with bios, social links, and finance references</li>
-              <li>Polling-place details once Wyoming loads into Google Civic for this cycle</li>
-              <li>Sample ballot links once county clerks post them (expected early August)</li>
-            </ul>
-          </article>
-        </div>
-      </section>
     </main>
     <script>
       const lookupForm = document.querySelector('.address-form');
@@ -244,12 +156,6 @@ const addressFields = [
       const districtBadges = document.querySelector('#district-badges');
       const lookupResults = document.querySelector('#results');
       const pollingSection = document.querySelector('#polling-section');
-      const flowCards = Array.from(document.querySelectorAll('.flow-card'));
-      const stepDetailTitle = document.querySelector('#step-detail-title');
-      const stepDetailCopy = document.querySelector('#step-detail-copy');
-      const addressSection = document.querySelector('#address-form-section');
-      const racesSection = document.querySelector('#races');
-      const statusSection = document.querySelector('#status');
 
       function getFieldValue(name) {
         const field = lookupForm?.querySelector(`[name="${name}"]`);
@@ -281,25 +187,23 @@ const addressFields = [
         }
 
         lookupResults.innerHTML = `
-          <h3>Returned race groups</h3>
+          <h3>Races on your ballot</h3>
           <ul>
-            ${races
-              .map((race) => {
-                const count = Number(race.candidateCount);
-                const line = Number.isFinite(count)
-                  ? formatRaceGroupLine(race.name, count)
-                  : `${race.name}: ${race.status}`;
-                return `<li>${escapeHtml(line)}</li>`;
-              })
-              .join('')}
+            ${races.map((race) => {
+              const count = Number(race.candidateCount);
+              const countText = Number.isFinite(count)
+                ? `${count} filed ${count === 1 ? 'candidate' : 'candidates'}`
+                : race.status;
+              return `<li>
+                <a class="race-result-link" href="/race/${escapeHtml(String(race.id))}">
+                  <span class="race-result-link__name">${escapeHtml(race.name)}</span>
+                  <span class="race-result-link__count">${escapeHtml(countText)}</span>
+                </a>
+              </li>`;
+            }).join('')}
           </ul>
         `;
         setHidden(lookupResults, false);
-      }
-
-      function formatRaceGroupLine(raceName, count) {
-        const noun = Number(count) === 1 ? 'candidate' : 'candidates';
-        return `${raceName}: ${count} filed ${noun} in the seeded roster.`;
       }
 
       function escapeHtml(value) {
@@ -465,25 +369,6 @@ const addressFields = [
         }
       });
 
-      flowCards.forEach((card) => {
-        card.addEventListener('click', () => {
-          flowCards.forEach((item) => item.setAttribute('aria-pressed', 'false'));
-          card.setAttribute('aria-pressed', 'true');
-          if (stepDetailTitle) stepDetailTitle.textContent = card.querySelector('h2')?.textContent || '';
-          if (stepDetailCopy) stepDetailCopy.textContent = card.dataset.detail || '';
-
-          if (card.dataset.step === 'find-ballot') {
-            addressSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            lookupForm?.querySelector('input')?.focus({ preventScroll: true });
-          }
-          if (card.dataset.step === 'compare-races') {
-            racesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-          if (card.dataset.step === 'voting-plan') {
-            statusSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        });
-      });
     </script>
   </body>
 </html>
@@ -885,83 +770,6 @@ const addressFields = [
     color: var(--rust);
   }
 
-  .flow-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
-    margin-top: 46px;
-  }
-
-  .flow-card,
-  .race-list article,
-  .status-board article {
-    padding: 24px;
-  }
-
-  .flow-card {
-    align-items: start;
-    border: 1px solid var(--dust);
-    background: var(--bone);
-    box-shadow: 0 10px 0 var(--dust);
-    color: var(--charcoal);
-    display: grid;
-    justify-content: stretch;
-    min-height: auto;
-    padding: 24px;
-    text-align: left;
-    width: 100%;
-  }
-
-  .flow-card[aria-pressed='true'] {
-    border-color: var(--ember);
-    box-shadow: 0 10px 0 var(--sandstone);
-  }
-
-  .flow-card:focus-visible {
-    outline: 3px solid var(--dust);
-    outline-offset: 3px;
-  }
-
-  .flow-card span {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    background: var(--charcoal);
-    color: var(--bone);
-    font-weight: 800;
-  }
-
-  .flow-card h2,
-  .race-list h3,
-  .status-board h3 {
-    margin: 18px 0 0;
-    font-size: 1.45rem;
-  }
-
-  .flow-card p,
-  .race-list p {
-    margin: 10px 0 0;
-  }
-
-  .step-detail {
-    margin-top: 18px;
-    border-left: 8px solid var(--ember);
-    padding: 20px 24px;
-    background: var(--charcoal);
-    color: var(--bone);
-  }
-
-  .step-detail h2 {
-    margin: 0;
-    font-size: 1.55rem;
-  }
-
-  .step-detail p {
-    margin: 8px 0 0;
-  }
-
   .lookup-status[data-tone='error'] {
     border-color: var(--ember);
     color: var(--ember-dark);
@@ -989,15 +797,45 @@ const addressFields = [
   .lookup-results li {
     display: block;
     border-top: 1px solid var(--dust);
-    padding-top: 8px;
   }
 
   .lookup-results li:first-child {
     border-top: 0;
-    padding-top: 0;
   }
 
-  .lookup-results span,
+  .race-result-link {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    text-decoration: none;
+    color: var(--charcoal);
+  }
+
+  .race-result-link:hover,
+  .race-result-link:focus-visible {
+    color: var(--ember);
+    outline: none;
+  }
+
+  .race-result-link__name {
+    font-weight: 700;
+  }
+
+  .race-result-link__count {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--rust);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .race-result-link:hover .race-result-link__count,
+  .race-result-link:focus-visible .race-result-link__count {
+    color: var(--ember-dark);
+  }
+
   .polling-section p {
     font-weight: 600;
     margin: 0;
@@ -1037,50 +875,6 @@ const addressFields = [
     font-weight: 800;
   }
 
-  .race-section,
-  .status-section {
-    margin-top: 62px;
-  }
-
-  .section-heading {
-    max-width: 720px;
-  }
-
-  .race-list {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-top: 24px;
-  }
-
-  .race-list article {
-    border-top: 6px solid var(--sage);
-  }
-
-  .status-board {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px;
-    margin-top: 24px;
-  }
-
-  .status-board article:first-child {
-    border-top: 6px solid var(--sandstone);
-  }
-
-  .status-board article:last-child {
-    border-top: 6px solid var(--ember);
-  }
-
-  .status-board ul {
-    margin: 14px 0 0;
-    padding-left: 1.1rem;
-  }
-
-  .status-board li + li {
-    margin-top: 8px;
-  }
-
   @media (max-width: 860px) {
     .site-header,
     .hero,
@@ -1101,10 +895,6 @@ const addressFields = [
       min-height: auto;
     }
 
-    .flow-grid,
-    .race-list {
-      grid-template-columns: repeat(2, 1fr);
-    }
   }
 
   @media (max-width: 620px) {
@@ -1136,9 +926,7 @@ const addressFields = [
       width: 100%;
     }
 
-    .stats-grid,
-    .flow-grid,
-    .race-list {
+    .stats-grid {
       grid-template-columns: 1fr;
     }
 

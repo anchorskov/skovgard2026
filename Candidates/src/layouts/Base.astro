@@ -1,0 +1,213 @@
+---
+// Candidates/src/layouts/Base.astro
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  currentPath?: string;
+}
+
+const {
+  title = 'Wyoming 2026 Voter Guide',
+  description = 'Wyoming 2026 primary voter guide and candidate lookup for candidates.skovgard2026.org.',
+  currentPath = '',
+} = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} | Wyoming 2026 Voter Guide</title>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header" aria-label="Candidates voter guide">
+        <a class="brand-mark" href="/" aria-label="Candidates home">
+          <span class="brand-mark__rule"></span>
+          <span>
+            <span class="brand-mark__project">The Integrity Project</span>
+            <strong>Wyoming 2026</strong>
+            <small>Primary Voter Guide</small>
+          </span>
+        </a>
+        <nav class="top-nav" aria-label="Guide sections">
+          <a href="/" class:list={[{ active: currentPath === '/' }]}>Find ballot</a>
+          <a href="/races" class:list={[{ active: currentPath.startsWith('/races') || currentPath.startsWith('/race/') }]}>Browse races</a>
+        </nav>
+      </header>
+      <main>
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --charcoal: #2B2B2B;
+    --ember: #B22234;
+    --ember-dark: #8B1A26;
+    --sandstone: #C68A4A;
+    --sage: #7A8A6B;
+    --bone: #F1ECE1;
+    --rust: #8A3D23;
+    --dust: #B7A88A;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    color: var(--charcoal);
+    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+    line-height: 1.5;
+  }
+
+  a { color: inherit; }
+  button, input { font: inherit; }
+
+  .page-shell {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 22px 0 64px;
+  }
+
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 64px;
+  }
+
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+
+  .brand-mark__rule {
+    display: block;
+    width: 10px;
+    height: 42px;
+    background: var(--ember);
+    border-right: 4px solid var(--sandstone);
+    flex-shrink: 0;
+  }
+
+  .brand-mark strong,
+  h1, h2, h3 {
+    font-family: 'Bitter', 'Merriweather', Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+
+  .brand-mark strong {
+    display: block;
+    font-size: 1.1rem;
+    line-height: 1.05;
+  }
+
+  .brand-mark__project {
+    display: block;
+    color: var(--charcoal);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.05;
+  }
+
+  .brand-mark small {
+    display: block;
+    color: var(--rust);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .top-nav {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-weight: 700;
+  }
+
+  .top-nav a {
+    text-decoration-color: transparent;
+    text-underline-offset: 0.25em;
+  }
+
+  .top-nav a:hover,
+  .top-nav a:focus-visible,
+  .top-nav a.active {
+    color: var(--ember);
+    text-decoration-color: var(--ember);
+    text-decoration-line: underline;
+  }
+
+  .eyebrow {
+    margin: 0 0 12px;
+    color: var(--rust);
+    font-size: 0.86rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .badge--incumbent {
+    background: var(--sandstone);
+    color: var(--bone);
+  }
+
+  .badge--party-r {
+    background: var(--ember);
+    color: var(--bone);
+  }
+
+  .badge--party-d {
+    background: #2e5fa3;
+    color: #fff;
+  }
+
+  .badge--party-l {
+    background: var(--sandstone);
+    color: var(--bone);
+  }
+
+  .badge--party-other {
+    background: var(--charcoal);
+    color: var(--bone);
+  }
+
+  @media (max-width: 620px) {
+    .page-shell {
+      width: min(100% - 24px, 1120px);
+      padding-top: 14px;
+    }
+
+    .site-header {
+      align-items: flex-start;
+    }
+
+    .top-nav {
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+  }
+</style>

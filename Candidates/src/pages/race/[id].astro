@@ -1,0 +1,258 @@
+---
+// Candidates/src/pages/race/[id].astro
+import Base from '../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+
+const { id } = Astro.params;
+
+const office = await env.WY_DB.prepare(
+  'SELECT id, title, level, district FROM offices WHERE id = ?1'
+).bind(id).first();
+
+if (!office) {
+  return Astro.redirect('/races');
+}
+
+const { results: candidates } = await env.WY_DB.prepare(`
+  SELECT id, full_name, party, summary,
+         website_url, photo_url,
+         facebook_url, twitter_url, campaign_finance_url,
+         incumbency_status, data_confidence
+    FROM candidates
+   WHERE office_id = ?1 AND withdrawn_at IS NULL
+   ORDER BY CASE WHEN incumbency_status = 'Incumbent' THEN 0 ELSE 1 END, full_name
+`).bind(id).all();
+
+const officeName = office.district
+  ? `${office.title} — District ${office.district}`
+  : office.title;
+
+const LEVEL_LABELS: Record<string, string> = {
+  federal: 'Federal',
+  statewide: 'Statewide',
+  wy_senate: 'Wyoming Senate',
+  wy_house: 'Wyoming House',
+  local: 'Local',
+};
+
+function partyBadgeClass(party: string | null): string {
+  if (!party) return 'badge--party-other';
+  const p = party.toUpperCase();
+  if (p.startsWith('R')) return 'badge--party-r';
+  if (p.startsWith('D')) return 'badge--party-d';
+  if (p.startsWith('L')) return 'badge--party-l';
+  return 'badge--party-other';
+}
+
+function partyLabel(party: string | null): string {
+  if (!party) return 'No party';
+  const map: Record<string, string> = {
+    REP: 'Republican', R: 'Republican',
+    DEM: 'Democrat', D: 'Democrat',
+    LIB: 'Libertarian', L: 'Libertarian',
+    IND: 'Independent', I: 'Independent',
+    NP: 'No party',
+  };
+  return map[party.toUpperCase()] ?? party;
+}
+
+function isAbsoluteUrl(url: string | null): boolean {
+  return typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'));
+}
+---
+
+<Base title={String(officeName)} currentPath={`/race/${id}`}>
+  <div class="race-header">
+    <a href="/races" class="back-link">← All races</a>
+    <p class="eyebrow">{LEVEL_LABELS[String(office.level)] ?? String(office.level)}</p>
+    <h1>{officeName}</h1>
+    <p class="candidate-count">
+      {candidates.length} filed {candidates.length === 1 ? 'candidate' : 'candidates'}
+    </p>
+  </div>
+
+  {candidates.length === 0 ? (
+    <p class="empty-note">No candidates on file for this race yet.</p>
+  ) : (
+    <ul class="candidate-grid" role="list">
+      {candidates.map((c) => (
+        <li class="candidate-card">
+          <div class="candidate-card__header">
+            <div class="candidate-card__badges">
+              {String(c.incumbency_status).toLowerCase() === 'incumbent' ? <span class="badge badge--incumbent">Incumbent</span> : null}
+              {c.party ? <span class={`badge ${partyBadgeClass(String(c.party))}`}>{partyLabel(String(c.party))}</span> : null}
+            </div>
+            <h2 class="candidate-card__name">{c.full_name}</h2>
+          </div>
+
+          {c.summary ? (
+            <p class="candidate-card__summary">{c.summary}</p>
+          ) : null}
+
+          <div class="candidate-card__links">
+            {isAbsoluteUrl(String(c.website_url)) ? (
+              <a href={String(c.website_url)} target="_blank" rel="noopener noreferrer" class="cand-link">Website</a>
+            ) : null}
+            {isAbsoluteUrl(String(c.campaign_finance_url)) ? (
+              <a href={String(c.campaign_finance_url)} target="_blank" rel="noopener noreferrer" class="cand-link">Finance</a>
+            ) : null}
+            {isAbsoluteUrl(String(c.facebook_url)) ? (
+              <a href={String(c.facebook_url)} target="_blank" rel="noopener noreferrer" class="cand-link">Facebook</a>
+            ) : null}
+            {isAbsoluteUrl(String(c.twitter_url)) ? (
+              <a href={String(c.twitter_url)} target="_blank" rel="noopener noreferrer" class="cand-link cand-link--x">X / Twitter</a>
+            ) : null}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <div class="race-footer">
+    <p>
+      Data sourced from Wyoming Secretary of State filings and public research.
+      <a href="/">Look up your ballot by address →</a>
+    </p>
+  </div>
+</Base>
+
+<style>
+  .race-header {
+    padding: 44px 0 32px;
+    border-bottom: 2px solid var(--dust);
+    margin-bottom: 36px;
+  }
+
+  .back-link {
+    display: inline-block;
+    margin-bottom: 16px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--rust);
+    text-decoration-color: transparent;
+    text-underline-offset: 0.2em;
+  }
+
+  .back-link:hover {
+    text-decoration-color: var(--rust);
+  }
+
+  h1 {
+    margin: 4px 0 0;
+    font-size: clamp(2rem, 5vw, 3.8rem);
+    line-height: 1;
+  }
+
+  .candidate-count {
+    margin: 12px 0 0;
+    font-size: 1rem;
+    color: var(--rust);
+    font-weight: 700;
+  }
+
+  .empty-note {
+    padding: 32px;
+    border: 1px solid var(--dust);
+    color: var(--rust);
+    text-align: center;
+  }
+
+  .candidate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 18px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .candidate-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 22px 24px;
+    border: 1px solid var(--dust);
+    border-top: 4px solid var(--ember);
+    background: var(--bone);
+    box-shadow: 0 6px 0 var(--dust);
+  }
+
+  .candidate-card__header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .candidate-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 22px;
+  }
+
+  .candidate-card__name {
+    margin: 0;
+    font-size: 1.45rem;
+    line-height: 1.1;
+  }
+
+  .candidate-card__summary {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #444;
+    flex: 1;
+  }
+
+  .candidate-card__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 4px;
+  }
+
+  .cand-link {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 12px;
+    border: 1.5px solid var(--charcoal);
+    background: transparent;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+    color: var(--charcoal);
+    border-radius: 3px;
+  }
+
+  .cand-link:hover,
+  .cand-link:focus-visible {
+    border-color: var(--ember);
+    color: var(--ember);
+  }
+
+  .race-footer {
+    margin-top: 52px;
+    padding-top: 20px;
+    border-top: 1px solid var(--dust);
+    font-size: 0.9rem;
+    color: var(--rust);
+  }
+
+  .race-footer a {
+    font-weight: 700;
+    color: var(--ember);
+    text-underline-offset: 0.2em;
+  }
+
+  @media (max-width: 620px) {
+    .race-header {
+      padding-top: 24px;
+    }
+
+    .candidate-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

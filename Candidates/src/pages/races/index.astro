@@ -1,0 +1,180 @@
+---
+// Candidates/src/pages/races/index.astro
+import Base from '../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+
+const LEVEL_ORDER = ['federal', 'statewide', 'wy_senate', 'wy_house', 'local'];
+const LEVEL_LABELS: Record<string, string> = {
+  federal: 'Federal',
+  statewide: 'Statewide',
+  wy_senate: 'Wyoming Senate',
+  wy_house: 'Wyoming House',
+  local: 'Local',
+};
+
+let grouped: Record<string, any[]> = {};
+let dbError = false;
+
+if (env.WY_DB) {
+  try {
+    const { results } = await env.WY_DB.prepare(`
+      SELECT o.id, o.title, o.level, o.district, o.sort_order,
+             COUNT(c.id) AS candidate_count
+        FROM offices o
+        LEFT JOIN candidates c ON c.office_id = o.id AND c.withdrawn_at IS NULL
+       GROUP BY o.id, o.title, o.level, o.district, o.sort_order
+       ORDER BY o.sort_order, o.title, o.district
+    `).all();
+
+    for (const row of results) {
+      const key = String(row.level);
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(row);
+    }
+  } catch {
+    dbError = true;
+  }
+}
+
+function officeName(row: any): string {
+  return row.district ? `${row.title} — District ${row.district}` : row.title;
+}
+---
+
+<Base title="Browse Races" currentPath="/races">
+  <section class="races-hero">
+    <p class="eyebrow">Wyoming 2026 Primary</p>
+    <h1>Browse all races.</h1>
+    <p class="lede">
+      All 86 offices on the 2026 primary ballot. Select a race to see filed candidates.
+      Or <a href="/">enter your address</a> to see only the races on your specific ballot.
+    </p>
+  </section>
+
+  {dbError && (
+    <p class="error-note">Race data could not be loaded. Please try again.</p>
+  )}
+
+  {LEVEL_ORDER.filter((level) => grouped[level]?.length > 0).map((level) => (
+    <section class="level-group" aria-labelledby={`level-${level}`}>
+      <h2 id={`level-${level}`} class="level-heading">{LEVEL_LABELS[level]}</h2>
+      <ul class="race-grid" role="list">
+        {grouped[level].map((office) => (
+          <li>
+            <a href={`/race/${office.id}`} class="race-card">
+              <span class="race-card__name">{officeName(office)}</span>
+              <span class="race-card__count">
+                {Number(office.candidate_count)} filed {Number(office.candidate_count) === 1 ? 'candidate' : 'candidates'}
+              </span>
+              <span class="race-card__cta" aria-hidden="true">View candidates →</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</Base>
+
+<style>
+  .races-hero {
+    padding: 52px 0 36px;
+    max-width: 680px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    line-height: 0.95;
+  }
+
+  .lede {
+    margin: 20px 0 0;
+    font-size: 1.1rem;
+    max-width: 560px;
+  }
+
+  .lede a {
+    color: var(--ember);
+    font-weight: 700;
+    text-underline-offset: 0.2em;
+  }
+
+  .error-note {
+    padding: 16px;
+    border: 1px solid var(--ember);
+    color: var(--ember-dark);
+    font-weight: 700;
+  }
+
+  .level-group {
+    margin-top: 48px;
+  }
+
+  .level-heading {
+    margin: 0 0 16px;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--rust);
+    border-bottom: 2px solid var(--dust);
+    padding-bottom: 8px;
+  }
+
+  .race-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .race-card {
+    display: grid;
+    gap: 4px;
+    padding: 16px 20px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--ember);
+    background: var(--bone);
+    text-decoration: none;
+    transition: border-color 0.1s, box-shadow 0.1s;
+  }
+
+  .race-card:hover,
+  .race-card:focus-visible {
+    border-color: var(--ember);
+    box-shadow: 0 4px 0 var(--sandstone);
+    outline: none;
+  }
+
+  .race-card__name {
+    font-family: 'Bitter', 'Merriweather', Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .race-card__count {
+    font-size: 0.85rem;
+    color: var(--rust);
+    font-weight: 700;
+  }
+
+  .race-card__cta {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--ember);
+  }
+
+  @media (max-width: 620px) {
+    .races-hero {
+      padding-top: 28px;
+    }
+
+    .race-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
