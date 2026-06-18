@@ -899,3 +899,137 @@ const cards = [
     .catch(function () { /* silently ignore — counts are decorative */ });
 })();
 </script>
+
+<!-- Feedback button -->
+<button class="fb-trigger" id="fb-btn" aria-label="Send feedback" aria-expanded="false" aria-controls="fb-modal">
+  Feedback
+</button>
+
+<div class="fb-overlay" id="fb-modal" role="dialog" aria-modal="true" aria-labelledby="fb-title" hidden>
+  <div class="fb-panel">
+    <div class="fb-panel__head">
+      <h2 class="fb-panel__title" id="fb-title">Send feedback</h2>
+      <button class="fb-panel__close" id="fb-close" aria-label="Close">✕</button>
+    </div>
+    <form class="fb-panel__form" id="fb-form">
+      <label class="fb-panel__label" for="fb-name">
+        Name <span class="fb-optional">(optional)</span>
+      </label>
+      <input class="fb-panel__input" type="text" id="fb-name" name="name" autocomplete="name" />
+      <label class="fb-panel__label" for="fb-msg">Message</label>
+      <textarea class="fb-panel__textarea" id="fb-msg" name="message" rows="5" required placeholder="What would you like us to know?"></textarea>
+      <button class="fb-panel__submit" type="submit">Open in email →</button>
+    </form>
+    <p class="fb-panel__note">Opens your email client. Nothing is sent until you hit send.</p>
+  </div>
+</div>
+
+<style>
+  .fb-trigger {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 900;
+    height: 36px;
+    padding: 0 16px;
+    background: #b22234;
+    color: #f1ece1;
+    border: none;
+    border-radius: 18px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    transition: background 0.1s;
+  }
+  .fb-trigger:hover, .fb-trigger:focus-visible { background: #8b1a26; outline: none; }
+
+  .fb-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(43,43,43,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .fb-overlay[hidden] { display: none; }
+
+  .fb-panel {
+    width: min(480px, 100%);
+    background: #f1ece1;
+    border-top: 4px solid #b22234;
+    padding: 28px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .fb-panel__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .fb-panel__title { margin: 0; font-size: 1.2rem; font-family: 'Bitter', Georgia, serif; }
+  .fb-panel__close {
+    width: 32px; height: 32px; border: none; background: transparent;
+    font-size: 1rem; color: #8a3d23; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; border-radius: 3px;
+  }
+  .fb-panel__close:hover { background: #b7a88a; }
+  .fb-panel__form { display: flex; flex-direction: column; gap: 10px; }
+  .fb-panel__label { font-size: 0.85rem; font-weight: 700; color: #2b2b2b; }
+  .fb-optional { font-weight: 400; color: #8a3d23; }
+  .fb-panel__input, .fb-panel__textarea {
+    width: 100%; padding: 8px 10px;
+    border: 1.5px solid #b7a88a; background: #fff;
+    font-size: 0.95rem; color: #2b2b2b;
+    border-radius: 3px; font-family: inherit;
+  }
+  .fb-panel__input:focus, .fb-panel__textarea:focus { outline: none; border-color: #b22234; }
+  .fb-panel__textarea { resize: vertical; }
+  .fb-panel__submit {
+    align-self: flex-start; height: 36px; padding: 0 18px;
+    background: #b22234; color: #f1ece1; border: none; border-radius: 3px;
+    font-size: 0.88rem; font-weight: 800; cursor: pointer; margin-top: 4px;
+    transition: background 0.1s;
+  }
+  .fb-panel__submit:hover { background: #8b1a26; }
+  .fb-panel__note { margin: 0; font-size: 0.78rem; color: #8a3d23; }
+</style>
+
+<script>
+(function () {
+  const btn   = document.getElementById('fb-btn');
+  const modal = document.getElementById('fb-modal');
+  const close = document.getElementById('fb-close');
+  const form  = document.getElementById('fb-form');
+  if (!btn || !modal || !close || !form) return;
+
+  function open() {
+    modal.removeAttribute('hidden');
+    btn.setAttribute('aria-expanded', 'true');
+    const msg = document.getElementById('fb-msg');
+    if (msg) msg.focus();
+  }
+  function shut() {
+    modal.setAttribute('hidden', '');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.focus();
+  }
+
+  btn.addEventListener('click', open);
+  close.addEventListener('click', shut);
+  modal.addEventListener('click', function (e) { if (e.target === modal) shut(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) shut(); });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const name = (document.getElementById('fb-name')?.value || '').trim();
+    const msg  = (document.getElementById('fb-msg')?.value  || '').trim();
+    if (!msg) return;
+    const subject = encodeURIComponent('Share Page Feedback');
+    const body    = encodeURIComponent((name ? 'From: ' + name + '\n\n' : '') + msg);
+    window.location.href = 'mailto:candidates@grassroots.org?subject=' + subject + '&body=' + body;
+    shut();
+  });
+})();
+</script>

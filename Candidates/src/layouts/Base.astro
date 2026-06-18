@@ -49,6 +49,67 @@ const {
         <p>Paid for by Skovgard for Senate</p>
       </footer>
     </div>
+
+    <button class="fb-trigger" id="fb-btn" aria-label="Send feedback" aria-expanded="false" aria-controls="fb-modal">
+      Feedback
+    </button>
+
+    <div class="fb-overlay" id="fb-modal" role="dialog" aria-modal="true" aria-labelledby="fb-title" hidden>
+      <div class="fb-panel">
+        <div class="fb-panel__head">
+          <h2 class="fb-panel__title" id="fb-title">Send feedback</h2>
+          <button class="fb-panel__close" id="fb-close" aria-label="Close">✕</button>
+        </div>
+        <form class="fb-panel__form" id="fb-form">
+          <label class="fb-panel__label" for="fb-name">
+            Name <span class="fb-optional">(optional)</span>
+          </label>
+          <input class="fb-panel__input" type="text" id="fb-name" name="name" autocomplete="name" />
+          <label class="fb-panel__label" for="fb-msg">Message</label>
+          <textarea class="fb-panel__textarea" id="fb-msg" name="message" rows="5" required placeholder="What would you like us to know?"></textarea>
+          <button class="fb-panel__submit" type="submit">Open in email →</button>
+        </form>
+        <p class="fb-panel__note">Opens your email client. Nothing is sent until you hit send.</p>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const btn   = document.getElementById('fb-btn');
+        const modal = document.getElementById('fb-modal');
+        const close = document.getElementById('fb-close');
+        const form  = document.getElementById('fb-form');
+        if (!btn || !modal || !close || !form) return;
+
+        function open() {
+          modal.removeAttribute('hidden');
+          btn.setAttribute('aria-expanded', 'true');
+          const msg = document.getElementById('fb-msg');
+          if (msg) msg.focus();
+        }
+        function shut() {
+          modal.setAttribute('hidden', '');
+          btn.setAttribute('aria-expanded', 'false');
+          btn.focus();
+        }
+
+        btn.addEventListener('click', open);
+        close.addEventListener('click', shut);
+        modal.addEventListener('click', function (e) { if (e.target === modal) shut(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) shut(); });
+
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          const name = (document.getElementById('fb-name')?.value || '').trim();
+          const msg  = (document.getElementById('fb-msg')?.value  || '').trim();
+          if (!msg) return;
+          const subject = encodeURIComponent('Wyoming Voter Guide Feedback');
+          const body    = encodeURIComponent((name ? 'From: ' + name + '\n\n' : '') + msg);
+          window.location.href = 'mailto:candidates@grassroots.org?subject=' + subject + '&body=' + body;
+          shut();
+        });
+      })();
+    </script>
   </body>
 </html>
 
@@ -240,5 +301,145 @@ const {
       gap: 12px;
       font-size: 0.95rem;
     }
+  }
+
+  /* Feedback button + modal */
+  .fb-trigger {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 900;
+    height: 36px;
+    padding: 0 16px;
+    background: var(--ember);
+    color: var(--bone);
+    border: none;
+    border-radius: 18px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    transition: background 0.1s;
+  }
+
+  .fb-trigger:hover,
+  .fb-trigger:focus-visible {
+    background: var(--ember-dark);
+    outline: none;
+  }
+
+  .fb-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(43,43,43,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .fb-overlay[hidden] { display: none; }
+
+  .fb-panel {
+    width: min(480px, 100%);
+    background: var(--bone);
+    border-top: 4px solid var(--ember);
+    padding: 28px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .fb-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .fb-panel__title {
+    margin: 0;
+    font-size: 1.2rem;
+    line-height: 1.1;
+  }
+
+  .fb-panel__close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    color: var(--rust);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .fb-panel__close:hover { background: var(--dust); }
+
+  .fb-panel__form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .fb-panel__label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--charcoal);
+  }
+
+  .fb-optional {
+    font-weight: 400;
+    color: var(--rust);
+  }
+
+  .fb-panel__input,
+  .fb-panel__textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid var(--dust);
+    background: #fff;
+    font-size: 0.95rem;
+    color: var(--charcoal);
+    border-radius: 3px;
+    font-family: inherit;
+  }
+
+  .fb-panel__input:focus,
+  .fb-panel__textarea:focus {
+    outline: none;
+    border-color: var(--ember);
+  }
+
+  .fb-panel__textarea { resize: vertical; }
+
+  .fb-panel__submit {
+    align-self: flex-start;
+    height: 36px;
+    padding: 0 18px;
+    background: var(--ember);
+    color: var(--bone);
+    border: none;
+    border-radius: 3px;
+    font-size: 0.88rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.1s;
+    margin-top: 4px;
+  }
+
+  .fb-panel__submit:hover { background: var(--ember-dark); }
+
+  .fb-panel__note {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--rust);
   }
 </style>
