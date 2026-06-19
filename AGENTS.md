@@ -216,6 +216,25 @@ Key points for agents:
 - `Candidates/wrangler.toml` is the authoritative config for the sub-project's Worker name (`skovgard-candidates`), D1 bindings, and environment vars.
 - Do not mix Candidates Worker names or D1 bindings with the main `skovgard2026-api` Worker.
 
+## Polling Location Workflow
+
+To add polling locations for a new Wyoming county, follow the step-by-step procedure in:
+
+- [docs/polling/AddPollingLocations.md](/home/anchor/projects/skovgard2026/docs/polling/AddPollingLocations.md)
+
+Key rules:
+- `polling_locations` table lives in `WY_DB` (`wy` production, `wy_preview` for local dev).
+- Apply each SQL file to **both** databases before moving to the next step — do not batch.
+- `city` is the **voter's home city** (lookup key), NOT the polling location's physical city.
+  For cross-community precincts (voter in town A votes at venue in town B), `city = 'A'`
+  and the full venue address goes in `address`.
+- Seed files: `Candidates/db/seed/polling_locations_{county_slug}.csv` and `_insert.sql`.
+- Address corrections go in a separate `_addr_patch.sql` — never re-run the original
+  INSERT SQL after data exists (it creates duplicates).
+- `getPollingLocations()` uses `SELECT DISTINCT location_name, address` — multiple precincts
+  at the same venue collapse automatically. Keep unique locations per city to ≤ 3.
+- Big Horn (13 precincts) and Park (31 precincts) are complete. 21 counties remain.
+
 ## Share Message Workflow
 
 To add a new shareable message at `/share/<slug>`, follow the step-by-step checklist in:
