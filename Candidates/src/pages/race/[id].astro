@@ -15,7 +15,7 @@ if (!office) {
 
 const { results: candidates } = await env.WY_DB.prepare(`
   SELECT id, full_name, party, summary,
-         website_url, photo_url, email,
+         website_url, photo_url, email, phone,
          facebook_url, twitter_url, campaign_finance_url, ballotpedia_url,
          incumbency_status, data_confidence
     FROM candidates
@@ -107,7 +107,10 @@ function isAbsoluteUrl(url: string | null): boolean {
               <a href={String(c.ballotpedia_url)} target="_blank" rel="noopener noreferrer" class="cand-link cand-link--bp">Ballotpedia</a>
             ) : null}
             {c.email ? (
-              <a href={`mailto:${String(c.email)}`} class="cand-link cand-link--contact">Contact</a>
+              <a href={`mailto:${String(c.email)}`} class="cand-link cand-link--contact">Email: {c.email}</a>
+            ) : null}
+            {c.phone ? (
+              <a href={`tel:${String(c.phone).replace(/[^\d+]/g, '')}`} class="cand-link cand-link--contact">Phone: {c.phone}</a>
             ) : null}
           </div>
         </li>
