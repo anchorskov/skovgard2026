@@ -226,6 +226,25 @@ Key files involved: `worker/src/email-template.js` (SHARE_MESSAGES registry), `s
 
 - If a share email makes verifiable public claims, create `src/pages/share/<slug>/sources.astro` and point the email CTA (`body_html` link in `SHARE_MESSAGES`) to `https://skovgard2026.org/share/<slug>/sources/` — not back to the share page itself.
 
+## Social Media Sharing
+
+Full requirements for Open Graph tags, Twitter/X cards, meme images, and per-domain
+setup across `skovgard2026.org` and `candidates.skovgard2026.org`:
+
+- [docs/social_media.md](/home/anchor/projects/skovgard2026/docs/social_media.md)
+
+Key rules:
+- Every public page that can be linked on social must emit `og:title`, `og:description`,
+  `og:image` (absolute URL, ≥ 1200 × 630 px), and the matching `twitter:card` tags.
+- Main site OG tags live in `src/layouts/Base.astro` (accepts `ogImage` prop).
+- Candidates site OG tags live in `Candidates/src/layouts/Base.astro` **and** must be
+  kept in sync in `Candidates/src/pages/index.astro` (which has its own inline `<head>`).
+- Meme images for share pages: `static/images/share/meme-<slug>.png`.
+- Candidates site default OG image: `Candidates/public/og-image.png` →
+  `https://candidates.skovgard2026.org/og-image.png`.
+- After updating any OG image, run the URL through the Facebook Sharing Debugger
+  (`developers.facebook.com/tools/debug`) and click "Scrape Again" to clear Meta's cache.
+
 ## Local Testing Servers
 
 - When starting local servers for testing, treat them as temporary and close them when the test is complete.
