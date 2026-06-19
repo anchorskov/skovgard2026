@@ -96,6 +96,8 @@ When deciding what is valid for `skovgard2026`, check local files first:
 - `wy` D1 (`WY_DB` binding) — Wyoming voter data (voter matching, `voter_phones`, `v_best_phone`) plus the voter guide tables (`offices`, `candidates`). Production: `--remote`. Local dev: no flag (local SQLite in `.wrangler/state/`).
 - Voter guide detail: `Candidates/candidate_data.md` — field-by-field reference for `offices` and `candidates`.
 
+These D1 databases support multiple projects and workflows beyond the current task. Renaming, moving, rebinding, replacing, or bulk-rebuilding them can have far-reaching unintended effects outside this repo area. Before any database read, write, migration, import, export, or local mirror change, agents must verify the exact project, `wrangler.toml`, binding name, database name, database id, `--local` vs `--remote` target, and backing local SQLite file when applicable. Do not assume similarly named databases such as `wy`, `wy_preview`, or local mirror files are interchangeable.
+
 Do not reference `config/_default/config.toml`, `layouts/`, or Hugo-era paths — those directories no longer exist.
 
 If those files conflict with a generic instruction file or prior memory, the repo content wins unless the user directs otherwise.
@@ -209,12 +211,13 @@ The voter guide lives in `Candidates/` — a standalone Astro 6 SSR project depl
 
 Key points for agents:
 
-- Two D1 tables: `offices` (86 rows) and `candidates` (200 rows), binding name `WY_DB`.
+- Two D1 tables: `offices` and `candidates`, binding name `WY_DB` (row counts grow as counties are added — query D1 for current totals).
 - Local D1: `wy` (no `--remote` — local SQLite in `.wrangler/state/`). Production D1: `wy --remote`.
 - Enrichment data comes from batch CSVs in `Candidates/db/seed/`. All 10 batches (rows 1–200) are complete.
 - To regenerate enrichment SQL after adding new batch CSVs: `node Candidates/scripts/generate_enrichment_sql.mjs` then apply the output to D1.
 - `Candidates/wrangler.toml` is the authoritative config for the sub-project's Worker name (`skovgard-candidates`), D1 bindings, and environment vars.
 - Do not mix Candidates Worker names or D1 bindings with the main `skovgard2026-api` Worker.
+- Before changing Candidates data, verify that `WY_DB` resolves to the intended D1 target and local backing file. The same D1 database names and local state directory may contain data used by other project areas; never rename, move, replace, or rebuild a database file just because it appears stale without first checking the intended delta and the app-facing binding.
 
 ## Candidates Domain Deploy Guard
 
@@ -258,6 +261,9 @@ Key rules:
 - Apply each SQL file to **both** databases before moving to the next step — do not batch.
   Production: `npx wrangler d1 execute wy --remote --file=...`
   Local: `npx wrangler d1 execute wy --file=...` (no `--remote`)
+- **`wy_preview` is not the Candidates local database.** It appears only in the main
+  `worker/wrangler.toml` `[env.preview]` block for the `skovgard2026-api` Worker's
+  Cloudflare preview environment. Do not target `wy_preview` for Candidates D1 work.
 - `city` is the **voter's home city** (lookup key), NOT the polling location's physical city.
   For cross-community precincts (voter in town A votes at venue in town B), `city = 'A'`
   and the full venue address goes in `address`.
@@ -266,7 +272,7 @@ Key rules:
   INSERT SQL after data exists (it creates duplicates).
 - `getPollingLocations()` uses `SELECT DISTINCT location_name, address` — multiple precincts
   at the same venue collapse automatically. Keep unique locations per city to ≤ 3.
-- Big Horn (13 precincts) and Park (31 precincts) are complete. 21 counties remain.
+- Counties complete (5): Albany, Big Horn, Converse, Niobrara, Park. 18 counties remain.
 
 ## Share Message Workflow
 
@@ -328,8 +334,6 @@ Start the dev server with `npm run dev` or `./startDev.sh` (runs Astro dev on po
 ## Button CSS Rules (admin pages)
 
 The global CSS reset in `global.css` and `forms.css` zeroes out all button appearance (`background: none; border: 0; padding: 0`). Every `<button>` on admin pages **must** be covered by an explicit CSS rule that restores its visual treatment.
-
-### Specificity pitfall
 
 ### Specificity pitfall
 
