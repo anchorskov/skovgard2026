@@ -12,8 +12,8 @@
     "astro": "astro",
     "generate-types": "wrangler types",
     "deploy": "npm run build && wrangler pages deploy ./dist --project-name=skovgard-candidates",
-    "db:migrate:local": "wrangler d1 execute wy_preview --local --file=db/migrations/0001_candidates_schema.sql",
-    "db:migrate:prod": "wrangler d1 execute wy --file=db/migrations/0001_candidates_schema.sql"
+    "db:migrate:local": "wrangler d1 execute wy --file=db/migrations/0001_candidates_schema.sql",
+    "db:migrate:prod": "wrangler d1 execute wy --remote --file=db/migrations/0001_candidates_schema.sql"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.7.0",

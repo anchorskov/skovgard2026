@@ -122,16 +122,16 @@ These objects are not managed by this repo's `worker/migrations/` files. The Wor
 
 ## `WY_DB` objects managed by the Candidates voter guide
 
-The `wy` (production) and `wy_preview` (local) databases also host the Wyoming 2026 primary voter guide tables, written by migrations in `Candidates/db/migrations/` and deployed by the `skovgard-candidates` Worker. These tables coexist alongside the voter/phone objects above.
+The `wy` database also hosts the Wyoming 2026 primary voter guide tables, written by migrations in `Candidates/db/migrations/` and deployed by the `skovgard-candidates` Worker. These tables coexist alongside the voter/phone objects above.
 
 | Table | Purpose |
 |---|---|
-| `offices` | 86 Wyoming offices (federal, statewide, legislative, county, city) with level, district, and sort_order. |
-| `candidates` | 200 primary candidates with base filing data plus 40+ enrichment columns (social URLs, FEC IDs, WYCFIS links, incumbency, photo metadata, data confidence). |
+| `offices` | Wyoming offices (federal, statewide, legislative, county, city) with level, district, and sort_order. Row count grows as counties are added. |
+| `candidates` | Primary candidates with base filing data plus 40+ enrichment columns (social URLs, FEC IDs, WYCFIS links, incumbency, photo metadata, data confidence). Row count grows as counties are added. |
 
 **Bindings:**
-- `skovgard2026-api` Worker: `WY_DB` → `wy` / `wy_preview` (voter matching only — does not read `offices`/`candidates`)
-- `skovgard-candidates` Worker: `WY_DB` → `wy` / `wy_preview` (voter guide reads/writes `offices` and `candidates`)
+- `skovgard2026-api` Worker: `WY_DB` → `wy` (production) / `wy_preview` (preview env per `[env.preview]` in `worker/wrangler.toml`) — voter matching only, does not read `offices`/`candidates`
+- `skovgard-candidates` Worker: `WY_DB` → `wy` only (`Candidates/wrangler.toml` has no preview env block) — reads/writes `offices`, `candidates`, and `polling_locations`
 
 **Detailed field reference:** `Candidates/candidate_data.md`
 

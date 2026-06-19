@@ -6,7 +6,7 @@ Wyoming Republican Primary voter guide — election date August 18, 2026.
 
 ## Tech Stack
 - Astro 6 + Cloudflare Pages (SSR) + D1 + Tailwind CSS v4
-- Local D1: `wy_preview` (`de78cb41-176d-40e8-bd3b-e053e347ac3f`)
+- Local D1: `wy` (local SQLite in `.wrangler/state/` — no `--remote`)
 - Production D1: `wy` (`4b4227f1-bf30-4fcf-8a08-6967b536a5ab`)
 
 ## Data Sources

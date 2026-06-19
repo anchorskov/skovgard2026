@@ -1,6 +1,6 @@
 # Candidate Data Reference
 
-AI agent reference for the `wy_preview` / `wy` D1 databases backing the Wyoming 2026 primary voter guide sub-project (`Candidates/`).
+AI agent reference for the `wy` D1 database backing the Wyoming 2026 primary voter guide sub-project (`Candidates/`).
 
 ## Schema snapshot
 
@@ -171,7 +171,7 @@ node scripts/generate_enrichment_sql.mjs
 Then apply to local D1:
 
 ```bash
-npx wrangler d1 execute wy_preview --local --file=db/seed/002_enrichment_updates.sql
+npx wrangler d1 execute wy --file=db/seed/002_enrichment_updates.sql
 ```
 
 All 10 batches (rows 1–200) are complete and included in `002_enrichment_updates.sql`.
@@ -180,7 +180,7 @@ All 10 batches (rows 1–200) are complete and included in `002_enrichment_updat
 
 | Environment | Binding | D1 database |
 |-------------|---------|-------------|
-| Local (`wrangler dev`) | `WY_DB` | `wy_preview` (ID: `de78cb41-176d-40e8-bd3b-e053e347ac3f`) |
-| Production | `WY_DB` | `wy` (ID: `4b4227f1-bf30-4fcf-8a08-6967b536a5ab`) |
+| Local (`wrangler dev`) | `WY_DB` | `wy` — local SQLite in `.wrangler/state/` (no `--remote`) |
+| Production | `WY_DB` | `wy` (ID: `4b4227f1-bf30-4fcf-8a08-6967b536a5ab`) — use `--remote` |
 
 Access the binding in Cloudflare Workers/Pages functions via `env.WY_DB`.
