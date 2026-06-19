@@ -10,10 +10,10 @@ VALUES
   -- Clark
   ('Park','1-1','Clark-Sirrine','Clark Community Center','Clark, WY','Clark',NULL,2026,'https://www.parkcountywy.gov/289/County-Clerk'),
   -- Cody — Auditorium (center precincts 2-1, 24, 25 series)
-  ('Park','2-1','Cody East & North Inside','Cody Auditorium','Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
-  ('Park','24-1-1','Cody Center Inside','Cody Auditorium','Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
-  ('Park','24-1-2','Cody Center-North Inside','Cody Auditorium','Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
-  ('Park','25-1','Cody Center-South Inside','Cody Auditorium','Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','2-1','Cody East & North Inside','Cody Auditorium','1240 Beck Ave, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','24-1-1','Cody Center Inside','Cody Auditorium','1240 Beck Ave, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','24-1-2','Cody Center-North Inside','Cody Auditorium','1240 Beck Ave, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','25-1','Cody Center-South Inside','Cody Auditorium','1240 Beck Ave, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
   -- Cody — Rec Center (3-x, 4-2-x, 11-2 series)
   ('Park','3-1','Cody East & North Outside','Cody Rec Center','1402 Heart Mountain St, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
   ('Park','3-2-1','Cody East & South Outside','Cody Rec Center','1402 Heart Mountain St, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
@@ -23,11 +23,11 @@ VALUES
   ('Park','4-2-3','Cody West & North Outside','Cody Rec Center','1402 Heart Mountain St, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
   ('Park','11-2','Crandall-Painter','Cody Rec Center','1402 Heart Mountain St, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
   -- Cody — South Fork Fire Hall (rural 4-1 and Valley 7-2; Cody ZIP/mailing)
-  ('Park','4-1','Cody West & South Outside','South Fork Fire Hall','South Fork Rd, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
-  ('Park','7-2','Valley','South Fork Fire Hall','South Fork Rd, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','4-1','Cody West & South Outside','South Fork Fire Hall','3 Road 6NQ, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','7-2','Valley','South Fork Fire Hall','3 Road 6NQ, Cody, WY 82414','Cody','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
   -- Wapiti
-  ('Park','16-1-1','Wapiti','Wapiti School','Wapiti, WY 82450','Wapiti','82450',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
-  ('Park','16-1-2','Wapiti','Wapiti School','Wapiti, WY 82450','Wapiti','82450',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','16-1-1','Wapiti','Wapiti School','3167 N Fork Hwy, Cody, WY 82414','Wapiti','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','16-1-2','Wapiti','Wapiti School','3167 N Fork Hwy, Cody, WY 82414','Wapiti','82414',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
   -- Meeteetse
   ('Park','8-1','Below Meeteetse','Meeteetse Rec Center','Meeteetse, WY 82433','Meeteetse','82433',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
   ('Park','8-2','Meeteetse Town','Meeteetse Rec Center','Meeteetse, WY 82433','Meeteetse','82433',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
@@ -42,10 +42,10 @@ VALUES
   -- Powell — Heart Mountain Club House (21-1-2; Heart Mountain is near Powell)
   ('Park','21-1-2','Cody East & North Outside','Heart Mountain Club House','Heart Mountain, WY 82435','Powell','82435',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
   -- Garland
-  ('Park','6-1-1','Garland','Garland Community Center','Garland, WY','Garland',NULL,2026,'https://www.parkcountywy.gov/289/County-Clerk'),
-  ('Park','6-1-2','Garland','Garland Community Center','Garland, WY','Garland',NULL,2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','6-1-1','Garland','Garland Community Center','900 Sheridan Ave, Garland, WY 82435','Garland','82435',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','6-1-2','Garland','Garland Community Center','900 Sheridan Ave, Garland, WY 82435','Garland','82435',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
   -- Frannie (Park County side) votes at Garland Community Center
-  ('Park','6-1-3','Frannie','Garland Community Center','Garland, WY','Frannie',NULL,2026,'https://www.parkcountywy.gov/289/County-Clerk'),
-  -- Willwood
-  ('Park','10-2','Willwood South River','Willwood Community Center','Willwood, WY','Willwood',NULL,2026,'https://www.parkcountywy.gov/289/County-Clerk'),
-  ('Park','23-1','Willwood','Willwood Community Center','Willwood, WY','Willwood',NULL,2026,'https://www.parkcountywy.gov/289/County-Clerk');
+  ('Park','6-1-3','Frannie','Garland Community Center','900 Sheridan Ave, Garland, WY 82435','Frannie','82435',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  -- Willwood (mailing address is Powell WY 82435)
+  ('Park','10-2','Willwood South River','Willwood Community Center','1306 Road 9, Powell, WY 82435','Willwood','82435',2026,'https://www.parkcountywy.gov/289/County-Clerk'),
+  ('Park','23-1','Willwood','Willwood Community Center','1306 Road 9, Powell, WY 82435','Willwood','82435',2026,'https://www.parkcountywy.gov/289/County-Clerk');
