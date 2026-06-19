@@ -216,6 +216,42 @@ Key points for agents:
 - `Candidates/wrangler.toml` is the authoritative config for the sub-project's Worker name (`skovgard-candidates`), D1 bindings, and environment vars.
 - Do not mix Candidates Worker names or D1 bindings with the main `skovgard2026-api` Worker.
 
+## Candidates Domain Deploy Guard
+
+When working on `candidates.skovgard2026.org`, treat the live app as the
+`Candidates/` Astro SSR project served by the `skovgard-candidates` Worker.
+
+Do not assume a Cloudflare Pages deploy alone updates the live custom domain.
+
+Before deploying Candidates changes:
+
+1. Build from `Candidates/`:
+   `npm run build`
+
+2. Deploy the Worker from `Candidates/`:
+   `npx wrangler deploy`
+   (The top-level `[vars]` block in `Candidates/wrangler.toml` is the production
+   config — its comment says "Production defaults (used by wrangler deploy)".
+   Do **not** pass `--env production`; there is no `[env.production]` section and
+   Wrangler may suffix the Worker name to `skovgard-candidates-production`.)
+
+3. Confirm Wrangler reports:
+   - Worker name: `skovgard-candidates`
+   - `WY_DB` binding → `wy`
+   - `LOOKUP_DB` binding → `ballot_sources`
+   - `SESSION` binding → KV namespace
+
+4. Smoke test the live custom domain:
+   `curl -s https://candidates.skovgard2026.org | head -5`
+
+Notes:
+- `wrangler pages deploy` may update the `skovgard-candidates` Pages project, but
+  that is not sufficient for the live `candidates.skovgard2026.org` route unless
+  Cloudflare custom-domain routing is explicitly changed.
+- The canonical config is `Candidates/wrangler.toml`.
+- Do not deploy or debug this flow through the main `skovgard2026` Pages project
+  or the main `skovgard2026-api` Worker.
+
 ## Polling Location Workflow
 
 To add polling locations for a new Wyoming county, follow the step-by-step procedure in:
