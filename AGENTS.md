@@ -221,36 +221,31 @@ Key points for agents:
 When working on `candidates.skovgard2026.org`, treat the live app as the
 `Candidates/` Astro SSR project served by the `skovgard-candidates` Worker.
 
-Do not assume a Cloudflare Pages deploy alone updates the live custom domain.
+**Use the canonical deploy script from the repo root:**
+```bash
+./scripts/deploy_candidates.sh
+```
 
-Before deploying Candidates changes:
+The script: validates `Candidates/wrangler.toml` name, guards against an
+accidental `[env.production]` block, builds the Astro site, then deploys with
+`npx wrangler deploy --name skovgard-candidates` (no `--env` flag).
 
-1. Build from `Candidates/`:
-   `npm run build`
+To redeploy without rebuilding (e.g. after a data-only change):
+```bash
+SKIP_BUILD=1 ./scripts/deploy_candidates.sh
+```
 
-2. Deploy the Worker from `Candidates/`:
-   `npx wrangler deploy`
-   (The top-level `[vars]` block in `Candidates/wrangler.toml` is the production
-   config — its comment says "Production defaults (used by wrangler deploy)".
-   Do **not** pass `--env production`; there is no `[env.production]` section and
-   Wrangler may suffix the Worker name to `skovgard-candidates-production`.)
-
-3. Confirm Wrangler reports:
-   - Worker name: `skovgard-candidates`
-   - `WY_DB` binding → `wy`
-   - `LOOKUP_DB` binding → `ballot_sources`
-   - `SESSION` binding → KV namespace
-
-4. Smoke test the live custom domain:
-   `curl -s https://candidates.skovgard2026.org | head -5`
+After deploy, confirm Wrangler reported:
+- Worker name: `skovgard-candidates`
+- `WY_DB` binding → `wy`
+- `LOOKUP_DB` binding → `ballot_sources`
 
 Notes:
-- `wrangler pages deploy` may update the `skovgard-candidates` Pages project, but
-  that is not sufficient for the live `candidates.skovgard2026.org` route unless
-  Cloudflare custom-domain routing is explicitly changed.
+- Do **not** run `npx wrangler deploy --env production` directly — there is no
+  `[env.production]` section and Wrangler may deploy as `skovgard-candidates-production`.
+- `wrangler pages deploy` is not sufficient for the live custom-domain route.
+- Do not deploy through the main `skovgard2026` Pages project or `skovgard2026-api` Worker.
 - The canonical config is `Candidates/wrangler.toml`.
-- Do not deploy or debug this flow through the main `skovgard2026` Pages project
-  or the main `skovgard2026-api` Worker.
 
 ## Polling Location Workflow
 

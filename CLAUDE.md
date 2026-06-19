@@ -90,6 +90,7 @@ The voter guide lives in `Candidates/` — a standalone Astro 6 SSR project depl
 - Enrichment CSVs live in `Candidates/db/seed/`. Regenerate UPDATE SQL with `node Candidates/scripts/generate_enrichment_sql.mjs`.
 - Worker name: `skovgard-candidates` (see `Candidates/wrangler.toml`). Never mix with `skovgard2026-api`.
 - All 10 enrichment batches (rows 1–200) are complete in `Candidates/db/seed/`.
+- **Deploy:** use `./scripts/deploy_candidates.sh` from the repo root. Do NOT run `npx wrangler deploy --env production` directly — there is no `[env.production]` block and Wrangler may deploy as `skovgard-candidates-production`.
 
 ## Share Message Workflow
 
