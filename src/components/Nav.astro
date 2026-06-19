@@ -8,6 +8,7 @@ const navLinks = [
   { href: '/pulse', label: 'Pulse' },
   { href: '/podcast', label: 'Podcast' },
   { href: '/finance', label: 'Finance' },
+  { href: 'https://candidates.skovgard2026.org', label: 'Candidates', external: true },
   { href: '/share', label: 'Share' },
 ];
 
@@ -28,9 +29,10 @@ const current = Astro.url.pathname;
       {navLinks.map(link => (
         <a
           href={link.href}
+          {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
           class={[
             'text-sm font-medium transition-colors',
-            current === link.href || current.startsWith(link.href + '/')
+            !link.external && (current === link.href || current.startsWith(link.href + '/'))
               ? 'text-wy-ember'
               : 'text-wy-bone/80 hover:text-wy-bone'
           ].join(' ')}
@@ -74,9 +76,10 @@ const current = Astro.url.pathname;
     {navLinks.map(link => (
       <a
         href={link.href}
+        {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
         class={[
           'block py-2 text-sm font-medium transition-colors',
-          current === link.href || current.startsWith(link.href + '/')
+          !link.external && (current === link.href || current.startsWith(link.href + '/'))
             ? 'text-wy-ember'
             : 'text-wy-bone/80 hover:text-wy-bone'
         ].join(' ')}
