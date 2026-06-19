@@ -1,3 +1,4 @@
+-- Candidates/db/seed/polling_locations_park_names_patch.sql
 -- Park County official name and address corrections — verified 2026-06-19.
 -- Source: Park County official 2026 polling place list.
 -- Clark: Community Center → Clark Pioneer Recreation Center
@@ -38,11 +39,13 @@ UPDATE polling_locations
 -- Garland precincts (6-1-1, 6-1-2): 2026 list moves these to Fairgrounds
 UPDATE polling_locations
   SET location_name = 'Park County Fairgrounds - Heart Mountain Hall',
-      address       = '655 E 5th St, Powell, WY 82435'
+      address       = '655 E 5th St, Powell, WY 82435',
+      zip           = '82435'
   WHERE county = 'Park' AND location_name = 'Garland Community Center';
 
 -- Willwood precincts (10-2, 23-1): 2026 list moves these to Fairgrounds
 UPDATE polling_locations
   SET location_name = 'Park County Fairgrounds - Heart Mountain Hall',
-      address       = '655 E 5th St, Powell, WY 82435'
+      address       = '655 E 5th St, Powell, WY 82435',
+      zip           = '82435'
   WHERE county = 'Park' AND location_name = 'Willwood Community Center';

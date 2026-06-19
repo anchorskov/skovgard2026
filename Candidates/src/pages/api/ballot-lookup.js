@@ -537,7 +537,7 @@ function officeAppliesToDistrict(office, districts) {
 
 // Scope kinds that require precinct or ward data we don't have per-address.
 // These are counted and surfaced as a browse prompt rather than shown inline.
-const PRECINCT_SCOPES = new Set(['precinct_party_gender']);
+const PRECINCT_SCOPES = new Set(['precinct_party', 'precinct_party_gender']);
 const WARD_SCOPES = new Set(['municipal_ward']);
 
 async function getLocalRaces(db, districts, address) {
@@ -647,9 +647,10 @@ async function getPollingLocations(db, county, city) {
       `SELECT DISTINCT location_name, address, county_clerk_url
          FROM polling_locations
         WHERE LOWER(county) = LOWER(?1)
-          AND LOWER(city) = LOWER(?2)
+          AND (LOWER(city) = LOWER(?2) OR city = '__countywide__')
           AND election_year = 2026
-        LIMIT 3`,
+        ORDER BY location_name
+        LIMIT 12`,
       county.trim(),
       city.trim()
     );
