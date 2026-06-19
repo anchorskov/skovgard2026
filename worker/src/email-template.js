@@ -1119,6 +1119,22 @@ const CANDIDATE_HUB_BODY_HTML = `
 <p style="margin:0 0 0;font-size:15px;line-height:1.7;color:#374151;">
   Every candidate. One place. Wyoming voters decide.
 </p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0 0;">
+  <tr>
+    <td style="background:#f9f6f0;border-left:4px solid #2b2b2b;padding:16px 20px;border-radius:0 8px 8px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#2b2b2b;">For candidates</p>
+      <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#374151;">
+        If you are a candidate or campaign representative, you can request corrections or additions
+        to your card &#8212; name, office, website, photo, bio, and more.
+      </p>
+      <a href="https://skovgard2026.org/documents/candidate-card-update-instructions.pdf"
+         style="color:#0f2742;font-weight:700;font-size:14px;text-decoration:underline;">
+        Download the Candidate Card Update Instructions (PDF) &#8594;
+      </a>
+    </td>
+  </tr>
+</table>
 `;
 
 export const SHARE_MESSAGES = {
@@ -1979,6 +1995,14 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "View the Candidate Hub: https://candidates.skovgard2026.org/",
           "",
           "Every candidate. One place. Wyoming voters decide.",
+          "",
+          "FOR CANDIDATES",
+          "",
+          "If you are a candidate or campaign representative, you can request corrections or",
+          "additions to your card — name, office, website, photo, bio, and more.",
+          "",
+          "Download the Candidate Card Update Instructions (PDF):",
+          "https://skovgard2026.org/documents/candidate-card-update-instructions.pdf",
         ]
     : slug === "changing-health-care"
       ? [
