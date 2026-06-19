@@ -145,6 +145,11 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 |------|---------|
 | `db/migrations/0001_candidates_schema.sql` | Creates `offices` and `candidates` tables with base fields |
 | `db/migrations/0002_candidates_enrichment.sql` | Adds 24 enrichment columns via `ALTER TABLE` |
+| `db/migrations/0003_external_links.sql` | Adds `external_links_json` column to `candidates` |
+| `db/migrations/0004_offices_expand.sql` | Expands `offices` table |
+| `db/migrations/0005_candidates_ballotpedia.sql` | Adds Ballotpedia fields to `candidates` |
+| `db/migrations/0006_polling_locations.sql` | Creates `polling_locations` table for city-based fallback lookup |
+| `db/migrations/0007_county_gis.sql` | Creates `county_gis` registry for ArcGIS spatial polling lookup |
 
 ## Seed files
 

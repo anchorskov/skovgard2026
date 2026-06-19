@@ -274,6 +274,30 @@ Key rules:
   at the same venue collapse automatically. Keep unique locations per city to ≤ 3.
 - Counties complete (5): Albany, Big Horn, Converse, Niobrara, Park. 18 counties remain.
 
+### ArcGIS Spatial Polling Lookup
+
+Some Wyoming counties publish precinct boundaries as public ArcGIS REST MapServer layers.
+When available, `ballot-lookup.js` fires a point-in-polygon query using the voter's
+geocoded lat/lon and returns the exact precinct polling place — more precise than city-based lookup.
+
+**How it works:**
+1. `county_gis` table (migration `0007`) stores confirmed endpoints.
+2. `lookupPollingByGIS()` checks the table for the voter's county. If an active row exists
+   and `lat`/`lon` are available from the Census geocoder, it fires an ArcGIS spatial query.
+3. Result `gisPollingLocation` is included in the ballot-lookup API response alongside
+   `d1PollingLocations` (city-based fallback). Frontend should prefer `gisPollingLocation`.
+
+**Adding a county to the registry:**
+```sql
+INSERT OR IGNORE INTO county_gis
+  (county, mapserver_url, precinct_layer, precinct_field, location_field, address_field, status, last_verified)
+VALUES ('COUNTY', 'https://gis.{county}.gov/.../MapServer', LAYER_ID, 'FIELD1', 'FIELD2', 'FIELD3', 'active', 'YYYY-MM-DD');
+```
+Apply to both local (`wy`) and production (`wy --remote`), then seed `db/seed/county_gis_{slug}_seed.sql`.
+
+**Confirmed active counties:**
+- Campbell — `gis.campbellcountywy.gov` layer 1 — `PRECINCTNUM`, `VOTINGLOC`, `VOTINGLOCADDR`
+
 ## Share Message Workflow
 
 To add a new shareable message at `/share/<slug>`, follow the step-by-step checklist in:

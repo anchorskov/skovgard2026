@@ -639,6 +639,50 @@ async function getRaceGroups(db, districts) {
   }
 }
 
+// ArcGIS point-in-polygon lookup — returns exact precinct + polling place when
+// the county has a registered endpoint in county_gis and lat/lon are available.
+async function lookupPollingByGIS(db, county, lat, lon) {
+  if (!db || !county || lat == null || lon == null) return null;
+  try {
+    const gisRow = await firstD1(
+      db,
+      `SELECT mapserver_url, precinct_layer, precinct_field, location_field, address_field
+         FROM county_gis
+        WHERE LOWER(county) = LOWER(?1)
+          AND status = 'active'
+        LIMIT 1`,
+      county.trim()
+    );
+    if (!gisRow) return null;
+
+    const queryUrl = `${gisRow.mapserver_url}/${gisRow.precinct_layer}/query?${new URLSearchParams({
+      geometry: `${lon},${lat}`,
+      geometryType: 'esriGeometryPoint',
+      spatialRel: 'esriSpatialRelIntersects',
+      inSR: '4326',
+      outFields: [gisRow.precinct_field, gisRow.location_field, gisRow.address_field].join(','),
+      f: 'json',
+    })}`;
+
+    const res = await fetch(queryUrl, { headers: { accept: 'application/json' } });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const feature = data?.features?.[0];
+    if (!feature) return null;
+
+    const attrs = feature.attributes || {};
+    return {
+      source: 'gis_spatial',
+      precinct: attrs[gisRow.precinct_field] ?? null,
+      location_name: attrs[gisRow.location_field] ?? null,
+      address: attrs[gisRow.address_field] ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function getPollingLocations(db, county, city) {
   if (!db || !county || !city) return null;
   try {
@@ -689,11 +733,12 @@ export async function POST({ request }) {
 
   const civicApiConfigured = Boolean(env.GOOGLE_CIVIC_API_KEY);
   const districts = await lookupDistricts(env.LOOKUP_DB, address);
-  const [races, localRaces, pollingDetails, d1PollingLocations] = await Promise.all([
+  const [races, localRaces, pollingDetails, d1PollingLocations, gisPollingLocation] = await Promise.all([
     getRaceGroups(env.WY_DB, districts),
     getLocalRaces(env.WY_DB, districts, address),
     lookupPollingDetails(address),
     getPollingLocations(env.WY_DB, districts?.county, address.city),
+    lookupPollingByGIS(env.WY_DB, districts?.county, districts?.lat, districts?.lon),
   ]);
   const isDistrictMatched = Boolean(districts?.wyHouse || districts?.wySenate || districts?.county);
 
@@ -718,6 +763,7 @@ export async function POST({ request }) {
     },
     pollingDetails,
     d1PollingLocations,
+    gisPollingLocation,
   });
 }
 
