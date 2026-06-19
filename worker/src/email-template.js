@@ -1076,6 +1076,51 @@ const CHANGING_HEALTH_CARE_BODY_HTML = `
 </p>
 `;
 
+const CANDIDATE_HUB_BODY_HTML = `
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Wyoming deserves an election process built around people, clarity, and trust.
+</p>
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  The Wyoming Candidate Hub is a simple place to find every candidate running for office in
+  Wyoming &#8212; and begin comparing who is asking to represent us. It&#8217;s designed to help
+  voters see the full field, ask better questions, and make their own decisions.
+</p>
+<p style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#111827;">
+  This project is part of a larger effort to bring accountability, transparency, and public
+  input back into the center of our election process. A complete candidate listing is something
+  Wyoming voters deserve access to.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+  <tr>
+    <td style="background:#f9f6f0;border-left:4px solid #c68a4a;padding:18px 20px;border-radius:0 8px 8px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#c68a4a;">What you&#8217;ll find</p>
+      <ul style="margin:0;padding:0 0 0 20px;font-size:15px;line-height:1.85;color:#374151;">
+        <li>Federal, statewide, and legislative candidates</li>
+        <li>County and municipal races across Wyoming</li>
+        <li>Campaign websites, social links, and contact information where available</li>
+        <li>A ballot lookup tool to see which races are on your specific ballot</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+<table cellpadding="0" cellspacing="0" style="margin:4px 0 24px;">
+  <tr>
+    <td style="background:#b22234;border-radius:8px;padding:12px 28px;">
+      <a href="https://candidates.skovgard2026.org/"
+         style="color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;">
+        View the Candidate Hub &#8594;
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 0;font-size:15px;line-height:1.7;color:#374151;">
+  Every candidate. One place. Wyoming voters decide.
+</p>
+`;
+
 export const SHARE_MESSAGES = {
   "fleecing-letters": {
     title:        "The Fleecing Letters",
@@ -1311,6 +1356,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted to share this with you.`
         : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "candidate-hub": {
+    title:        "Wyoming Candidate Hub",
+    body_html:    CANDIDATE_HUB_BODY_HTML,
+    preview_text: "Every candidate. One place. Wyoming voters deserve a clear look at who is asking to represent us.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — Wyoming Candidate Hub`
+        : "Wyoming Candidate Hub: every candidate, one place";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming voter resource with you.`
+        : "A Wyoming neighbor wanted to share this voter resource with you.";
     },
   },
 };
@@ -1897,6 +1957,28 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "whether a campaign-specific setup makes sense for your team.",
           "",
           "Read more: https://skovgard2026.org/share/untrammeled-suffrage",
+        ]
+    : slug === "candidate-hub"
+      ? [
+          "Wyoming deserves an election process built around people, clarity, and trust.",
+          "",
+          "The Wyoming Candidate Hub is a simple place to find every candidate running for office",
+          "in Wyoming — so voters can compare the field, ask better questions, and make their own",
+          "decisions.",
+          "",
+          "This project is part of a larger effort to bring accountability, transparency, and public",
+          "input back into the center of our election process.",
+          "",
+          "WHAT YOU'LL FIND",
+          "",
+          "  - Federal, statewide, and legislative candidates",
+          "  - County and municipal races across Wyoming",
+          "  - Campaign websites, social links, and contact information where available",
+          "  - A ballot lookup tool to see which races are on your specific ballot",
+          "",
+          "View the Candidate Hub: https://candidates.skovgard2026.org/",
+          "",
+          "Every candidate. One place. Wyoming voters decide.",
         ]
     : slug === "changing-health-care"
       ? [
