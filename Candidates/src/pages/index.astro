@@ -159,7 +159,7 @@ const addressFields = [
           <p class="eyebrow">Ballot lookup</p>
           <h2 id="lookup-title">Enter a Wyoming voting address.</h2>
           <p>
-            The lookup matches your address to your legislative district, county, and precinct using
+            The lookup matches your address to your legislative district and county using
             the Wyoming voter file and Census geocoding, then returns the races on your ballot.
           </p>
         </div>
@@ -423,7 +423,6 @@ const addressFields = [
           districts?.wyHouse   ? { label: 'House',    value: districts.wyHouse }   : null,
           districts?.wySenate  ? { label: 'Senate',   value: districts.wySenate }  : null,
           districts?.county    ? { label: 'County',   value: toTitleCase(districts.county) } : null,
-          districts?.precinct  ? { label: 'Precinct', value: districts.precinct }  : null,
         ].filter(Boolean);
 
         if (chips.length === 0) {
