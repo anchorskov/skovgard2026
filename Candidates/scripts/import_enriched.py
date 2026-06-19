@@ -21,7 +21,7 @@ import tempfile
 from pathlib import Path
 from urllib.parse import urlparse
 
-URL_COLUMNS = ['website_url', 'facebook_url', 'twitter_url', 'campaign_finance_url']
+URL_COLUMNS = ['website_url', 'facebook_url', 'twitter_url', 'campaign_finance_url', 'ballotpedia_url']
 
 JUNK_HOSTS = {
     'gmail.com', 'hotmail.com', 'yahoo.com', 'myyahoo.com', 'outlook.com',

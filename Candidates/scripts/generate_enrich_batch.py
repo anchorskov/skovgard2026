@@ -45,7 +45,7 @@ COLUMNS_IN = [
     'candidate_id', 'external_candidate_id', 'full_name', 'party',
     'office_title', 'scope_kind', 'county', 'municipality', 'city', 'email',
 ]
-COLUMNS_OUT = COLUMNS_IN + ['website_url', 'facebook_url', 'twitter_url', 'campaign_finance_url']
+COLUMNS_OUT = COLUMNS_IN + ['website_url', 'facebook_url', 'twitter_url', 'campaign_finance_url', 'ballotpedia_url']
 
 
 def run_d1(sql):
@@ -89,6 +89,7 @@ def main():
             row['facebook_url'] = ''
             row['twitter_url'] = ''
             row['campaign_finance_url'] = ''
+            row['ballotpedia_url'] = ''
             writer.writerow(row)
 
     print(f'Wrote {len(rows)} candidates → {out_path}')

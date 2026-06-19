@@ -16,7 +16,7 @@ if (!office) {
 const { results: candidates } = await env.WY_DB.prepare(`
   SELECT id, full_name, party, summary,
          website_url, photo_url, email,
-         facebook_url, twitter_url, campaign_finance_url,
+         facebook_url, twitter_url, campaign_finance_url, ballotpedia_url,
          incumbency_status, data_confidence
     FROM candidates
    WHERE office_id = ?1 AND withdrawn_at IS NULL
@@ -102,6 +102,9 @@ function isAbsoluteUrl(url: string | null): boolean {
             ) : null}
             {isAbsoluteUrl(String(c.twitter_url)) ? (
               <a href={String(c.twitter_url)} target="_blank" rel="noopener noreferrer" class="cand-link cand-link--x">X / Twitter</a>
+            ) : null}
+            {isAbsoluteUrl(String(c.ballotpedia_url)) ? (
+              <a href={String(c.ballotpedia_url)} target="_blank" rel="noopener noreferrer" class="cand-link cand-link--bp">Ballotpedia</a>
             ) : null}
             {c.email ? (
               <a href={`mailto:${String(c.email)}`} class="cand-link cand-link--contact">Contact</a>
@@ -234,6 +237,17 @@ function isAbsoluteUrl(url: string | null): boolean {
   .cand-link:focus-visible {
     border-color: var(--ember);
     color: var(--ember);
+  }
+
+  .cand-link--bp {
+    border-color: #3a7ebf;
+    color: #3a7ebf;
+  }
+
+  .cand-link--bp:hover,
+  .cand-link--bp:focus-visible {
+    border-color: #1a5a9a;
+    color: #1a5a9a;
   }
 
   .cand-link--contact {
