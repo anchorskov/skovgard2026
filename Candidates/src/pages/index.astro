@@ -375,13 +375,40 @@ const addressFields = [
         `;
       }
 
-      function renderPollingDetails(details) {
+      function renderD1PollingLocations(locations) {
+        if (!Array.isArray(locations) || locations.length === 0) return '';
+        const items = locations.map((loc) => {
+          const clerkLink = loc.county_clerk_url
+            ? `<p class="poll-clerk-link"><a href="${escapeHtml(loc.county_clerk_url)}" rel="noopener noreferrer">Verify with your county clerk →</a></p>`
+            : '';
+          return `<li>
+            <strong class="poll-loc-name">${escapeHtml(loc.location_name)}</strong>
+            <p class="poll-loc-addr">${escapeHtml(loc.address)}</p>
+            ${clerkLink}
+          </li>`;
+        }).join('');
+        return `
+          <section class="polling-subsection polling-subsection--d1">
+            <h4>Polling location for your area</h4>
+            <ul>${items}</ul>
+            <p class="polling-note">Location based on city entered. Confirm with your county clerk before election day.</p>
+          </section>
+        `;
+      }
+
+      function renderPollingDetails(details, d1Locations) {
         if (!pollingSection) return;
         const status = details?.status || 'not_available';
+        const d1Html = renderD1PollingLocations(d1Locations);
 
-        // api_not_configured is an ops issue, not a user-facing message
+        // api_not_configured: show D1 data if we have it, otherwise hide
         if (status === 'api_not_configured') {
-          setHidden(pollingSection, true);
+          if (d1Html) {
+            pollingSection.innerHTML = `<strong>Polling location</strong>${d1Html}`;
+            setHidden(pollingSection, false);
+          } else {
+            setHidden(pollingSection, true);
+          }
           return;
         }
 
@@ -391,6 +418,8 @@ const addressFields = [
         const officeHtml = renderElectionOffice(details?.electionAdministrationBody);
 
         const parts = [];
+
+        if (d1Html) parts.push(d1Html);
 
         if (polling.length > 0) {
           parts.push(renderLocationList('Election Day voting locations for this address', polling));
@@ -402,15 +431,15 @@ const addressFields = [
           parts.push(renderLocationList('Ballot drop-off locations', dropOff));
         }
 
-        // No location arrays returned — show a contextual message
+        // No location data at all — show a contextual message
         if (parts.length === 0) {
           const note = status === 'error'
             ? 'Polling-place lookup could not be completed. Please try again or contact your county clerk.'
-            : 'Election Day polling locations for this address are not yet available from Google Civic. Check back closer to the primary, or contact your county clerk.';
+            : 'Election Day polling locations for this address are not yet available. Check back closer to the primary, or contact your county clerk.';
           parts.push(`<p class="polling-note">${note}</p>`);
         }
 
-        // Always append election office contact if returned, regardless of polling data
+        // Always append election office contact if returned
         if (officeHtml) parts.push(officeHtml);
 
         pollingSection.innerHTML = `<strong>Polling details</strong>${parts.join('')}`;
@@ -488,7 +517,7 @@ const addressFields = [
           renderDistricts(data.districts);
           renderRaces(data.races);
           renderLocalRaces(data.localRaces, data.localMeta);
-          renderPollingDetails(data.pollingDetails);
+          renderPollingDetails(data.pollingDetails, data.d1PollingLocations);
         } catch {
           setLookupStatus('Lookup route could not be reached. Please try again later.', 'error');
         } finally {
@@ -1046,6 +1075,40 @@ const addressFields = [
 
   .polling-subsection span {
     font-weight: 800;
+  }
+
+  .polling-subsection--d1 {
+    border-left: 4px solid var(--sandstone);
+    padding-left: 12px;
+  }
+
+  .poll-loc-name {
+    display: block;
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
+  .poll-loc-addr {
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--charcoal);
+  }
+
+  .poll-clerk-link {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+  }
+
+  .poll-clerk-link a {
+    color: var(--ember);
+    font-weight: 700;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.2em;
+  }
+
+  .poll-clerk-link a:hover {
+    text-decoration-color: var(--ember);
   }
 
   .site-footer {

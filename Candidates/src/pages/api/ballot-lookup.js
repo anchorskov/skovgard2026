@@ -343,6 +343,8 @@ async function lookupDistricts(db, address) {
         matchedCity: normalizeText(censusRow.canonical_city),
         matchedZip: normalizeZip(censusRow.zip5),
         precinct: censusRow.precinct,
+        lat: censusRow.lat ?? null,
+        lon: censusRow.lon ?? null,
       };
     }
 
@@ -488,6 +490,8 @@ async function lookupByCensusGeocoder(address, precinctPromise) {
       canonical_city: normalizeText(match.addressComponents?.city || address.city),
       zip5: normalizeZip(match.addressComponents?.zip || address.zip),
       precinct,
+      lat: typeof match.coordinates?.y === 'number' ? match.coordinates.y : null,
+      lon: typeof match.coordinates?.x === 'number' ? match.coordinates.x : null,
     };
   } catch {
     return null;
@@ -635,6 +639,26 @@ async function getRaceGroups(db, districts) {
   }
 }
 
+async function getPollingLocations(db, county, city) {
+  if (!db || !county || !city) return null;
+  try {
+    const rows = await allD1(
+      db,
+      `SELECT location_name, address, city, zip, county_clerk_url
+         FROM polling_locations
+        WHERE LOWER(county) = LOWER(?1)
+          AND LOWER(city) = LOWER(?2)
+          AND election_year = 2026
+        LIMIT 3`,
+      county.trim(),
+      city.trim()
+    );
+    return rows.length > 0 ? rows : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST({ request }) {
   let payload;
   try {
@@ -664,10 +688,11 @@ export async function POST({ request }) {
 
   const civicApiConfigured = Boolean(env.GOOGLE_CIVIC_API_KEY);
   const districts = await lookupDistricts(env.LOOKUP_DB, address);
-  const [races, localRaces, pollingDetails] = await Promise.all([
+  const [races, localRaces, pollingDetails, d1PollingLocations] = await Promise.all([
     getRaceGroups(env.WY_DB, districts),
     getLocalRaces(env.WY_DB, districts, address),
     lookupPollingDetails(address),
+    getPollingLocations(env.WY_DB, districts?.county, address.city),
   ]);
   const isDistrictMatched = Boolean(districts?.wyHouse || districts?.wySenate || districts?.county);
 
@@ -691,6 +716,7 @@ export async function POST({ request }) {
       county: localRaces.county,
     },
     pollingDetails,
+    d1PollingLocations,
   });
 }
 
