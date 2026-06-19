@@ -644,7 +644,7 @@ async function getPollingLocations(db, county, city) {
   try {
     const rows = await allD1(
       db,
-      `SELECT location_name, address, city, zip, county_clerk_url
+      `SELECT DISTINCT location_name, address, county_clerk_url
          FROM polling_locations
         WHERE LOWER(county) = LOWER(?1)
           AND LOWER(city) = LOWER(?2)
