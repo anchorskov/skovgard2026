@@ -93,7 +93,7 @@ When deciding what is valid for `skovgard2026`, check local files first:
 **Primary data reference:** `docs/db/README.md` — covers all D1 databases used by this repo, the canonical consent/opt-in model, data flow, district lookup, and which Worker reads/writes each table. Read this before touching any database-related code.
 
 - `ballot_sources` D1 (`DB` binding) — campaign app tables: `consent_status`, `contacts`, `newsletter_subscribers`, texting/email audit logs, district lookup mirrors.
-- `wy` / `wy_preview` D1 (`WY_DB` binding) — Wyoming voter data (voter matching, `voter_phones`, `v_best_phone`) plus the voter guide tables (`offices`, `candidates`).
+- `wy` D1 (`WY_DB` binding) — Wyoming voter data (voter matching, `voter_phones`, `v_best_phone`) plus the voter guide tables (`offices`, `candidates`). Production: `--remote`. Local dev: no flag (local SQLite in `.wrangler/state/`).
 - Voter guide detail: `Candidates/candidate_data.md` — field-by-field reference for `offices` and `candidates`.
 
 Do not reference `config/_default/config.toml`, `layouts/`, or Hugo-era paths — those directories no longer exist.
@@ -210,7 +210,7 @@ The voter guide lives in `Candidates/` — a standalone Astro 6 SSR project depl
 Key points for agents:
 
 - Two D1 tables: `offices` (86 rows) and `candidates` (200 rows), binding name `WY_DB`.
-- Local D1: `wy_preview`. Production D1: `wy`.
+- Local D1: `wy` (no `--remote` — local SQLite in `.wrangler/state/`). Production D1: `wy --remote`.
 - Enrichment data comes from batch CSVs in `Candidates/db/seed/`. All 10 batches (rows 1–200) are complete.
 - To regenerate enrichment SQL after adding new batch CSVs: `node Candidates/scripts/generate_enrichment_sql.mjs` then apply the output to D1.
 - `Candidates/wrangler.toml` is the authoritative config for the sub-project's Worker name (`skovgard-candidates`), D1 bindings, and environment vars.
@@ -254,8 +254,10 @@ To add polling locations for a new Wyoming county, follow the step-by-step proce
 - [docs/polling/AddPollingLocations.md](/home/anchor/projects/skovgard2026/docs/polling/AddPollingLocations.md)
 
 Key rules:
-- `polling_locations` table lives in `WY_DB` (`wy` production, `wy_preview` for local dev).
+- `polling_locations` table lives in `WY_DB` (`wy` in both environments).
 - Apply each SQL file to **both** databases before moving to the next step — do not batch.
+  Production: `npx wrangler d1 execute wy --remote --file=...`
+  Local: `npx wrangler d1 execute wy --file=...` (no `--remote`)
 - `city` is the **voter's home city** (lookup key), NOT the polling location's physical city.
   For cross-community precincts (voter in town A votes at venue in town B), `city = 'A'`
   and the full venue address goes in `address`.

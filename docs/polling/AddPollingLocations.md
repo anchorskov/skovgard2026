@@ -1,3 +1,4 @@
+<!-- docs/polling/AddPollingLocations.md -->
 # Adding Polling Locations — Agent Procedure
 
 This document is the authoritative step-by-step procedure for adding polling location data
@@ -20,8 +21,8 @@ Read these files to orient yourself:
 
 | Purpose | DB name | Command flag |
 |---------|---------|--------------|
-| Production | `wy` | `--remote` (no `--env`) |
-| Preview / local dev | `wy_preview` | `--remote --env local` |
+| Production | `wy` | `--remote` |
+| Local dev | `wy` | _(no flag — uses local SQLite in `.wrangler/state/`)_ |
 
 All `wrangler` commands run from the `Candidates/` directory.
 
@@ -60,6 +61,12 @@ location_name = 'Burlington Fire Hall'
 **The query uses `SELECT DISTINCT location_name, address, county_clerk_url`**, so multiple
 precinct rows for the same city/location collapse to one result. Keep distinct
 `(location_name, address)` combinations per city to ≤ 3 (the query has `LIMIT 3`).
+
+**Countywide vote-center counties:** If the source says every voter in the county may
+vote at any listed vote center regardless of district or precinct, use
+`city = '__countywide__'` for those vote-center rows. The lookup includes these rows for
+any submitted city in the matching county. Do not use this sentinel for normal precinct
+polling-place counties.
 
 ---
 
@@ -116,15 +123,15 @@ VALUES
 
 ## Step 3 — Apply to both D1 databases
 
-Apply production first, then preview. Run these from `Candidates/`:
+Apply production first, then local. Run these from `Candidates/`:
 
 ```bash
 # Production
 npx wrangler d1 execute wy --remote \
   --file=db/seed/polling_locations_{county_slug}_insert.sql
 
-# Preview / local dev
-npx wrangler d1 execute wy_preview --remote \
+# Local dev (no --remote — targets local SQLite in .wrangler/state/)
+npx wrangler d1 execute wy \
   --file=db/seed/polling_locations_{county_slug}_insert.sql
 ```
 
@@ -188,7 +195,7 @@ When the user supplies verified street addresses for NEEDS VERIFICATION rows:
    npx wrangler d1 execute wy --remote \
      --file=db/seed/polling_locations_{county_slug}_addr_patch.sql
 
-   npx wrangler d1 execute wy_preview --remote \
+   npx wrangler d1 execute wy \
      --file=db/seed/polling_locations_{county_slug}_addr_patch.sql
    ```
 
@@ -233,12 +240,11 @@ The Worker code itself does not change when adding polling location data, but de
 anyway to pick up any in-flight code changes on the branch:
 
 ```bash
-cd Candidates
-npx wrangler deploy --env production
+./scripts/deploy_candidates.sh
 ```
 
-Confirm the deploy reports the Worker name `skovgard-candidates` (not a `-production`
-suffix variant).
+Run from the repo root. The script validates the Worker name and guards against
+`--env production` drift.
 
 ---
 
@@ -264,14 +270,17 @@ If no results come back for a city that has data, the most common causes are:
 
 | County | Precincts | Source | Status |
 |--------|-----------|--------|--------|
+| Albany | 10 vote centers | County notice PDF | Complete — countywide vote centers |
 | Big Horn | 13 | County clerk polling PDF | Complete — all addresses verified |
+| Converse | 19 | County polling locations PDF | Complete — all addresses verified |
+| Niobrara | 6 | County polling place screenshot | Complete — all addresses from source |
 | Park | 31 | TerraCIS GIS screenshot | Complete — all 5 unverified addresses corrected |
 
-## Counties remaining (21)
+## Counties remaining (18)
 
-Albany, Campbell, Carbon, Converse, Crook, Fremont, Goshen, Hot Springs,
-Johnson, Laramie, Lincoln, Natrona, Niobrara, Platte, Sheridan, Sublette,
-Sweetwater, Teton, Uinta, Washakie, Weston
+Campbell, Carbon, Crook, Fremont, Goshen, Hot Springs, Johnson, Laramie,
+Lincoln, Natrona, Platte, Sheridan, Sublette, Sweetwater, Teton, Uinta,
+Washakie, Weston
 
 ---
 

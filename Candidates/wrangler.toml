@@ -22,20 +22,3 @@ database_id = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
 [[kv_namespaces]]
 binding = "SESSION"
 id = "ad77fc90ea384e0f95e14094be3600fa"
-
-# ---------- Local dev overrides (wrangler dev uses wy_preview) ----------
-[env.local]
-[env.local.vars]
-ENVIRONMENT = "local"
-ALLOW_ORIGIN = "http://localhost:4321"
-GOOGLE_CIVIC_ELECTION_ID = ""
-
-[[env.local.d1_databases]]
-binding = "WY_DB"
-database_name = "wy_preview"
-database_id = "de78cb41-176d-40e8-bd3b-e053e347ac3f"
-
-[[env.local.d1_databases]]
-binding = "LOOKUP_DB"
-database_name = "ballot_sources"
-database_id = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
