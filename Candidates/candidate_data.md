@@ -180,7 +180,7 @@ All 10 batches (rows 1–200) are complete and included in `002_enrichment_updat
 
 | Environment | Binding | D1 database |
 |-------------|---------|-------------|
-| Local (`wrangler dev`) | `WY_DB` | `wy` — local SQLite in `.wrangler/state/` (no `--remote`) |
-| Production | `WY_DB` | `wy` (ID: `4b4227f1-bf30-4fcf-8a08-6967b536a5ab`) — use `--remote` |
+| Local (`wrangler dev`) | `WY_DB` | `wy` — local SQLite in `.wrangler/state/v3/d1/` |
+| Production (`--remote`) | `WY_DB` | `wy` (ID: `4b4227f1-bf30-4fcf-8a08-6967b536a5ab`) |
 
 Access the binding in Cloudflare Workers/Pages functions via `env.WY_DB`.

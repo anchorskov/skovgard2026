@@ -25,8 +25,7 @@ npm run preview
 The candidate schema, seed files, and enrichment workflow are documented in
 `candidate_data.md`.
 
-- Local D1 database: `wy` (no `--remote` — local SQLite in `.wrangler/state/`)
-- Production D1 database: `wy` (`--remote`)
+- D1 binding: `WY_DB` → `wy` database (local SQLite via `wrangler dev`; production via `--remote`)
 - Worker/Pages project name: `skovgard-candidates`
 
 Do not mix this app's D1 bindings or Worker names with the main
