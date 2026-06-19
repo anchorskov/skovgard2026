@@ -152,7 +152,7 @@ def main():
 
         com_gen    = c['gender'].strip() or None   # M / F for precinct committee
         city       = c['city'] or None
-        mailing    = c['contact_raw'] or None
+        mailing    = None
         phone      = c['phone'] or None
         email      = c['email'] or None
         website    = c['website'].strip() if is_real_website(c['website']) else None
