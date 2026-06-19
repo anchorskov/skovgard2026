@@ -639,6 +639,58 @@ async function getRaceGroups(db, districts) {
   }
 }
 
+// Ray-casting point-in-polygon for a single GeoJSON ring (outer boundary).
+function pointInRing(lon, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if (((yi > lat) !== (yj > lat)) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function pointInGeoJSON(lon, lat, geojson) {
+  const { type, coordinates } = geojson;
+  if (type === 'Polygon') return pointInRing(lon, lat, coordinates[0]);
+  if (type === 'MultiPolygon') return coordinates.some((poly) => pointInRing(lon, lat, poly[0]));
+  return false;
+}
+
+// Precinct-polygon D1 lookup — used for counties where boundary data is pre-loaded
+// (e.g. Park County from TerraGIS TopoJSON). Returns exact precinct + polling place.
+async function lookupPollingByPolygon(db, county, lat, lon) {
+  if (!db || !county || lat == null || lon == null) return null;
+  try {
+    const rows = await allD1(
+      db,
+      `SELECT precinct_code, polling_place, geometry_geojson
+         FROM precinct_polygons
+        WHERE LOWER(county) = LOWER(?1)`,
+      county.trim()
+    );
+    if (rows.length === 0) return null;
+
+    for (const row of rows) {
+      let geo;
+      try { geo = JSON.parse(row.geometry_geojson); } catch { continue; }
+      if (pointInGeoJSON(lon, lat, geo)) {
+        return {
+          source: 'polygon_d1',
+          precinct: row.precinct_code,
+          location_name: row.polling_place,
+          address: null,
+        };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ArcGIS point-in-polygon lookup — returns exact precinct + polling place when
 // the county has a registered endpoint in county_gis and lat/lon are available.
 async function lookupPollingByGIS(db, county, lat, lon) {
@@ -733,12 +785,13 @@ export async function POST({ request }) {
 
   const civicApiConfigured = Boolean(env.GOOGLE_CIVIC_API_KEY);
   const districts = await lookupDistricts(env.LOOKUP_DB, address);
-  const [races, localRaces, pollingDetails, d1PollingLocations, gisPollingLocation] = await Promise.all([
+  const [races, localRaces, pollingDetails, d1PollingLocations, gisPollingLocation, polygonPollingLocation] = await Promise.all([
     getRaceGroups(env.WY_DB, districts),
     getLocalRaces(env.WY_DB, districts, address),
     lookupPollingDetails(address),
     getPollingLocations(env.WY_DB, districts?.county, address.city),
     lookupPollingByGIS(env.WY_DB, districts?.county, districts?.lat, districts?.lon),
+    lookupPollingByPolygon(env.WY_DB, districts?.county, districts?.lat, districts?.lon),
   ]);
   const isDistrictMatched = Boolean(districts?.wyHouse || districts?.wySenate || districts?.county);
 
@@ -764,6 +817,7 @@ export async function POST({ request }) {
     pollingDetails,
     d1PollingLocations,
     gisPollingLocation,
+    polygonPollingLocation,
   });
 }
 
