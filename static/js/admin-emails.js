@@ -1,6 +1,26 @@
 // static/js/admin-emails.js
 import { API_URL } from "/js/env.js";
 
+const SHARE_MESSAGE_OPTIONS = [
+  { slug: "fleecing-letters",                   title: "The Fleecing Letters",                         defaultSubject: "Official mail paid for by you. Here's what's in it." },
+  { slug: "postage-bandit",                      title: "Postage Bandit",                               defaultSubject: "Postage Bandit: FEC complaint filed against Rep. Hageman" },
+  { slug: "citizens-defend-the-constitution",    title: "Citizens Defend the Constitution",             defaultSubject: "Citizens defend the Constitution — a Wyoming message from Jimmy Skovgard" },
+  { slug: "jimmys-story",                        title: "Jimmy's Story",                                defaultSubject: "Your neighbor wanted you to hear about Jimmy Skovgard for Wyoming" },
+  { slug: "freedom-vs-control",                  title: "Freedom vs. Control",                          defaultSubject: "Wyoming's election legislation — freedom vs. control" },
+  { slug: "wyoming-voters-choose",               title: "Wyoming Voters Should Choose",                 defaultSubject: "Wyoming voters should choose" },
+  { slug: "representatives-work-for",            title: "Who Do Our Representatives Work For?",         defaultSubject: "Who do our representatives work for?" },
+  { slug: "wy-voter-access",                     title: "Wyoming Voter Access Survey",                  defaultSubject: "Wyoming Voter Access Survey" },
+  { slug: "wy-primary-election-participation",   title: "Wyoming Primary Election Participation Survey",defaultSubject: "Wyoming Primary Election Participation Survey" },
+  { slug: "wy-citizen-ballot",                   title: "Citizens Nonpartisan Ballot",                  defaultSubject: "Wyoming voter choice: Citizens Nonpartisan Ballot" },
+  { slug: "untrammeled-suffrage",                title: "Untrammeled Suffrage",                         defaultSubject: "Test access to Untrammeled Suffrage, a Wyoming voter outreach tool" },
+  { slug: "wy-data-centers",                     title: "Wyoming Data Centers Survey",                  defaultSubject: "Wyoming data centers: what safeguards should come first?" },
+  { slug: "wy-four-pillars",                     title: "Wyoming Four Pillars Survey",                  defaultSubject: "Wyoming Four Pillars Survey" },
+  { slug: "wy-roadless-areas",                   title: "Wyoming Roadless Areas Survey",                defaultSubject: "Wyoming roadless areas: what standards should come first?" },
+  { slug: "nothing-burger",                      title: "Taxpayer-Funded Nothing Burger",               defaultSubject: "Wyoming public lands: why did Montana get protection Wyoming didn't?" },
+  { slug: "changing-health-care",                title: "Changing Health Care",                         defaultSubject: "Wyoming health care: the honest constitutional path" },
+  { slug: "candidate-hub",                       title: "Wyoming Candidate Hub",                        defaultSubject: "Wyoming Candidate Hub: every candidate, one place" },
+];
+
 const authForm = document.getElementById("admin-emails-auth");
 const shellEl = document.getElementById("admin-emails-shell");
 const authStatusEl = document.getElementById("admin-emails-auth-status");
@@ -38,6 +58,12 @@ const sendReceiptEl = document.getElementById("email-send-receipt");
 const sendReceiptSummaryEl = document.getElementById("email-send-receipt-summary");
 const sendReceiptToggleBtn = document.getElementById("email-send-receipt-toggle");
 const sendReceiptListEl = document.getElementById("email-send-receipt-list");
+const emailModeInput = document.getElementById("email_mode");
+const shareSlugInput = document.getElementById("share_slug");
+const shareIntroInput = document.getElementById("share_intro_text");
+const sharePickerField = document.getElementById("share-picker-field");
+const shareIntroField = document.getElementById("share-intro-field");
+const emailBodyField = document.getElementById("email-body-field");
 
 const STORAGE_KEY = "skovgard_admin_emails_key";
 const STORAGE_EMAIL = "skovgard_admin_emails_email";
@@ -316,6 +342,62 @@ function trayRecipientEmails() {
   return [...recipientTray.keys()];
 }
 
+let shareSlugOptionsPopulated = false;
+
+function populateShareSlugOptions() {
+  if (shareSlugOptionsPopulated || !shareSlugInput) return;
+  shareSlugOptionsPopulated = true;
+  const fragment = document.createDocumentFragment();
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "— Select a message —";
+  fragment.appendChild(blank);
+  SHARE_MESSAGE_OPTIONS.forEach(({ slug, title }) => {
+    const opt = document.createElement("option");
+    opt.value = slug;
+    opt.textContent = title;
+    fragment.appendChild(opt);
+  });
+  shareSlugInput.innerHTML = "";
+  shareSlugInput.appendChild(fragment);
+}
+
+function currentEmailMode() {
+  return String(emailModeInput?.value || "custom").trim();
+}
+
+function isShareMode() {
+  const m = currentEmailMode();
+  return m === "share" || m === "share_with_intro";
+}
+
+function handleModeChange() {
+  const mode = currentEmailMode();
+  const isShare = mode === "share" || mode === "share_with_intro";
+  const isShareWithIntro = mode === "share_with_intro";
+
+  if (sharePickerField) sharePickerField.hidden = !isShare;
+  if (shareIntroField) shareIntroField.hidden = !isShareWithIntro;
+  if (emailBodyField) emailBodyField.hidden = isShare;
+
+  if (isShare) populateShareSlugOptions();
+
+  if (!isShare) {
+    if (subjectInput && !subjectInput.dataset.userEdited) subjectInput.value = "";
+  }
+
+  invalidatePreview("Preview cleared because email type changed.");
+}
+
+function handleShareSlugChange() {
+  const slug = String(shareSlugInput?.value || "").trim();
+  const option = SHARE_MESSAGE_OPTIONS.find((o) => o.slug === slug);
+  if (subjectInput && option && !subjectInput.dataset.userEdited) {
+    subjectInput.value = option.defaultSubject;
+  }
+  invalidatePreview("Preview cleared because share message changed.");
+}
+
 function invalidatePreview(message) {
   if (!previewState) return;
   clearPreview();
@@ -540,6 +622,7 @@ function renderContacts(items) {
 }
 
 function currentPreviewPayload() {
+  const mode = currentEmailMode();
   return {
     filter: String(audienceFilterInput?.value || contactsFilterInput?.value || "emailable").trim(),
     city: String(contactsCityInput?.value || "").trim(),
@@ -547,6 +630,9 @@ function currentPreviewPayload() {
     sd: String(contactsSdInput?.value || "").trim(),
     subject: String(subjectInput?.value || "").trim(),
     body: String(bodyInput?.value || ""),
+    email_mode: mode,
+    share_slug: String(shareSlugInput?.value || "").trim(),
+    share_intro_text: String(shareIntroInput?.value || "").trim(),
     limit: Number(limitInput?.value || 100),
     recipients: trayRecipientEmails(),
   };
@@ -790,7 +876,12 @@ async function runPreview() {
     setStatus(composeStatusEl, "Enter a subject line first.", true);
     return;
   }
-  if (!String(payload.body || "").trim()) {
+  if (isShareMode()) {
+    if (!payload.share_slug) {
+      setStatus(composeStatusEl, "Select a share message first.", true);
+      return;
+    }
+  } else if (!String(payload.body || "").trim()) {
     setStatus(composeStatusEl, "Enter an email body first.", true);
     return;
   }
@@ -831,7 +922,12 @@ async function runSend() {
     setStatus(composeStatusEl, "Enter a subject line first.", true);
     return;
   }
-  if (!String(payload.body || "").trim()) {
+  if (isShareMode()) {
+    if (!payload.share_slug) {
+      setStatus(composeStatusEl, "Select a share message first.", true);
+      return;
+    }
+  } else if (!String(payload.body || "").trim()) {
     setStatus(composeStatusEl, "Enter an email body first.", true);
     return;
   }
@@ -955,10 +1051,27 @@ contactsFilterInput?.addEventListener("change", () => {
   });
 });
 
-[subjectInput, bodyInput].forEach((el) => {
-  el?.addEventListener("input", () => {
-    invalidatePreview("Preview cleared because the email changed. Run Preview again.");
-  });
+subjectInput?.addEventListener("input", () => {
+  subjectInput.dataset.userEdited = "1";
+  invalidatePreview("Preview cleared because the email changed. Run Preview again.");
+});
+
+bodyInput?.addEventListener("input", () => {
+  invalidatePreview("Preview cleared because the email changed. Run Preview again.");
+});
+
+shareIntroInput?.addEventListener("input", () => {
+  invalidatePreview("Preview cleared because the email changed. Run Preview again.");
+});
+
+emailModeInput?.addEventListener("change", () => {
+  delete subjectInput?.dataset?.userEdited;
+  handleModeChange();
+});
+
+shareSlugInput?.addEventListener("change", () => {
+  delete subjectInput?.dataset?.userEdited;
+  handleShareSlugChange();
 });
 
 limitInput?.addEventListener("input", () => {

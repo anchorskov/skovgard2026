@@ -6,7 +6,7 @@
   <title>Email Portal — Skovgard 2026</title>
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/admin-emails.css?v=2">
+  <link rel="stylesheet" href="/css/admin-emails.css?v=3">
 
 </head>
 <body>
@@ -77,10 +77,28 @@
         </div>
         <p class="help">If the recipient tray has contacts, preview uses the tray instead of the audience filter.</p>
         <div class="field">
+          <label for="email_mode">Email type</label>
+          <select id="email_mode" name="email_mode">
+            <option value="custom">Custom email</option>
+            <option value="share">Share message as email</option>
+            <option value="share_with_intro">Share message + custom intro</option>
+          </select>
+        </div>
+        <div class="field" id="share-picker-field" hidden>
+          <label for="share_slug">Share message</label>
+          <select id="share_slug" name="share_slug">
+            <option value="">— Select a message —</option>
+          </select>
+        </div>
+        <div class="field" id="share-intro-field" hidden>
+          <label for="share_intro_text">Custom intro <span class="help">(appears above the share message body)</span></label>
+          <textarea id="share_intro_text" name="share_intro_text" rows="4" placeholder="Add a personal note or context that will appear above the share message body."></textarea>
+        </div>
+        <div class="field">
           <label for="email_subject">Subject line</label>
           <input id="email_subject" name="email_subject" type="text" maxlength="180" placeholder="Write the subject line" required />
         </div>
-        <div class="field">
+        <div class="field" id="email-body-field">
           <label for="email_body">Email body</label>
           <textarea id="email_body" name="email_body" rows="10" placeholder="Write the email body" required></textarea>
         </div>
@@ -165,6 +183,6 @@
   </section>
 </section>
   </main>
-  <script type="module" src="/js/admin-emails.js?v=4"></script>
+  <script type="module" src="/js/admin-emails.js?v=5"></script>
 </body>
 </html>

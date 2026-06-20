@@ -18,7 +18,7 @@ import {
 } from "./admin-email.js";
 import { sendPulseOptInEmails } from "./pulse-email.js";
 import { sendResendEmail } from "./resend.js";
-import { buildShareEmailHtml, buildShareEmailText, SHARE_MESSAGES } from "./email-template.js";
+import { buildShareEmailHtml, buildShareEmailText, SHARE_MESSAGES, escHtml } from "./email-template.js";
 
 function pulseWelcomeConfig(env) {
   return {
@@ -4584,6 +4584,11 @@ export default {
         const sd = normalizeContactFilterValue(body.sd || "");
         const subject = normalizeAdminEmailSubject(body.subject);
         const messageBody = normalizeAdminEmailBody(body.body);
+        const emailMode = ["share", "share_with_intro"].includes(String(body.email_mode || ""))
+          ? String(body.email_mode)
+          : "custom";
+        const shareSlug = normalizeText(body.share_slug || "");
+        const shareIntroText = normalizeAdminEmailBody(body.share_intro_text || "");
         const limit = positiveInt(body.limit, 250, 250);
         const sinceHours = positiveInt(body.since_hours, 24, 24 * 30);
         const requestedRecipients = normalizeRecipientEmails(body.recipients, 251);
@@ -4592,9 +4597,16 @@ export default {
         const mode = useExplicitRecipients ? "explicit" : "filter";
 
         if (!subject) return json(req, env, { error: "Email subject is required" }, 400);
-        if (!messageBody) return json(req, env, { error: "Email body is required" }, 400);
         if (subject.length > 180) return json(req, env, { error: "Email subject too long" }, 400);
-        if (messageBody.length > 20000) return json(req, env, { error: "Email body too long" }, 400);
+        if (emailMode === "custom") {
+          if (!messageBody) return json(req, env, { error: "Email body is required" }, 400);
+          if (messageBody.length > 20000) return json(req, env, { error: "Email body too long" }, 400);
+        } else {
+          if (!shareSlug || !SHARE_MESSAGES[shareSlug]) {
+            return json(req, env, { error: "Invalid or missing share message slug." }, 400);
+          }
+          if (shareIntroText.length > 5000) return json(req, env, { error: "Custom intro text too long" }, 400);
+        }
         if (requestedRecipients.length > 250) {
           return json(req, env, { error: "Recipient tray is limited to 250 contacts per preview." }, 400);
         }
@@ -4623,6 +4635,9 @@ export default {
         const previewRecipients = buildAdminEmailPreviewRecipients(recipients);
         const skippedCount = Math.max(0, audienceCount - recipients.length);
         const issuedAt = new Date().toISOString();
+        const shareBodySeed = emailMode !== "custom"
+          ? `${shareSlug}|${shareIntroText}`
+          : messageBody;
         const approvalToken = await createPreviewApprovalToken(
           env,
           buildAdminEmailPreviewSeed({
@@ -4632,7 +4647,7 @@ export default {
             hd,
             sd,
             subject,
-            body: messageBody,
+            body: `${emailMode}|${shareBodySeed}`,
             limit,
             sinceHours,
             audienceCount,
@@ -4652,6 +4667,8 @@ export default {
             subject,
             detailsJson: JSON.stringify({
               mode,
+              emailMode,
+              shareSlug: shareSlug || null,
               filter,
               city,
               hd,
@@ -4665,6 +4682,10 @@ export default {
           }).catch(() => {});
         }
 
+        const previewBodySummary = emailMode === "custom"
+          ? messageBody
+          : `[Share: ${SHARE_MESSAGES[shareSlug].title}]${shareIntroText ? `\n\nCustom intro:\n${shareIntroText}` : ""}`;
+
         return json(req, env, {
           ok: true,
           dryRun: true,
@@ -4676,7 +4697,7 @@ export default {
           preview: {
             from: String(env.ADMIN_EMAIL_FROM || "").trim() || null,
             subject,
-            body: messageBody,
+            body: previewBodySummary,
           },
           approval: {
             issuedAt,
@@ -4713,6 +4734,11 @@ export default {
         const sd = normalizeContactFilterValue(body.sd || "");
         const subject = normalizeAdminEmailSubject(body.subject);
         const messageBody = normalizeAdminEmailBody(body.body);
+        const emailMode = ["share", "share_with_intro"].includes(String(body.email_mode || ""))
+          ? String(body.email_mode)
+          : "custom";
+        const shareSlug = normalizeText(body.share_slug || "");
+        const shareIntroText = normalizeAdminEmailBody(body.share_intro_text || "");
         const limit = positiveInt(body.limit, 250, 250);
         const sinceHours = positiveInt(body.since_hours, 24, 24 * 30);
         const requestedRecipients = normalizeRecipientEmails(body.recipients, 251);
@@ -4724,9 +4750,16 @@ export default {
         const previewIssuedAt = normalizePreviewIssuedAt(body.preview_issued_at);
 
         if (!subject) return json(req, env, { error: "Email subject is required" }, 400);
-        if (!messageBody) return json(req, env, { error: "Email body is required" }, 400);
         if (subject.length > 180) return json(req, env, { error: "Email subject too long" }, 400);
-        if (messageBody.length > 20000) return json(req, env, { error: "Email body too long" }, 400);
+        if (emailMode === "custom") {
+          if (!messageBody) return json(req, env, { error: "Email body is required" }, 400);
+          if (messageBody.length > 20000) return json(req, env, { error: "Email body too long" }, 400);
+        } else {
+          if (!shareSlug || !SHARE_MESSAGES[shareSlug]) {
+            return json(req, env, { error: "Invalid or missing share message slug." }, 400);
+          }
+          if (shareIntroText.length > 5000) return json(req, env, { error: "Custom intro text too long" }, 400);
+        }
         if (requestedRecipients.length > 250) {
           return json(req, env, { error: "Recipient tray is limited to 250 contacts per send." }, 400);
         }
@@ -4763,6 +4796,9 @@ export default {
         const recipientHash = await sha256Hex(recipients.map((item) => item.email_norm).join(","));
         const skippedCount = Math.max(0, audienceCount - recipients.length);
 
+        const sendShareBodySeed = emailMode !== "custom"
+          ? `${shareSlug}|${shareIntroText}`
+          : messageBody;
         const expectedPreviewToken = await createPreviewApprovalToken(
           env,
           buildAdminEmailPreviewSeed({
@@ -4772,7 +4808,7 @@ export default {
             hd,
             sd,
             subject,
-            body: messageBody,
+            body: `${emailMode}|${sendShareBodySeed}`,
             limit,
             sinceHours,
             audienceCount,
@@ -4825,17 +4861,53 @@ export default {
             while (attempt <= ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT) {
               attempt += 1;
               try {
-                const result = await sendAdminOutreachEmail(
-                  env,
-                  recipient,
-                  subject,
-                  messageBody,
-                  {
-                    batchId,
-                    idempotencyKey,
-                    replyTo: emailConfig.from,
-                  }
-                );
+                let result;
+                if (emailMode !== "custom") {
+                  const shareMsg = SHARE_MESSAGES[shareSlug];
+                  const introHtml = shareIntroText
+                    ? `<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">${escHtml(shareIntroText).replace(/\n/g, "<br>")}</p>\n              <hr style="margin:0 0 22px;border:0;border-top:1px solid #e5e7eb;">\n              `
+                    : "";
+                  const htmlBody = buildShareEmailHtml({
+                    sender_name: "Skovgard for Wyoming",
+                    sender_intro: shareMsg.intro(),
+                    body_html: introHtml + shareMsg.body_html,
+                    preview_text: shareMsg.preview_text,
+                    title: shareMsg.title,
+                  });
+                  const textBody = buildShareEmailText({
+                    sender_name: "Skovgard for Wyoming",
+                    sender_intro: shareMsg.intro(),
+                    slug: shareSlug,
+                  });
+                  const shareMessage = {
+                    from: emailConfig.from,
+                    to: [normalizeText(recipient?.email || recipient)],
+                    reply_to: emailConfig.from,
+                    subject,
+                    text: shareIntroText ? `${shareIntroText}\n\n---\n\n${textBody}` : textBody,
+                    html: htmlBody,
+                    tags: [
+                      { name: "source", value: "admin_emails" },
+                      { name: "kind", value: "share_blast" },
+                      { name: "share_slug", value: shareSlug.slice(0, 200) },
+                      { name: "batch_id", value: batchId.slice(0, 200) },
+                    ],
+                  };
+                  const resendResult = await sendResendEmail(emailConfig.apiKey, shareMessage, idempotencyKey);
+                  result = { sent: true, id: resendResult?.id || null, to: normalizeText(recipient?.email || recipient) };
+                } else {
+                  result = await sendAdminOutreachEmail(
+                    env,
+                    recipient,
+                    subject,
+                    messageBody,
+                    {
+                      batchId,
+                      idempotencyKey,
+                      replyTo: emailConfig.from,
+                    }
+                  );
+                }
                 await insertAdminEmailAuditLog(env.DB, {
                   actorUserId: actor.actorUserId,
                   actorEmail: actor.actorEmail,
