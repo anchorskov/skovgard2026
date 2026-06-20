@@ -580,13 +580,14 @@ const addressFields = [
         setHidden(pollingSection, false);
       }
 
-      function renderDistricts(districts) {
+      function renderDistricts(districts, resolvedPolling) {
         if (!districtBadges) return;
+        const pollingPrecinct = resolvedPolling?.source !== 'city_d1' ? resolvedPolling?.precinct : null;
         const chips = [
           districts?.wyHouse   ? { label: 'House',    value: districts.wyHouse }   : null,
           districts?.wySenate  ? { label: 'Senate',   value: districts.wySenate }  : null,
           districts?.county    ? { label: 'County',   value: toTitleCase(districts.county) } : null,
-          districts?.precinct  ? { label: 'Precinct', value: districts.precinct } : null,
+          pollingPrecinct      ? { label: 'Precinct', value: pollingPrecinct } : null,
         ].filter(Boolean);
 
         if (chips.length === 0) {
@@ -668,7 +669,7 @@ const addressFields = [
             `${standardizationNote.length > 0 ? `${standardizationNote.join(' ')} ` : ''}${data.message} Resolved address: ${data.address.combined}`,
             'success'
           );
-          renderDistricts(data.districts);
+          renderDistricts(data.districts, data.resolvedPollingPlace);
           renderRaces(data.races);
           renderLocalRaces(data.localRaces, data.localMeta);
           renderPollingDetails(data.pollingDetails, data.resolvedPollingPlace);

@@ -372,9 +372,6 @@ async function lookupDistricts(db, address) {
   const addressCandidates = buildAddressCandidates(address);
   if (!cityKey || addressCandidates.length === 0) return null;
 
-  // Fire precinct fetch in parallel with voter-file queries so tiers 1-3 and 5
-  // can return a precinct even when the district came from the voter file.
-  const precinctPromise = fetchCensusPrecinct(address);
   const coordinatesPromise = fetchCensusCoordinates(address);
 
   async function withCensusPoint(result) {
@@ -413,7 +410,6 @@ async function lookupDistricts(db, address) {
         wySenate: districtLabel('SD', row.state_senate_district),
         matchedCity: normalizeText(row.canonical_city),
         matchedZip: normalizeZip(row.zip5),
-        precinct: await precinctPromise,
       });
     }
 
@@ -427,7 +423,6 @@ async function lookupDistricts(db, address) {
         wySenate: districtLabel('SD', uniqueRow.state_senate_district),
         matchedCity: normalizeText(uniqueRow.canonical_city),
         matchedZip: normalizeZip(uniqueRow.zip5),
-        precinct: await precinctPromise,
       });
     }
 
@@ -442,13 +437,11 @@ async function lookupDistricts(db, address) {
         wySenate: districtLabel('SD', prefixRow.state_senate_district),
         matchedCity: normalizeText(prefixRow.canonical_city),
         matchedZip: normalizeZip(prefixRow.zip5),
-        precinct: await precinctPromise,
       });
     }
 
     // Tier 4: US Census geocoder — covers addresses not in the voter file.
-    // Passes the already-inflight precinctPromise to avoid a duplicate Census request.
-    const censusRow = await lookupByCensusGeocoder(address, precinctPromise);
+    const censusRow = await lookupByCensusGeocoder(address);
     if (censusRow) {
       return {
         matchSource: 'census_geocoder',
@@ -457,7 +450,6 @@ async function lookupDistricts(db, address) {
         wySenate: districtLabel('SD', censusRow.state_senate_district),
         matchedCity: normalizeText(censusRow.canonical_city),
         matchedZip: normalizeZip(censusRow.zip5),
-        precinct: censusRow.precinct,
         lat: censusRow.lat ?? null,
         lon: censusRow.lon ?? null,
       };
@@ -473,7 +465,6 @@ async function lookupDistricts(db, address) {
         wySenate: districtLabel('SD', coverageRow.state_senate_district),
         matchedCity: normalizeText(coverageRow.canonical_city),
         matchedZip: normalizeZip(coverageRow.zip5),
-        precinct: await precinctPromise,
       });
     }
 
@@ -553,37 +544,10 @@ async function lookupByAddressPrefix(db, addressCandidates, cityKey, zip) {
   return null;
 }
 
-// Fetch precinct (VTD) from Census2020_Current vintage.
-// Used both standalone (for voter-file tier 1-3 matches) and inside lookupByCensusGeocoder.
-async function fetchCensusPrecinct(address) {
-  try {
-    const res = await fetch(
-      `https://geocoding.geo.census.gov/geocoder/geographies/address?${new URLSearchParams({
-        street: `${address.houseNumber} ${address.street}`,
-        city: address.city,
-        state: 'WY',
-        zip: address.zip,
-        benchmark: 'Public_AR_Current',
-        vintage: 'Census2020_Current',
-        layers: 'Voting Districts',
-        format: 'json',
-      })}`,
-      { headers: { accept: 'application/json' } }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const match = data?.result?.addressMatches?.[0];
-    const vtdGeos = match?.geographies || {};
-    const vtdKey = Object.keys(vtdGeos).find((k) => /voting/i.test(k));
-    return vtdGeos[vtdKey]?.[0]?.BASENAME || null;
-  } catch {
-    return null;
-  }
-}
-
 // Tier 4: US Census geocoder — no API key required, covers addresses not in voter file.
-// Fetches 2024 legislative districts (Current_Current) and precinct (Census2020_Current) in parallel.
-async function lookupByCensusGeocoder(address, precinctPromise) {
+// Fetches 2024 legislative districts (Current_Current). Census VTD precincts are not used;
+// precinct display comes from county GIS or local precinct polygons.
+async function lookupByCensusGeocoder(address) {
   try {
     const base = {
       street: `${address.houseNumber} ${address.street}`,
@@ -594,18 +558,14 @@ async function lookupByCensusGeocoder(address, precinctPromise) {
       format: 'json',
     };
 
-    // Reuse the already-inflight precinct promise if provided, otherwise fetch fresh.
-    const [districtRes, precinct] = await Promise.all([
-      fetch(
-        `https://geocoding.geo.census.gov/geocoder/geographies/address?${new URLSearchParams({
-          ...base,
-          vintage: 'Current_Current',
-          layers: '2024 State Legislative Districts - Upper,2024 State Legislative Districts - Lower,Counties',
-        })}`,
-        { headers: { accept: 'application/json' } }
-      ),
-      precinctPromise ?? fetchCensusPrecinct(address),
-    ]);
+    const districtRes = await fetch(
+      `https://geocoding.geo.census.gov/geocoder/geographies/address?${new URLSearchParams({
+        ...base,
+        vintage: 'Current_Current',
+        layers: '2024 State Legislative Districts - Upper,2024 State Legislative Districts - Lower,Counties',
+      })}`,
+      { headers: { accept: 'application/json' } }
+    );
 
     if (!districtRes.ok) return null;
     const districtData = await districtRes.json();
@@ -629,7 +589,6 @@ async function lookupByCensusGeocoder(address, precinctPromise) {
       state_senate_district: senateNum || null,
       canonical_city: normalizeText(match.addressComponents?.city || address.city),
       zip5: normalizeZip(match.addressComponents?.zip || address.zip),
-      precinct,
       lat: typeof match.coordinates?.y === 'number' ? match.coordinates.y : null,
       lon: typeof match.coordinates?.x === 'number' ? match.coordinates.x : null,
     };
