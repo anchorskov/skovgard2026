@@ -1,3 +1,4 @@
+<!-- AGENTS.md -->
 # Agent Instructions for `skovgard2026`
 
 This file is repo-local. It applies only inside:
@@ -272,7 +273,9 @@ Key rules:
   INSERT SQL after data exists (it creates duplicates).
 - `getPollingLocations()` uses `SELECT DISTINCT location_name, address` — multiple precincts
   at the same venue collapse automatically. Keep unique locations per city to ≤ 3.
-- Counties complete (5): Albany, Big Horn, Converse, Niobrara, Park. 18 counties remain.
+- Polling coverage changes often. Do not store fixed completed/missing county counts in this
+  file. Query `polling_locations`, `county_gis`, and `precinct_polygons` in `WY_DB` when
+  current coverage is needed.
 
 ### ArcGIS Spatial Polling Lookup
 
@@ -295,8 +298,7 @@ VALUES ('COUNTY', 'https://gis.{county}.gov/.../MapServer', LAYER_ID, 'FIELD1', 
 ```
 Apply to both local (`wy`) and production (`wy --remote`), then seed `db/seed/county_gis_{slug}_seed.sql`.
 
-**Confirmed active counties:**
-- Campbell — `gis.campbellcountywy.gov` layer 1 — `PRECINCTNUM`, `VOTINGLOC`, `VOTINGLOCADDR`
+To check active GIS counties, query `county_gis` in `WY_DB`; do not hard-code a static list here.
 
 ## Share Message Workflow
 

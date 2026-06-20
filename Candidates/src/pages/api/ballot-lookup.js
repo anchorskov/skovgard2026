@@ -270,6 +270,16 @@ async function lookupDistricts(db, address) {
   // Fire precinct fetch in parallel with voter-file queries so tiers 1-3 and 5
   // can return a precinct even when the district came from the voter file.
   const precinctPromise = fetchCensusPrecinct(address);
+  const coordinatesPromise = fetchCensusCoordinates(address);
+
+  async function withCensusPoint(result) {
+    const coordinates = await coordinatesPromise;
+    return {
+      ...result,
+      lat: coordinates?.lat ?? null,
+      lon: coordinates?.lon ?? null,
+    };
+  }
 
   try {
     const placeholders = addressCandidates.map((_, index) => `?${index + 1}`).join(', ');
@@ -291,7 +301,7 @@ async function lookupDistricts(db, address) {
       address.zip
     );
     if (row) {
-      return {
+      return withCensusPoint({
         matchSource: 'address_city',
         county: normalizeText(row.county),
         wyHouse: districtLabel('HD', row.state_house_district),
@@ -299,13 +309,13 @@ async function lookupDistricts(db, address) {
         matchedCity: normalizeText(row.canonical_city),
         matchedZip: normalizeZip(row.zip5),
         precinct: await precinctPromise,
-      };
+      });
     }
 
     // Tier 2: exact address_key, any city (handles city spelling variations)
     const uniqueRow = await lookupUniqueAddressDistrict(db, addressCandidates);
     if (uniqueRow) {
-      return {
+      return withCensusPoint({
         matchSource: 'address_unique',
         county: normalizeText(uniqueRow.county),
         wyHouse: districtLabel('HD', uniqueRow.state_house_district),
@@ -313,14 +323,14 @@ async function lookupDistricts(db, address) {
         matchedCity: normalizeText(uniqueRow.canonical_city),
         matchedZip: normalizeZip(uniqueRow.zip5),
         precinct: await precinctPromise,
-      };
+      });
     }
 
     // Tier 3: LIKE prefix match — catches unit/apt suffixes (e.g. "250 E MAIN ST A")
     // Only accepted when all matching rows share the same district pair.
     const prefixRow = await lookupByAddressPrefix(db, addressCandidates, cityKey, address.zip);
     if (prefixRow) {
-      return {
+      return withCensusPoint({
         matchSource: 'address_prefix',
         county: normalizeText(prefixRow.county),
         wyHouse: districtLabel('HD', prefixRow.state_house_district),
@@ -328,7 +338,7 @@ async function lookupDistricts(db, address) {
         matchedCity: normalizeText(prefixRow.canonical_city),
         matchedZip: normalizeZip(prefixRow.zip5),
         precinct: await precinctPromise,
-      };
+      });
     }
 
     // Tier 4: US Census geocoder — covers addresses not in the voter file.
@@ -351,7 +361,7 @@ async function lookupDistricts(db, address) {
     // Tier 5: city coverage table — only when city maps to exactly one district pair
     const coverageRow = await lookupByCityCoverage(db, address);
     if (coverageRow) {
-      return {
+      return withCensusPoint({
         matchSource: 'city_coverage',
         county: normalizeText(coverageRow.county),
         wyHouse: districtLabel('HD', coverageRow.state_house_district),
@@ -359,10 +369,35 @@ async function lookupDistricts(db, address) {
         matchedCity: normalizeText(coverageRow.canonical_city),
         matchedZip: normalizeZip(coverageRow.zip5),
         precinct: await precinctPromise,
-      };
+      });
     }
 
     return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchCensusCoordinates(address) {
+  try {
+    const res = await fetch(
+      `https://geocoding.geo.census.gov/geocoder/locations/address?${new URLSearchParams({
+        street: `${address.houseNumber} ${address.street}`,
+        city: address.city,
+        state: 'WY',
+        zip: address.zip,
+        benchmark: 'Public_AR_Current',
+        format: 'json',
+      })}`,
+      { headers: { accept: 'application/json' } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const match = data?.result?.addressMatches?.[0];
+    return {
+      lat: typeof match?.coordinates?.y === 'number' ? match.coordinates.y : null,
+      lon: typeof match?.coordinates?.x === 'number' ? match.coordinates.x : null,
+    };
   } catch {
     return null;
   }
@@ -756,6 +791,40 @@ async function getPollingLocations(db, county, city) {
   }
 }
 
+async function getPollingCountyForCity(db, city) {
+  if (!db || !city) return null;
+  try {
+    const rows = await allD1(
+      db,
+      `SELECT DISTINCT county
+         FROM wy_city_county
+        WHERE LOWER(city) = LOWER(?1)
+          AND UPPER(COALESCE(state, 'WY')) = 'WY'
+        LIMIT 3`,
+      city.trim()
+    );
+    const counties = uniqueValues(rows.map((row) => normalizeText(row.county)));
+    return counties.length === 1 ? counties[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+// Priority: live ArcGIS → precinct polygon D1 → city-level D1 (only when unambiguous).
+function resolvePollingPlace(gis, polygon, d1Rows) {
+  if (gis?.location_name) return gis;
+  if (polygon?.location_name) return polygon;
+  if (Array.isArray(d1Rows) && d1Rows.length === 1) {
+    return {
+      source: 'city_d1',
+      precinct: null,
+      location_name: d1Rows[0].location_name ?? null,
+      address: d1Rows[0].address ?? null,
+    };
+  }
+  return null;
+}
+
 export async function POST({ request }) {
   let payload;
   try {
@@ -785,15 +854,17 @@ export async function POST({ request }) {
 
   const civicApiConfigured = Boolean(env.GOOGLE_CIVIC_API_KEY);
   const districts = await lookupDistricts(env.LOOKUP_DB, address);
+  const pollingCounty = districts?.county || await getPollingCountyForCity(env.WY_DB, address.city);
   const [races, localRaces, pollingDetails, d1PollingLocations, gisPollingLocation, polygonPollingLocation] = await Promise.all([
     getRaceGroups(env.WY_DB, districts),
     getLocalRaces(env.WY_DB, districts, address),
     lookupPollingDetails(address),
-    getPollingLocations(env.WY_DB, districts?.county, address.city),
+    getPollingLocations(env.WY_DB, pollingCounty, address.city),
     lookupPollingByGIS(env.WY_DB, districts?.county, districts?.lat, districts?.lon),
     lookupPollingByPolygon(env.WY_DB, districts?.county, districts?.lat, districts?.lon),
   ]);
   const isDistrictMatched = Boolean(districts?.wyHouse || districts?.wySenate || districts?.county);
+  const resolvedPollingPlace = resolvePollingPlace(gisPollingLocation, polygonPollingLocation, d1PollingLocations);
 
   return json({
     success: true,
@@ -818,6 +889,7 @@ export async function POST({ request }) {
     d1PollingLocations,
     gisPollingLocation,
     polygonPollingLocation,
+    resolvedPollingPlace,
   });
 }
 

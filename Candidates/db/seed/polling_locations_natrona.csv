@@ -1,0 +1,48 @@
+# Candidates/db/seed/polling_locations_natrona.csv
+county,precinct_code,precinct_name,location_name,address,city,zip,election_year,county_clerk_url
+Natrona,1-1,1-1,Urban Thistle Farm,"1014 Glenarm St, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,1-2,1-2,Natrona County Public Library,"307 E 2nd St, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,1-3,1-3,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,1-4,1-4,Thunderbird Gym - Casper College,"1944 Lisco Dr, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,1-5,1-5,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,1-6,1-6,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,1-7,1-7,Senior Citizens Center,"1831 E 4th St, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,1-9,1-9,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,1-11,1-11,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,1-12,1-12,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,2-1,2-1,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,2-2,2-2,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,2-3,2-3,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,2-4,2-4,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,2-6,2-6,Radius Church,"4301 Casper Mountain Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,2-7,2-7,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,2-8,2-8,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,2-9,2-9,Industrial Building,"1700 Fairgrounds Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,2-10,2-10,Bethel Baptist Church,"3030 S Poplar St, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,3-2,3-2,Restoration Church,"411 S Walsh Dr, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,3-3,3-3,Restoration Church,"411 S Walsh Dr, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,3-4,3-4,Restoration Church,"411 S Walsh Dr, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,3-5,3-5,Restoration Church,"411 S Walsh Dr, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,3-6,3-6,Restoration Church,"411 S Walsh Dr, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,3-8,3-8,Prince Of Peace Lutheran Church,"2300 E 15th St, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,3-9,3-9,Restoration Church,"411 S Walsh Dr, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,3-10,3-10,St. Patrick's Commons,"400 Country Club Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,4-1,4-1,Evansville Community Center,"71 Curtis St, Evansville, WY",Evansville,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,4-2,4-2,Evansville Community Center,"71 Curtis St, Evansville, WY",Evansville,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,5-1,5-1,Evansville Community Center,"71 Curtis St, Evansville, WY",Evansville,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,7-1,7-1,Midwest Town Hall,"531 Peake St, Midwest, WY",Midwest,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,7-2,7-2,Edgerton Town Hall,"311 N Second St, Edgerton, WY",Edgerton,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,8-1,8-1,Mills Community Center,"401 Wasatch Ave, Mills, WY",Mills,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,8-2,8-2,Mills Community Center,"401 Wasatch Ave, Mills, WY",Mills,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,8-3,8-3,Bar Nunn Town Hall & Community Center,"1500 Palomino Ave, Bar Nunn, WY",Bar Nunn,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,8-4,8-4,Christian Church Of Casper,"8188 Zero Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,8-5,8-5,Bar Nunn Town Hall & Community Center,"1500 Palomino Ave, Bar Nunn, WY",Bar Nunn,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,9-1,9-1,WY Game And Fish,"3030 Energy Ln, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,11-1,11-1,Red Creek School,"15651 State Highway 487, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,11-2,11-2,Alcova Community Church,"21925 Kortes Rd, Alcova, WY",Alcova,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,11-3,11-3,Poison Spider School,"14200 Poison Spider Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,11-4,11-4,Poison Spider School,"14200 Poison Spider Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,12-2,12-2,St Stephens Episcopal Church,"4700 S Poplar St, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,13-1,13-1,Christian Church Of Casper,"8188 Zero Rd, Casper, WY",Casper,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,13-2,13-2,House Of Our Shepard Church,"12540 Notches Ave, Powder River, WY",Powder River,,2026,https://www.natronacounty-wy.gov/194/Elections
+Natrona,14-1,14-1,Edgerton Town Hall,"311 N Second St, Edgerton, WY",Edgerton,,2026,https://www.natronacounty-wy.gov/194/Elections

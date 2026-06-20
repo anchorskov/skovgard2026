@@ -1,0 +1,21 @@
+# Candidates/db/seed/polling_locations_lincoln.csv
+county,precinct_code,precinct_name,location_name,address,city,zip,election_year,county_clerk_url
+Lincoln,1-1,Kemmerer,South Lincoln Training & Events Center,"215 WY Hwy 233, Kemmerer, WY",Kemmerer,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,1-4,Diamondville,South Lincoln Training & Events Center,"215 WY Hwy 233, Kemmerer, WY",Diamondville,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,1-6,Frontier,South Lincoln Training & Events Center,"215 WY Hwy 233, Kemmerer, WY",Frontier,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,1-7,Opal,South Lincoln Training & Events Center,"215 WY Hwy 233, Kemmerer, WY",Opal,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,1-8,LaBarge,LaBarge Town Hall,"228 S. LaBarge Street, LaBarge, WY",LaBarge,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-9,Cokeville,Cokeville Town Hall,"110 Pine Street, Cokeville, WY",Cokeville,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-1,Afton,Afton Civic Center,"150 S. Washington, Afton, WY",Afton,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-2,Afton,Afton Civic Center,"150 S. Washington, Afton, WY",Afton,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-3,Alpine,Alpine Civic Center,"121 Hwy 89, Alpine, WY",Alpine,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-4,Bedford,Thayne Community Center,"250 Vannoy Parkway, Thayne, WY",Bedford,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-5,Etna,Star Valley Community Complex,"107736 N US 89, Etna, WY",Etna,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-5,Freedom,Star Valley Community Complex,"107736 N US 89, Etna, WY",Freedom,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-6,Grover,Afton Civic Center,"150 S. Washington, Afton, WY",Grover,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-6,Auburn,Afton Civic Center,"150 S. Washington, Afton, WY",Auburn,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-7,Osmond,Afton Civic Center,"150 S. Washington, Afton, WY",Osmond,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-7,Fairview,Afton Civic Center,"150 S. Washington, Afton, WY",Fairview,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-7,Smoot,Afton Civic Center,"150 S. Washington, Afton, WY",Smoot,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-8,Thayne,Thayne Community Center,"250 Vannoy Parkway, Thayne, WY",Thayne,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
+Lincoln,2-10,Star Valley Ranch,Star Valley Ranch Town Hall,"171 Vista Drive, Star Valley Ranch, WY",Star Valley Ranch,,2026,https://www.lincolncountywy.gov/government/clerk/elections_voting_information/index.php
