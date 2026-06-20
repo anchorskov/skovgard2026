@@ -639,6 +639,13 @@ function officeAppliesToDistrict(office, districts) {
 const PRECINCT_SCOPES = new Set(['precinct_party', 'precinct_party_gender']);
 const WARD_SCOPES = new Set(['municipal_ward']);
 
+function normalizeWard(value) {
+  const text = value == null ? '' : String(value).trim().replace(/\s+/g, ' ').toUpperCase();
+  if (!text) return '';
+  const match = text.match(/\bWARD\s*(\d+|[A-Z])\b/) || text.match(/\b(\d+|[A-Z])\b/);
+  return match ? `WARD ${match[1]}` : text;
+}
+
 function normalizePrecinctCode(value) {
   return normalizeText(value)
     .toUpperCase()
@@ -655,11 +662,12 @@ function officeMatchesPrecinct(row, precinct) {
   return titleKey.startsWith(`PRECINCT ${precinctKey.replace(/-/g, ' ')} `);
 }
 
-async function getLocalRaces(db, districts, address, precinct = null) {
+async function getLocalRaces(db, districts, address, precinct = null, ward = null) {
   if (!db || !districts?.county) return { races: [], hasPrecinctRaces: false, hasWardRaces: false, county: null };
   try {
     const countyNorm = districts.county.toLowerCase().trim();
     const cityNorm = normalizeLookupKey(address.city);
+    const wardKey = normalizeWard(ward?.ward || ward);
 
     const rows = await allD1(
       db,
@@ -670,6 +678,7 @@ async function getLocalRaces(db, districts, address, precinct = null) {
          o.county,
          o.municipality,
          o.scope_kind,
+         o.ward,
          o.precinct_code,
          COUNT(c.id) AS candidate_count
        FROM offices o
@@ -711,7 +720,18 @@ async function getLocalRaces(db, districts, address, precinct = null) {
           hasPrecinctRaces = true;
         }
       } else if (WARD_SCOPES.has(scope)) {
-        hasWardRaces = true;
+        if (wardKey && normalizeWard(row.ward) === wardKey) {
+          races.push({
+            id: String(row.office_id),
+            name: row.title,
+            level: row.level,
+            municipality: row.municipality || null,
+            scopeKind: row.scope_kind || null,
+            candidateCount: Number(row.candidate_count || 0),
+          });
+        } else if (!wardKey) {
+          hasWardRaces = true;
+        }
       } else {
         races.push({
           id: String(row.office_id),
@@ -863,6 +883,58 @@ async function lookupPollingByGIS(db, county, lat, lon) {
   }
 }
 
+// ArcGIS point-in-polygon lookup for municipal ward races. Uses a D1 registry so
+// city-specific endpoints/fields are data, not hard-coded in the lookup logic.
+async function lookupWardByGIS(db, county, municipality, lat, lon) {
+  if (!db || !county || !municipality || lat == null || lon == null) return null;
+  try {
+    const gisRow = await firstD1(
+      db,
+      `SELECT mapserver_url, ward_layer, ward_field
+         FROM municipal_gis
+        WHERE LOWER(county) = LOWER(?1)
+          AND LOWER(municipality) = LOWER(?2)
+          AND status = 'active'
+        LIMIT 1`,
+      county.trim(),
+      municipality.trim()
+    );
+    if (!gisRow) return null;
+
+    const queryUrl = `${gisRow.mapserver_url}/${gisRow.ward_layer}/query?${new URLSearchParams({
+      geometry: `${lon},${lat}`,
+      geometryType: 'esriGeometryPoint',
+      spatialRel: 'esriSpatialRelIntersects',
+      inSR: '4326',
+      outFields: gisRow.ward_field,
+      returnGeometry: 'false',
+      f: 'json',
+    })}`;
+
+    const res = await fetch(queryUrl, { headers: { accept: 'application/json' } });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const feature = data?.features?.[0];
+    if (!feature) return null;
+
+    const attrs = feature.attributes || {};
+    const wardValue = attrs[gisRow.ward_field] ?? null;
+    const ward = normalizeWard(wardValue);
+    if (!ward) return null;
+
+    return {
+      source: 'gis_spatial',
+      county: normalizeText(county),
+      municipality: normalizeText(municipality),
+      ward,
+      rawWard: wardValue,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function getPollingLocations(db, county, city) {
   if (!db || !county || !city) return null;
   try {
@@ -962,17 +1034,18 @@ export async function POST({ request }) {
   const civicApiConfigured = Boolean(env.GOOGLE_CIVIC_API_KEY);
   const districts = await lookupDistricts(env.LOOKUP_DB, address);
   const pollingCounty = districts?.county || await getPollingCountyForCity(env.WY_DB, address.city);
-  const [pollingDetails, d1PollingLocations, gisPollingLocation, polygonPollingLocation] = await Promise.all([
+  const [pollingDetails, d1PollingLocations, gisPollingLocation, polygonPollingLocation, resolvedWard] = await Promise.all([
     lookupPollingDetails(address),
     getPollingLocations(env.WY_DB, pollingCounty, address.city),
     lookupPollingByGIS(env.WY_DB, districts?.county, districts?.lat, districts?.lon),
     lookupPollingByPolygon(env.WY_DB, districts?.county, districts?.lat, districts?.lon),
+    lookupWardByGIS(env.WY_DB, districts?.county, address.city, districts?.lat, districts?.lon),
   ]);
   const isDistrictMatched = Boolean(districts?.wyHouse || districts?.wySenate || districts?.county);
   const resolvedPollingPlace = resolvePollingPlace(gisPollingLocation, polygonPollingLocation, d1PollingLocations);
   const [races, localRaces] = await Promise.all([
     getRaceGroups(env.WY_DB, districts),
-    getLocalRaces(env.WY_DB, districts, address, resolvedPollingPlace?.precinct),
+    getLocalRaces(env.WY_DB, districts, address, resolvedPollingPlace?.precinct, resolvedWard),
   ]);
 
   return json({
@@ -1000,6 +1073,7 @@ export async function POST({ request }) {
     gisPollingLocation,
     polygonPollingLocation,
     resolvedPollingPlace,
+    resolvedWard,
   });
 }
 
