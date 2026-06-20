@@ -940,7 +940,7 @@ async function getPollingLocations(db, county, city) {
   try {
     const rows = await allD1(
       db,
-      `SELECT DISTINCT location_name, address, county_clerk_url
+      `SELECT DISTINCT precinct_code, location_name, address, county_clerk_url
          FROM polling_locations
         WHERE LOWER(county) = LOWER(?1)
           AND (LOWER(city) = LOWER(?2) OR city = '__countywide__')
@@ -982,7 +982,7 @@ function resolvePollingPlace(gis, polygon, d1Rows) {
   if (Array.isArray(d1Rows) && d1Rows.length === 1) {
     return {
       source: 'city_d1',
-      precinct: null,
+      precinct: d1Rows[0].precinct_code ?? null,
       location_name: d1Rows[0].location_name ?? null,
       address: d1Rows[0].address ?? null,
     };
