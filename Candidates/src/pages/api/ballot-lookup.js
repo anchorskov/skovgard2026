@@ -380,6 +380,7 @@ async function lookupDistricts(db, address) {
       ...result,
       lat: coordinates?.lat ?? null,
       lon: coordinates?.lon ?? null,
+      coordSource: coordinates?.coordSource ?? null,
     };
   }
 
@@ -452,6 +453,7 @@ async function lookupDistricts(db, address) {
         matchedZip: normalizeZip(censusRow.zip5),
         lat: censusRow.lat ?? null,
         lon: censusRow.lon ?? null,
+        coordSource: 'census',
       };
     }
 
@@ -468,7 +470,56 @@ async function lookupDistricts(db, address) {
       });
     }
 
+    // Tier 6: Nominatim fallback — address not in voter file, Census geocoder failed,
+    // and city coverage has no unambiguous district. Nominatim provides coordinates for
+    // polygon/ward lookups. County is patched in at the POST handler level (WY_DB scope).
+    // Legislative districts (HD/SD) remain null; they require address-level geocoding precision.
+    const nominatimPoint = await coordinatesPromise;
+    if (nominatimPoint?.coordSource === 'nominatim' && nominatimPoint.lat != null) {
+      return {
+        matchSource: 'nominatim_geocoder',
+        county: null,
+        wyHouse: null,
+        wySenate: null,
+        matchedCity: normalizeText(address.city),
+        matchedZip: normalizeZip(address.zip),
+        lat: nominatimPoint.lat,
+        lon: nominatimPoint.lon,
+        coordSource: 'nominatim',
+      };
+    }
+
     return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchNominatimCoordinates(address) {
+  try {
+    const params = new URLSearchParams({
+      format: 'json',
+      limit: '1',
+      street: `${address.houseNumber} ${address.street}`,
+      city: address.city,
+      state: 'Wyoming',
+      postalcode: address.zip,
+      countrycodes: 'us',
+    });
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+      headers: {
+        accept: 'application/json',
+        'user-agent': 'skovgard2026-candidates/1.0 (candidates.skovgard2026.org)',
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const result = data?.[0];
+    if (!result) return null;
+    const lat = parseFloat(result.lat);
+    const lon = parseFloat(result.lon);
+    if (!isFinite(lat) || !isFinite(lon)) return null;
+    return { lat, lon, coordSource: 'nominatim' };
   } catch {
     return null;
   }
@@ -487,15 +538,16 @@ async function fetchCensusCoordinates(address) {
       })}`,
       { headers: { accept: 'application/json' } }
     );
-    if (!res.ok) return null;
+    if (!res.ok) return fetchNominatimCoordinates(address);
     const data = await res.json();
     const match = data?.result?.addressMatches?.[0];
-    return {
-      lat: typeof match?.coordinates?.y === 'number' ? match.coordinates.y : null,
-      lon: typeof match?.coordinates?.x === 'number' ? match.coordinates.x : null,
-    };
+    if (!match) return fetchNominatimCoordinates(address);
+    const lat = typeof match.coordinates?.y === 'number' ? match.coordinates.y : null;
+    const lon = typeof match.coordinates?.x === 'number' ? match.coordinates.x : null;
+    if (lat == null || lon == null) return fetchNominatimCoordinates(address);
+    return { lat, lon, coordSource: 'census' };
   } catch {
-    return null;
+    return fetchNominatimCoordinates(address);
   }
 }
 
@@ -1032,7 +1084,15 @@ export async function POST({ request }) {
   }
 
   const civicApiConfigured = Boolean(env.GOOGLE_CIVIC_API_KEY);
-  const districts = await lookupDistricts(env.LOOKUP_DB, address);
+  let districts = await lookupDistricts(env.LOOKUP_DB, address);
+  // Nominatim tier returns coordinates but can't determine county (wy_city_county is in WY_DB,
+  // not LOOKUP_DB). Patch county here where WY_DB is in scope.
+  if (districts?.matchSource === 'nominatim_geocoder' && !districts.county) {
+    const inferredCounty = await getPollingCountyForCity(env.WY_DB, address.city);
+    if (inferredCounty) {
+      districts = { ...districts, county: normalizeText(inferredCounty).toUpperCase() };
+    }
+  }
   const pollingCounty = districts?.county || await getPollingCountyForCity(env.WY_DB, address.city);
   const [pollingDetails, d1PollingLocations, gisPollingLocation, polygonPollingLocation, resolvedWard] = await Promise.all([
     lookupPollingDetails(address),
