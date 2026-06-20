@@ -33,6 +33,44 @@ const PLACEHOLDER_RACES = [
 
 const STATEWIDE_LEVELS = new Set(['federal', 'statewide']);
 
+const STREET_SUFFIX_MAP = new Map([
+  ['STREET', 'St'],
+  ['ST', 'St'],
+  ['AVENUE', 'Ave'],
+  ['AVE', 'Ave'],
+  ['BOULEVARD', 'Blvd'],
+  ['BLVD', 'Blvd'],
+  ['HIGHWAY', 'Hwy'],
+  ['HWY', 'Hwy'],
+  ['PARKWAY', 'Pkwy'],
+  ['PKWY', 'Pkwy'],
+  ['TRAIL', 'Trl'],
+  ['TRL', 'Trl'],
+  ['CIRCLE', 'Cir'],
+  ['CIR', 'Cir'],
+  ['PLACE', 'Pl'],
+  ['PL', 'Pl'],
+  ['COURT', 'Ct'],
+  ['CT', 'Ct'],
+  ['DRIVE', 'Dr'],
+  ['DR', 'Dr'],
+  ['LANE', 'Ln'],
+  ['LN', 'Ln'],
+  ['ROAD', 'Rd'],
+  ['RD', 'Rd'],
+]);
+
+const DIRECTION_MAP = new Map([
+  ['NORTH', 'N'],
+  ['SOUTH', 'S'],
+  ['EAST', 'E'],
+  ['WEST', 'W'],
+  ['NORTHEAST', 'NE'],
+  ['NORTHWEST', 'NW'],
+  ['SOUTHEAST', 'SE'],
+  ['SOUTHWEST', 'SW'],
+]);
+
 const EMPTY_POLLING_DETAILS = {
   status: 'not_available',
   pollingLocations: [],
@@ -70,6 +108,53 @@ function normalizeZip(value) {
   return match ? match[0] : zip;
 }
 
+function normalizeHouseNumber(value) {
+  return normalizeText(value).replace(/[^\dA-Za-z-]/g, '').toUpperCase();
+}
+
+function titleStreetToken(token) {
+  if (/^\d+(ST|ND|RD|TH)$/i.test(token)) {
+    return token.toLowerCase().replace(/^\d+/, (digits) => digits);
+  }
+  if (/^[A-Z]{1,2}$/.test(token)) return token;
+  return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+}
+
+function standardizeStreetName(street, houseNumber = '') {
+  const original = normalizeText(street);
+  const houseKey = normalizeHouseNumber(houseNumber);
+  let cleaned = original
+    .replace(/[.,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const warnings = [];
+
+  if (houseKey) {
+    const leadingHousePattern = new RegExp(`^${houseKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b\\s+`, 'i');
+    if (leadingHousePattern.test(cleaned)) {
+      cleaned = cleaned.replace(leadingHousePattern, '').trim();
+      warnings.push({
+        field: 'street',
+        message: 'Removed the duplicated house number from the street name.',
+      });
+    }
+  }
+
+  const tokens = cleaned.split(/\s+/).filter(Boolean);
+  const standardized = tokens.map((token) => {
+    const key = token.toUpperCase();
+    if (DIRECTION_MAP.has(key)) return DIRECTION_MAP.get(key);
+    if (STREET_SUFFIX_MAP.has(key)) return STREET_SUFFIX_MAP.get(key);
+    return titleStreetToken(key);
+  }).join(' ');
+
+  return {
+    value: standardized,
+    changed: Boolean(original && standardized && original !== standardized),
+    warnings,
+  };
+}
+
 async function parsePayload(request) {
   const contentType = request.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
@@ -82,7 +167,8 @@ async function parsePayload(request) {
 
 function buildAddress(payload) {
   const houseNumber = normalizeText(payload.houseNumber);
-  const street = normalizeText(payload.street);
+  const streetNormalization = standardizeStreetName(payload.street, houseNumber);
+  const street = streetNormalization.value;
   const city = normalizeText(payload.city);
   const zip = normalizeZip(payload.zip);
   const combined = `${houseNumber} ${street}, ${city}, WY ${zip}`;
@@ -90,17 +176,36 @@ function buildAddress(payload) {
   return {
     houseNumber,
     street,
+    rawStreet: normalizeText(payload.street),
     city,
     state: 'WY',
     zip,
     combined,
+    inputWarnings: streetNormalization.warnings,
+    standardizedFields: {
+      street: streetNormalization.changed ? street : null,
+    },
   };
 }
 
 function validateAddress(address) {
-  return REQUIRED_FIELDS
+  const missingFields = REQUIRED_FIELDS
     .filter(([key]) => !address[key])
     .map(([, label]) => label);
+  const fieldErrors = {};
+
+  if (address.zip && !/^\d{5}$/.test(address.zip)) {
+    fieldErrors.zip = 'ZIP Code must be five digits.';
+  }
+
+  if (address.rawStreet && !/[A-Za-z]/.test(address.rawStreet)) {
+    fieldErrors.street = 'Street name must include a street name, not only a number.';
+  }
+
+  return {
+    missingFields,
+    fieldErrors,
+  };
 }
 
 function uniqueValues(values) {
@@ -840,13 +945,27 @@ export async function POST({ request }) {
   }
 
   const address = buildAddress(payload || {});
-  const missingFields = validateAddress(address);
+  const { missingFields, fieldErrors } = validateAddress(address);
   if (missingFields.length > 0) {
     return json(
       {
         success: false,
         message: `Please complete: ${missingFields.join(', ')}.`,
         missingFields,
+        fieldErrors,
+      },
+      400
+    );
+  }
+  if (Object.keys(fieldErrors).length > 0) {
+    return json(
+      {
+        success: false,
+        message: 'Please correct the highlighted address fields.',
+        fieldErrors,
+        suggestedFix: {
+          street: address.standardizedFields.street,
+        },
       },
       400
     );
@@ -869,6 +988,7 @@ export async function POST({ request }) {
   return json({
     success: true,
     address,
+    inputWarnings: address.inputWarnings,
     message: isDistrictMatched
       ? 'Lookup route connected. Districts matched from the voter address table.'
       : 'Lookup route connected. District matching is still being finalized.',

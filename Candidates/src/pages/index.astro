@@ -207,6 +207,135 @@ const addressFields = [
         return field instanceof HTMLInputElement ? field.value.trim() : '';
       }
 
+      function getField(name) {
+        const field = lookupForm?.querySelector(`[name="${name}"]`);
+        return field instanceof HTMLInputElement ? field : null;
+      }
+
+      const streetSuffixMap = new Map([
+        ['STREET', 'St'],
+        ['ST', 'St'],
+        ['AVENUE', 'Ave'],
+        ['AVE', 'Ave'],
+        ['BOULEVARD', 'Blvd'],
+        ['BLVD', 'Blvd'],
+        ['HIGHWAY', 'Hwy'],
+        ['HWY', 'Hwy'],
+        ['PARKWAY', 'Pkwy'],
+        ['PKWY', 'Pkwy'],
+        ['TRAIL', 'Trl'],
+        ['TRL', 'Trl'],
+        ['CIRCLE', 'Cir'],
+        ['CIR', 'Cir'],
+        ['PLACE', 'Pl'],
+        ['PL', 'Pl'],
+        ['COURT', 'Ct'],
+        ['CT', 'Ct'],
+        ['DRIVE', 'Dr'],
+        ['DR', 'Dr'],
+        ['LANE', 'Ln'],
+        ['LN', 'Ln'],
+        ['ROAD', 'Rd'],
+        ['RD', 'Rd'],
+      ]);
+
+      const directionMap = new Map([
+        ['NORTH', 'N'],
+        ['SOUTH', 'S'],
+        ['EAST', 'E'],
+        ['WEST', 'W'],
+        ['NORTHEAST', 'NE'],
+        ['NORTHWEST', 'NW'],
+        ['SOUTHEAST', 'SE'],
+        ['SOUTHWEST', 'SW'],
+      ]);
+
+      function normalizeHouseNumber(value) {
+        return String(value || '').trim().replace(/[^\dA-Za-z-]/g, '').toUpperCase();
+      }
+
+      function titleStreetToken(token) {
+        if (/^\d+(ST|ND|RD|TH)$/i.test(token)) {
+          return token.toLowerCase().replace(/^\d+/, (digits) => digits);
+        }
+        if (/^[A-Z]{1,2}$/.test(token)) return token;
+        return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+      }
+
+      function standardizeStreetName(street, houseNumber = '') {
+        const original = String(street || '').trim().replace(/\s+/g, ' ');
+        const houseKey = normalizeHouseNumber(houseNumber);
+        let cleaned = original
+          .replace(/[.,]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        const warnings = [];
+
+        if (houseKey) {
+          const escapedHouse = houseKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const leadingHousePattern = new RegExp(`^${escapedHouse}\\b\\s+`, 'i');
+          if (leadingHousePattern.test(cleaned)) {
+            cleaned = cleaned.replace(leadingHousePattern, '').trim();
+            warnings.push('Removed the duplicated house number from the street name.');
+          }
+        }
+
+        const value = cleaned.split(/\s+/).filter(Boolean).map((token) => {
+          const key = token.toUpperCase();
+          if (directionMap.has(key)) return directionMap.get(key);
+          if (streetSuffixMap.has(key)) return streetSuffixMap.get(key);
+          return titleStreetToken(key);
+        }).join(' ');
+
+        return {
+          value,
+          changed: Boolean(original && value && original !== value),
+          warnings,
+        };
+      }
+
+      function clearFieldErrors() {
+        ['houseNumber', 'street', 'city', 'zip'].forEach((name) => {
+          getField(name)?.removeAttribute('aria-invalid');
+        });
+      }
+
+      function markFieldErrors(fieldErrors = {}) {
+        Object.keys(fieldErrors).forEach((name) => {
+          getField(name)?.setAttribute('aria-invalid', 'true');
+        });
+      }
+
+      function validateAndNormalizePayload() {
+        clearFieldErrors();
+
+        const payload = {
+          houseNumber: getFieldValue('houseNumber'),
+          street: getFieldValue('street'),
+          city: getFieldValue('city'),
+          zip: getFieldValue('zip'),
+        };
+        const fieldErrors = {};
+        const warnings = [];
+
+        const streetNormalization = standardizeStreetName(payload.street, payload.houseNumber);
+        if (streetNormalization.value && streetNormalization.value !== payload.street) {
+          payload.street = streetNormalization.value;
+          const streetField = getField('street');
+          if (streetField) streetField.value = streetNormalization.value;
+          warnings.push(...streetNormalization.warnings);
+        }
+
+        if (payload.zip && !/^\d{5}$/.test(payload.zip)) {
+          fieldErrors.zip = 'ZIP Code must be five digits.';
+        }
+        if (payload.street && !/[A-Za-z]/.test(payload.street)) {
+          fieldErrors.street = 'Street name must include a street name, not only a number.';
+        }
+
+        return { payload, fieldErrors, warnings };
+      }
+
       function setLookupStatus(message, tone = 'neutral') {
         if (!lookupStatus) return;
         lookupStatus.textContent = message;
@@ -457,6 +586,7 @@ const addressFields = [
           districts?.wyHouse   ? { label: 'House',    value: districts.wyHouse }   : null,
           districts?.wySenate  ? { label: 'Senate',   value: districts.wySenate }  : null,
           districts?.county    ? { label: 'County',   value: toTitleCase(districts.county) } : null,
+          districts?.precinct  ? { label: 'Precinct', value: districts.precinct } : null,
         ].filter(Boolean);
 
         if (chips.length === 0) {
@@ -476,12 +606,7 @@ const addressFields = [
       lookupForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        const payload = {
-          houseNumber: getFieldValue('houseNumber'),
-          street: getFieldValue('street'),
-          city: getFieldValue('city'),
-          zip: getFieldValue('zip'),
-        };
+        const { payload, fieldErrors, warnings } = validateAndNormalizePayload();
         const missing = Object.entries(payload)
           .filter(([, value]) => !value)
           .map(([key]) => key);
@@ -492,7 +617,16 @@ const addressFields = [
         setHidden(pollingSection, true);
 
         if (missing.length > 0) {
+          markFieldErrors(Object.fromEntries(missing.map((key) => [key, true])));
           setLookupStatus('Please complete house number, street name, city, and ZIP Code.', 'error');
+          return;
+        }
+
+        if (Object.keys(fieldErrors).length > 0) {
+          markFieldErrors(fieldErrors);
+          setLookupStatus(Object.values(fieldErrors).join(' '), 'error');
+          const firstError = Object.keys(fieldErrors)[0];
+          getField(firstError)?.focus();
           return;
         }
 
@@ -511,12 +645,27 @@ const addressFields = [
           const data = await response.json();
 
           if (!response.ok || !data.success) {
+            if (data.fieldErrors) {
+              markFieldErrors(data.fieldErrors);
+              const firstError = Object.keys(data.fieldErrors)[0];
+              if (data.suggestedFix?.street && getField('street')) {
+                getField('street').value = data.suggestedFix.street;
+              }
+              getField(firstError)?.focus();
+            }
             setLookupStatus(data.message || 'Lookup failed. Please check the address fields.', 'error');
             return;
           }
 
+          if (data.address?.standardizedFields?.street && getField('street')) {
+            getField('street').value = data.address.standardizedFields.street;
+          }
+          const standardizationNote = [
+            ...warnings,
+            ...(Array.isArray(data.inputWarnings) ? data.inputWarnings.map((warning) => warning.message).filter(Boolean) : []),
+          ].filter(Boolean);
           setLookupStatus(
-            `${data.message} Resolved address: ${data.address.combined}`,
+            `${standardizationNote.length > 0 ? `${standardizationNote.join(' ')} ` : ''}${data.message} Resolved address: ${data.address.combined}`,
             'success'
           );
           renderDistricts(data.districts);
@@ -884,6 +1033,11 @@ const addressFields = [
   .address-form input:focus {
     border-color: var(--ember);
     outline: 3px solid var(--dust);
+  }
+
+  .address-form input[aria-invalid='true'] {
+    border-color: var(--ember);
+    background: #fff8f6;
   }
 
   .form-note {
