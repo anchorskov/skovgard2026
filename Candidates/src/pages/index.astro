@@ -416,14 +416,17 @@ const addressFields = [
         let html = '<h3>County &amp; Local races</h3>';
 
         if (hasRaces) {
-          const countyRaces = races.filter((r) => r.level === 'county');
+          const precinctRaces = races.filter((r) => r.scopeKind === 'precinct_party' || r.scopeKind === 'precinct_party_gender');
+          const countyRaces = races.filter((r) => r.level === 'county' && !precinctRaces.includes(r));
           const cityRaces   = races.filter((r) => r.level === 'city');
-          const hasBoth     = countyRaces.length > 0 && cityRaces.length > 0;
+          const groupCount = [countyRaces, cityRaces, precinctRaces].filter((list) => list.length > 0).length;
 
-          if (hasBoth) html += '<p class="local-sublabel">County offices</p>';
+          if (groupCount > 1 && countyRaces.length > 0) html += '<p class="local-sublabel">County offices</p>';
           if (countyRaces.length > 0) html += `<ul class="race-result-list">${raceCards(countyRaces)}</ul>`;
-          if (hasBoth) html += '<p class="local-sublabel">Municipal offices</p>';
+          if (groupCount > 1 && cityRaces.length > 0) html += '<p class="local-sublabel">Municipal offices</p>';
           if (cityRaces.length > 0)   html += `<ul class="race-result-list">${raceCards(cityRaces)}</ul>`;
+          if (groupCount > 1 && precinctRaces.length > 0) html += '<p class="local-sublabel">Precinct offices</p>';
+          if (precinctRaces.length > 0) html += `<ul class="race-result-list">${raceCards(precinctRaces)}</ul>`;
         }
 
         if (hasNote) {

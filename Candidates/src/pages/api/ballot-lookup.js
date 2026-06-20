@@ -634,12 +634,28 @@ function officeAppliesToDistrict(office, districts) {
   return false;
 }
 
-// Scope kinds that require precinct or ward data we don't have per-address.
-// These are counted and surfaced as a browse prompt rather than shown inline.
+// Scope kinds that need sub-county targeting. Precinct races can be matched
+// when county GIS/polygon lookup returns a precinct code.
 const PRECINCT_SCOPES = new Set(['precinct_party', 'precinct_party_gender']);
 const WARD_SCOPES = new Set(['municipal_ward']);
 
-async function getLocalRaces(db, districts, address) {
+function normalizePrecinctCode(value) {
+  return normalizeText(value)
+    .toUpperCase()
+    .replace(/^PRECINCT\s+/i, '')
+    .replace(/[^\dA-Z]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function officeMatchesPrecinct(row, precinct) {
+  const precinctKey = normalizePrecinctCode(precinct);
+  if (!precinctKey) return false;
+  if (row.precinct_code && normalizePrecinctCode(row.precinct_code) === precinctKey) return true;
+  const titleKey = normalizeLookupKey(row.title).replace(/\s+/g, ' ');
+  return titleKey.startsWith(`PRECINCT ${precinctKey.replace(/-/g, ' ')} `);
+}
+
+async function getLocalRaces(db, districts, address, precinct = null) {
   if (!db || !districts?.county) return { races: [], hasPrecinctRaces: false, hasWardRaces: false, county: null };
   try {
     const countyNorm = districts.county.toLowerCase().trim();
@@ -654,6 +670,7 @@ async function getLocalRaces(db, districts, address) {
          o.county,
          o.municipality,
          o.scope_kind,
+         o.precinct_code,
          COUNT(c.id) AS candidate_count
        FROM offices o
        LEFT JOIN candidates c ON c.office_id = o.id AND c.withdrawn_at IS NULL
@@ -681,7 +698,18 @@ async function getLocalRaces(db, districts, address) {
     for (const row of countyRows) {
       const scope = row.scope_kind || '';
       if (PRECINCT_SCOPES.has(scope)) {
-        hasPrecinctRaces = true;
+        if (precinct && officeMatchesPrecinct(row, precinct)) {
+          races.push({
+            id: String(row.office_id),
+            name: row.title,
+            level: row.level,
+            municipality: row.municipality || null,
+            scopeKind: row.scope_kind || null,
+            candidateCount: Number(row.candidate_count || 0),
+          });
+        } else if (!precinct) {
+          hasPrecinctRaces = true;
+        }
       } else if (WARD_SCOPES.has(scope)) {
         hasWardRaces = true;
       } else {
@@ -690,6 +718,7 @@ async function getLocalRaces(db, districts, address) {
           name: row.title,
           level: row.level,
           municipality: row.municipality || null,
+          scopeKind: row.scope_kind || null,
           candidateCount: Number(row.candidate_count || 0),
         });
       }
@@ -933,9 +962,7 @@ export async function POST({ request }) {
   const civicApiConfigured = Boolean(env.GOOGLE_CIVIC_API_KEY);
   const districts = await lookupDistricts(env.LOOKUP_DB, address);
   const pollingCounty = districts?.county || await getPollingCountyForCity(env.WY_DB, address.city);
-  const [races, localRaces, pollingDetails, d1PollingLocations, gisPollingLocation, polygonPollingLocation] = await Promise.all([
-    getRaceGroups(env.WY_DB, districts),
-    getLocalRaces(env.WY_DB, districts, address),
+  const [pollingDetails, d1PollingLocations, gisPollingLocation, polygonPollingLocation] = await Promise.all([
     lookupPollingDetails(address),
     getPollingLocations(env.WY_DB, pollingCounty, address.city),
     lookupPollingByGIS(env.WY_DB, districts?.county, districts?.lat, districts?.lon),
@@ -943,6 +970,10 @@ export async function POST({ request }) {
   ]);
   const isDistrictMatched = Boolean(districts?.wyHouse || districts?.wySenate || districts?.county);
   const resolvedPollingPlace = resolvePollingPlace(gisPollingLocation, polygonPollingLocation, d1PollingLocations);
+  const [races, localRaces] = await Promise.all([
+    getRaceGroups(env.WY_DB, districts),
+    getLocalRaces(env.WY_DB, districts, address, resolvedPollingPlace?.precinct),
+  ]);
 
   return json({
     success: true,

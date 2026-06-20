@@ -11,6 +11,7 @@ offices (86 rows)
   level        TEXT NOT NULL           -- federal | statewide | wy_senate | wy_house | county | city
   district     INTEGER NULLABLE        -- NULL for federal/statewide; HD/SD number otherwise
   sort_order   INTEGER DEFAULT 0
+  precinct_code TEXT NULLABLE          -- structured precinct code for precinct committee offices
 
 candidates (200 rows)
   id                          INTEGER PK AUTOINCREMENT
@@ -111,6 +112,7 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `level` | Enumerated: `federal` (US House/Senate), `statewide` (Governor, AG, etc.), `wy_senate`, `wy_house`, `county`, `city` |
 | `district` | NULL for any statewide or at-large office; numeric district for legislative seats (HD1–HD60, SD1–SD30) |
 | `sort_order` | Used for consistent UI display ordering within a level |
+| `precinct_code` | Structured precinct code for precinct committee offices, e.g. `8-1`, `01-01`; preferred over parsing `title` |
 
 ### candidates — base fields
 
@@ -150,6 +152,8 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/migrations/0005_candidates_ballotpedia.sql` | Adds Ballotpedia fields to `candidates` |
 | `db/migrations/0006_polling_locations.sql` | Creates `polling_locations` table for city-based fallback lookup |
 | `db/migrations/0007_county_gis.sql` | Creates `county_gis` registry for ArcGIS spatial polling lookup |
+| `db/migrations/0008_precinct_polygons.sql` | Creates local precinct polygon fallback table |
+| `db/migrations/0009_offices_precinct_code.sql` | Adds `offices.precinct_code` and backfills title-derived precinct committee rows |
 
 ## Seed files
 
