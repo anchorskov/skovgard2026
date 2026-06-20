@@ -375,31 +375,36 @@ const addressFields = [
         `;
       }
 
-      function renderD1PollingLocations(locations) {
-        if (!Array.isArray(locations) || locations.length === 0) return '';
-        const items = locations.map((loc) => {
-          const clerkLink = loc.county_clerk_url
-            ? `<p class="poll-clerk-link"><a href="${escapeHtml(loc.county_clerk_url)}" rel="noopener noreferrer">Verify with your county clerk →</a></p>`
-            : '';
-          return `<li>
-            <strong class="poll-loc-name">${escapeHtml(loc.location_name)}</strong>
-            <p class="poll-loc-addr">${escapeHtml(loc.address)}</p>
-            ${clerkLink}
-          </li>`;
-        }).join('');
+      function renderResolvedPolling(resolved) {
+        if (!resolved?.location_name) return '';
+        const labels = {
+          gis_spatial: 'Polling location for your precinct',
+          polygon_d1:  'Polling location for your precinct',
+          city_d1:     'Polling location for your area',
+        };
+        const heading = labels[resolved.source] || 'Polling location';
+        const note = resolved.source === 'city_d1'
+          ? '<p class="polling-note">Based on your city. Verify with your county clerk before election day.</p>'
+          : '';
+        const addrLine = resolved.address
+          ? `<p class="poll-loc-addr">${escapeHtml(resolved.address)}</p>`
+          : '';
         return `
           <section class="polling-subsection polling-subsection--d1">
-            <h4>Polling location for your area</h4>
-            <ul>${items}</ul>
-            <p class="polling-note">Location is based on your city. Verify with your county clerk before election day.</p>
+            <h4>${escapeHtml(heading)}</h4>
+            <ul><li>
+              <strong class="poll-loc-name">${escapeHtml(resolved.location_name)}</strong>
+              ${addrLine}
+            </li></ul>
+            ${note}
           </section>
         `;
       }
 
-      function renderPollingDetails(details, d1Locations) {
+      function renderPollingDetails(details, resolvedPolling) {
         if (!pollingSection) return;
         const status = details?.status || 'not_available';
-        const d1Html = renderD1PollingLocations(d1Locations);
+        const d1Html = renderResolvedPolling(resolvedPolling);
 
         // api_not_configured: show D1 data if we have it, otherwise hide
         if (status === 'api_not_configured') {
@@ -517,7 +522,7 @@ const addressFields = [
           renderDistricts(data.districts);
           renderRaces(data.races);
           renderLocalRaces(data.localRaces, data.localMeta);
-          renderPollingDetails(data.pollingDetails, data.d1PollingLocations);
+          renderPollingDetails(data.pollingDetails, data.resolvedPollingPlace);
         } catch {
           setLookupStatus('Lookup route could not be reached. Please try again later.', 'error');
         } finally {
