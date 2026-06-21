@@ -1084,15 +1084,42 @@ export async function POST({ request }) {
   }
 
   const civicApiConfigured = Boolean(env.GOOGLE_CIVIC_API_KEY);
+
+  // Extract GPS coordinates if the browser sent them (from the GPS button).
+  const gpsLat = parseFloat(payload.gpsLat ?? '');
+  const gpsLon = parseFloat(payload.gpsLon ?? '');
+  const hasGpsCoords = isFinite(gpsLat) && isFinite(gpsLon);
+
   let districts = await lookupDistricts(env.LOOKUP_DB, address);
-  // Nominatim tier returns coordinates but can't determine county (wy_city_county is in WY_DB,
-  // not LOOKUP_DB). Patch county here where WY_DB is in scope.
-  if (districts?.matchSource === 'nominatim_geocoder' && !districts.county) {
+
+  // GPS direct fallback: all geocoding tiers failed but the browser sent exact coordinates.
+  // Build a minimal districts object so GIS polygon / ArcGIS lookups can still run.
+  if (!districts && hasGpsCoords) {
+    districts = {
+      matchSource: 'gps_direct',
+      county: null,
+      wyHouse: null,
+      wySenate: null,
+      matchedCity: normalizeText(address.city),
+      matchedZip: normalizeZip(address.zip),
+      lat: gpsLat,
+      lon: gpsLon,
+      coordSource: 'gps',
+    };
+  } else if (districts && districts.lat == null && hasGpsCoords) {
+    // Geocoding succeeded but yielded no coordinates — augment with GPS for polling lookups.
+    districts = { ...districts, lat: gpsLat, lon: gpsLon, coordSource: 'gps' };
+  }
+
+  // nominatim_geocoder and gps_direct: county cannot be resolved inside lookupDistricts
+  // (WY_DB is not in scope there). Patch it now using the city→county table.
+  if ((districts?.matchSource === 'nominatim_geocoder' || districts?.matchSource === 'gps_direct') && !districts.county) {
     const inferredCounty = await getPollingCountyForCity(env.WY_DB, address.city);
     if (inferredCounty) {
       districts = { ...districts, county: normalizeText(inferredCounty).toUpperCase() };
     }
   }
+
   const pollingCounty = districts?.county || await getPollingCountyForCity(env.WY_DB, address.city);
   const [pollingDetails, d1PollingLocations, gisPollingLocation, polygonPollingLocation, resolvedWard] = await Promise.all([
     lookupPollingDetails(address),
@@ -1103,9 +1130,12 @@ export async function POST({ request }) {
   ]);
   const isDistrictMatched = Boolean(districts?.wyHouse || districts?.wySenate || districts?.county);
   const resolvedPollingPlace = resolvePollingPlace(gisPollingLocation, polygonPollingLocation, d1PollingLocations);
+  // If geocoding matched no county but we know the county from the city→county table,
+  // pass that to getLocalRaces so county-level races still appear.
+  const effectiveDistricts = districts ?? (pollingCounty ? { county: pollingCounty } : null);
   const [races, localRaces] = await Promise.all([
     getRaceGroups(env.WY_DB, districts),
-    getLocalRaces(env.WY_DB, districts, address, resolvedPollingPlace?.precinct, resolvedWard),
+    getLocalRaces(env.WY_DB, effectiveDistricts, address, resolvedPollingPlace?.precinct, resolvedWard),
   ]);
 
   return json({

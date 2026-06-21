@@ -55,11 +55,20 @@
     <label for="cfg-key">Admin key</label>
     <input id="cfg-key" type="password" placeholder="SHARE_ADMIN_KEY value" autocomplete="off" />
 
-    <label for="cfg-slug">Message</label>
+    <label for="cfg-slug">Email type or share message</label>
     <select id="cfg-slug">
-      <option value="">Loading messages…</option>
+      <option value="__custom__">Regular email</option>
+      <option value="" disabled>Loading share messages…</option>
     </select>
     <div id="slug-load-err" style="display:none;font-size:0.8125rem;color:#991b1b;margin-top:-14px;margin-bottom:10px;"></div>
+
+    <div id="custom-email-fields" hidden>
+      <label for="cfg-subject">Subject line</label>
+      <input id="cfg-subject" type="text" placeholder="Write the subject line" maxlength="180" />
+
+      <label for="cfg-body">Email body</label>
+      <textarea id="cfg-body" placeholder="Write the email body"></textarea>
+    </div>
 
     <label for="cfg-sender">Sender name <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
     <input id="cfg-sender" type="text" placeholder="e.g. Jimmy Skovgard" maxlength="80" />
@@ -95,6 +104,18 @@
   const keyEl       = document.getElementById('cfg-key');
   const slugEl      = document.getElementById('cfg-slug');
   const slugErrEl   = document.getElementById('slug-load-err');
+  const customFieldsEl = document.getElementById('custom-email-fields');
+  const subjectEl   = document.getElementById('cfg-subject');
+  const bodyEl      = document.getElementById('cfg-body');
+  const CUSTOM_EMAIL_VALUE = '__custom__';
+
+  function isCustomEmail() {
+    return slugEl.value === CUSTOM_EMAIL_VALUE;
+  }
+
+  function updateEmailTypeUi() {
+    customFieldsEl.hidden = !isCustomEmail();
+  }
 
   // Populate message dropdown from Worker registry
   (async () => {
@@ -102,15 +123,19 @@
       const resp = await fetch('/api/share/messages');
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const { messages } = await resp.json();
-      slugEl.innerHTML = messages
-        .map(m => `<option value="${m.slug}">${m.title}</option>`)
-        .join('');
+      slugEl.innerHTML = [
+        `<option value="${CUSTOM_EMAIL_VALUE}">Regular email</option>`,
+        ...messages.map(m => `<option value="${m.slug}">${m.title}</option>`),
+      ].join('');
+      updateEmailTypeUi();
     } catch (err) {
       slugErrEl.textContent = 'Could not load message list — is the Worker running? (' + err.message + ')';
       slugErrEl.style.display = '';
-      slugEl.innerHTML = '<option value="">— failed to load —</option>';
+      slugEl.innerHTML = `<option value="${CUSTOM_EMAIL_VALUE}">Regular email</option><option value="" disabled>— share messages failed to load —</option>`;
+      updateEmailTypeUi();
     }
   })();
+  slugEl.addEventListener('change', updateEmailTypeUi);
   const senderEl  = document.getElementById('cfg-sender');
   const emailsEl  = document.getElementById('cfg-emails');
   const countEl   = document.getElementById('parsed-count');
@@ -145,28 +170,35 @@
     statusEl.textContent = msg;
   }
 
-  async function sendBatch(recipients, adminKey, slug, senderName) {
+  async function sendBatch(recipients, adminKey, slug, senderName, customEmail) {
+    const payload = {
+      sender_name: senderName,
+      recipients,
+      admin_key: adminKey,
+      _t: Date.now(),
+    };
+    if (customEmail) {
+      payload.email_mode = 'custom';
+      payload.subject = subjectEl.value.trim();
+      payload.body = bodyEl.value.trim();
+    } else {
+      payload.message_slug = slug;
+    }
     const resp = await fetch('/api/share', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        message_slug: slug,
-        sender_name:  senderName,
-        recipients,
-        admin_key:    adminKey,
-        _t:           Date.now(),
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await resp.json().catch(() => ({}));
     return { ok: resp.ok && data.ok, sent: data.sent || 0, failed_emails: data.failed_emails || [], error: data.error || null, status: resp.status };
   }
 
-  async function sendBatchWithRetry(recipients, adminKey, slug, senderName) {
-    const first = await sendBatch(recipients, adminKey, slug, senderName);
+  async function sendBatchWithRetry(recipients, adminKey, slug, senderName, customEmail) {
+    const first = await sendBatch(recipients, adminKey, slug, senderName, customEmail);
     // If entire batch failed (HTTP 500 / rate limit), wait 10s and retry once
     if (!first.ok && first.status === 500) {
       await new Promise(r => setTimeout(r, 10000));
-      return sendBatch(recipients, adminKey, slug, senderName);
+      return sendBatch(recipients, adminKey, slug, senderName, customEmail);
     }
     return first;
   }
@@ -176,8 +208,12 @@
     const slug      = slugEl.value;
     const sender    = senderEl.value.trim();
     const emails    = parseEmails(emailsEl.value);
+    const customEmail = isCustomEmail();
 
     if (!adminKey) { setStatus('Enter the admin key.', 'error'); return; }
+    if (!customEmail && !slug) { setStatus('Select a share message.', 'error'); return; }
+    if (customEmail && !subjectEl.value.trim()) { setStatus('Enter a subject line for the regular email.', 'error'); return; }
+    if (customEmail && !bodyEl.value.trim()) { setStatus('Enter the regular email body.', 'error'); return; }
     if (emails.length === 0) { setStatus('No valid email addresses found.', 'error'); return; }
 
     sendBtn.disabled = true;
@@ -201,7 +237,7 @@
       progressLabel.textContent = `Batch ${i + 1} of ${batches.length} — ${totalSent} sent so far…`;
 
       try {
-        const result = await sendBatchWithRetry(batches[i], adminKey, slug, sender);
+        const result = await sendBatchWithRetry(batches[i], adminKey, slug, sender, customEmail);
         if (result.ok) {
           totalSent += result.sent || batches[i].length;
           if (result.failed_emails.length) {
@@ -240,6 +276,8 @@
   resetBtn.addEventListener('click', () => {
     emailsEl.value = '';
     senderEl.value = '';
+    subjectEl.value = '';
+    bodyEl.value = '';
     countEl.textContent = '';
     progressWrap.style.display = 'none';
     progressLabel.style.display = 'none';

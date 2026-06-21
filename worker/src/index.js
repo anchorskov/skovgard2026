@@ -2632,9 +2632,16 @@ export default {
           return json(req, env, { error: "Invalid sender name." }, 400);
         }
 
-        const messageSlug = String(b.message_slug || "jimmys-story").trim();
-        const msg = SHARE_MESSAGES[messageSlug];
-        if (!msg) {
+        const isCustomAdminEmail = String(b.email_mode || "") === "custom";
+        if (isCustomAdminEmail && !isAdminSend) {
+          return json(req, env, { error: "Regular email requires the admin key." }, 403);
+        }
+
+        const messageSlug = isCustomAdminEmail
+          ? "admin-regular-email"
+          : String(b.message_slug || "jimmys-story").trim();
+        const msg = isCustomAdminEmail ? null : SHARE_MESSAGES[messageSlug];
+        if (!isCustomAdminEmail && !msg) {
           return json(req, env, { error: "Unknown message." }, 400);
         }
 
@@ -2648,21 +2655,41 @@ export default {
           return json(req, env, { error: "At least one valid email address is required." }, 400);
         }
 
-        const senderIntro = msg.intro(senderName);
-        const subject     = msg.subject(senderName);
-
-        const htmlBody = buildShareEmailHtml({
-          sender_name:  senderName,
-          sender_intro: senderIntro,
-          body_html:    msg.body_html,
-          preview_text: msg.preview_text,
-          title:        msg.title,
-        });
-        const textBody = buildShareEmailText({
-          sender_name:  senderName,
-          sender_intro: senderIntro,
-          slug:         messageSlug,
-        });
+        let subject;
+        let htmlBody;
+        let textBody;
+        if (isCustomAdminEmail) {
+          subject = normalizeAdminEmailSubject(b.subject);
+          textBody = normalizeAdminEmailBody(b.body);
+          if (!subject || /[\r\n\x00]/.test(subject)) {
+            return json(req, env, { error: "A valid email subject is required." }, 400);
+          }
+          if (subject.length > 180) {
+            return json(req, env, { error: "Email subject too long." }, 400);
+          }
+          if (!textBody) {
+            return json(req, env, { error: "An email body is required." }, 400);
+          }
+          if (textBody.length > 20000) {
+            return json(req, env, { error: "Email body too long." }, 400);
+          }
+          htmlBody = `<div style="font-family:Georgia, 'Times New Roman', serif;color:#2b2b2b;line-height:1.6;">${escHtml(textBody).replace(/\n/g, "<br>")}</div>`;
+        } else {
+          const senderIntro = msg.intro(senderName);
+          subject = msg.subject(senderName);
+          htmlBody = buildShareEmailHtml({
+            sender_name:  senderName,
+            sender_intro: senderIntro,
+            body_html:    msg.body_html,
+            preview_text: msg.preview_text,
+            title:        msg.title,
+          });
+          textBody = buildShareEmailText({
+            sender_name:  senderName,
+            sender_intro: senderIntro,
+            slug:         messageSlug,
+          });
+        }
 
         // Use "Display Name <addr>" format; bare address from env stays as-is if already formatted
         const fromFormatted = fromAddr.includes('<')
@@ -2681,8 +2708,8 @@ export default {
             html: htmlBody,
             reply_to: fromAddr,
             tags: [
-              { name: "source", value: "share" },
-              { name: "kind", value: "friend_share" },
+              { name: "source", value: isAdminSend ? "admin_share" : "share" },
+              { name: "kind", value: isCustomAdminEmail ? "regular_email" : "friend_share" },
             ],
           })
             .then((r) => ({ ok: true,  email: to, resendId: r?.id || null }))
@@ -2786,7 +2813,7 @@ export default {
         return new Response(JSON.stringify({ ok: true, messages }), {
           headers: {
             "Content-Type": "application/json",
-            "Cache-Control": "public, max-age=300",
+            "Cache-Control": "no-store",
             "Access-Control-Allow-Origin": req.headers.get("origin") || "*",
           },
         });
