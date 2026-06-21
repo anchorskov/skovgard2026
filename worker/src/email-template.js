@@ -1137,6 +1137,59 @@ const CANDIDATE_HUB_BODY_HTML = `
 </table>
 `;
 
+const HIGHER_PRICES_WASHINGTON_DEBT_BODY_HTML = `
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  The economy may look good on paper, but printed money and runaway spending show up where it
+  matters &#8212; at the grocery store, the gas pump, the utility bill, and the cost of a home
+  or vehicle. When the money supply keeps growing, prices keep rising, and it is Wyoming families
+  who pay the price.
+</p>
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  At the same time, America keeps entering conflicts without a clear path out. Open-ended foreign
+  war is expensive &#8212; in lives, in treasure, and in the trust that holds a nation together.
+  We have seen this before. A conflict without a plan to end it is a conflict that never ends.
+</p>
+<p style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#111827;">
+  And the debt keeps climbing. We went from around $36 trillion to nearly $40 trillion in less
+  than two years &#8212; burning through $3.5 trillion of the $4 trillion ceiling that was just
+  raised. Inflating a debt away only works if the spending stops. It hasn&#8217;t stopped.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+  <tr>
+    <td style="background:#f9f6f0;border-left:4px solid #b22234;padding:18px 20px;border-radius:0 8px 8px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#b22234;">The Answer Starts With Accountability</p>
+      <p style="margin:0 0 12px;font-size:15px;line-height:1.65;color:#111827;">
+        We need representatives from the people &#8212; not tied to big money, not trapped inside
+        the system, and willing to speak honestly about debt, spending, war, and the future we are
+        leaving our children and grandchildren.
+      </p>
+      <p style="margin:0;font-size:15px;line-height:1.65;color:#374151;">
+        That is why Jimmy Skovgard is running. Someone close to the people needs to step up and
+        speak for the people.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<table cellpadding="0" cellspacing="0" style="margin:4px 0 24px;">
+  <tr>
+    <td style="background:#b22234;border-radius:8px;padding:12px 28px;">
+      <a href="https://skovgard2026.org/pulse"
+         style="color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;">
+        Sign up for campaign updates on the Pulse page &#8594;
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:24px 0 0;font-size:16px;line-height:1.9;color:#111827;font-weight:700;">
+  Economy. War. Debt.<br />
+  These are real problems.<br />
+  Wyoming deserves real answers.
+</p>
+`;
+
 export const SHARE_MESSAGES = {
   "fleecing-letters": {
     title:        "The Fleecing Letters",
@@ -1387,6 +1440,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted to share this Wyoming voter resource with you.`
         : "A Wyoming neighbor wanted to share this voter resource with you.";
+    },
+  },
+  "higher-prices-washington-debt": {
+    title:        "Higher Prices, Endless Wars, and Washington Debt",
+    body_html:    HIGHER_PRICES_WASHINGTON_DEBT_BODY_HTML,
+    preview_text: "Rising costs, open-ended conflicts, and a $40 trillion debt spiral. Wyoming families pay the price. We need representatives from the people.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — Higher Prices, Endless Wars, and Washington Debt`
+        : "Higher prices, endless wars, and Washington debt — a Wyoming message";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming message with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
     },
   },
 };
@@ -2003,6 +2071,35 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Download the Candidate Card Update Instructions (PDF):",
           "https://skovgard2026.org/documents/candidate-card-update-instructions.pdf",
+        ]
+    : slug === "higher-prices-washington-debt"
+      ? [
+          "The economy may look good on paper, but printed money and runaway spending show up",
+          "where it matters — at the grocery store, the gas pump, the utility bill, and the",
+          "cost of a home or vehicle. When the money supply keeps growing, prices keep rising,",
+          "and it is Wyoming families who pay the price.",
+          "",
+          "America keeps entering conflicts without a clear path out. Open-ended foreign war is",
+          "expensive — in lives, in treasure, and in the trust that holds a nation together.",
+          "We have seen this before. A conflict without a plan to end it never ends.",
+          "",
+          "And the debt keeps climbing. We went from around $36 trillion to nearly $40 trillion",
+          "in less than two years. Inflating a debt away only works if the spending stops.",
+          "It hasn't stopped.",
+          "",
+          "THE ANSWER STARTS WITH ACCOUNTABILITY",
+          "",
+          "We need representatives from the people — not tied to big money, not trapped inside",
+          "the system, and willing to speak honestly about debt, spending, war, and the future",
+          "we are leaving our children and grandchildren.",
+          "",
+          "That is why Jimmy Skovgard is running. Someone close to the people needs to step up",
+          "and speak for the people.",
+          "",
+          "Sign up for campaign updates on the Pulse page:",
+          "https://skovgard2026.org/pulse",
+          "",
+          "Watch the video: https://skovgard2026.org/share/higher-prices-washington-debt",
         ]
     : slug === "changing-health-care"
       ? [
