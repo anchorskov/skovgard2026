@@ -54,9 +54,10 @@ PULSE_EMAIL_FROM = "pulse@grassrootsmvt.org"
 PULSE_EMAIL_CAMPAIGN_NAME = "Skovgard for Senate"
 
 [[env.production.d1_databases]]
-binding = "DB"
-database_name = "ballot_sources"
-database_id   = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
+binding         = "DB"
+database_name   = "ballot_sources"
+database_id     = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
+migrations_dir  = "migrations"
 
 [[env.production.d1_databases]]
 binding             = "WY_DB"
@@ -87,9 +88,10 @@ PULSE_EMAIL_CAMPAIGN_NAME = "Skovgard for Senate"
 # Use test key in preview to prevent accidental live charges
 
 [[env.preview.d1_databases]]
-binding = "DB"
-database_name = "ballot_sources"
-database_id   = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
+binding         = "DB"
+database_name   = "ballot_sources_preview"
+database_id     = "31fde6b7-519b-4e63-9d44-c55b10d9df3f"
+migrations_dir  = "migrations"
 
 [[env.preview.d1_databases]]
 binding       = "WY_DB"
@@ -97,11 +99,12 @@ database_name = "wy_preview"
 database_id   = "de78cb41-176d-40e8-bd3b-e053e347ac3f"
 
 
-# ---------- D1 binding (shared across envs) ----------
+# ---------- D1 binding (shared across envs / local dev) ----------
 [[d1_databases]]
-binding = "DB"
-database_name = "ballot_sources"
-database_id   = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
+binding         = "DB"
+database_name   = "ballot_sources"
+database_id     = "9c4b0c27-eb33-46e6-a477-fb49d4c81474"
+migrations_dir  = "migrations"
 
 [[d1_databases]]
 binding             = "WY_DB"
