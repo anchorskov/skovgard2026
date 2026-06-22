@@ -2618,7 +2618,7 @@ export default {
         if (!isAdminSend && env.DB) {
           try {
             const rlRow = await env.DB.prepare(
-              "SELECT COUNT(*) AS n FROM share_sends WHERE sender_ip_hash = ?1 AND created_at >= datetime('now', '-60 minutes')"
+              "SELECT COUNT(*) AS n FROM share_sends WHERE sender_ip_hash = ?1 AND is_admin_send = 0 AND created_at >= datetime('now', '-60 minutes')"
             ).bind(ipHash).first();
             if ((rlRow?.n || 0) >= 50) {
               return json(req, env, { error: "Too many requests. Please try again later." }, 429);
@@ -2729,8 +2729,8 @@ export default {
               env.DB.prepare(
                 `INSERT INTO share_sends
                    (message_slug, recipient_email, sender_name, sender_ip_hash,
-                    resend_message_id, status, error_message)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+                    resend_message_id, status, error_message, is_admin_send)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
               )
                 .bind(
                   messageSlug,
@@ -2739,7 +2739,8 @@ export default {
                   ipHash,
                   r.resendId || null,
                   r.ok ? "sent" : "failed",
-                  r.ok ? null : (r.error || null)
+                  r.ok ? null : (r.error || null),
+                  isAdminSend ? 1 : 0
                 )
                 .run()
                 .catch(() => {})
