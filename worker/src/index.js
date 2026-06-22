@@ -2726,7 +2726,7 @@ export default {
           let sendText = textBody;
           let sendHtml = htmlBody;
           if (isCustomAdminEmail && /\{first_name\}/i.test(subject + textBody)) {
-            const fn = titleCase(firstNameByEmail[to.toLowerCase().trim()] || "there");
+            const fn = titleCase(firstNameByEmail[to.toLowerCase().trim()] || "all");
             sendSubject = subject.replace(/\{first_name\}/gi, fn);
             sendText    = textBody.replace(/\{first_name\}/gi, fn);
             sendHtml    = htmlBody.replace(/\{first_name\}/gi, escHtml(fn));
