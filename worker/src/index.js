@@ -806,6 +806,10 @@ function titleCase(str) {
   return String(str || "").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function personalizeSmsFirstName(text, firstName) {
+  return String(text || "").replace(/\{first_name\}/gi, titleCase(firstName || "there"));
+}
+
 // Returns number of SMS segments for a given message string.
 // GSM-7: 160 chars single / 153 per part multipart.
 // Unicode: 70 chars single / 67 per part multipart.
@@ -1608,6 +1612,7 @@ function buildBatchSendPreviewSeed({
   audienceHash,
   recipientCount,
   recipientHash,
+  personalizationHash,
 }) {
   return [
     "batch_send",
@@ -1622,6 +1627,7 @@ function buildBatchSendPreviewSeed({
     audienceHash,
     String(recipientCount),
     recipientHash,
+    personalizationHash,
     text,
   ].join("|");
 }
@@ -2696,16 +2702,41 @@ export default {
           ? fromAddr
           : `The Integrity Project <${fromAddr}>`;
 
+        // Pre-fetch first names for {first_name} substitution in custom emails
+        const firstNameByEmail = {};
+        if (isCustomAdminEmail && env.DB && /\{first_name\}/i.test(subject + textBody)) {
+          const emailNorms = recipients.map(e => e.toLowerCase().trim());
+          const ph = emailNorms.map((_, i) => `?${i + 1}`).join(", ");
+          try {
+            const [r1, r2] = await Promise.all([
+              env.DB.prepare(`SELECT lower(trim(email)) AS en, COALESCE(NULLIF(first_name,''),'') AS fn FROM sms_optins WHERE lower(trim(email)) IN (${ph})`).bind(...emailNorms).all(),
+              env.DB.prepare(`SELECT lower(trim(email)) AS en, COALESCE(NULLIF(first_name,''),'') AS fn FROM consent_status WHERE lower(trim(email)) IN (${ph})`).bind(...emailNorms).all(),
+            ]);
+            r1.results.forEach(r => { if (r.en && r.fn) firstNameByEmail[r.en] = r.fn; });
+            r2.results.forEach(r => { if (r.en && r.fn && !firstNameByEmail[r.en]) firstNameByEmail[r.en] = r.fn; });
+          } catch (_) {}
+        }
+
         // Send sequentially with 200ms gap to avoid Resend rate-limit bursts
         const results = [];
         for (const [idx, to] of recipients.entries()) {
           if (idx > 0) await new Promise(r => setTimeout(r, 200));
+          // Apply {first_name} substitution per recipient for custom emails
+          let sendSubject = subject;
+          let sendText = textBody;
+          let sendHtml = htmlBody;
+          if (isCustomAdminEmail && /\{first_name\}/i.test(subject + textBody)) {
+            const fn = titleCase(firstNameByEmail[to.toLowerCase().trim()] || "there");
+            sendSubject = subject.replace(/\{first_name\}/gi, fn);
+            sendText    = textBody.replace(/\{first_name\}/gi, fn);
+            sendHtml    = htmlBody.replace(/\{first_name\}/gi, escHtml(fn));
+          }
           const res = await sendResendEmail(apiKey, {
             from: fromFormatted,
             to: [to],
-            subject,
-            text: textBody,
-            html: htmlBody,
+            subject: sendSubject,
+            text: sendText,
+            html: sendHtml,
             reply_to: fromAddr,
             tags: [
               { name: "source", value: isAdminSend ? "admin_share" : "share" },
@@ -3777,13 +3808,15 @@ export default {
         const actor = getAdminActor(req);
         const body = await req.json().catch(() => ({}));
         const to = normalizePhoneNumber(body.to || "");
-        const text = normalizeMessageText(body.text);
+        const messageTemplate = normalizeMessageText(body.text);
         const dryRun = body.dry_run === true || body.preview === true;
         const previewToken = String(body.preview_token || "").trim();
         const previewIssuedAt = normalizePreviewIssuedAt(body.preview_issued_at);
 
         if (!to) return json(req, env, { error: "Valid E.164 destination required" }, 400);
-        if (!text) return json(req, env, { error: "Message text is required" }, 400);
+        if (!messageTemplate) return json(req, env, { error: "Message text is required" }, 400);
+        const recipient = (await queryContactsByPhones(env.DB, [to]))[0];
+        const text = personalizeSmsFirstName(messageTemplate, recipient?.first_name);
         if (text.length > 1200) return json(req, env, { error: "Message text too long" }, 400);
 
         const blocked = await isOutboundSendBlocked(env.DB, to);
@@ -3972,7 +4005,19 @@ export default {
         const audienceHash = await sha256Hex(audienceSeedPhones.join(","));
         const recipientHash = await sha256Hex(recipients.map((item) => item.phone_e164).join(","));
         const previewRecipients = buildBatchPreviewRecipients(recipients);
+        const personalizedMessages = recipients.map((item) => ({
+          phone_e164: item.phone_e164,
+          first_name: item.first_name || "",
+          text: personalizeSmsFirstName(text, item.first_name),
+        }));
+        const personalizationHash = await sha256Hex(
+          personalizedMessages.map((item) => `${item.phone_e164}:${item.text}`).join("|")
+        );
         const skippedCount = Math.max(0, audienceCount - recipients.length);
+
+        if (personalizedMessages.some((item) => item.text.length > 1200)) {
+          return json(req, env, { error: "Personalized message text is too long" }, 400);
+        }
 
         if (dryRun) {
           const issuedAt = new Date().toISOString();
@@ -3991,6 +4036,7 @@ export default {
               audienceHash,
               recipientCount: recipients.length,
               recipientHash,
+              personalizationHash,
             }),
             issuedAt
           );
@@ -4020,6 +4066,7 @@ export default {
             count: recipients.length,
             skippedCount,
             previewRecipients,
+            previewMessages: personalizedMessages.slice(0, 8),
             approval: {
               issuedAt,
               token: approvalToken,
@@ -4053,6 +4100,7 @@ export default {
             audienceHash,
             recipientCount: recipients.length,
             recipientHash,
+            personalizationHash,
           }),
           previewIssuedAt
         );
@@ -4069,7 +4117,7 @@ export default {
               apiKey: env.TELNYX_API_KEY,
               fromNumber: String(env.TELNYX_FROM_NUMBER || "").trim(),
               to: recipient.phone_e164,
-              text,
+              text: personalizeSmsFirstName(text, recipient.first_name),
             });
 
             await env.DB.prepare(
@@ -4088,7 +4136,7 @@ export default {
                 telnyx.providerId,
                 String(env.TELNYX_FROM_NUMBER || "").trim(),
                 recipient.phone_e164,
-                text,
+                personalizeSmsFirstName(text, recipient.first_name),
                 telnyx.status,
                 JSON.stringify(telnyx.body || null)
               )
