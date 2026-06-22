@@ -1190,7 +1190,55 @@ const HIGHER_PRICES_WASHINGTON_DEBT_BODY_HTML = `
 </p>
 `;
 
+const WYOMING_FAMILY_ECONOMY_BODY_HTML = `
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  A good economy is not measured only by a market index or a Washington talking point. It is measured
+  at the kitchen table: whether a Wyoming family can pay for groceries, fuel, utilities, housing, and
+  still save for the future.
+</p>
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  When the cost of necessities absorbs a modest pay increase, young families begin asking whether they
+  can afford to stay and build a life in Wyoming. That is the financial reality public officials must
+  face directly.
+</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+  <tr>
+    <td style="background:#f1ece1;border-left:4px solid #b22234;padding:18px 20px;border-radius:0 8px 8px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#b22234;">Responsible Stewardship</p>
+      <p style="margin:0;font-size:15px;line-height:1.65;color:#111827;">
+        Government must live within its limits, just as a household, ranch, or small business must.
+        Honest budgets, stable energy policy, and clear explanations of every vote are how leaders
+        protect the future and earn the public&#8217;s trust.
+      </p>
+    </td>
+  </tr>
+</table>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.65;color:#111827;">
+  Every public dollar was first earned by a working taxpayer. Jimmy Skovgard believes government
+  should listen to Wyoming citizens before it lectures them.
+</p>
+<p style="margin:0;font-size:15px;line-height:1.65;color:#374151;">
+  <a href="https://skovgard2026.org/share/wyoming-family-economy/sources/" style="color:#b22234;font-weight:700;">Read the supporting public data</a>
+  for this message.
+</p>
+`;
+
 export const SHARE_MESSAGES = {
+  "wyoming-family-economy": {
+    title:        "A Good Economy Starts at the Kitchen Table",
+    body_html:    WYOMING_FAMILY_ECONOMY_BODY_HTML,
+    preview_text: "A strong economy is one where Wyoming families can pay their bills, save money, and build a life at home.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — A Good Economy Starts at the Kitchen Table`
+        : "A good economy starts at the kitchen table";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming economic message with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
   "fleecing-letters": {
     title:        "The Fleecing Letters",
     body_html:    FLEECING_LETTERS_BODY_HTML,
@@ -2071,6 +2119,30 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Download the Candidate Card Update Instructions (PDF):",
           "https://skovgard2026.org/documents/candidate-card-update-instructions.pdf",
+        ]
+    : slug === "wyoming-family-economy"
+      ? [
+          "A good economy is not measured only by a market index or a Washington talking point.",
+          "It is measured at the kitchen table: whether a Wyoming family can pay for groceries,",
+          "fuel, utilities, housing, and still save for the future.",
+          "",
+          "When the cost of necessities absorbs a modest pay increase, young families begin asking",
+          "whether they can afford to stay and build a life in Wyoming. That is the financial reality",
+          "public officials must face directly.",
+          "",
+          "RESPONSIBLE STEWARDSHIP",
+          "",
+          "Government must live within its limits, just as a household, ranch, or small business must.",
+          "Honest budgets, stable energy policy, and clear explanations of every vote are how leaders",
+          "protect the future and earn the public's trust.",
+          "",
+          "Every public dollar was first earned by a working taxpayer. Government should listen to",
+          "Wyoming citizens before it lectures them.",
+          "",
+          "Read the supporting public data:",
+          "https://skovgard2026.org/share/wyoming-family-economy/sources/",
+          "",
+          "Watch the video: https://skovgard2026.org/share/wyoming-family-economy",
         ]
     : slug === "higher-prices-washington-debt"
       ? [

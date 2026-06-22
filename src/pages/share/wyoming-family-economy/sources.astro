@@ -1,0 +1,73 @@
+---
+// src/pages/share/wyoming-family-economy/sources.astro
+import Base from '../../../layouts/Base.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+---
+<Base
+  title="Sources: A Good Economy Starts at the Kitchen Table — Skovgard 2026"
+  description="Public data and source notes for Jimmy Skovgard's Wyoming family economy message."
+  ogImage="/images/share/meme-wyoming-family-economy-fb.png"
+>
+  <Nav />
+  <main class="pt-20 bg-wy-bone min-h-screen">
+    <section class="max-w-4xl mx-auto px-4 py-14">
+      <nav aria-label="Breadcrumb" class="text-sm mb-8">
+        <a href="/share" class="text-wy-ember hover:text-wy-ember-dark">All messages</a>
+        <span class="text-gray-400 px-2">/</span>
+        <a href="/share/wyoming-family-economy/" class="text-wy-ember hover:text-wy-ember-dark">A Good Economy Starts at the Kitchen Table</a>
+        <span class="text-gray-400 px-2">/</span>
+        <span class="text-wy-charcoal">Sources</span>
+      </nav>
+
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Research aid</p>
+      <h1 class="font-serif font-extrabold text-4xl text-wy-charcoal mb-5">Sources and public data</h1>
+      <p class="text-gray-700 leading-relaxed mb-10 max-w-3xl">
+        This page provides public data to help readers evaluate the factual context for the campaign message.
+        It is not a legal opinion or an independent economic forecast. Policy conclusions are Jimmy Skovgard's.
+      </p>
+
+      <div class="overflow-x-auto border border-wy-dust rounded-lg bg-white">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-wy-charcoal text-wy-bone">
+            <tr>
+              <th class="p-4 font-semibold">Statement</th>
+              <th class="p-4 font-semibold">Public source and context</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-wy-dust text-gray-700">
+            <tr>
+              <td class="p-4 align-top font-semibold text-wy-charcoal">Families face continuing pressure from the cost of necessities.</td>
+              <td class="p-4 align-top leading-relaxed">
+                The Bureau of Labor Statistics tracks consumer prices for food, gasoline, electricity, shelter, and other household categories. Its current CPI tables provide the national measurement context; individual household costs vary by location and usage.
+                <a class="text-wy-ember font-semibold hover:underline" href="https://www.bls.gov/cpi/" target="_blank" rel="noopener">BLS Consumer Price Index</a>
+              </td>
+            </tr>
+            <tr>
+              <td class="p-4 align-top font-semibold text-wy-charcoal">Electricity is a material household expense in Wyoming.</td>
+              <td class="p-4 align-top leading-relaxed">
+                The U.S. Energy Information Administration publishes Wyoming electricity prices and state-level energy data. These series are useful context, not a substitute for a customer's actual utility bill.
+                <a class="text-wy-ember font-semibold hover:underline" href="https://www.eia.gov/electricity/state/wyoming/" target="_blank" rel="noopener">EIA Wyoming Electricity Profile</a>
+              </td>
+            </tr>
+            <tr>
+              <td class="p-4 align-top font-semibold text-wy-charcoal">Federal borrowing creates obligations that matter to future taxpayers.</td>
+              <td class="p-4 align-top leading-relaxed">
+                Treasury's Fiscal Data service publishes the federal debt outstanding and related federal financial data. The campaign's position is that federal budgeting should account plainly for those obligations.
+                <a class="text-wy-ember font-semibold hover:underline" href="https://fiscaldata.treasury.gov/datasets/debt-to-the-penny/debt-to-the-penny" target="_blank" rel="noopener">Treasury: Debt to the Penny</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-10 p-6 border-l-4 border-wy-ember bg-white rounded-r-lg">
+        <h2 class="font-serif font-bold text-xl text-wy-charcoal mb-2">Responsible use</h2>
+        <p class="text-gray-700 leading-relaxed">Price changes differ by category, time period, and household. The page's central standard is a policy judgment: economic success should be judged by whether working families can meet their obligations and prepare for the future.</p>
+      </div>
+
+      <a href="/share/wyoming-family-economy/" class="inline-flex mt-10 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors">Watch and share the message</a>
+    </section>
+  </main>
+  <Footer />
+</Base>
