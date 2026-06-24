@@ -1149,8 +1149,8 @@ export async function POST({ request }) {
          (lat, lon, resolved_address, city, zip, county, wy_house, wy_senate, match_source, coord_source)
        VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)`
     ).bind(
-      gpsLat,
-      gpsLon,
+      Math.round(gpsLat * 1000) / 1000,
+      Math.round(gpsLon * 1000) / 1000,
       address.combined || null,
       address.city || null,
       address.zip || null,

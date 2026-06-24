@@ -759,8 +759,10 @@ const addressFields = [
         const GPS_ORIGINAL_HTML = gpsBtn.innerHTML;
 
         async function reverseGeocodeNominatim(lat, lon) {
+          const la = lat.toFixed(4);
+          const lo = lon.toFixed(4);
           const resp = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+            `https://nominatim.openstreetmap.org/reverse?lat=${la}&lon=${lo}&format=json&addressdetails=1&zoom=17`,
             { headers: { 'User-Agent': 'skovgard2026-ballot-lookup/1.0 (candidates.skovgard2026.org)' } }
           );
           return resp.ok ? resp.json() : null;
