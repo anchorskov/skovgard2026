@@ -188,12 +188,19 @@ const addressFields = [
             </button>
           </div>
           <div id="lookup-status" class="lookup-status" role="status" aria-live="polite" hidden></div>
+          <div id="gps-confirm" class="gps-confirm-panel" hidden>
+            <p id="gps-confirm-address" class="gps-confirm-address"></p>
+            <div class="gps-confirm-actions">
+              <button type="button" id="gps-confirm-proceed">Proceed</button>
+              <button type="button" id="gps-confirm-manual">Enter manually</button>
+            </div>
+          </div>
           <div id="district-badges" class="district-badges" hidden></div>
           <div id="results" class="lookup-results" hidden></div>
           <div id="local-results" class="lookup-results lookup-results--local" hidden></div>
           <div id="polling-section" class="polling-section" hidden></div>
           <div id="fallback-panel" class="fallback-panel" hidden></div>
-          <p class="form-note">Address data is sent only to this lookup request and is not stored.</p>
+          <p class="form-note">Address data is used only for this ballot lookup. GPS coordinates may be logged anonymously to improve district matching.</p>
         </form>
       </section>
 
@@ -810,11 +817,6 @@ const addressFields = [
                   }
                 }
 
-                if (!street || !city) {
-                  setLookupStatus('Could not determine your address from GPS. Please enter it manually.', 'error');
-                  return;
-                }
-
                 const setField = (name, val) => {
                   const f = lookupForm?.querySelector(`[name="${name}"]`);
                   if (f instanceof HTMLInputElement) f.value = val;
@@ -824,8 +826,27 @@ const addressFields = [
                 setField('city', city);
                 setField('zip', zip);
 
-                gpsTriggeredLookup = true;
-                lookupForm?.requestSubmit();
+                // Build a human-readable address label for confirmation
+                let displayAddress = null;
+                if (street && city) {
+                  displayAddress = [houseNumber, street].filter(Boolean).join(' ') + ', ' + city + (zip ? ', WY ' + zip : ', WY');
+                } else if (city) {
+                  displayAddress = city + (zip ? ', WY ' + zip : ', WY');
+                }
+
+                const confirmPanel = document.getElementById('gps-confirm');
+                const confirmAddressEl = document.getElementById('gps-confirm-address');
+                if (confirmPanel && confirmAddressEl) {
+                  confirmAddressEl.innerHTML = displayAddress
+                    ? `You are near <strong>${displayAddress}</strong>. Use this address for your ballot lookup?`
+                    : `Your GPS location was found but a street address could not be determined. Coordinates will be used to match your ballot districts.`;
+                  confirmPanel.hidden = false;
+                  setLookupStatus('', '');
+                } else {
+                  // Fallback: no confirm panel, just submit
+                  gpsTriggeredLookup = true;
+                  lookupForm?.requestSubmit();
+                }
               } catch {
                 setLookupStatus('Could not determine your address. Please enter it manually.', 'error');
               } finally {
@@ -845,6 +866,20 @@ const addressFields = [
             },
             { timeout: 15000, enableHighAccuracy: true }
           );
+        });
+
+        // GPS confirmation panel handlers
+        document.getElementById('gps-confirm-proceed')?.addEventListener('click', () => {
+          document.getElementById('gps-confirm').hidden = true;
+          gpsTriggeredLookup = true;
+          lookupForm?.requestSubmit();
+        });
+
+        document.getElementById('gps-confirm-manual')?.addEventListener('click', () => {
+          document.getElementById('gps-confirm').hidden = true;
+          storedGpsLat = null;
+          storedGpsLon = null;
+          lookupForm?.querySelector('[name="houseNumber"]')?.focus();
         });
       }
 
@@ -1302,6 +1337,44 @@ const addressFields = [
     color: var(--charcoal);
     font-weight: 700;
   }
+
+  .gps-confirm-panel {
+    border: 1px solid #d1d5db;
+    border-left: 3px solid var(--sandstone);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 12px;
+    background: #fff;
+  }
+  .gps-confirm-address {
+    font-size: 0.9375rem;
+    color: var(--charcoal);
+    margin: 0 0 12px;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+  .gps-confirm-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .gps-confirm-actions button {
+    min-height: 2.5rem;
+    padding: 0.45rem 1.1rem;
+    border-radius: 7px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--ember);
+    background: var(--ember);
+    color: #fff;
+  }
+  .gps-confirm-actions button:last-child {
+    background: transparent;
+    color: var(--charcoal);
+    border-color: #9ca3af;
+  }
+  .gps-confirm-actions button:hover { opacity: 0.88; }
 
   .lookup-results--local {
     border-left: 4px solid var(--sandstone);

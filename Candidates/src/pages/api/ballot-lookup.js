@@ -1057,8 +1057,16 @@ export async function POST({ request }) {
   }
 
   const address = buildAddress(payload || {});
+
+  // Extract GPS coordinates early — used to relax address validation.
+  const gpsLat = parseFloat(payload.gpsLat ?? '');
+  const gpsLon = parseFloat(payload.gpsLon ?? '');
+  const hasGpsCoords = isFinite(gpsLat) && isFinite(gpsLon);
+
   const { missingFields, fieldErrors } = validateAddress(address);
-  if (missingFields.length > 0) {
+  // Skip required-field errors when GPS coordinates are provided — the Worker
+  // can resolve districts from coordinates alone via polygon matching.
+  if (!hasGpsCoords && missingFields.length > 0) {
     return json(
       {
         success: false,
@@ -1084,11 +1092,6 @@ export async function POST({ request }) {
   }
 
   const civicApiConfigured = Boolean(env.GOOGLE_CIVIC_API_KEY);
-
-  // Extract GPS coordinates if the browser sent them (from the GPS button).
-  const gpsLat = parseFloat(payload.gpsLat ?? '');
-  const gpsLon = parseFloat(payload.gpsLon ?? '');
-  const hasGpsCoords = isFinite(gpsLat) && isFinite(gpsLon);
 
   let districts = await lookupDistricts(env.LOOKUP_DB, address);
 
@@ -1137,6 +1140,27 @@ export async function POST({ request }) {
     getRaceGroups(env.WY_DB, districts),
     getLocalRaces(env.WY_DB, effectiveDistricts, address, resolvedPollingPlace?.precinct, resolvedWard),
   ]);
+
+  // Log GPS-based lookups to D1 for analytics and district-match improvement.
+  // Fire-and-forget — never blocks the response.
+  if (hasGpsCoords && env.WY_DB) {
+    env.WY_DB.prepare(
+      `INSERT INTO gps_lookup_log
+         (lat, lon, resolved_address, city, zip, county, wy_house, wy_senate, match_source, coord_source)
+       VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)`
+    ).bind(
+      gpsLat,
+      gpsLon,
+      address.combined || null,
+      address.city || null,
+      address.zip || null,
+      districts?.county || null,
+      districts?.wyHouse || null,
+      districts?.wySenate || null,
+      districts?.matchSource || null,
+      districts?.coordSource || 'gps',
+    ).run().catch(() => {});
+  }
 
   return json({
     success: true,
