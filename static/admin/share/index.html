@@ -39,6 +39,8 @@
     .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 24px; margin-bottom: 24px; }
     .nav-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; font-weight: 700; color: #6b7280; text-decoration: none; margin-bottom: 20px; }
     .nav-link:hover { color: #b22234; }
+    .key-hint { font-size: 0.8125rem; border-left: 3px solid #c68a4a; padding: 6px 10px; background: #fdf8f1; border-radius: 0 6px 6px 0; margin-top: -14px; margin-bottom: 14px; color: #374151; }
+    .key-hint code { font-family: ui-monospace, monospace; font-size: 0.75rem; background: #f1ece1; padding: 1px 4px; border-radius: 3px; }
   </style>
 </head>
 <body>
@@ -76,6 +78,24 @@
 
   <div class="card">
     <p class="kicker">Recipients</p>
+
+    <label for="cfg-source">Recipient source</label>
+    <select id="cfg-source">
+      <option value="paste">Paste your own</option>
+      <option value="candidates">Candidates — voter guide (1,814 with email)</option>
+      <option value="optins">Email opt-ins — campaign contacts</option>
+    </select>
+
+    <div id="load-key-row" hidden>
+      <label id="load-key-label" for="cfg-load-key">Load key</label>
+      <input id="cfg-load-key" type="password" placeholder="Enter the key for this source" autocomplete="off" />
+      <p id="load-key-hint" class="key-hint"></p>
+      <div class="button-row" style="margin-bottom:14px;">
+        <button id="btn-load" type="button">Load list</button>
+      </div>
+      <p id="load-status" style="font-size:0.8125rem;margin-bottom:14px;" role="status" aria-live="polite"></p>
+    </div>
+
     <label for="cfg-emails">Email addresses — one per line, or comma/semicolon separated</label>
     <textarea id="cfg-emails" placeholder="alice@example.com&#10;bob@example.com&#10;carol@example.com"></textarea>
     <div id="parsed-count" style="font-size:0.8125rem;color:#6b7280;margin-top:-14px;margin-bottom:18px;"></div>
@@ -103,6 +123,80 @@
 
   const keyEl       = document.getElementById('cfg-key');
   const slugEl      = document.getElementById('cfg-slug');
+
+  // --- Recipient source loader ---
+  const sourceEl     = document.getElementById('cfg-source');
+  const loadKeyRow   = document.getElementById('load-key-row');
+  const loadKeyLabel = document.getElementById('load-key-label');
+  const loadKeyEl    = document.getElementById('cfg-load-key');
+  const loadKeyHint  = document.getElementById('load-key-hint');
+  const loadBtn      = document.getElementById('btn-load');
+  const loadStatus   = document.getElementById('load-status');
+
+  const SOURCE_META = {
+    candidates: {
+      label: 'Candidates admin key',
+      hint: 'Uses <code>CANDIDATES_ADMIN_KEY</code> — the secret on the <code>skovgard-candidates</code> Worker.',
+      fetch: async (key) => {
+        const url = new URL('https://candidates.skovgard2026.org/api/admin/candidate-emails');
+        url.searchParams.set('key', key);
+        const resp = await fetch(url, { headers: { accept: 'application/json' } });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+        return data.emails;
+      },
+    },
+    optins: {
+      label: 'Campaign admin key',
+      hint: 'Uses <code>ADMIN_EXPORT_KEY</code> — the secret on the <code>skovgard2026-api</code> Worker.',
+      fetch: async (key) => {
+        const url = new URL('/api/admin/emails/contacts', location.origin);
+        url.searchParams.set('key', key);
+        url.searchParams.set('filter', 'emailable');
+        url.searchParams.set('limit', '5000');
+        const resp = await fetch(url, { headers: { accept: 'application/json' } });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+        return (data.items || []).map(c => c.email).filter(Boolean);
+      },
+    },
+  };
+
+  function updateSourceUi() {
+    const src = sourceEl.value;
+    const meta = SOURCE_META[src];
+    if (!meta) { loadKeyRow.hidden = true; return; }
+    loadKeyRow.hidden = false;
+    loadKeyLabel.textContent = meta.label;
+    loadKeyEl.placeholder = `Enter the ${meta.label}`;
+    loadKeyHint.innerHTML = meta.hint;
+    loadStatus.textContent = '';
+  }
+
+  sourceEl.addEventListener('change', updateSourceUi);
+
+  loadBtn.addEventListener('click', async () => {
+    const src = sourceEl.value;
+    const meta = SOURCE_META[src];
+    if (!meta) return;
+    const key = loadKeyEl.value.trim();
+    if (!key) { loadStatus.textContent = `Enter the ${meta.label} first.`; return; }
+
+    loadBtn.disabled = true;
+    loadStatus.textContent = 'Loading…';
+    try {
+      const emails = await meta.fetch(key);
+      if (!emails.length) { loadStatus.textContent = 'No emails returned.'; return; }
+      emailsEl.value = emails.join('\n');
+      updateCount();
+      loadStatus.textContent = `✓ Loaded ${emails.length} address${emails.length !== 1 ? 'es' : ''}.`;
+    } catch (err) {
+      loadStatus.textContent = `Error: ${err.message}`;
+    } finally {
+      loadBtn.disabled = false;
+    }
+  });
+  // --- end recipient source loader ---
   const slugErrEl   = document.getElementById('slug-load-err');
   const customFieldsEl = document.getElementById('custom-email-fields');
   const subjectEl   = document.getElementById('cfg-subject');
@@ -286,6 +380,10 @@
     copyFailedBtn.dataset.emails = '';
     setStatus('');
     sendBtn.disabled = false;
+    loadKeyEl.value = '';
+    loadStatus.textContent = '';
+    sourceEl.value = 'paste';
+    updateSourceUi();
   });
 
   copyFailedBtn.addEventListener('click', async () => {
