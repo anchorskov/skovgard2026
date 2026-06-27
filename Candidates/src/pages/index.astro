@@ -4,6 +4,7 @@ import '../styles/global.css';
 import { env } from 'cloudflare:workers';
 
 const electionDate = 'August 18, 2026';
+const googleGeocodeKey = (env as any)?.GOOGLE_CIVIC_API_KEY || '';
 
 let guideStats = [
   { value: '1016', label: 'races tracked' },
@@ -209,6 +210,9 @@ const addressFields = [
       <span class="site-footer__rule"></span>
       <p>Paid for by Skovgard for Senate</p>
     </footer>
+    <script define:vars={{ googleGeocodeKey }}>
+      window.__GOOGLE_GEOCODE_KEY__ = googleGeocodeKey || '';
+    </script>
     <script>
       const lookupForm = document.querySelector('.address-form');
       const lookupStatus = document.querySelector('#lookup-status');
@@ -758,12 +762,31 @@ const addressFields = [
       if (gpsBtn) {
         const GPS_ORIGINAL_HTML = gpsBtn.innerHTML;
 
+        async function reverseGeocodeGoogle(lat, lon) {
+          const key = window.__GOOGLE_GEOCODE_KEY__;
+          if (!key) return null;
+          const resp = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&result_type=street_address&key=${key}`
+          );
+          if (!resp.ok) return null;
+          const data = await resp.json();
+          if (data.status !== 'OK' || !data.results?.[0]) return null;
+          const components = data.results[0].address_components;
+          const get = (type) => components.find((c) => c.types.includes(type))?.short_name ?? '';
+          return {
+            number:     get('street_number'),
+            street:     get('route'),
+            city:       get('locality') || get('sublocality') || get('postal_town'),
+            postalCode: get('postal_code'),
+          };
+        }
+
         async function reverseGeocodeNominatim(lat, lon) {
           const la = lat.toFixed(4);
           const lo = lon.toFixed(4);
           const resp = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${la}&lon=${lo}&format=json&addressdetails=1&zoom=17`,
-            { headers: { 'User-Agent': 'skovgard2026-ballot-lookup/1.0 (candidates.skovgard2026.org)' } }
+            { headers: { 'User-Agent': 'skovgard2026-ballot-lookup/1.0 (guide.skovgard2026.org)' } }
           );
           return resp.ok ? resp.json() : null;
         }
@@ -789,33 +812,54 @@ const addressFields = [
 
           navigator.geolocation.getCurrentPosition(
             async (position) => {
-              const { latitude: lat, longitude: lon } = position.coords;
+              const { latitude: lat, longitude: lon, accuracy } = position.coords;
               storedGpsLat = lat;
               storedGpsLon = lon;
               try {
                 setLookupStatus('Finding your address…', 'loading');
 
                 let houseNumber = '', street = '', city = '', zip = '';
+                let weakSignal = false;
 
-                const nom = await reverseGeocodeNominatim(lat, lon);
-                if (nom?.address) {
-                  const a = nom.address;
-                  houseNumber = a.house_number ?? '';
-                  street      = a.road ?? '';
-                  city        = a.city ?? a.town ?? a.village ?? a.hamlet ?? '';
-                  zip         = (a.postcode ?? '').replace(/\D/g, '').slice(0, 5);
-                }
+                if (accuracy > 500) {
+                  // Signal too weak to reverse-geocode reliably — skip geocoders
+                  weakSignal = true;
+                } else {
+                  if (accuracy > 200) weakSignal = true;
 
-                if (!houseNumber || !street || !city || !zip) {
-                  const census = await reverseGeocodeCensus(lat, lon);
-                  if (census?.addressComponents) {
-                    const c = census.addressComponents;
-                    if (!houseNumber) houseNumber = c.fromAddress ?? '';
-                    if (!street) {
-                      street = [c.preDirectional, c.streetName, c.suffixType, c.postDirectional].filter(Boolean).join(' ');
+                  // 1. Google Geocoding API — best rural US coverage
+                  const google = await reverseGeocodeGoogle(lat, lon);
+                  if (google) {
+                    houseNumber = google.number ?? '';
+                    street      = google.street ?? '';
+                    city        = google.city ?? '';
+                    zip         = google.postalCode ?? '';
+                  }
+
+                  // 2. Nominatim fallback
+                  if (!houseNumber || !street || !city || !zip) {
+                    const nom = await reverseGeocodeNominatim(lat, lon);
+                    if (nom?.address) {
+                      const a = nom.address;
+                      if (!houseNumber) houseNumber = a.house_number ?? '';
+                      if (!street)      street      = a.road ?? '';
+                      if (!city)        city        = a.city ?? a.town ?? a.village ?? a.hamlet ?? '';
+                      if (!zip)         zip         = (a.postcode ?? '').replace(/\D/g, '').slice(0, 5);
                     }
-                    if (!city) city = c.city ?? '';
-                    if (!zip)  zip  = c.zip ?? '';
+                  }
+
+                  // 3. Census Bureau fallback
+                  if (!houseNumber || !street || !city || !zip) {
+                    const census = await reverseGeocodeCensus(lat, lon);
+                    if (census?.addressComponents) {
+                      const c = census.addressComponents;
+                      if (!houseNumber) houseNumber = c.fromAddress ?? '';
+                      if (!street) {
+                        street = [c.preDirectional, c.streetName, c.suffixType, c.postDirectional].filter(Boolean).join(' ');
+                      }
+                      if (!city) city = c.city ?? '';
+                      if (!zip)  zip  = c.zip ?? '';
+                    }
                   }
                 }
 
@@ -836,12 +880,16 @@ const addressFields = [
                   displayAddress = city + (zip ? ', WY ' + zip : ', WY');
                 }
 
+                const accuracyNote = weakSignal
+                  ? ` <span class="gps-accuracy-note">(GPS accuracy ±${Math.round(accuracy)}m — signal is weak)</span>`
+                  : '';
+
                 const confirmPanel = document.getElementById('gps-confirm');
                 const confirmAddressEl = document.getElementById('gps-confirm-address');
                 if (confirmPanel && confirmAddressEl) {
                   confirmAddressEl.innerHTML = displayAddress
-                    ? `You are near <strong>${displayAddress}</strong>. Use this address for your ballot lookup?`
-                    : `Your GPS location was found but a street address could not be determined. Coordinates will be used to match your ballot districts.`;
+                    ? `You are near <strong>${displayAddress}</strong>. Use this address for your ballot lookup?${accuracyNote}`
+                    : `Your GPS location was found but a street address could not be determined. Coordinates will be used to match your ballot districts.${accuracyNote}`;
                   confirmPanel.hidden = false;
                   setLookupStatus('', '');
                 } else {
@@ -1377,6 +1425,14 @@ const addressFields = [
     border-color: #9ca3af;
   }
   .gps-confirm-actions button:hover { opacity: 0.88; }
+  .gps-accuracy-note {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.8125rem;
+    color: #92400e;
+    font-weight: 400;
+    font-style: italic;
+  }
 
   .lookup-results--local {
     border-left: 4px solid var(--sandstone);

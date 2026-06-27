@@ -54,10 +54,17 @@ export async function GET({ request }) {
 
   try {
     const result = await db.prepare(
-      `SELECT email, full_name
-         FROM candidates
-        WHERE email IS NOT NULL AND email != '' AND withdrawn_at IS NULL
-        ORDER BY full_name`
+      `SELECT c.email, c.full_name
+         FROM candidates c
+        WHERE c.email IS NOT NULL
+          AND c.email != ''
+          AND c.withdrawn_at IS NULL
+          AND NOT EXISTS (
+            SELECT 1
+              FROM candidate_email_suppressions s
+             WHERE s.email_norm = lower(trim(c.email))
+          )
+        ORDER BY c.full_name`
     ).all();
 
     const rows = result?.results || [];

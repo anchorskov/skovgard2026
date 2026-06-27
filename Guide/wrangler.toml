@@ -1,0 +1,14 @@
+# Guide/wrangler.toml
+name = "skovgard-guide"
+account_id = "8bfd3f60fbdcc89183e9e312fb03e86e"
+compatibility_date = "2025-09-30"
+
+[vars]
+ENVIRONMENT = "production"
+
+# Shared D1 database — same instance as Candidates (read/write guide_* tables)
+[[d1_databases]]
+binding = "WY_DB"
+database_name = "wy"
+database_id = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"
+migrations_dir = "db/migrations"

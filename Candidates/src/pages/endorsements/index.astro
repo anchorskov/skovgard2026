@@ -1,0 +1,351 @@
+---
+// Candidates/src/pages/endorsements/index.astro
+import Base from '../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+
+type D1Env = { WY_DB: D1Database };
+const db = (env as unknown as D1Env)?.WY_DB;
+
+type EndorsedCandidate = {
+  slug: string;
+  full_name: string;
+  party: string;
+  office_title: string;
+  level: string;
+  district: number | null;
+  county: string | null;
+  final_score: number | null;
+  max_possible: number | null;
+  evidence_confidence: string | null;
+  endorsement_reasoning: string | null;
+  endorsed_at: string | null;
+  not_endorsed: boolean;
+};
+
+let endorsed: EndorsedCandidate[] = [];
+let notEndorsed: EndorsedCandidate[] = [];
+let endorsedCount = 0;
+
+if (db) {
+  try {
+    const { results } = await db.prepare(`
+      SELECT
+        c.slug, c.full_name, c.party,
+        o.title AS office_title, o.level, o.district, o.county,
+        ge.final_score, ge.max_possible, ge.evidence_confidence,
+        ge.endorsement_reasoning, ge.endorsed_at, ge.not_endorsed_reasoning,
+        ge.status
+      FROM guide_endorsements ge
+      JOIN candidates c ON c.id = ge.candidate_id
+      JOIN offices o    ON o.id = c.office_id
+      WHERE ge.status IN ('endorsed','not_endorsed')
+        AND ge.published_at IS NOT NULL
+        AND c.withdrawn_at IS NULL
+      ORDER BY
+        CASE o.level
+          WHEN 'federal'    THEN 1
+          WHEN 'statewide'  THEN 2
+          WHEN 'wy_senate'  THEN 3
+          WHEN 'wy_house'   THEN 4
+          WHEN 'county'     THEN 5
+          ELSE 6
+        END,
+        o.district NULLS FIRST,
+        o.title,
+        c.full_name
+    `).all();
+
+    for (const r of results as any[]) {
+      const item: EndorsedCandidate = { ...r, not_endorsed: r.status === 'not_endorsed' };
+      if (r.status === 'endorsed') endorsed.push(item);
+      else notEndorsed.push(item);
+    }
+    endorsedCount = endorsed.length;
+  } catch { /* fall through */ }
+}
+
+const today = new Date();
+const endorsementDate = new Date('2026-07-25');
+const released = today >= endorsementDate;
+---
+
+<Base
+  title="Endorsements — Wyoming 2026 Primary"
+  description="Jimmy Skovgard's personal endorsements for Wyoming 2026 primary candidates, based on sourced research and the candidate evaluation rubric."
+  currentPath="/endorsements"
+>
+  <section class="endorse-hero" aria-labelledby="endorse-title">
+    <p class="eyebrow">Wyoming 2026 Primary — August 18</p>
+    <h1 id="endorse-title">Endorsements.</h1>
+    <p class="lede">
+      These are Jimmy Skovgard's personal picks for Wyoming primary voters, based on the sourced
+      research published at this guide. Each endorsement links to the full research profile.
+    </p>
+    <p class="disclaimer-line">
+      Endorsements reflect personal judgment, not coordination with any campaign.
+      Paid for by Skovgard for Senate.
+    </p>
+  </section>
+
+  {!released && (
+    <div class="not-yet-notice" role="status">
+      <strong>Endorsements will be published July 25, 2026.</strong>
+      Research profiles are live now. <a href="/guide" class="guide-link">Read the guide</a> or
+      <a href="/races" class="guide-link">browse candidates by race.</a>
+    </div>
+  )}
+
+  {released && endorsedCount === 0 && (
+    <div class="not-yet-notice" role="status">
+      <strong>Endorsements are being finalized.</strong> Check back shortly.
+    </div>
+  )}
+
+  {released && endorsedCount > 0 && (
+    <>
+      <section class="endorsement-list" aria-labelledby="endorsed-title">
+        <h2 id="endorsed-title">Endorsed candidates <span class="count">({endorsedCount})</span></h2>
+        <div class="candidate-grid">
+          {endorsed.map((c) => (
+            <article class="candidate-card candidate-card--endorsed">
+              <div class="candidate-card__body">
+                <p class="candidate-card__office">
+                  {c.office_title}{c.district ? ` — District ${c.district}` : ''}
+                  {c.county ? ` — ${c.county} County` : ''}
+                </p>
+                <h3 class="candidate-card__name">
+                  <a href={`/candidate/${c.slug}`}>{c.full_name}</a>
+                </h3>
+                <div class="candidate-card__badges">
+                  <span class={`badge badge--party-${(c.party || '').toLowerCase().slice(0,1) || 'other'}`}>{c.party}</span>
+                  {c.final_score != null && (
+                    <span class="score-pill">{c.final_score} / {c.max_possible ?? 500}</span>
+                  )}
+                </div>
+                {c.endorsement_reasoning && (
+                  <p class="candidate-card__reason">{c.endorsement_reasoning}</p>
+                )}
+              </div>
+              <a href={`/candidate/${c.slug}`} class="candidate-card__link" aria-label={`View full research profile for ${c.full_name}`}>
+                View research →
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {notEndorsed.length > 0 && (
+        <section class="no-endorsement-list" aria-labelledby="not-endorsed-title">
+          <h2 id="not-endorsed-title">No endorsement</h2>
+          <p>These candidates were researched but Jimmy did not endorse them. Reasons are in the research profile.</p>
+          <ul class="plain-list">
+            {notEndorsed.map((c) => (
+              <li>
+                <a href={`/candidate/${c.slug}`} class="guide-link">{c.full_name}</a>
+                {' — '}{c.office_title}{c.district ? ` (District ${c.district})` : ''}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  )}
+
+  <section class="guide-cta" aria-labelledby="cta-title">
+    <h2 id="cta-title">See the research behind every pick.</h2>
+    <p>Every endorsement is backed by a scored rubric, numbered citations, and an open correction log. Read the full profile before you vote.</p>
+    <a class="button button--primary" href="/guide">About this guide</a>
+    <a class="button button--secondary" href="/races">Browse all races</a>
+  </section>
+</Base>
+
+<style>
+  .endorse-hero {
+    padding: 52px 0 32px;
+    max-width: 720px;
+  }
+
+  .endorse-hero h1 {
+    margin: 0;
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    line-height: 0.96;
+  }
+
+  .lede {
+    margin: 18px 0 12px;
+    font-size: clamp(1.05rem, 2vw, 1.2rem);
+    line-height: 1.6;
+    max-width: 640px;
+  }
+
+  .disclaimer-line {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--rust);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .not-yet-notice {
+    margin: 28px 0;
+    padding: 18px 22px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--sandstone);
+    background: var(--bone);
+    font-size: 0.96rem;
+    line-height: 1.6;
+  }
+
+  .endorsement-list { margin-top: 40px; }
+  .endorsement-list h2 {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    margin: 0 0 24px;
+  }
+
+  .count {
+    font-size: 0.7em;
+    font-weight: 600;
+    color: var(--rust);
+  }
+
+  .candidate-grid {
+    display: grid;
+    gap: 16px;
+  }
+
+  .candidate-card {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--dust);
+    background: var(--bone);
+    box-shadow: 0 6px 0 var(--dust);
+  }
+
+  .candidate-card--endorsed {
+    border-top: 4px solid var(--sage);
+  }
+
+  .candidate-card__body {
+    flex: 1;
+    padding: 18px 20px;
+  }
+
+  .candidate-card__office {
+    margin: 0 0 4px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--rust);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .candidate-card__name {
+    margin: 0 0 10px;
+    font-size: 1.3rem;
+    line-height: 1.05;
+  }
+
+  .candidate-card__name a {
+    text-decoration: none;
+    color: var(--charcoal);
+  }
+  .candidate-card__name a:hover { color: var(--ember); }
+
+  .candidate-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .score-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: var(--sandstone);
+    color: var(--bone);
+    font-size: 0.78rem;
+    font-weight: 800;
+    border-radius: 3px;
+  }
+
+  .candidate-card__reason {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--charcoal);
+    font-style: italic;
+    max-width: 580px;
+  }
+
+  .candidate-card__link {
+    display: flex;
+    align-items: center;
+    padding: 0 22px;
+    background: var(--ember);
+    color: var(--bone);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+    writing-mode: vertical-rl;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.1s;
+  }
+  .candidate-card__link:hover { background: var(--ember-dark); }
+
+  .no-endorsement-list {
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid var(--dust);
+  }
+  .no-endorsement-list h2 { font-size: 1.3rem; margin: 0 0 10px; }
+  .no-endorsement-list p { margin: 0 0 14px; font-size: 0.92rem; }
+
+  .plain-list {
+    display: grid;
+    gap: 8px;
+    padding-left: 18px;
+    font-size: 0.92rem;
+  }
+
+  .guide-cta {
+    margin-top: 56px;
+    padding: 32px;
+    border: 1px solid var(--dust);
+    background: var(--bone);
+    border-top: 6px solid var(--charcoal);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .guide-cta h2 { margin: 0; font-size: 1.5rem; }
+  .guide-cta p  { margin: 0; max-width: 560px; line-height: 1.6; font-size: 0.96rem; }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0.6rem 1.1rem;
+    border: 2px solid var(--charcoal);
+    border-radius: 4px;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .button--primary { border-color: var(--ember); background: var(--ember); color: var(--bone); }
+  .button--primary:hover { background: var(--ember-dark); border-color: var(--ember-dark); }
+  .button--secondary { background: transparent; color: var(--charcoal); }
+  .button--secondary:hover { border-color: var(--rust); color: var(--rust); }
+
+  .guide-link { color: var(--ember); font-weight: 700; }
+
+  @media (max-width: 620px) {
+    .candidate-card { flex-direction: column; }
+    .candidate-card__link { writing-mode: horizontal-tb; padding: 12px 20px; }
+  }
+</style>

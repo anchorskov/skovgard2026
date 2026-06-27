@@ -88,6 +88,16 @@ candidates (200 rows)
 
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+
+candidate_email_suppressions
+  id            INTEGER PK AUTOINCREMENT
+  email         TEXT NOT NULL
+  email_norm    TEXT NOT NULL UNIQUE
+  reason        TEXT NULLABLE
+  source        TEXT NULLABLE
+  suppressed_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 ```
 
 ## Indexes
@@ -154,6 +164,7 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/migrations/0007_county_gis.sql` | Creates `county_gis` registry for ArcGIS spatial polling lookup |
 | `db/migrations/0008_precinct_polygons.sql` | Creates local precinct polygon fallback table |
 | `db/migrations/0009_offices_precinct_code.sql` | Adds `offices.precinct_code` and backfills title-derived precinct committee rows |
+| `db/migrations/0011_candidate_email_suppressions.sql` | Adds the candidate bulk-email suppression table |
 
 ## Seed files
 
@@ -163,6 +174,7 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/seed/002_enrichment_updates.sql` | Auto-generated UPDATE statements from batch enrichment CSVs (batches 01–10, all 200 rows) |
 | `db/seed/wy_2026_primary_candidates.csv` | Source SOS CSV — do not modify |
 | `db/seed/wy_2026_primary_candidates_enhanced_batch*.csv` | Enrichment batch CSVs (85 columns, all 200 rows per file) |
+| `db/seed/candidate_email_suppressions_*.sql` | Candidate bulk-email unsubscribe/suppression records |
 
 ## Enrichment batch workflow
 

@@ -1,0 +1,577 @@
+---
+// Candidates/src/pages/candidate/[slug].astro
+import Base from '../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/guide');
+
+type D1Env = { WY_DB: D1Database };
+const db = (env as unknown as D1Env)?.WY_DB;
+if (!db) return Astro.redirect('/guide');
+
+// Load candidate + office
+const candRow = await db.prepare(`
+  SELECT c.*, o.title AS office_title, o.level, o.district, o.county
+  FROM candidates c
+  JOIN offices o ON o.id = c.office_id
+  WHERE c.slug = ? AND c.withdrawn_at IS NULL
+  LIMIT 1
+`).bind(slug).first() as any;
+
+if (!candRow) return Astro.redirect('/guide');
+
+// Load guide endorsement record
+const endorsement = await db.prepare(`
+  SELECT * FROM guide_endorsements WHERE candidate_id = ?
+`).bind(candRow.id).first() as any;
+
+// Load rubric scores
+const { results: scores } = await db.prepare(`
+  SELECT * FROM guide_rubric_scores WHERE candidate_id = ? ORDER BY rowid
+`).bind(candRow.id).all();
+
+// Load public corrections
+const { results: corrections } = await db.prepare(`
+  SELECT * FROM guide_public_corrections
+  WHERE candidate_id = ? AND status != 'pending'
+  ORDER BY resolved_at DESC
+`).bind(candRow.id).all();
+
+// Load sources
+const { results: sources } = await db.prepare(`
+  SELECT * FROM guide_sources WHERE candidate_id = ? ORDER BY source_number
+`).bind(candRow.id).all();
+
+// Load questionnaire responses
+const { results: qResponses } = await db.prepare(`
+  SELECT qr.question_key, qr.response_text, qr.submitted_at
+  FROM guide_questionnaire_responses qr
+  WHERE qr.candidate_id = ?
+  ORDER BY qr.question_key
+`).bind(candRow.id).all();
+
+const isPublished = endorsement?.published_at != null;
+const isEndorsed  = endorsement?.status === 'endorsed';
+const isResearch  = !endorsement || endorsement.status === 'research';
+
+const categoryOrder = [
+  'constitutional_oath','character','competence','accountability',
+  'fiscal','local_impact','public_service','issue_alignment',
+  'coalition','evidence_quality',
+];
+
+const categoryLabels: Record<string, string> = {
+  constitutional_oath: 'Constitutional oath & rule of law',
+  character:           'Character, honesty & courage',
+  competence:          'Competence & readiness',
+  accountability:      'Accountability & transparency',
+  fiscal:              'Fiscal responsibility',
+  local_impact:        'Local impact & Wyoming fit',
+  public_service:      'Public service over self-interest',
+  issue_alignment:     'Issue alignment',
+  coalition:           'Coalition-building & temperament',
+  evidence_quality:    'Evidence quality',
+};
+
+const scoreMap = new Map((scores as any[]).map((s) => [s.category_key, s]));
+
+function weightedScore(score: any): number | null {
+  const s = scoreMap.get(score);
+  if (!s) return null;
+  const val = s.score_revised ?? s.score_original;
+  if (val == null) return null;
+  return Math.round(val * s.weight);
+}
+
+const totalScore = endorsement?.final_score ?? null;
+const maxPossible = endorsement?.max_possible ?? null;
+
+const questionLabels: Record<string, string> = {
+  constitutional_position: 'What is your understanding of the constitutional limits of this office?',
+  top_wyoming_issue:       'What is the most important issue facing Wyoming right now?',
+  fiscal_position:         'How do you approach state spending, debt, and long-term obligations?',
+  local_impact:            'Describe a decision you\'ve seen or made that affected local Wyoming families.',
+  public_service_motive:   'Why are you running for this office?',
+  endorsement_response:    'Is there anything in this research profile you would like to clarify or correct?',
+};
+---
+
+<Base
+  title={`${candRow.full_name} — ${candRow.office_title}`}
+  description={`Jimmy Skovgard's research and evaluation of ${candRow.full_name}, candidate for ${candRow.office_title} in the Wyoming 2026 primary.`}
+  currentPath={`/candidate/${slug}`}
+>
+  <div class="profile-shell">
+
+    <nav class="breadcrumb" aria-label="breadcrumb">
+      <a href="/guide">Candidate guide</a>
+      <span aria-hidden="true"> / </span>
+      <a href={`/race/${candRow.office_id}`}>{candRow.office_title}</a>
+      <span aria-hidden="true"> / </span>
+      <span aria-current="page">{candRow.full_name}</span>
+    </nav>
+
+    <header class="profile-header">
+      <div class="profile-header__meta">
+        <p class="eyebrow">{candRow.office_title}{candRow.district ? ` — District ${candRow.district}` : ''}</p>
+        <h1>{candRow.full_name}</h1>
+        <div class="profile-badges">
+          <span class={`badge badge--party-${(candRow.party || '').toLowerCase().slice(0,1) || 'other'}`}>{candRow.party}</span>
+          {candRow.incumbency_status === 'incumbent' && <span class="badge badge--incumbent">Incumbent</span>}
+          {isEndorsed && <span class="badge badge--endorsed">Endorsed by Jimmy Skovgard</span>}
+        </div>
+      </div>
+
+      {totalScore != null && (
+        <div class="score-card" aria-label="Rubric score">
+          <p class="score-card__label">Rubric score</p>
+          <strong class="score-card__score">{totalScore}</strong>
+          <span class="score-card__max">/ {maxPossible ?? 500}</span>
+          {endorsement?.evidence_confidence && (
+            <p class="score-card__confidence">Evidence confidence: {endorsement.evidence_confidence}</p>
+          )}
+        </div>
+      )}
+    </header>
+
+    <!-- Candidate notification status -->
+    {endorsement && (
+      <div class="notification-status" role="status">
+        {endorsement.notified_at && (
+          <span>Notified: {new Date(endorsement.notified_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+        )}
+        {endorsement.candidate_response_status === 'responded' && endorsement.candidate_responded_at && (
+          <span class="status--responded">Responded: {new Date(endorsement.candidate_responded_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+        )}
+        {endorsement.candidate_response_status === 'declined' && (
+          <span class="status--declined">Candidate declined to participate.</span>
+        )}
+        {endorsement.candidate_response_status === 'no_response' && (
+          <span class="status--no-response">No response received as of {endorsement.questionnaire_deadline ? new Date(endorsement.questionnaire_deadline).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'deadline'}.</span>
+        )}
+        {(corrections as any[]).length > 0 && (
+          <span>Corrections submitted: {(corrections as any[]).length} | Accepted: {(corrections as any[]).filter((c: any) => c.status === 'accepted').length}</span>
+        )}
+      </div>
+    )}
+
+    {isResearch && !isPublished && (
+      <div class="research-notice">
+        <strong>Research in progress.</strong> This profile will be published July 15, 2026.
+      </div>
+    )}
+
+    <!-- Endorsement block -->
+    {isEndorsed && endorsement.endorsement_reasoning && (
+      <section class="endorsement-block" aria-labelledby="endorsement-title">
+        <h2 id="endorsement-title">Jimmy's endorsement</h2>
+        <blockquote class="endorsement-quote">
+          {endorsement.endorsement_reasoning}
+        </blockquote>
+        {endorsement.endorsed_at && (
+          <p class="endorsement-date">Endorsed {new Date(endorsement.endorsed_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+        )}
+      </section>
+    )}
+
+    <!-- Rubric table -->
+    {(scores as any[]).length > 0 && (
+      <section class="rubric-section" aria-labelledby="rubric-title">
+        <h2 id="rubric-title">Rubric scores</h2>
+        <div class="rubric-table-wrap">
+          <table class="rubric-table">
+            <thead>
+              <tr>
+                <th scope="col">Category</th>
+                <th scope="col" class="num">Weight</th>
+                <th scope="col" class="num">Score</th>
+                <th scope="col" class="num">Weighted</th>
+                <th scope="col">Evidence / Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categoryOrder.map((key) => {
+                const s = scoreMap.get(key) as any;
+                if (!s) return null;
+                const currentScore = s.score_revised ?? s.score_original;
+                const weighted = currentScore != null ? Math.round(currentScore * s.weight) : null;
+                return (
+                  <tr class:list={{ 'rubric-row--revised': s.score_revised != null }}>
+                    <td class="rubric-cat">{categoryLabels[key] ?? s.category_label}</td>
+                    <td class="num">{s.weight}</td>
+                    <td class="num">
+                      {currentScore != null ? currentScore : <span class="unknown">Unknown</span>}
+                      {s.score_revised != null && (
+                        <span class="revised-marker" title={`Original: ${s.score_original ?? 'Unknown'}`}>↑</span>
+                      )}
+                    </td>
+                    <td class="num">{weighted ?? '—'}</td>
+                    <td class="rubric-notes">
+                      {s.evidence_notes && <p>{s.evidence_notes}</p>}
+                      {s.score_revised != null && (
+                        <details class="revision-log">
+                          <summary>Score revised {new Date(s.score_revised_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</summary>
+                          <dl>
+                            <dt>Original score</dt><dd>{s.score_original ?? 'Unknown'} × {s.weight} = {s.score_original != null ? Math.round(s.score_original * s.weight) : '—'}</dd>
+                            <dt>Revised score</dt><dd>{s.score_revised} × {s.weight} = {Math.round(s.score_revised * s.weight)}</dd>
+                            <dt>Reason</dt><dd>{s.score_revised_reason}</dd>
+                          </dl>
+                        </details>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            {totalScore != null && (
+              <tfoot>
+                <tr>
+                  <td colspan="3"><strong>Final score</strong></td>
+                  <td class="num"><strong>{totalScore}</strong></td>
+                  <td>out of {maxPossible ?? 500} possible</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </section>
+    )}
+
+    <!-- Questionnaire responses -->
+    {(qResponses as any[]).length > 0 && (
+      <section class="questionnaire-section" aria-labelledby="q-title">
+        <h2 id="q-title">Candidate questionnaire responses</h2>
+        <p class="q-note">Responses submitted directly by the candidate via the guide questionnaire. Published verbatim.</p>
+        <dl class="q-responses">
+          {(qResponses as any[]).map((r: any) => (
+            <>
+              <dt>{questionLabels[r.question_key] ?? r.question_key}</dt>
+              <dd>
+                <p>{r.response_text}</p>
+                <p class="q-date">Submitted {new Date(r.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+              </dd>
+            </>
+          ))}
+        </dl>
+      </section>
+    )}
+
+    <!-- Public corrections log -->
+    {(corrections as any[]).length > 0 && (
+      <section class="corrections-section" aria-labelledby="corrections-title">
+        <h2 id="corrections-title">Correction log</h2>
+        <p>All submitted corrections and their resolution are shown here. Nothing is removed.</p>
+        <div class="corrections-list">
+          {(corrections as any[]).map((c: any) => (
+            <article class:list={['correction-item', `correction-item--${c.status}`]}>
+              <header class="correction-item__head">
+                <span class="correction-badge correction-badge--{c.status}">{c.status === 'accepted' ? 'Accepted' : 'Declined'}</span>
+                <span class="correction-meta">{c.submission_type === 'candidate' ? 'Submitted by candidate' : 'Public submission'} — {new Date(c.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              </header>
+              {c.category_label && <p class="correction-cat">Category: {c.category_label}</p>}
+              <dl class="correction-detail">
+                <dt>Original</dt><dd>{c.original_value}</dd>
+                <dt>Submitted correction</dt><dd>{c.submitted_value}</dd>
+                {c.status === 'accepted' && c.revised_value && (
+                  <><dt>Revised to</dt><dd>{c.revised_value}</dd></>
+                )}
+                <dt>Resolution</dt><dd>{c.resolution_notes}</dd>
+              </dl>
+              {c.resolved_at && (
+                <p class="correction-resolved">Resolved {new Date(c.resolved_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+              )}
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Sources -->
+    {(sources as any[]).length > 0 && (
+      <section class="sources-section" aria-labelledby="sources-title">
+        <h2 id="sources-title">Sources</h2>
+        <ol class="source-list">
+          {(sources as any[]).map((s: any) => (
+            <li>
+              <strong>{s.source_name}</strong>
+              {s.source_url && <> — <a href={s.source_url} rel="noopener noreferrer" class="guide-link">{s.source_url}</a></>}
+              {s.source_date && <> — accessed {s.source_date}</>}
+              <span class="source-weight">Evidence weight: {s.evidence_weight}/5</span>
+              {s.notes && <p class="source-notes">{s.notes}</p>}
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+
+    <!-- Submit correction CTA -->
+    <section class="correction-cta" aria-labelledby="cta-title">
+      <h2 id="cta-title">Something wrong?</h2>
+      <p>
+        If you are this candidate or a member of the public with documented evidence that a score or fact is incorrect,
+        email <a href={`mailto:jimmy@grassrootsmvt.org?subject=Correction: ${encodeURIComponent(candRow.full_name)}`} class="guide-link">jimmy@grassrootsmvt.org</a>.
+        Include your source, the specific item you are correcting, and what you believe it should say.
+        Corrections are accepted through August 18, 2026.
+      </p>
+    </section>
+
+  </div>
+</Base>
+
+<style>
+  .profile-shell {
+    padding: 24px 0 64px;
+    max-width: 900px;
+  }
+
+  .breadcrumb {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 28px;
+  }
+  .breadcrumb a { color: var(--rust); text-underline-offset: 0.2em; }
+  .breadcrumb a:hover { color: var(--ember); }
+  .breadcrumb span[aria-hidden] { margin: 0 6px; color: var(--dust); }
+
+  .profile-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 16px;
+  }
+
+  .profile-header h1 {
+    margin: 8px 0 12px;
+    font-size: clamp(2rem, 5vw, 3.6rem);
+    line-height: 0.98;
+  }
+
+  .profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .badge--endorsed {
+    background: var(--sage);
+    color: var(--bone);
+  }
+
+  .score-card {
+    flex-shrink: 0;
+    border: 1px solid var(--dust);
+    background: var(--bone);
+    box-shadow: 0 6px 0 var(--dust);
+    padding: 18px 22px;
+    text-align: center;
+    min-width: 140px;
+  }
+  .score-card__label {
+    margin: 0 0 4px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--rust);
+  }
+  .score-card__score {
+    display: block;
+    font-family: 'Bitter', Georgia, serif;
+    font-size: 3rem;
+    line-height: 1;
+  }
+  .score-card__max { font-size: 0.9rem; color: var(--rust); }
+  .score-card__confidence {
+    margin: 8px 0 0;
+    font-size: 0.78rem;
+    color: var(--rust);
+    font-weight: 700;
+  }
+
+  .notification-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 10px 14px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--sandstone);
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 28px;
+  }
+  .status--responded { color: var(--sage); }
+  .status--no-response { color: var(--rust); }
+  .status--declined { color: var(--dust); }
+
+  .research-notice {
+    padding: 14px 18px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--sandstone);
+    background: var(--bone);
+    margin-bottom: 28px;
+    font-size: 0.95rem;
+  }
+
+  .endorsement-block {
+    background: var(--bone);
+    border: 1px solid var(--dust);
+    border-top: 6px solid var(--sage);
+    padding: 28px;
+    margin: 32px 0;
+  }
+  .endorsement-block h2 { margin: 0 0 16px; font-size: 1.3rem; }
+  .endorsement-quote {
+    margin: 0;
+    font-size: 1.08rem;
+    line-height: 1.65;
+    border-left: 4px solid var(--sage);
+    padding-left: 18px;
+  }
+  .endorsement-date {
+    margin: 12px 0 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--rust);
+  }
+
+  /* Rubric table */
+  .rubric-section { margin-top: 40px; }
+  .rubric-section h2 { font-size: 1.4rem; margin: 0 0 16px; }
+
+  .rubric-table-wrap { overflow-x: auto; }
+
+  .rubric-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+
+  .rubric-table th {
+    background: var(--charcoal);
+    color: var(--bone);
+    padding: 9px 12px;
+    text-align: left;
+    font-weight: 800;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .rubric-table th.num { text-align: center; }
+
+  .rubric-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--dust);
+    vertical-align: top;
+  }
+
+  .rubric-table tr:nth-child(even) td { background: #faf8f4; }
+  .rubric-row--revised td { background: #f0f4ed; }
+
+  .rubric-table .num { text-align: center; white-space: nowrap; }
+
+  .unknown { color: var(--dust); font-style: italic; font-size: 0.82rem; }
+  .revised-marker { color: var(--sage); font-size: 0.78rem; margin-left: 4px; }
+
+  .rubric-notes p { margin: 0 0 6px; }
+
+  .revision-log {
+    margin-top: 6px;
+    font-size: 0.82rem;
+  }
+  .revision-log summary {
+    cursor: pointer;
+    color: var(--rust);
+    font-weight: 700;
+  }
+  .revision-log dl {
+    margin: 8px 0 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+  }
+  .revision-log dt { font-weight: 700; color: var(--rust); }
+  .revision-log dd { margin: 0; }
+
+  .rubric-table tfoot td {
+    background: var(--bone);
+    border-top: 2px solid var(--charcoal);
+    font-size: 0.92rem;
+    padding: 12px;
+  }
+
+  /* Questionnaire */
+  .questionnaire-section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--dust); }
+  .questionnaire-section h2 { font-size: 1.4rem; margin: 0 0 8px; }
+  .q-note { margin: 0 0 20px; font-size: 0.88rem; color: var(--rust); font-style: italic; }
+
+  .q-responses { display: grid; gap: 20px; }
+  .q-responses dt { font-weight: 800; font-size: 0.92rem; color: var(--charcoal); margin-bottom: 6px; }
+  .q-responses dd { margin: 0; padding: 14px; border-left: 4px solid var(--sandstone); background: var(--bone); }
+  .q-responses p { margin: 0 0 6px; line-height: 1.6; }
+  .q-date { font-size: 0.78rem; color: var(--rust); font-weight: 700; margin-top: 8px; }
+
+  /* Corrections */
+  .corrections-section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--dust); }
+  .corrections-section h2 { font-size: 1.4rem; margin: 0 0 8px; }
+  .corrections-list { display: grid; gap: 16px; margin-top: 20px; }
+
+  .correction-item {
+    border: 1px solid var(--dust);
+    padding: 16px;
+    background: var(--bone);
+  }
+  .correction-item--accepted { border-left: 4px solid var(--sage); }
+  .correction-item--declined { border-left: 4px solid var(--dust); }
+
+  .correction-item__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .correction-badge {
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+  .correction-badge--accepted { background: var(--sage); color: var(--bone); }
+  .correction-badge--declined { background: var(--dust); color: var(--charcoal); }
+  .correction-meta { font-size: 0.82rem; color: var(--rust); }
+  .correction-cat { font-size: 0.82rem; font-weight: 700; color: var(--rust); margin: 0 0 8px; }
+  .correction-detail {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    font-size: 0.88rem;
+  }
+  .correction-detail dt { font-weight: 700; color: var(--rust); }
+  .correction-detail dd { margin: 0; }
+  .correction-resolved { margin: 10px 0 0; font-size: 0.78rem; color: var(--rust); font-weight: 700; }
+
+  /* Sources */
+  .sources-section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--dust); }
+  .sources-section h2 { font-size: 1.4rem; margin: 0 0 16px; }
+  .source-list { display: grid; gap: 10px; padding-left: 20px; font-size: 0.88rem; line-height: 1.5; }
+  .source-list li { padding-bottom: 8px; border-bottom: 1px solid var(--dust); }
+  .source-weight { margin-left: 10px; font-size: 0.78rem; color: var(--rust); font-weight: 700; }
+  .source-notes { margin: 4px 0 0; font-size: 0.82rem; color: var(--rust); }
+  .guide-link { color: var(--ember); font-weight: 700; }
+
+  /* CTA */
+  .correction-cta {
+    margin-top: 48px;
+    padding: 24px 28px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--sandstone);
+    background: var(--bone);
+  }
+  .correction-cta h2 { margin: 0 0 10px; font-size: 1.2rem; }
+  .correction-cta p { margin: 0; line-height: 1.65; max-width: 680px; }
+
+  @media (max-width: 720px) {
+    .profile-header { flex-direction: column; }
+    .rubric-table th, .rubric-table td { padding: 8px; }
+  }
+</style>

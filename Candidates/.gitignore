@@ -22,3 +22,7 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# private research intake — never deploy
+_research/
+.dev.vars

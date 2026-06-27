@@ -1,0 +1,28 @@
+{
+  "name": "skovgard-guide",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && node scripts/postbuild-pages.mjs",
+    "preview": "astro preview",
+    "astro": "astro",
+    "generate-types": "wrangler types",
+    "deploy": "npm run build && wrangler pages deploy ./dist/client --project-name=skovgard-guide",
+    "db:migrate:local": "wrangler d1 execute wy --file=",
+    "db:migrate:prod": "wrangler d1 execute wy --remote --file="
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^13.7.0",
+    "@tailwindcss/vite": "^4.3.1",
+    "astro": "^6.4.7",
+    "tailwindcss": "^4.3.1",
+    "wrangler": "4.103.0"
+  },
+  "overrides": {
+    "vite": "^7"
+  }
+}

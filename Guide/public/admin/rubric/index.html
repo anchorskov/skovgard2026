@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide Admin — Candidate Research</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bone: #f1ece1;
+  --charcoal: #2b2b2b;
+  --ember: #b22234;
+  --ember-dark: #8b1a26;
+  --sandstone: #c68a4a;
+  --sage: #7a8a6b;
+  --white: #ffffff;
+  --gray-100: #f7f7f7;
+  --gray-200: #e0e0e0;
+  --gray-400: #999;
+  --gray-600: #555;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bone);
+  color: var(--charcoal);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ── Auth overlay ─────────────────────────────────────────────── */
+#auth-overlay {
+  position: fixed; inset: 0;
+  background: var(--charcoal);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+#auth-box {
+  background: var(--bone); border-radius: 8px;
+  padding: 2rem; width: 100%; max-width: 380px; text-align: center;
+}
+#auth-box h1 { font-size: 1.2rem; color: var(--ember); margin-bottom: 0.25rem; }
+#auth-box p  { font-size: 0.83rem; color: var(--gray-600); margin-bottom: 1.25rem; }
+#auth-key {
+  width: 100%; padding: 0.6rem 0.75rem;
+  border: 2px solid var(--gray-200); border-radius: 4px;
+  font-size: 1rem; margin-bottom: 0.75rem;
+}
+#auth-key:focus { outline: none; border-color: var(--ember); }
+#auth-error { color: var(--ember); font-size: 0.83rem; margin-top: 0.5rem; display: none; }
+
+/* ── Top nav ──────────────────────────────────────────────────── */
+#top-nav {
+  background: var(--charcoal); color: var(--white);
+  padding: 0.65rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+#top-nav h1 { font-size: 0.9rem; font-weight: 700; letter-spacing: 0.06em; }
+#top-nav a  { color: var(--sandstone); font-size: 0.82rem; text-decoration: none; }
+
+/* ── Layout ───────────────────────────────────────────────────── */
+#main-content { max-width: 920px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+
+/* ── Section cards ────────────────────────────────────────────── */
+.card {
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: 8px; margin-bottom: 1.1rem; overflow: hidden;
+}
+.card-head {
+  background: var(--charcoal); color: var(--white);
+  padding: 0.55rem 1rem;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; display: flex; align-items: center;
+  justify-content: space-between;
+}
+.card-head span.meta { font-weight: 400; opacity: 0.6; font-size: 0.72rem; }
+.card-body { padding: 1rem; }
+
+/* ── Filters + search ─────────────────────────────────────────── */
+.filter-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.filter-row label { font-size: 0.8rem; color: var(--gray-600); white-space: nowrap; }
+.filter-row select { padding: 0.3rem 0.5rem; font-size: 0.82rem; border: 1px solid var(--gray-200); border-radius: 4px; background: var(--white); }
+
+#candidate-search {
+  width: 100%; padding: 0.55rem 0.75rem;
+  border: 2px solid var(--gray-200); border-radius: 4px;
+  font-size: 1rem; margin-bottom: 0.5rem; background: var(--white);
+}
+#candidate-search:focus { outline: none; border-color: var(--ember); }
+
+#candidate-list {
+  list-style: none; max-height: 260px; overflow-y: auto;
+  border: 1px solid var(--gray-200); border-radius: 4px; background: var(--white);
+}
+#candidate-list li {
+  padding: 0.55rem 0.75rem; cursor: pointer;
+  border-bottom: 1px solid var(--gray-200); font-size: 0.88rem;
+}
+#candidate-list li:last-child { border-bottom: none; }
+#candidate-list li:hover, #candidate-list li.active { background: var(--bone); }
+#candidate-list li .sub { font-size: 0.76rem; color: var(--gray-600); margin-top: 0.1rem; }
+
+#selected-display {
+  margin-top: 0.5rem; padding: 0.55rem 0.75rem;
+  background: var(--charcoal); color: var(--white);
+  border-radius: 4px; font-size: 0.88rem; display: none;
+}
+
+.lvl-badge {
+  display: inline-block; font-size: 0.67rem; font-weight: 700;
+  padding: 0.1rem 0.35rem; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.04em; margin-left: 0.35rem; vertical-align: middle;
+}
+.lvl-federal     { background: #1a3a6b; color: #fff; }
+.lvl-statewide   { background: var(--ember); color: #fff; }
+.lvl-state_senate,
+.lvl-state_house { background: var(--sage); color: #fff; }
+.lvl-county      { background: var(--sandstone); color: #fff; }
+.lvl-other       { background: var(--gray-400); color: #fff; }
+
+.guide-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; margin-left: 0.4rem; vertical-align: middle;
+}
+.guide-dot.none     { background: var(--gray-200); }
+.guide-dot.research { background: #4a9a4a; }
+
+/* ── AI Prompt tabs ───────────────────────────────────────────── */
+.tab-bar { display: flex; border-bottom: 2px solid var(--gray-200); margin-bottom: 0.9rem; }
+.tab-btn {
+  padding: 0.45rem 1rem; background: none; border: none;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  color: var(--gray-600); border-bottom: 3px solid transparent; margin-bottom: -2px;
+}
+.tab-btn:hover { color: var(--charcoal); }
+.tab-btn.active { color: var(--ember); border-bottom-color: var(--ember); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.prompt-meta { font-size: 0.79rem; color: var(--gray-600); margin-bottom: 0.5rem; }
+.prompt-ta {
+  width: 100%; height: 260px; font-family: 'Courier New', monospace;
+  font-size: 0.76rem; line-height: 1.55; padding: 0.65rem;
+  border: 1px solid var(--gray-200); border-radius: 4px; resize: vertical;
+  background: var(--gray-100);
+}
+.prompt-actions { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.btn {
+  display: inline-block; padding: 0.42rem 0.9rem;
+  border: none; border-radius: 4px; font-size: 0.83rem; font-weight: 600;
+  cursor: pointer; text-decoration: none; transition: background 0.12s;
+}
+.btn-ember  { background: var(--ember); color: #fff; }
+.btn-ember:hover { background: var(--ember-dark); }
+.btn-gray   { background: var(--gray-200); color: var(--charcoal); }
+.btn-gray:hover { background: #ccc; }
+.btn-sm { padding: 0.3rem 0.65rem; font-size: 0.79rem; }
+.btn-full { width: 100%; text-align: center; padding: 0.6rem; font-size: 0.9rem; }
+
+/* ── Score form ───────────────────────────────────────────────── */
+.scale-ref {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1rem;
+  font-size: 0.75rem; color: var(--gray-600);
+  background: var(--bone); border-radius: 4px;
+  padding: 0.5rem 0.75rem; margin-bottom: 1rem;
+}
+.scale-ref strong { color: var(--charcoal); }
+
+#running-total {
+  background: var(--charcoal); color: #fff; border-radius: 6px;
+  padding: 0.65rem 1rem; text-align: center; margin-bottom: 1rem;
+}
+#running-total .big { font-size: 1.7rem; font-weight: 700; color: var(--sandstone); }
+#running-total .lbl { font-size: 0.76rem; opacity: 0.65; margin-top: 0.1rem; }
+
+.cat-card { border: 1px solid var(--gray-200); border-radius: 6px; margin-bottom: 0.7rem; overflow: hidden; }
+.cat-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.55rem 0.75rem; background: var(--bone);
+  border-bottom: 1px solid var(--gray-200);
+}
+.cat-name { font-weight: 600; font-size: 0.88rem; }
+.cat-weight { font-size: 0.73rem; color: var(--gray-600); background: var(--gray-200); padding: 0.1rem 0.45rem; border-radius: 3px; }
+.cat-total { font-size: 0.73rem; color: var(--sandstone); font-weight: 700; min-width: 55px; text-align: right; }
+.cat-body { padding: 0.7rem 0.75rem; }
+
+.score-btns { display: flex; gap: 0.3rem; margin-bottom: 0.55rem; flex-wrap: wrap; }
+.sbtn {
+  width: 36px; height: 36px; border: 2px solid var(--gray-200); border-radius: 4px;
+  background: #fff; color: var(--charcoal); font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; transition: all 0.1s;
+}
+.sbtn:hover { border-color: var(--ember); color: var(--ember); }
+.sbtn.on    { background: var(--ember); border-color: var(--ember); color: #fff; }
+.sbtn.q-btn { color: var(--gray-400); font-size: 0.8rem; }
+.sbtn.q-btn.on { background: var(--sage); border-color: var(--sage); color: #fff; }
+
+.form-row { display: flex; gap: 0.5rem; }
+.form-row + .form-row { margin-top: 0.4rem; }
+.f-lbl { display: block; font-size: 0.75rem; color: var(--gray-600); margin-bottom: 0.2rem; }
+.f-input {
+  width: 100%; padding: 0.38rem 0.5rem;
+  border: 1px solid var(--gray-200); border-radius: 4px;
+  font-size: 0.83rem; font-family: inherit; background: #fff;
+}
+.f-input:focus { outline: none; border-color: var(--ember); }
+textarea.f-input { resize: vertical; }
+
+/* ── Sources table ────────────────────────────────────────────── */
+.src-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.src-table th {
+  text-align: left; font-weight: 600; font-size: 0.75rem;
+  padding: 0.38rem 0.4rem; background: var(--bone);
+  border-bottom: 2px solid var(--gray-200);
+}
+.src-table td { padding: 0.3rem 0.25rem; border-bottom: 1px solid var(--gray-200); vertical-align: middle; }
+.src-table input, .src-table select {
+  width: 100%; border: 1px solid var(--gray-200); border-radius: 3px;
+  padding: 0.28rem 0.38rem; font-size: 0.8rem; background: #fff;
+}
+.src-table input:focus, .src-table select:focus { outline: none; border-color: var(--ember); }
+.rm-src { background: none; border: none; color: var(--ember); cursor: pointer; font-size: 1.1rem; padding: 0 0.2rem; }
+
+/* ── Save section ─────────────────────────────────────────────── */
+#save-msg {
+  text-align: center; font-size: 0.85rem; padding: 0.5rem;
+  border-radius: 4px; margin-bottom: 0.6rem; display: none;
+}
+#save-msg.ok  { background: #e8f4e8; color: #2a6a2a; }
+#save-msg.err { background: #fde8e8; color: var(--ember); }
+</style>
+</head>
+<body>
+
+<!-- ── Auth overlay ──────────────────────────────────────────────── -->
+<div id="auth-overlay">
+  <div id="auth-box">
+    <h1>Guide Admin</h1>
+    <p>guide.skovgard2026.org — candidate research &amp; rubric scoring</p>
+    <input type="password" id="auth-key" placeholder="Admin key" autocomplete="off">
+    <button class="btn btn-ember btn-full" onclick="doAuth()">Unlock</button>
+    <div id="auth-error">Incorrect key.</div>
+  </div>
+</div>
+
+<!-- ── Main ──────────────────────────────────────────────────────── -->
+<div id="main-wrap" hidden>
+  <div id="top-nav">
+    <h1>GUIDE ADMIN — CANDIDATE RESEARCH</h1>
+    <a href="https://candidates.skovgard2026.org" target="_blank">← Voter Guide</a>
+  </div>
+  <div id="main-content">
+
+    <!-- ① Candidate select -->
+    <div class="card">
+      <div class="card-head">
+        ① SELECT CANDIDATE
+        <span class="meta" id="cand-count"></span>
+      </div>
+      <div class="card-body">
+        <div class="filter-row">
+          <label>Level:</label>
+          <select id="f-level" onchange="renderList()">
+            <option value="">All levels</option>
+            <option value="federal">Federal</option>
+            <option value="statewide">Statewide</option>
+            <option value="state_senate">State Senate</option>
+            <option value="state_house">State House</option>
+            <option value="county">County</option>
+          </select>
+          <label>Status:</label>
+          <select id="f-status" onchange="renderList()">
+            <option value="">All</option>
+            <option value="none">Not started</option>
+            <option value="research">In progress</option>
+          </select>
+        </div>
+        <input type="text" id="candidate-search" placeholder="Search by name, office, or county…" oninput="renderList()">
+        <ul id="candidate-list"></ul>
+        <div id="selected-display"></div>
+      </div>
+    </div>
+
+    <!-- Research sections — hidden until candidate selected -->
+    <div id="research-wrap" hidden>
+
+      <!-- ② AI Research Prompts -->
+      <div class="card">
+        <div class="card-head">② AI RESEARCH PROMPTS — copy, paste into the tool, bring back results</div>
+        <div class="card-body">
+          <p style="font-size:0.8rem;color:var(--gray-600);margin-bottom:0.8rem;">
+            <strong>Workflow:</strong> Start with Gemini (web search) → bring results back → paste into Claude for score review → use ChatGPT for finance deep-dives. Then enter scores below.
+          </p>
+          <div class="tab-bar">
+            <button class="tab-btn active" onclick="tab('gemini',this)">Gemini</button>
+            <button class="tab-btn" onclick="tab('claude',this)">Claude</button>
+            <button class="tab-btn" onclick="tab('chatgpt',this)">ChatGPT</button>
+          </div>
+
+          <!-- Gemini tab: copy prompt → run → paste output back in the field below -->
+          <div id="tp-gemini" class="tab-panel active">
+            <p class="prompt-meta"><strong>Step 1 — Copy this prompt and run it in Gemini.</strong> Gemini uses live web search to find SoS filings, campaign site, WYCFIS finance, and news.</p>
+            <textarea id="pr-gemini" class="prompt-ta" readonly></textarea>
+            <div class="prompt-actions">
+              <button class="btn btn-ember btn-sm" onclick="copyPrompt('gemini')">Copy Prompt</button>
+              <a href="https://gemini.google.com/" target="_blank" class="btn btn-gray btn-sm">Open Gemini →</a>
+            </div>
+            <div style="margin-top:0.9rem;padding-top:0.9rem;border-top:1px dashed var(--gray-200)">
+              <label class="f-lbl" style="font-size:0.82rem;color:var(--charcoal);font-weight:600;">Step 2 — Paste Gemini output here (feeds into the Claude prompt automatically):</label>
+              <textarea id="gemini-output" class="prompt-ta" style="height:140px;background:#fff" placeholder="Paste your full Gemini research results here…" oninput="rebuildClaudePrompt()"></textarea>
+            </div>
+          </div>
+
+          <!-- Claude tab: paste-in fields auto-assemble the full prompt -->
+          <div id="tp-claude" class="tab-panel">
+            <p class="prompt-meta"><strong>Claude</strong> — paste your Gemini evidence and draft scores below. The prompt assembles automatically — then copy and send.</p>
+            <div style="display:flex;gap:0.6rem;margin-bottom:0.6rem">
+              <div style="flex:1">
+                <label class="f-lbl">① Gemini research output:</label>
+                <textarea id="claude-evidence" class="f-input" rows="5" placeholder="Paste Gemini output here (or it auto-fills from the Gemini tab)…" oninput="rebuildClaudePrompt()"></textarea>
+              </div>
+              <div style="flex:1">
+                <label class="f-lbl">② Your draft rubric scores (optional):</label>
+                <textarea id="claude-scores" class="f-input" rows="5" placeholder="Paste your draft scores here for Claude to review…" oninput="rebuildClaudePrompt()"></textarea>
+              </div>
+            </div>
+            <label class="f-lbl" style="font-size:0.82rem;color:var(--charcoal);font-weight:600;">Complete Claude prompt (auto-assembled — copy this):</label>
+            <textarea id="pr-claude" class="prompt-ta" readonly></textarea>
+            <div class="prompt-actions">
+              <button class="btn btn-ember btn-sm" onclick="copyPrompt('claude')">Copy Prompt</button>
+              <a href="https://claude.ai/new" target="_blank" class="btn btn-gray btn-sm">Open Claude →</a>
+            </div>
+          </div>
+
+          <!-- ChatGPT tab: paste finance data, prompt assembles with it -->
+          <div id="tp-chatgpt" class="tab-panel">
+            <p class="prompt-meta"><strong>ChatGPT</strong> — paste raw WYCFIS or FEC finance data below. The prompt assembles with your data included.</p>
+            <label class="f-lbl">① Paste WYCFIS / FEC finance data here:</label>
+            <textarea id="chatgpt-finance" class="f-input" style="width:100%;margin-bottom:0.6rem" rows="5" placeholder="Paste campaign finance data from cfinance.wyo.gov or FEC.gov here…" oninput="rebuildChatgptPrompt()"></textarea>
+            <label class="f-lbl" style="font-size:0.82rem;color:var(--charcoal);font-weight:600;">② Complete ChatGPT prompt (auto-assembled — copy this):</label>
+            <textarea id="pr-chatgpt" class="prompt-ta" readonly></textarea>
+            <div class="prompt-actions">
+              <button class="btn btn-ember btn-sm" onclick="copyPrompt('chatgpt')">Copy Prompt</button>
+              <a href="https://chatgpt.com/" target="_blank" class="btn btn-gray btn-sm">Open ChatGPT →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ③ Rubric Scores -->
+      <div class="card">
+        <div class="card-head">③ RUBRIC SCORES — 10 categories, 500 points max</div>
+        <div class="card-body">
+          <div class="scale-ref">
+            <strong>Score:</strong>
+            <span>5 = Excellent</span><span>4 = Strong</span><span>3 = Acceptable</span>
+            <span>2 = Below avg</span><span>1 = Weak</span><span>0 = Serious concern</span>
+            <span>? = Unknown (not zero — no evidence, no score)</span>
+          </div>
+          <div id="running-total">
+            <div class="big"><span id="sc-now">0</span> / <span id="sc-max">500</span></div>
+            <div class="lbl">running score (scored categories only)</div>
+          </div>
+          <div id="cat-container"></div>
+        </div>
+      </div>
+
+      <!-- ④ Sources -->
+      <div class="card">
+        <div class="card-head">④ SOURCE LOG — number sources and reference as [1], [2] in evidence notes</div>
+        <div class="card-body">
+          <table class="src-table">
+            <thead>
+              <tr>
+                <th style="width:30px">#</th>
+                <th style="width:22%">Source name</th>
+                <th style="width:28%">URL</th>
+                <th style="width:11%">Date</th>
+                <th style="width:7%">Wt</th>
+                <th>Notes</th>
+                <th style="width:28px"></th>
+              </tr>
+            </thead>
+            <tbody id="src-body"></tbody>
+          </table>
+          <button class="btn btn-gray btn-sm" style="margin-top:0.5rem" onclick="addSrc()">+ Add Source</button>
+        </div>
+      </div>
+
+      <!-- ⑤ Save -->
+      <div class="card">
+        <div class="card-head">⑤ SAVE TO D1</div>
+        <div class="card-body">
+          <div style="max-width:280px;margin-bottom:1rem;">
+            <label class="f-lbl">Overall evidence confidence</label>
+            <select id="overall-conf" class="f-input">
+              <option value="Low">Low — mostly social/mailer sources</option>
+              <option value="Medium">Medium — mix of source weights</option>
+              <option value="High">High — multiple official/candidate records</option>
+            </select>
+          </div>
+          <div id="save-msg"></div>
+          <button class="btn btn-ember btn-full" onclick="saveScores()">Save Scores to D1</button>
+        </div>
+      </div>
+
+    </div><!-- /research-wrap -->
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const CATS = [
+  { key:'constitutional_oath', label:'Constitutional oath and rule of law', weight:15 },
+  { key:'character',           label:'Character, honesty, and courage',     weight:15 },
+  { key:'competence',          label:'Competence and readiness',             weight:10 },
+  { key:'accountability',      label:'Accountability and transparency',      weight:10 },
+  { key:'fiscal',              label:'Fiscal responsibility',                weight:10 },
+  { key:'local_impact',        label:'Local impact and Wyoming fit',         weight:10 },
+  { key:'public_service',      label:'Public service over self-interest',    weight:10 },
+  { key:'issue_alignment',     label:'Issue alignment (vs. Skovgard2026)',   weight:10 },
+  { key:'coalition',           label:'Coalition-building and temperament',   weight: 5 },
+  { key:'evidence_quality',    label:'Evidence quality',                     weight: 5 },
+];
+
+let adminKey = sessionStorage.getItem('guideAdminKey') || '';
+let allCandidates = [];
+let selected = null;
+const scores = {};   // key → null | 0..5
+let srcCount = 0;
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+if (adminKey) bootstrap();
+
+async function doAuth() {
+  const k = document.getElementById('auth-key').value.trim();
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch('/api/admin/candidates', { headers: { 'x-admin-key': k } });
+    if (r.status === 401) { errEl.textContent = 'Incorrect key.'; errEl.style.display = 'block'; return; }
+    if (!r.ok) {
+      const body = await r.text();
+      let msg = `Server error (${r.status})`;
+      try { msg = JSON.parse(body).error || msg; } catch { if (body) msg += ': ' + body.slice(0, 120); }
+      errEl.textContent = msg;
+      errEl.style.display = 'block';
+      return;
+    }
+    adminKey = k;
+    sessionStorage.setItem('guideAdminKey', k);
+    allCandidates = await r.json();
+    showMain();
+  } catch (e) {
+    errEl.textContent = 'Network error: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+async function bootstrap() {
+  try {
+    const r = await fetch('/api/admin/candidates', { headers: { 'x-admin-key': adminKey } });
+    if (!r.ok) { adminKey = ''; sessionStorage.removeItem('guideAdminKey'); return; }
+    allCandidates = await r.json();
+    showMain();
+  } catch { /* stay on auth screen */ }
+}
+
+function showMain() {
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.getElementById('main-wrap').hidden = false;
+  document.getElementById('cand-count').textContent = `${allCandidates.length} candidates`;
+  renderList();
+}
+
+document.getElementById('auth-key').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(); });
+
+// ── Candidate list ─────────────────────────────────────────────────────────
+function renderList() {
+  const q     = document.getElementById('candidate-search').value.trim().toLowerCase();
+  const lvl   = document.getElementById('f-level').value;
+  const stat  = document.getElementById('f-status').value;
+
+  const filtered = allCandidates.filter(c => {
+    if (lvl && c.level !== lvl) return false;
+    if (stat === 'none' && c.guide_status) return false;
+    if (stat === 'research' && !c.guide_status) return false;
+    if (!q) return true;
+    return `${c.name} ${c.office} ${c.district||''} ${c.county||''} ${c.party||''}`.toLowerCase().includes(q);
+  });
+
+  const ul = document.getElementById('candidate-list');
+  ul.innerHTML = '';
+  const show = filtered.slice(0, 100);
+  show.forEach(c => {
+    const li = document.createElement('li');
+    if (selected?.id === c.id) li.classList.add('active');
+    const lvlBadge = `<span class="lvl-badge lvl-${c.level||'other'}">${(c.level||'').replace('_',' ')}</span>`;
+    const dot = `<span class="guide-dot ${c.guide_status||'none'}" title="${c.guide_status||'not started'}"></span>`;
+    const pts = c.final_score != null ? ` · ${c.final_score} pts` : '';
+    li.innerHTML = `<strong>${c.name}</strong>${lvlBadge}${dot}
+      <div class="sub">${c.office}${c.district ? ' · '+c.district : ''}${c.party ? ' · '+c.party : ''}${pts}</div>`;
+    li.addEventListener('click', () => pickCandidate(c));
+    ul.appendChild(li);
+  });
+  if (filtered.length > 100) {
+    const li = document.createElement('li');
+    li.style.cssText = 'color:#999;font-style:italic';
+    li.textContent = `…${filtered.length - 100} more — narrow your search`;
+    ul.appendChild(li);
+  }
+}
+
+async function pickCandidate(c) {
+  selected = c;
+  renderList();
+  const d = document.getElementById('selected-display');
+  d.style.display = 'block';
+  d.textContent = `Selected: ${c.name} — ${c.office}${c.district ? ' ('+c.district+')' : ''}`;
+  document.getElementById('research-wrap').hidden = false;
+  buildPrompts(c);
+  buildScoreForm();
+  await loadExisting(c.id);
+  document.getElementById('research-wrap').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── AI Prompts ─────────────────────────────────────────────────────────────
+function tab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tp-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function copyPrompt(name) {
+  const ta = document.getElementById('pr-'+name);
+  navigator.clipboard.writeText(ta.value).catch(() => { ta.select(); document.execCommand('copy'); });
+  const btn = event.currentTarget;
+  const orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = orig, 1600);
+}
+
+function buildPrompts(c) {
+  // Clear paste-in fields when switching candidates
+  document.getElementById('gemini-output').value  = '';
+  document.getElementById('claude-evidence').value = '';
+  document.getElementById('claude-scores').value   = '';
+  document.getElementById('chatgpt-finance').value = '';
+
+  const name   = c.name;
+  const office = c.office;
+  const loc    = [c.district, c.county].filter(Boolean).join(', ') || 'Wyoming';
+  document.getElementById('pr-gemini').value  = promptGemini(name, office, loc);
+  document.getElementById('pr-claude').value  = promptClaude(name, office, loc, '', '');
+  document.getElementById('pr-chatgpt').value = promptChatgpt(name, office, loc, c.party, '');
+}
+
+// Sync Gemini output → Claude evidence field, then rebuild
+function rebuildClaudePrompt() {
+  if (!selected) return;
+  // If the user typed in the Gemini tab output field, mirror it to the Claude evidence field
+  const geminiOut = document.getElementById('gemini-output').value;
+  const claudeEv  = document.getElementById('claude-evidence');
+  if (geminiOut && !claudeEv.value) claudeEv.value = geminiOut;
+
+  const evidence = claudeEv.value.trim();
+  const scores   = document.getElementById('claude-scores').value.trim();
+  const loc = [selected.district, selected.county].filter(Boolean).join(', ') || 'Wyoming';
+  document.getElementById('pr-claude').value = promptClaude(selected.name, selected.office, loc, evidence, scores);
+}
+
+function rebuildChatgptPrompt() {
+  if (!selected) return;
+  const finance = document.getElementById('chatgpt-finance').value.trim();
+  const loc = [selected.district, selected.county].filter(Boolean).join(', ') || 'Wyoming';
+  document.getElementById('pr-chatgpt').value = promptChatgpt(selected.name, selected.office, loc, selected.party, finance);
+}
+
+function promptGemini(name, office, loc) {
+  return `Research ${name}, candidate for ${office} (${loc}, Wyoming) — 2026 primary election. Use live web search.
+
+FIND AND SUMMARIZE:
+
+1. WY Secretary of State ballot filing
+   Confirm 2026 ballot at wyos.gov/elections.
+   Note: office, district, filing date, ballot status.
+
+2. Campaign website
+   Locate site. List stated positions on: taxes/spending, education, public lands,
+   water rights, energy policy, law enforcement. Direct quotes preferred.
+
+3. Campaign finance — WYCFIS (cfinance.wyo.gov) or FEC.gov if federal
+   Report: total raised, total spent, top 5 donors with amounts,
+   any PAC contributions, self-funded amount.
+
+4. Legislative voting record (incumbents only — mark N/A if challenger)
+   Search wyoleg.gov for votes on major bills, bill sponsorships, committee work.
+   If the candidate served in the Wyoming legislature, specifically note any actions
+   following Wyoming Supreme Court rulings — did they pursue a constitutional amendment
+   to change settled law, or did they pass statutory restrictions that bypass judicial precedent?
+
+5. News coverage
+   Search "${name} Wyoming ${office} 2026" — summarize top 3 results
+   (source, date, headline, key point).
+
+---
+FORMAT YOUR RESPONSE:
+
+CANDIDATE: ${name}
+OFFICE: ${office}, ${loc}
+DATE RESEARCHED: [today]
+
+SOURCE LOG:
+1. [source name] | [URL] | [date accessed] | Weight: [1–5]
+   Weight scale: 5=official records, 4=candidate statements, 3=forum/questionnaire,
+   2=credible local reporting, 1=social/mailers, 0=rumor (never use)
+
+KEY FINDINGS:
+Strengths (what the record supports):
+-
+Concerns (what the record raises):
+-
+Open questions (for follow-up):
+-
+
+SUGGESTED RUBRIC SCORES (0–5 or ? if insufficient evidence):
+Rules: Mark ? if you cannot score from evidence. Do NOT infer or guess.
+Do NOT penalize challengers for no voting record. A disclosed financial
+interest is a fact, not misconduct.
+
+Note: Evaluate Criterion 1 strictly through the framework of the constitutional oath
+and co-equal branches of government.
+
+1. Constitutional oath and rule of law: [?] — Evaluate the candidate's respect for our
+   co-equal, three-tier system of governance (legislative, judicial, executive branches).
+   Consider whether their record honors definitive rulings from the state's highest court,
+   or whether they abandoned their oath by bypassing the established path of a constitutional
+   amendment in favor of passing statutory restrictions that subvert judicial precedent.
+
+2. Character, honesty, and courage: [?] — [reason]
+3. Competence and readiness: [?] — [reason]
+4. Accountability and transparency: [?] — [reason]
+5. Fiscal responsibility: [?] — [reason]
+6. Local impact and Wyoming fit: [?] — [reason]
+7. Public service over self-interest: [?] — [reason]
+8. Issue alignment (fiscal conservatism, local control, public lands, water): [?] — [reason]
+9. Coalition-building and temperament: [?] — [reason]
+10. Evidence quality (overall strength of this evidence base): [?] — [reason]
+
+OVERALL EVIDENCE CONFIDENCE: [High / Medium / Low]
+(High = multiple weight-4/5 sources; Medium = mix; Low = mostly weight-1/2)`;
+}
+
+function promptClaude(name, office, loc, evidence = '', draftScores = '') {
+  const evidenceBlock = evidence || '[No evidence pasted yet — add Gemini output in the field above]';
+  const scoresBlock   = draftScores || '[No draft scores yet — optional]';
+  return `I am building an independent Wyoming voter guide (guide.skovgard2026.org). I have assembled evidence on ${name}, 2026 candidate for ${office} (${loc}). Please review my draft rubric scores.
+
+RUBRIC RULES:
+- 0–5 scale. Null/? = insufficient evidence. Null ≠ zero.
+- 0 means a serious documented concern, not absence of data.
+- Do NOT penalize challengers for lacking a voting record.
+- A disclosed financial interest is a fact. Note it; don't penalize it alone.
+- Evidence scale: 5=official records, 4=candidate statements,
+  3=forum/questionnaire, 2=credible local reporting, 1=social/mailers
+
+--- EVIDENCE ---
+${evidenceBlock}
+
+--- DRAFT RUBRIC SCORES ---
+${scoresBlock}
+
+PLEASE:
+
+1. FLAG inconsistencies — any score that seems too high or low vs. the evidence.
+
+2. SUGGEST follow-up questions for open questions or low-confidence categories.
+
+3. DRAFT a 2–3 sentence neutral public summary for the voter guide profile page.
+   Lead with office and party. State key positions. End with evidence confidence.
+
+4. RATE overall evidence confidence:
+   High = multiple independent weight-4/5 sources
+   Medium = mix of weights, partial picture
+   Low = mostly weight-1/2, thin record
+
+5. FLAG anything a voter should know that may not appear in the rubric.`;
+}
+
+function promptChatgpt(name, office, loc, party, financeData = '') {
+  const financeBlock = financeData || '[No finance data pasted yet — add WYCFIS / FEC data in the field above]';
+  return `Analyze Wyoming campaign finance data for ${name}, candidate for ${office} in ${loc}. Party: ${party || 'unknown'}.
+
+PROVIDE:
+
+1. DONOR PATTERN ANALYSIS
+   - In-state vs. out-of-state ratio
+   - PAC, corporate, or lobbyist contributions (names + amounts)
+   - Self-funded percentage
+   - Unusually large individual donors
+
+2. SPENDING PATTERN
+   - Where is money going? (advertising, consulting, staff, travel, other)
+   - Any unusual or noteworthy expenditures
+
+3. RED FLAGS OR NOTABLE ITEMS
+   - Conflict-of-interest indicators
+   - Transparency concerns
+   - Unusual support sources
+
+4. ONE-SENTENCE VOTER GUIDE SUMMARY (neutral)
+   Example: "Raised $42k, 85% from in-state donors, no PAC money, self-funded 20%."
+
+5. RUBRIC IMPACT (finance data only)
+   Does this affect:
+   - Fiscal responsibility score?
+   - Public service over self-interest score?
+   - Accountability and transparency score?
+   Briefly explain each.
+
+--- FINANCE DATA ---
+${financeBlock}`;
+}
+
+// ── Score form ─────────────────────────────────────────────────────────────
+function buildScoreForm() {
+  CATS.forEach(cat => { if (!(cat.key in scores)) scores[cat.key] = null; });
+  const c = document.getElementById('cat-container');
+  c.innerHTML = '';
+  CATS.forEach(cat => {
+    const div = document.createElement('div');
+    div.className = 'cat-card';
+    div.id = 'cc-'+cat.key;
+    div.innerHTML = `
+      <div class="cat-head">
+        <span class="cat-name">${cat.label}</span>
+        <span class="cat-weight">weight ${cat.weight}</span>
+        <span class="cat-total" id="ct-${cat.key}">—</span>
+      </div>
+      <div class="cat-body">
+        <div class="score-btns">
+          <button class="sbtn q-btn" data-k="${cat.key}" onclick="setScore('${cat.key}',null,this)">?</button>
+          ${[0,1,2,3,4,5].map(n=>`<button class="sbtn" data-k="${cat.key}" onclick="setScore('${cat.key}',${n},this)">${n}</button>`).join('')}
+        </div>
+        <div class="form-row">
+          <div style="flex:1">
+            <label class="f-lbl">Evidence notes (cite sources as [1], [2]…)</label>
+            <textarea class="f-input ev-notes" data-k="${cat.key}" rows="2" placeholder="What evidence supports this score?"></textarea>
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:0.4rem">
+          <div style="flex:2">
+            <label class="f-lbl">Follow-up question (optional)</label>
+            <input type="text" class="f-input fu-q" data-k="${cat.key}" placeholder="Open question to send candidate">
+          </div>
+          <div style="flex:1">
+            <label class="f-lbl">Confidence</label>
+            <select class="f-input cat-conf" data-k="${cat.key}">
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+        </div>
+      </div>`;
+    c.appendChild(div);
+  });
+  updateTotal();
+}
+
+function setScore(key, val, btn) {
+  scores[key] = val;
+  const card = document.getElementById('cc-'+key);
+  card.querySelectorAll('.sbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  const cat = CATS.find(c => c.key === key);
+  const el = document.getElementById('ct-'+key);
+  el.textContent = val === null ? '—' : `${Number(val) * cat.weight} pts`;
+  updateTotal();
+}
+
+function updateTotal() {
+  let now = 0, max = 0;
+  CATS.forEach(cat => {
+    const s = scores[cat.key];
+    if (s !== null && s !== undefined) { now += Number(s) * cat.weight; max += 5 * cat.weight; }
+  });
+  document.getElementById('sc-now').textContent = now;
+  document.getElementById('sc-max').textContent = max || 500;
+}
+
+// ── Sources ────────────────────────────────────────────────────────────────
+function addSrc(data = {}) {
+  srcCount++;
+  const tbody = document.getElementById('src-body');
+  const tr = document.createElement('tr');
+  tr.id = 'sr-'+srcCount;
+  const num = tbody.children.length + 1;
+  tr.innerHTML = `
+    <td style="text-align:center;color:#999;font-size:0.78rem">${num}</td>
+    <td><input type="text" placeholder="WY SoS Filing" value="${data.source_name||''}"></td>
+    <td><input type="text" placeholder="https://…" value="${data.source_url||''}"></td>
+    <td><input type="date" value="${data.source_date||''}"></td>
+    <td>
+      <select>${[5,4,3,2,1].map(w=>`<option value="${w}" ${data.evidence_weight==w?'selected':''}>${w}</option>`).join('')}</select>
+    </td>
+    <td><input type="text" placeholder="Notes" value="${data.notes||''}"></td>
+    <td><button class="rm-src" onclick="rmSrc('${tr.id}')">×</button></td>`;
+  tbody.appendChild(tr);
+}
+
+function rmSrc(id) {
+  document.getElementById(id)?.remove();
+  document.querySelectorAll('#src-body tr').forEach((r,i) => r.querySelector('td').textContent = i+1);
+}
+
+function collectSrcs() {
+  return Array.from(document.querySelectorAll('#src-body tr')).map((tr,i) => {
+    const ins = tr.querySelectorAll('input,select');
+    return { number:i+1, name:ins[0].value.trim(), url:ins[1].value.trim(), date:ins[2].value, weight:Number(ins[3].value), notes:ins[4].value.trim() };
+  }).filter(s => s.name);
+}
+
+// ── Load existing ──────────────────────────────────────────────────────────
+async function loadExisting(id) {
+  try {
+    const r = await fetch(`/api/admin/rubric?candidate_id=${id}`, { headers:{'x-admin-key':adminKey} });
+    if (!r.ok) return;
+    const { scores: existing, sources, endorsement } = await r.json();
+
+    existing.forEach(row => {
+      const val = row.score_revised !== null && row.score_revised !== undefined ? row.score_revised : row.score_original;
+      scores[row.category_key] = val;
+      const card = document.getElementById('cc-'+row.category_key);
+      if (!card) return;
+      card.querySelectorAll('.sbtn').forEach(btn => {
+        const d = btn.dataset;
+        const match = val === null ? d.k && !btn.dataset.n : Number(btn.textContent) === val;
+        // simpler: compare text
+        const isNull = val === null || val === undefined;
+        btn.classList.toggle('on', isNull ? btn.classList.contains('q-btn') : Number(btn.textContent) === val);
+      });
+      const cat = CATS.find(c => c.key === row.category_key);
+      if (cat) document.getElementById('ct-'+cat.key).textContent = val === null ? '—' : `${Number(val)*cat.weight} pts`;
+      const ev = card.querySelector('.ev-notes'); if (ev) ev.value = row.evidence_notes || '';
+      const fu = card.querySelector('.fu-q');     if (fu) fu.value = row.follow_up_question || '';
+      const co = card.querySelector('.cat-conf'); if (co) co.value = row.evidence_confidence || 'Low';
+    });
+
+    document.getElementById('src-body').innerHTML = '';
+    srcCount = 0;
+    sources.forEach(s => addSrc(s));
+
+    if (endorsement?.evidence_confidence) {
+      document.getElementById('overall-conf').value = endorsement.evidence_confidence;
+    }
+    updateTotal();
+  } catch(e) { console.error('loadExisting', e); }
+}
+
+// ── Save ───────────────────────────────────────────────────────────────────
+async function saveScores() {
+  if (!selected) return;
+  const msg = document.getElementById('save-msg');
+  msg.style.display = 'none';
+
+  const categories = CATS.map(cat => {
+    const card = document.getElementById('cc-'+cat.key);
+    return {
+      key:              cat.key,
+      label:            cat.label,
+      weight:           cat.weight,
+      score:            scores[cat.key] ?? null,
+      evidence_notes:   card?.querySelector('.ev-notes')?.value.trim() || null,
+      follow_up_question: card?.querySelector('.fu-q')?.value.trim() || null,
+      confidence:       card?.querySelector('.cat-conf')?.value || 'Low',
+    };
+  });
+
+  const payload = {
+    candidate_id:       selected.id,
+    categories,
+    sources:            collectSrcs(),
+    overall_confidence: document.getElementById('overall-conf').value,
+  };
+
+  try {
+    const r = await fetch('/api/admin/rubric', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      const pct = d.max_possible ? Math.round(d.final_score / d.max_possible * 100) : 0;
+      msg.className = 'ok';
+      msg.textContent = `Saved — ${selected.name}: ${d.final_score} / ${d.max_possible} pts (${pct}%)`;
+      msg.style.display = 'block';
+      const cand = allCandidates.find(c => c.id === selected.id);
+      if (cand) { cand.guide_status = 'research'; cand.final_score = d.final_score; renderList(); }
+    } else {
+      throw new Error(d.error || 'Unknown error');
+    }
+  } catch(e) {
+    msg.className = 'err';
+    msg.textContent = `Error: ${e.message}`;
+    msg.style.display = 'block';
+  }
+}
+</script>
+</body>
+</html>

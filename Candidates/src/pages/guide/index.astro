@@ -1,0 +1,422 @@
+---
+// Candidates/src/pages/guide/index.astro
+import Base from '../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+
+const today = new Date();
+const researchDeadline  = new Date('2026-07-07');
+const notifyDate        = new Date('2026-07-07');
+const publicLaunchDate  = new Date('2026-07-15');
+const endorsementDate   = new Date('2026-07-25');
+const correctionDeadline = new Date('2026-08-18');
+
+type Phase = 'research' | 'notify' | 'public' | 'endorsement' | 'primary';
+let currentPhase: Phase = 'research';
+if (today >= correctionDeadline)  currentPhase = 'primary';
+else if (today >= endorsementDate) currentPhase = 'endorsement';
+else if (today >= publicLaunchDate) currentPhase = 'public';
+else if (today >= notifyDate)     currentPhase = 'notify';
+
+const phaseLabels: Record<Phase, string> = {
+  research:    'Research in progress',
+  notify:      'Candidates being notified',
+  public:      'Research published — review open',
+  endorsement: 'Endorsements published',
+  primary:     'Primary day — August 18, 2026',
+};
+
+const phases: { key: Phase; date: string; label: string; desc: string }[] = [
+  { key: 'research',    date: 'Jun 25 – Jul 7',  label: 'Research',              desc: 'Rubric scored from public records, voting history, campaign finance, and candidate materials.' },
+  { key: 'notify',      date: 'Jul 7–8',          label: 'Candidates notified',   desc: 'Every candidate receives their draft profile and the standard questionnaire with a response deadline.' },
+  { key: 'public',      date: 'Jul 15',           label: 'Research published',    desc: 'All profiles go live. The public review window opens. Corrections accepted at jimmy@grassrootsmvt.org.' },
+  { key: 'endorsement', date: 'Jul 25',           label: 'Endorsements published', desc: 'Jimmy\'s endorsements are added to each profile. Candidates may continue submitting corrections through August 18.' },
+  { key: 'primary',     date: 'Aug 18',           label: 'Primary election day',   desc: 'Wyoming 2026 primary. All research and correction logs remain published.' },
+];
+
+let guideStats = { total: 0, researched: 0, endorsed: 0 };
+if (env?.WY_DB) {
+  try {
+    const { results } = await (env.WY_DB as D1Database).prepare(`
+      SELECT
+        COUNT(DISTINCT c.id)                                                      AS total_candidates,
+        COUNT(DISTINCT CASE WHEN ge.status != 'research' THEN ge.candidate_id END) AS researched,
+        COUNT(DISTINCT CASE WHEN ge.status = 'endorsed'  THEN ge.candidate_id END) AS endorsed
+      FROM candidates c
+      LEFT JOIN guide_endorsements ge ON ge.candidate_id = c.id
+      WHERE c.withdrawn_at IS NULL
+    `).all();
+    const r = results[0] as any;
+    if (r) guideStats = { total: r.total_candidates, researched: r.researched, endorsed: r.endorsed };
+  } catch { /* fall through */ }
+}
+---
+
+<Base
+  title="Candidate Guide — Wyoming 2026 Primary"
+  description="Jimmy Skovgard's sourced candidate research and personal endorsements for the Wyoming 2026 primary election. Research published July 15. Endorsements July 25."
+  currentPath="/guide"
+>
+  <section class="guide-hero" aria-labelledby="guide-title">
+    <div class="guide-hero__copy">
+      <p class="eyebrow">Wyoming 2026 Primary — August 18</p>
+      <h1 id="guide-title">Candidate research and endorsements.</h1>
+      <p class="lede">
+        This is Jimmy Skovgard's public research file on Wyoming primary candidates.
+        Every score is tied to a cited source. Every endorsement is explained in plain language.
+        Candidates are invited to correct the record through primary day.
+      </p>
+      <div class="guide-hero__actions">
+        <a class="button button--primary" href="/endorsements">View endorsements</a>
+        <a class="button button--secondary" href="/races">Browse candidates by race</a>
+      </div>
+    </div>
+
+    <aside class="phase-card" aria-label="Guide timeline">
+      <p class="phase-card__label">Current phase</p>
+      <strong class="phase-card__current">{phaseLabels[currentPhase]}</strong>
+      <ol class="phase-list" role="list">
+        {phases.map((p) => (
+          <li class:list={['phase-list__item', {
+            'phase-list__item--done':    p.key !== currentPhase && phases.findIndex(x => x.key === currentPhase) > phases.findIndex(x => x.key === p.key),
+            'phase-list__item--active':  p.key === currentPhase,
+            'phase-list__item--future':  phases.findIndex(x => x.key === currentPhase) < phases.findIndex(x => x.key === p.key),
+          }]}>
+            <span class="phase-list__date">{p.date}</span>
+            <span class="phase-list__label">{p.label}</span>
+          </li>
+        ))}
+      </ol>
+      {guideStats.total > 0 && (
+        <dl class="guide-stats">
+          <div><dt>{guideStats.total}</dt><dd>candidates tracked</dd></div>
+          <div><dt>{guideStats.researched}</dt><dd>profiles researched</dd></div>
+          <div><dt>{guideStats.endorsed}</dt><dd>endorsed</dd></div>
+        </dl>
+      )}
+    </aside>
+  </section>
+
+  <section class="guide-intent" aria-labelledby="intent-title">
+    <h2 id="intent-title">What this guide is and is not.</h2>
+    <div class="intent-grid">
+      <div class="intent-col">
+        <h3>What this is</h3>
+        <ul>
+          <li>Research drawn from public records: ballot filings, voting records, campaign finance, financial disclosures, candidate websites, forums, and local news.</li>
+          <li>Scores tied to numbered citations you can check yourself.</li>
+          <li>Jimmy Skovgard's personal endorsements, clearly labeled as his judgment.</li>
+          <li>A living document: every accepted correction is logged publicly with the original score, the revision, and the reason.</li>
+        </ul>
+      </div>
+      <div class="intent-col">
+        <h3>What this is not</h3>
+        <ul>
+          <li>An official party recommendation.</li>
+          <li>A substitute for your own research.</li>
+          <li>A finished product: profiles will be updated through August 18 as new evidence arrives.</li>
+          <li>A coordination with any other campaign. An endorsement here does not constitute financial support for any endorsed candidate.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-rubric-intro" aria-labelledby="rubric-title">
+    <h2 id="rubric-title">How candidates are scored.</h2>
+    <p>Each candidate is evaluated on ten categories using a 0–5 scale multiplied by category weight. Maximum score is 500 points. A category marked <strong>Unknown</strong> means we could not find sufficient evidence — it is not scored, not penalized.</p>
+    <div class="rubric-grid">
+      {[
+        { label: 'Constitutional oath & rule of law', weight: 15 },
+        { label: 'Character, honesty & courage',      weight: 15 },
+        { label: 'Competence & readiness',            weight: 10 },
+        { label: 'Accountability & transparency',     weight: 10 },
+        { label: 'Fiscal responsibility',             weight: 10 },
+        { label: 'Local impact & Wyoming fit',        weight: 10 },
+        { label: 'Public service over self-interest', weight: 10 },
+        { label: 'Issue alignment',                   weight: 10 },
+        { label: 'Coalition-building & temperament',  weight:  5 },
+        { label: 'Evidence quality',                  weight:  5 },
+      ].map((cat) => (
+        <div class="rubric-row">
+          <span class="rubric-row__label">{cat.label}</span>
+          <span class="rubric-row__weight">{cat.weight} pts</span>
+        </div>
+      ))}
+    </div>
+    <p class="rubric-note">
+      Score 0 = no evidence or serious concern.
+      Score 5 = excellent evidence of strong performance.
+      Issue alignment is scored against Jimmy Skovgard's published platform priorities for that office.
+    </p>
+  </section>
+
+  <section class="guide-corrections" aria-labelledby="corrections-title">
+    <h2 id="corrections-title">Candidates and the public can correct this guide.</h2>
+    <p>
+      Every candidate received a direct email when their draft profile was ready.
+      They had a priority window before the public launch to submit corrections.
+      That window stays open through August 18.
+    </p>
+    <p>
+      If a correction is accepted, the profile shows both the original score and the revised score,
+      with the date and reason. If a correction is declined, the reason is published too.
+      Nothing disappears. The record is the record.
+    </p>
+    <p>
+      To submit a correction or provide additional evidence:
+      <a href="mailto:jimmy@grassrootsmvt.org" class="guide-link">jimmy@grassrootsmvt.org</a>
+    </p>
+  </section>
+
+  <section class="guide-disclaimer" aria-labelledby="disclaimer-title">
+    <h2 id="disclaimer-title">Legal disclaimer.</h2>
+    <p>
+      This voter guide is produced by the Skovgard2026 campaign as a resource for Wyoming voters.
+      Research is drawn from public records including Wyoming Legislature vote records, Secretary of State
+      campaign finance disclosures, official candidate websites, and named news sources.
+      All sources are cited in the research profile for each candidate.
+    </p>
+    <p>
+      Endorsements reflect the personal judgment of <strong>Jimmy Skovgard</strong>, Wyoming voter
+      and candidate for Wyoming State Senate. An endorsement does not constitute coordination with
+      or financial contribution to any endorsed candidate's campaign.
+    </p>
+    <p>
+      Scores are based on documented evidence. Where evidence was unavailable, categories are marked
+      "Unknown" rather than scored. We publish our work openly and invite factual correction at
+      <a href="mailto:jimmy@grassrootsmvt.org" class="guide-link">jimmy@grassrootsmvt.org</a>
+      through August 18, 2026.
+    </p>
+    <p class="disclaimer-paid">Paid for by Skovgard for Senate.</p>
+  </section>
+</Base>
+
+<style>
+  .guide-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+    gap: 36px;
+    align-items: start;
+    padding: 56px 0 40px;
+  }
+
+  .guide-hero__copy h1 {
+    max-width: 16ch;
+    margin: 0;
+    font-size: clamp(2.6rem, 6vw, 5rem);
+    line-height: 0.96;
+  }
+
+  .lede {
+    max-width: 600px;
+    margin: 20px 0 0;
+    font-size: clamp(1.05rem, 2vw, 1.22rem);
+  }
+
+  .guide-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0.7rem 1.2rem;
+    border: 2px solid var(--charcoal);
+    border-radius: 4px;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .button--primary {
+    border-color: var(--ember);
+    background: var(--ember);
+    color: var(--bone);
+  }
+  .button--primary:hover { background: var(--ember-dark); border-color: var(--ember-dark); }
+
+  .button--secondary {
+    background: transparent;
+    color: var(--charcoal);
+  }
+  .button--secondary:hover { border-color: var(--rust); color: var(--rust); }
+
+  /* Phase card */
+  .phase-card {
+    border: 1px solid var(--dust);
+    background: var(--bone);
+    box-shadow: 0 8px 0 var(--dust);
+    border-top: 8px solid var(--charcoal);
+    padding: 24px;
+  }
+
+  .phase-card__label {
+    margin: 0 0 6px;
+    color: var(--rust);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .phase-card__current {
+    display: block;
+    font-family: 'Bitter', 'Merriweather', Georgia, serif;
+    font-size: 1.3rem;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  .phase-list {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+    border-top: 1px solid var(--dust);
+  }
+
+  .phase-list__item {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--dust);
+    font-size: 0.88rem;
+    align-items: baseline;
+    color: var(--charcoal);
+    opacity: 0.5;
+  }
+
+  .phase-list__item--done   { opacity: 0.55; }
+  .phase-list__item--active { opacity: 1; font-weight: 800; }
+  .phase-list__item--future { opacity: 0.45; }
+
+  .phase-list__date  { font-weight: 700; color: var(--rust); font-size: 0.82rem; }
+  .phase-list__label { font-weight: 600; }
+  .phase-list__item--active .phase-list__label { color: var(--ember); }
+
+  .guide-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--dust);
+    border: 1px solid var(--dust);
+    margin-top: 4px;
+  }
+  .guide-stats div { padding: 10px 8px; background: var(--bone); }
+  .guide-stats dt { font-family: 'Bitter', Georgia, serif; font-size: 1.6rem; font-weight: 800; line-height: 1; }
+  .guide-stats dd { margin: 4px 0 0; font-size: 0.75rem; font-weight: 800; color: var(--rust); text-transform: uppercase; }
+
+  /* Sections */
+  .guide-intent,
+  .guide-rubric-intro,
+  .guide-corrections,
+  .guide-disclaimer {
+    margin-top: 56px;
+    padding-top: 36px;
+    border-top: 1px solid var(--dust);
+  }
+
+  .guide-intent h2,
+  .guide-rubric-intro h2,
+  .guide-corrections h2,
+  .guide-disclaimer h2 {
+    margin: 0 0 24px;
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    line-height: 1.05;
+  }
+
+  .intent-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  .intent-col h3 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+    color: var(--rust);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .intent-col ul {
+    margin: 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 0.96rem;
+    line-height: 1.55;
+  }
+
+  /* Rubric grid */
+  .rubric-grid {
+    display: grid;
+    gap: 2px;
+    margin: 0 0 16px;
+    border: 1px solid var(--dust);
+  }
+
+  .rubric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 9px 14px;
+    background: var(--bone);
+    font-size: 0.92rem;
+    border-bottom: 1px solid var(--dust);
+  }
+  .rubric-row:last-child { border-bottom: 0; }
+
+  .rubric-row__label { font-weight: 600; }
+  .rubric-row__weight {
+    font-weight: 800;
+    font-size: 0.82rem;
+    color: var(--rust);
+    white-space: nowrap;
+    margin-left: 16px;
+  }
+
+  .rubric-note {
+    font-size: 0.88rem;
+    color: var(--rust);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Corrections & disclaimer */
+  .guide-corrections p,
+  .guide-disclaimer p {
+    max-width: 720px;
+    line-height: 1.65;
+    margin: 0 0 14px;
+  }
+
+  .guide-link {
+    color: var(--ember);
+    font-weight: 700;
+    text-underline-offset: 0.2em;
+  }
+
+  .disclaimer-paid {
+    font-weight: 800;
+    font-size: 0.88rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--rust);
+  }
+
+  @media (max-width: 860px) {
+    .guide-hero, .intent-grid {
+      grid-template-columns: 1fr;
+    }
+    .guide-hero { padding-top: 36px; }
+  }
+
+  @media (max-width: 620px) {
+    .guide-stats { grid-template-columns: 1fr; }
+  }
+</style>

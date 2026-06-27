@@ -41,3 +41,13 @@ SET
   enrichment_notes = 'Candidate-supplied campaign website received by email from foxtrot6crownarms@gmail.com on 2026-06-24.',
   updated_at = datetime('now')
 WHERE slug = 'samuel-buckwalter-3';
+
+-- J.R. Riggins (HD-59) supplied his campaign website.
+UPDATE candidates
+SET
+  website_url = 'https://www.jrforhouse.com',
+  data_confidence = 'High',
+  human_review_needed = 0,
+  enrichment_notes = 'Candidate-supplied campaign website received by email from jr.riggins@jrforhouse.com on 2026-06-24.',
+  updated_at = datetime('now')
+WHERE slug = 'jr-riggins';

@@ -11,13 +11,13 @@ interface Props {
 
 const {
   title = 'Wyoming 2026 Voter Guide',
-  description = 'Wyoming 2026 primary voter guide and candidate lookup for candidates.skovgard2026.org.',
+  description = 'Wyoming 2026 primary voter guide and candidate research at guide.skovgard2026.org.',
   currentPath = '',
-  ogImage = 'https://candidates.skovgard2026.org/og-image.png',
+  ogImage = 'https://guide.skovgard2026.org/og-image.png',
 } = Astro.props;
 
 const pageTitle = title.includes('Wyoming 2026') ? title : `${title} | Wyoming 2026 Voter Guide`;
-const canonicalUrl = `https://candidates.skovgard2026.org${currentPath || '/'}`;
+const canonicalUrl = `https://guide.skovgard2026.org${currentPath || '/'}`;
 ---
 
 <html lang="en">
@@ -60,6 +60,7 @@ const canonicalUrl = `https://candidates.skovgard2026.org${currentPath || '/'}`;
         <nav class="top-nav" aria-label="Guide sections">
           <a href="/" class:list={[{ active: currentPath === '/' }]}>Find ballot</a>
           <a href="/races" class:list={[{ active: currentPath.startsWith('/races') || currentPath.startsWith('/race/') }]}>Browse races</a>
+          <a href="/guide" class:list={[{ active: currentPath.startsWith('/guide') || currentPath.startsWith('/candidate/') || currentPath.startsWith('/endorsements') }]}>Candidate guide</a>
         </nav>
       </header>
       <main>

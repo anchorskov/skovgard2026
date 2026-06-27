@@ -1,0 +1,54 @@
+---
+// Guide/src/layouts/Base.astro
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  currentPath?: string;
+}
+
+const {
+  title = 'Wyoming 2026 Candidate Guide',
+  description = 'Independent candidate evaluations and endorsements for the Wyoming 2026 primary.',
+  currentPath = '',
+} = Astro.props;
+
+const pageTitle = title.includes('Wyoming 2026') ? title : `${title} | Wyoming 2026 Candidate Guide`;
+const canonicalUrl = `https://guide.skovgard2026.org${currentPath || '/'}`;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <title>{pageTitle}</title>
+    <link rel="canonical" href={canonicalUrl} />
+  </head>
+  <body class="min-h-screen font-sans text-wy-charcoal">
+    <header class="border-b border-wy-dust/40 bg-wy-bone/80 backdrop-blur sticky top-0 z-10">
+      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+        <a href="/" class="font-semibold text-wy-charcoal hover:text-wy-ember transition-colors">
+          Wyoming 2026 Candidate Guide
+        </a>
+        <a
+          href="https://candidates.skovgard2026.org"
+          class="text-sm text-wy-sandstone hover:text-wy-rust transition-colors"
+        >
+          Full voter guide →
+        </a>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-8">
+      <slot />
+    </main>
+
+    <footer class="border-t border-wy-dust/40 mt-16 py-8 text-center text-sm text-wy-dust">
+      <p>Wyoming 2026 · <a href="https://skovgard2026.org" class="hover:text-wy-sandstone transition-colors">skovgard2026.org</a></p>
+    </footer>
+  </body>
+</html>

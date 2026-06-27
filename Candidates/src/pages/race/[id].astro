@@ -16,7 +16,7 @@ if (!office) {
 const { results: candidates } = await env.WY_DB.prepare(`
   SELECT id, full_name, party, summary,
          website_url, photo_url, email, phone,
-         facebook_url, twitter_url, campaign_finance_url, ballotpedia_url,
+         facebook_url, instagram_url, twitter_url, campaign_finance_url, ballotpedia_url,
          incumbency_status, data_confidence
     FROM candidates
    WHERE office_id = ?1 AND withdrawn_at IS NULL
@@ -99,6 +99,9 @@ function isAbsoluteUrl(url: string | null): boolean {
             ) : null}
             {isAbsoluteUrl(String(c.facebook_url)) ? (
               <a href={String(c.facebook_url)} target="_blank" rel="noopener noreferrer" class="cand-link">Facebook</a>
+            ) : null}
+            {isAbsoluteUrl(String(c.instagram_url)) ? (
+              <a href={String(c.instagram_url)} target="_blank" rel="noopener noreferrer" class="cand-link">Instagram</a>
             ) : null}
             {isAbsoluteUrl(String(c.twitter_url)) ? (
               <a href={String(c.twitter_url)} target="_blank" rel="noopener noreferrer" class="cand-link cand-link--x">X / Twitter</a>

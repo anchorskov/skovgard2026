@@ -1,0 +1,6 @@
+dist/
+node_modules/
+.astro/
+.wrangler/
+worker-configuration.d.ts
+.dev.vars

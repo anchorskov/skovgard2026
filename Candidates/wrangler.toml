@@ -6,13 +6,14 @@ compatibility_date = "2025-09-30"
 # ---------- Production defaults (used by wrangler deploy) ----------
 [vars]
 ENVIRONMENT = "production"
-ALLOW_ORIGIN = "https://candidates.skovgard2026.org"
+ALLOW_ORIGIN = "https://guide.skovgard2026.org"
 GOOGLE_CIVIC_ELECTION_ID = ""
 
 [[d1_databases]]
 binding = "WY_DB"
 database_name = "wy"
 database_id = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"
+migrations_dir = "db/migrations"
 
 [[d1_databases]]
 binding = "LOOKUP_DB"

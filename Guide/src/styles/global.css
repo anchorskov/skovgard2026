@@ -1,0 +1,27 @@
+/* Guide/src/styles/global.css */
+@import "tailwindcss";
+
+@theme {
+  --color-wy-charcoal: #2B2B2B;
+  --color-wy-ember: #B22234;
+  --color-wy-ember-dark: #8B1A26;
+  --color-wy-sandstone: #C68A4A;
+  --color-wy-sage: #7A8A6B;
+  --color-wy-bone: #F1ECE1;
+  --color-wy-rust: #8A3D23;
+  --color-wy-dust: #B7A88A;
+
+  --color-wy-navy: #2B2B2B;
+  --color-wy-gold: #C68A4A;
+  --color-wy-stone: #F1ECE1;
+  --color-wy-sky: #7A8A6B;
+}
+
+body {
+  background-color: var(--color-wy-bone);
+  background-image:
+    radial-gradient(rgba(43, 43, 43, 0.035) 1px, transparent 1px),
+    radial-gradient(rgba(198, 138, 74, 0.03) 1px, transparent 1px);
+  background-size: 22px 22px, 37px 37px;
+  background-position: 0 0, 11px 11px;
+}
