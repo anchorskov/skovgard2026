@@ -225,6 +225,8 @@ The voter guide lives in `Candidates/` — a standalone Astro 6 SSR project depl
 
 **Data reference:** `Candidates/candidate_data.md` — start there for the full D1 schema, field definitions, migration history, and enrichment batch workflow.
 
+**Adding candidates for a new county:** Read `Candidates/docs/county_seed.md` before writing any SQL. It covers the required pre-flight checks, the `offices.level` CHECK constraint (the most common silent failure), slug conventions, verification queries, and the deploy/commit sequence. Do not skip it — `INSERT OR IGNORE` will silently discard rows with an invalid `level` value.
+
 Key points for agents:
 
 - Two D1 tables: `offices` and `candidates`, binding name `WY_DB` (row counts grow as counties are added — query D1 for current totals).
