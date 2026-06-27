@@ -74,6 +74,7 @@ const EMAILS_STORAGE_EMAIL = "skovgard_admin_emails_email";
 let selectedPhone = "";
 let singlePreviewState = null;
 let broadcastPreviewState = null;
+let broadcastDeliveryState = null;
 let contactsDataset = [];
 let visibleMessages = [];
 let visibleContacts = [];
@@ -1367,6 +1368,10 @@ function syncTextingAudienceFilter(value, source = "contacts") {
 
 function renderBroadcastPreview(data) {
   const items = data?.previewRecipients || [];
+  const previewMessages = new Map(
+    (Array.isArray(data?.previewMessages) ? data.previewMessages : [])
+      .map((item) => [String(item?.phone_e164 || ""), String(item?.text || "")])
+  );
   broadcastPreviewState = {
     token: data?.approval?.token || "",
     issuedAt: data?.approval?.issuedAt || "",
@@ -1386,6 +1391,9 @@ function renderBroadcastPreview(data) {
             state_house_district: item.hd,
             state_senate_district: item.sd,
           }) || "City / HD / SD unavailable")}</div>
+          ${previewMessages.get(String(item.phone_e164 || ""))
+            ? `<div class="preview-copy">${escapeHtml(previewMessages.get(String(item.phone_e164 || "")))}</div>`
+            : ""}
         </div>
       `).join("")
     : `<p class="empty">No recipients match the selected audience.</p>`;
@@ -1668,30 +1676,55 @@ broadcastForm?.addEventListener("submit", async (event) => {
 
   if (broadcastSendBtn) { broadcastSendBtn.disabled = true; broadcastSendBtn.textContent = "Sending…"; }
   try {
-    const payload = {
-      ...currentBroadcastPayload(),
-      dry_run: false,
-      confirmed: true,
-      preview_token: broadcastPreviewState.token,
-      preview_issued_at: broadcastPreviewState.issuedAt,
-    };
-    const data = await api("/api/admin/texting/send-batch", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    const sentCount = Number(data?.sentCount || 0);
-    const failedEntries = Array.isArray(data?.failed) ? data.failed : [];
-    const failedCount = failedEntries.length;
+    const canResume = broadcastDeliveryState?.token === broadcastPreviewState.token
+      && broadcastDeliveryState?.issuedAt === broadcastPreviewState.issuedAt;
+    let offset = canResume ? broadcastDeliveryState.nextOffset : 0;
+    const sent = canResume ? [...broadcastDeliveryState.sent] : [];
+    const failed = canResume ? [...broadcastDeliveryState.failed] : [];
+    let data;
+
+    do {
+      data = await api("/api/admin/texting/send-batch", {
+        method: "POST",
+        body: JSON.stringify({
+          ...currentBroadcastPayload(),
+          dry_run: false,
+          confirmed: true,
+          preview_token: broadcastPreviewState.token,
+          preview_issued_at: broadcastPreviewState.issuedAt,
+          batch_offset: offset,
+        }),
+      });
+      sent.push(...(Array.isArray(data?.sent) ? data.sent : []));
+      failed.push(...(Array.isArray(data?.failed) ? data.failed : []));
+      offset = Number(data?.nextOffset || offset);
+      broadcastDeliveryState = {
+        token: broadcastPreviewState.token,
+        issuedAt: broadcastPreviewState.issuedAt,
+        nextOffset: offset,
+        sent,
+        failed,
+      };
+      setStatus(
+        broadcastStatusEl,
+        `Sending ${Math.min(offset, Number(data?.totalRecipients || offset))} of ${data?.totalRecipients || offset} recipients…`
+      );
+    } while (!data?.complete);
+
+    const sentCount = sent.length;
+    const failedEntries = failed;
+    const failedCount = failed.length;
     // Snapshot tray for the receipt before clearing it.
-    const sentPhones = new Set((Array.isArray(data?.sent) ? data.sent : []).map((r) => String(r.phone || "")));
+    const sentPhones = new Set(sent.map((r) => String(r.phone || "")));
     const receiptRecipients = [...knownContacts.values()].filter((c) => sentPhones.has(String(c.phone_e164 || "")));
     if (!receiptRecipients.length) {
-      (Array.isArray(data?.sent) ? data.sent : []).forEach((r) => receiptRecipients.push({ phone_e164: r.phone || "" }));
+      sent.forEach((r) => receiptRecipients.push({ phone_e164: r.phone || "" }));
     }
     // Clear the tray immediately so the same recipients cannot be sent to
     // again without explicitly re-adding them. Primary duplicate-send guard.
     recipientTray.clear();
     renderRecipientTray();
+    broadcastDeliveryState = null;
     clearBroadcastPreview();
     renderBroadcastReceipt(sentCount, failedEntries, receiptRecipients);
     setStatus(
@@ -1704,7 +1737,10 @@ broadcastForm?.addEventListener("submit", async (event) => {
       returnToAuth("Admin key missing or incorrect. Enter it again to load the portal.", { clearStoredKey: true });
       return;
     }
-    setStatus(broadcastStatusEl, error.message, true);
+    const resumeNote = broadcastDeliveryState
+      ? " Delivery paused; click Send broadcast again to resume at the next unsent chunk."
+      : "";
+    setStatus(broadcastStatusEl, `${error.message}${resumeNote}`, true);
   } finally {
     if (broadcastSendBtn) { broadcastSendBtn.disabled = false; broadcastSendBtn.textContent = "Send broadcast"; }
   }

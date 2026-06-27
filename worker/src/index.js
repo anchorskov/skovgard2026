@@ -1579,6 +1579,10 @@ async function buildIdempotencyKey({ email, amountCents, address1, zip }) {
 }
 
 const PREVIEW_TOKEN_TTL_MS = 15 * 60 * 1000;
+// A broadcast is delivered across multiple HTTP requests. Keeping each request
+// small stays below Cloudflare's per-invocation subrequest limit while retaining
+// the preview token's audience and personalization checks.
+const ADMIN_TEXTING_BROADCAST_SEND_CHUNK_SIZE = 10;
 const ADMIN_EMAIL_SEND_BATCH_SIZE = 1;
 const ADMIN_EMAIL_SEND_BATCH_DELAY_MS = 340;
 const ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT = 2;
@@ -4014,6 +4018,7 @@ export default {
           personalizedMessages.map((item) => `${item.phone_e164}:${item.text}`).join("|")
         );
         const skippedCount = Math.max(0, audienceCount - recipients.length);
+        const batchOffset = Math.max(0, Math.trunc(Number(body.batch_offset) || 0));
 
         if (personalizedMessages.some((item) => item.text.length > 1200)) {
           return json(req, env, { error: "Personalized message text is too long" }, 400);
@@ -4108,10 +4113,14 @@ export default {
           return json(req, env, { error: "Broadcast preview no longer matches this audience or message. Run Preview again." }, 409);
         }
 
+        const chunkRecipients = recipients.slice(
+          batchOffset,
+          batchOffset + ADMIN_TEXTING_BROADCAST_SEND_CHUNK_SIZE
+        );
         const sent = [];
         const failed = [];
-        for (let smsIdx = 0; smsIdx < recipients.length; smsIdx++) {
-          const recipient = recipients[smsIdx];
+        for (let smsIdx = 0; smsIdx < chunkRecipients.length; smsIdx++) {
+          const recipient = chunkRecipients[smsIdx];
           try {
             const telnyx = await sendSmsWithTelnyx({
               apiKey: env.TELNYX_API_KEY,
@@ -4155,10 +4164,13 @@ export default {
           }
           // 340 ms between each individual send — keeps messages separate at the
           // carrier level so no recipient sees another's number in a group thread.
-          if (smsIdx < recipients.length - 1) {
+          if (smsIdx < chunkRecipients.length - 1) {
             await sleep(340);
           }
         }
+
+        const nextOffset = batchOffset + chunkRecipients.length;
+        const complete = nextOffset >= recipients.length;
 
         await insertTextingAuditLog(env.DB, {
           actorUserId: actor.actorUserId,
@@ -4173,6 +4185,10 @@ export default {
             sd,
             audienceCount,
             skippedCount,
+            batchOffset,
+            chunkSize: chunkRecipients.length,
+            nextOffset,
+            complete,
             sent,
             failed,
           }),
@@ -4183,9 +4199,13 @@ export default {
           batchId,
           mode,
           audienceCount,
+          totalRecipients: recipients.length,
           sentCount: sent.length,
           skippedCount,
           failedCount: failed.length,
+          batchOffset,
+          nextOffset,
+          complete,
           sent,
           failed,
         });

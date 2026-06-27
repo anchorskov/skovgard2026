@@ -1223,7 +1223,78 @@ const WYOMING_FAMILY_ECONOMY_BODY_HTML = `
 </p>
 `;
 
+const WYOMING_NOT_FOR_SALE_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Wyoming politics should belong to Wyoming citizens. That sounds obvious. But our local races
+    and legislative fights are being crowded by national organizations, out-of-state PACs, and
+    opaque funding networks with agendas built far from our towns, ranches, schools, and main streets.
+  </p>
+
+  <h2 style="margin:26px 0 10px;font-size:20px;line-height:1.3;color:#0f2742;">
+    The receipts
+  </h2>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:0 0 18px;border-left:5px solid #b22234;background:#fbf8f1;">
+    <tr>
+      <td style="padding:16px 18px;">
+        <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#111827;">
+          <strong>Americans for Prosperity&#8212;Wyoming</strong> announced its 2024 legislative
+          endorsements would be the <em>single largest investment in Wyoming state-level politics
+          in history.</em>
+        </p>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;">
+          <strong>Make Liberty Win</strong>, a Virginia-based PAC, spent just over
+          <strong>$370,000</strong> on texts, phone calls, and mailers in Wyoming primary
+          races&#8212;including mailers with wrong early-voting dates.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <h2 style="margin:26px 0 10px;font-size:20px;line-height:1.3;color:#0f2742;">
+    How the machine works
+  </h2>
+
+  <p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#111827;">
+    Outside money moves through 501(c)(4) nonprofits, super PACs, donor networks, and issue
+    campaigns. Some spending is disclosed. Donor origins are often harder to trace. AFP is a
+    501(c)(4) and is not required to disclose its donors.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Legal is not the same as clean. Legal is not the same as accountable.
+    Legal is not the same as Wyoming-grown.
+  </p>
+
+  <p style="margin:0 0 8px;font-size:16px;line-height:1.65;color:#111827;font-weight:700;">
+    Wyoming is not a testing ground. Wyoming is not a billionaire sandbox.
+    Wyoming belongs to the people who live here.
+  </p>
+
+  <p style="margin:0;font-size:15px;line-height:1.65;color:#374151;">
+    <a href="https://skovgard2026.org/share/wyoming-not-for-sale/sources/"
+        style="color:#b22234;font-weight:700;">Read the full breakdown with sources</a>
+    at skovgard2026.org/share/wyoming-not-for-sale/sources/
+  </p>
+`;
+
 export const SHARE_MESSAGES = {
+  "wyoming-not-for-sale": {
+    title:        "Wyoming Is Not for Sale",
+    body_html:    WYOMING_NOT_FOR_SALE_BODY_HTML,
+    preview_text: "Out-of-state PACs. Dark money. National templates. Wyoming citizens deserve to know who is paying for the message.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — Wyoming Is Not for Sale`
+        : "Wyoming Is Not for Sale — follow the money";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming accountability message with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
   "wyoming-family-economy": {
     title:        "A Good Economy Starts at the Kitchen Table",
     body_html:    WYOMING_FAMILY_ECONOMY_BODY_HTML,
@@ -2172,6 +2243,36 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "https://skovgard2026.org/pulse",
           "",
           "Watch the video: https://skovgard2026.org/share/higher-prices-washington-debt",
+        ]
+    : slug === "wyoming-not-for-sale"
+      ? [
+          "Wyoming politics should belong to Wyoming citizens. But our local races and",
+          "legislative fights are being crowded by national organizations, out-of-state PACs,",
+          "and opaque funding networks with agendas built far from our towns and main streets.",
+          "",
+          "THE RECEIPTS",
+          "",
+          "Americans for Prosperity-Wyoming announced its 2024 legislative endorsements would",
+          "be the single largest investment in Wyoming state-level politics in history.",
+          "",
+          "Make Liberty Win, a Virginia-based PAC, spent just over $370,000 on texts, phone",
+          "calls, and mailers in Wyoming primary races — including mailers with wrong",
+          "early-voting dates.",
+          "",
+          "HOW THE MACHINE WORKS",
+          "",
+          "Outside money moves through 501(c)(4) nonprofits, super PACs, donor networks, and",
+          "issue campaigns. Some spending is disclosed. Donor origins are often harder to trace.",
+          "AFP is a 501(c)(4) and is not required to disclose its donors.",
+          "",
+          "Legal is not the same as clean. Legal is not the same as accountable.",
+          "Legal is not the same as Wyoming-grown.",
+          "",
+          "Wyoming is not a testing ground. Wyoming is not a billionaire sandbox.",
+          "Wyoming belongs to the people who live here.",
+          "",
+          "Read the full breakdown with sources:",
+          "https://skovgard2026.org/share/wyoming-not-for-sale/sources/",
         ]
     : slug === "changing-health-care"
       ? [

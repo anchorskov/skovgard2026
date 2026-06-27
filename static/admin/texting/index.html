@@ -65,6 +65,7 @@
         <div class="field">
           <label for="send_text">Message</label>
           <textarea id="send_text" name="send_text" rows="5" placeholder="Write your message" required></textarea>
+          <p class="help">Use <code>{first_name}</code> to personalize. If a contact has no first name, the message uses “there.”</p>
         </div>
         <div class="button-row">
           <button type="button" id="text-preview">Preview</button>
@@ -109,6 +110,7 @@
         <div class="field">
           <label for="broadcast_text">Broadcast message</label>
           <textarea id="broadcast_text" name="broadcast_text" rows="4" placeholder="Write the broadcast message" required></textarea>
+          <p class="help">Use <code>{first_name}</code> to personalize. Preview shows the exact text for sample recipients; a missing name becomes “there.”</p>
         </div>
         <div class="recipient-tray">
           <div class="row">
@@ -302,6 +304,6 @@
   </section>
 </section>
   </main>
-  <script type="module" src="/js/admin-texting.js?v=7"></script>
+  <script type="module" src="/js/admin-texting.js?v=8"></script>
 </body>
 </html>

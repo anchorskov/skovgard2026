@@ -1,7 +1,7 @@
 <!-- docs/db/README.md -->
 # Skovgard2026 Database Notes
 
-Last updated: 2026-06-18
+Last updated: 2026-06-22
 
 Purpose: document the current D1 data model, the operational source of truth for opt-ins and texting, and the local mirror/export paths used by the project.
 
@@ -12,6 +12,12 @@ Source of truth: Cloudflare D1 in production. Local SQLite files are mirrors for
 - Primary application DB: `ballot_sources`
   - Bound as `DB` in [worker/wrangler.toml](/home/anchor/projects/skovgard2026/worker/wrangler.toml).
   - Holds the site/app tables managed by this repo's Worker migrations.
+  - Production D1 ID: `9c4b0c27-eb33-46e6-a477-fb49d4c81474`
+  - `migrations_dir = "migrations"` is set on all three `ballot_sources` DB bindings (production, preview, shared/dev).
+- Preview application DB: `ballot_sources_preview`
+  - Bound as `DB` in `[env.preview]` only.
+  - Preview D1 ID: `31fde6b7-519b-4e63-9d44-c55b10d9df3f`
+  - Receives all migrations before they are applied to production. Always migrate preview first, verify, then apply to production.
 - Wyoming voter DB:
   - `wy` for default and production.
   - `wy_preview` for preview.
@@ -100,6 +106,7 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
 |---|---|
 | `newsletter_subscribers` | Email consent records used by updates signup, Pulse opt-ins with email consent, admin texting contact creation, admin email audience building, and newsletter CSV exports. |
 | `admin_email_audit_log` | Audit log for admin email preview/send activity. |
+| `share_sends` | Audit log for `/api/share` email sends. Stores `sender_ip_hash`, `message_slug`, `recipient_email`, `created_at`, and `is_admin_send` (0 = public, 1 = admin). The `is_admin_send` flag excludes admin rows from the per-IP rate-limit count. |
 | `volunteers` | Volunteer signups and tags. |
 | `rl_submissions` | Rate-limit ledger keyed by hashed IP/timestamps. |
 | `donors` | Donation contact records. |
@@ -107,7 +114,7 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
 | `contribution_attestations` | Donation compliance attestations and request metadata. |
 | `podcast_uploads` | Podcast/audio media metadata. |
 | `ballot_sources` | Election-resource reference links/labels used by site and admin tooling. |
-| `d1_migrations` | Cloudflare D1 migration ledger. |
+| `d1_migrations` | Wrangler D1 migration ledger. Tracks every migration file name and applied timestamp so `wrangler d1 migrations apply` does not re-run already-applied files. Seeded manually for migrations 001–020 that were applied before tracking was established. |
 | `_cf_KV` | Cloudflare-managed system table. |
 
 ## `WY_DB` objects used by the Worker
@@ -233,6 +240,82 @@ The `wy` database also hosts the Wyoming 2026 primary voter guide tables, writte
 - `sms_optins` should remain available until volunteer-tag compatibility and rollback confidence are no longer needed.
 - After that, migrate `is_volunteer` off `sms_optins` and remove the remaining compatibility queries/writes.
 - `contacts` still exists separately because the texting portal and send-path logic already rely on it; this refactor moved canonical consent/profile data into `consent_status` without rewriting the whole texting model.
+
+## Migration Workflow
+
+All schema changes to `ballot_sources` (and `ballot_sources_preview`) must go through this workflow. Never ALTER or CREATE TABLE in production directly.
+
+### Naming convention
+
+Migration files live in `worker/migrations/` and follow the pattern:
+
+```
+NNN_short_description.sql
+```
+
+Where `NNN` is a three-digit zero-padded integer (e.g. `022_`, `023_`). Check the last file in `worker/migrations/` to find the next number. Never reuse or skip numbers.
+
+### Required sequence for every migration
+
+**Step 1 — Back up production first**
+
+```bash
+./scripts/db_backup.sh
+```
+
+This exports a timestamped SQL dump to `backups/` (gitignored). Store a copy off-repo before proceeding. Do not skip this step.
+
+**Step 2 — Write the migration file**
+
+Create `worker/migrations/NNN_description.sql`. Use `CREATE TABLE IF NOT EXISTS`, `ALTER TABLE … ADD COLUMN`, or `CREATE INDEX IF NOT EXISTS` so the file is safe to inspect on an already-migrated database. Include a header comment:
+
+```sql
+-- worker/migrations/NNN_description.sql
+-- One-line description of what this migration does and why.
+```
+
+**Step 3 — Apply to preview first**
+
+```bash
+npx wrangler d1 migrations apply ballot_sources_preview --remote --env preview
+```
+
+Verify the migration applied cleanly. Confirm the schema change works as expected via the preview Worker or a direct D1 query.
+
+**Step 4 — Apply to production**
+
+```bash
+npx wrangler d1 migrations apply ballot_sources --remote --env production
+```
+
+Wrangler checks `d1_migrations` and only runs files not yet recorded there. Confirm the output lists only the new migration(s).
+
+**Step 5 — Deploy the Worker**
+
+If the migration changes a table the Worker reads or writes, redeploy:
+
+```bash
+./scripts/deploy_worker.sh
+```
+
+### If a migration was applied manually before tracking existed
+
+If you applied SQL manually (without `wrangler d1 migrations apply`) and need to mark it as done:
+
+```sql
+INSERT OR IGNORE INTO d1_migrations (name, applied_at)
+VALUES ('NNN_description.sql', datetime('now'));
+```
+
+Apply that INSERT to both `ballot_sources_preview` and `ballot_sources --remote` so both environments agree.
+
+### Migration tracking status
+
+As of 2026-06-22:
+
+- Migrations 001–020: applied manually; seeded into `d1_migrations` retroactively.
+- Migration 021 (`021_share_sends_admin_flag.sql`): first migration tracked through `wrangler d1 migrations apply`. Already applied to both production and preview.
+- Migration numbering resumes at `022_`.
 
 ## Do not commit local data
 

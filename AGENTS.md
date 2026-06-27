@@ -91,13 +91,28 @@ When deciding what is valid for `skovgard2026`, check local files first:
 
 ## Database Reference
 
-**Primary data reference:** `docs/db/README.md` — covers all D1 databases used by this repo, the canonical consent/opt-in model, data flow, district lookup, and which Worker reads/writes each table. Read this before touching any database-related code.
+**Primary data reference:** `docs/db/README.md` — covers all D1 databases used by this repo, the canonical consent/opt-in model, data flow, district lookup, migration workflow, and which Worker reads/writes each table. Read this before touching any database-related code.
 
-- `ballot_sources` D1 (`DB` binding) — campaign app tables: `consent_status`, `contacts`, `newsletter_subscribers`, texting/email audit logs, district lookup mirrors.
+- `ballot_sources` D1 (`DB` binding, production) — campaign app tables: `consent_status`, `contacts`, `newsletter_subscribers`, texting/email audit logs, district lookup mirrors.
+- `ballot_sources_preview` D1 (`DB` binding, `[env.preview]` only) — isolated copy of `ballot_sources` for migration testing. Always migrate and verify here before applying to production.
 - `wy` D1 (`WY_DB` binding) — Wyoming voter data (voter matching, `voter_phones`, `v_best_phone`) plus the voter guide tables (`offices`, `candidates`). Production: `--remote`. Local dev: no flag (local SQLite in `.wrangler/state/`).
 - Voter guide detail: `Candidates/candidate_data.md` — field-by-field reference for `offices` and `candidates`.
 
 These D1 databases support multiple projects and workflows beyond the current task. Renaming, moving, rebinding, replacing, or bulk-rebuilding them can have far-reaching unintended effects outside this repo area. Before any database read, write, migration, import, export, or local mirror change, agents must verify the exact project, `wrangler.toml`, binding name, database name, database id, `--local` vs `--remote` target, and backing local SQLite file when applicable. Do not assume similarly named databases such as `wy`, `wy_preview`, or local mirror files are interchangeable.
+
+## D1 Migration Workflow
+
+Full workflow with naming convention, backup step, and tracking notes: `docs/db/README.md` → "Migration Workflow".
+
+Required steps for any `ballot_sources` schema change:
+
+1. **Back up**: `./scripts/db_backup.sh` — timestamped SQL dump to `backups/` (gitignored). Do not skip.
+2. **Write**: create `worker/migrations/NNN_description.sql` (three-digit sequential number). Use `IF NOT EXISTS` forms.
+3. **Preview first**: `npx wrangler d1 migrations apply ballot_sources_preview --remote --env preview` — verify before touching production.
+4. **Production**: `npx wrangler d1 migrations apply ballot_sources --remote --env production`
+5. **Redeploy Worker** if the migration affects a table the Worker reads or writes: `./scripts/deploy_worker.sh`
+
+Migration numbering resumes at `022_` (as of 2026-06-22). Never ALTER or CREATE TABLE in production directly without going through this workflow.
 
 Do not reference `config/_default/config.toml`, `layouts/`, or Hugo-era paths — those directories no longer exist.
 
