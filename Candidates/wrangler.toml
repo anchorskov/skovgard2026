@@ -8,6 +8,7 @@ compatibility_date = "2025-09-30"
 ENVIRONMENT = "production"
 ALLOW_ORIGIN = "https://guide.skovgard2026.org"
 GOOGLE_CIVIC_ELECTION_ID = ""
+TURNSTILE_SITE_KEY = "0x4AAAAAADsXNM0u3sbiGhhl"
 
 [[d1_databases]]
 binding = "WY_DB"
