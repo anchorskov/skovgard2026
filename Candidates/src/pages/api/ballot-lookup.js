@@ -1042,6 +1042,26 @@ function resolvePollingPlace(gis, polygon, d1Rows) {
   return null;
 }
 
+async function verifyTurnstile(token) {
+  const secret = env.TURNSTILE_SECRET_KEY;
+  if (!secret) return true; // not configured — skip in local dev
+
+  if (!token) return false;
+
+  try {
+    const resp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ secret, response: token }),
+    });
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    return data.success === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST({ request }) {
   let payload;
   try {
@@ -1053,6 +1073,17 @@ export async function POST({ request }) {
         message: 'Could not read lookup request. Please try again.',
       },
       400
+    );
+  }
+
+  const turnstileOk = await verifyTurnstile(payload?.cf_turnstile_response);
+  if (!turnstileOk) {
+    return json(
+      {
+        success: false,
+        message: 'Verification failed. Please reload the page and try again.',
+      },
+      403
     );
   }
 

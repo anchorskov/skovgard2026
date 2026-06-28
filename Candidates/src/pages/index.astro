@@ -5,6 +5,7 @@ import { env } from 'cloudflare:workers';
 
 const electionDate = 'August 18, 2026';
 const googleGeocodeKey = (env as any)?.GOOGLE_CIVIC_API_KEY || '';
+const turnstileSiteKey = (env as any)?.TURNSTILE_SITE_KEY || '';
 
 let guideStats = [
   { value: '1016', label: 'races tracked' },
@@ -95,6 +96,9 @@ const addressFields = [
     <meta property="og:image:width"  content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name"   content="Wyoming 2026 Voter Guide" />
+
+    <!-- Cloudflare Turnstile (invisible bot protection for ballot lookup) -->
+    {turnstileSiteKey && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
 
     <!-- Twitter / X card -->
     <meta name="twitter:card"        content="summary_large_image" />
@@ -201,6 +205,17 @@ const addressFields = [
           <div id="local-results" class="lookup-results lookup-results--local" hidden></div>
           <div id="polling-section" class="polling-section" hidden></div>
           <div id="fallback-panel" class="fallback-panel" hidden></div>
+          {turnstileSiteKey && (
+            <div
+              id="ts-widget"
+              class="cf-turnstile"
+              data-sitekey={turnstileSiteKey}
+              data-size="invisible"
+              data-callback="onTurnstileSuccess"
+              data-error-callback="onTurnstileError"
+              data-expired-callback="onTurnstileExpired"
+            ></div>
+          )}
           <p class="form-note">Address data is used only for this ballot lookup. GPS coordinates may be logged anonymously to improve district matching.</p>
         </form>
       </section>
@@ -208,10 +223,11 @@ const addressFields = [
     </main>
     <footer class="site-footer" aria-label="Campaign disclaimer">
       <span class="site-footer__rule"></span>
-      <p>Paid for by Skovgard for Senate</p>
+      <p>Paid for by Skovgard for Senate &nbsp;&middot;&nbsp; <a href="/privacy">Privacy Policy</a></p>
     </footer>
-    <script define:vars={{ googleGeocodeKey }}>
+    <script define:vars={{ googleGeocodeKey, turnstileSiteKey }}>
       window.__GOOGLE_GEOCODE_KEY__ = googleGeocodeKey || '';
+      window.__TURNSTILE_SITE_KEY__ = turnstileSiteKey || '';
     </script>
     <script>
       const lookupForm = document.querySelector('.address-form');
@@ -224,6 +240,38 @@ const addressFields = [
       let gpsTriggeredLookup = false;
       let storedGpsLat = null;
       let storedGpsLon = null;
+
+      // ── Turnstile (invisible) ───────────────────────────────────────────
+      let _tsToken = null;
+      let _tsResolve = null;
+
+      window.onTurnstileSuccess = function (token) {
+        _tsToken = token;
+        if (_tsResolve) { _tsResolve(token); _tsResolve = null; }
+      };
+      window.onTurnstileError = function () {
+        if (_tsResolve) { _tsResolve(null); _tsResolve = null; }
+      };
+      window.onTurnstileExpired = function () {
+        _tsToken = null;
+        if (window.turnstile) window.turnstile.reset('#ts-widget');
+      };
+
+      async function getTurnstileToken() {
+        if (!window.__TURNSTILE_SITE_KEY__ || !window.turnstile) return null;
+        if (_tsToken) {
+          const tok = _tsToken;
+          _tsToken = null;
+          return tok;
+        }
+        return new Promise((resolve) => {
+          _tsResolve = resolve;
+          window.turnstile.execute('#ts-widget');
+          setTimeout(() => {
+            if (_tsResolve) { _tsResolve(null); _tsResolve = null; }
+          }, 12000);
+        });
+      }
 
       function getFieldValue(name) {
         const field = lookupForm?.querySelector(`[name="${name}"]`);
@@ -704,9 +752,11 @@ const addressFields = [
         setLookupStatus('Looking up ballot information...', 'loading');
 
         try {
-          const enrichedPayload = storedGpsLat != null
-            ? { ...payload, gpsLat: storedGpsLat, gpsLon: storedGpsLon }
-            : payload;
+          const cfToken = await getTurnstileToken();
+          const enrichedPayload = {
+            ...(storedGpsLat != null ? { ...payload, gpsLat: storedGpsLat, gpsLon: storedGpsLon } : payload),
+            ...(cfToken ? { cf_turnstile_response: cfToken } : {}),
+          };
           const response = await fetch('/api/ballot-lookup', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },

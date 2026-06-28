@@ -1,0 +1,120 @@
+---
+// Candidates/src/pages/privacy.astro
+import '../styles/global.css';
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="Privacy policy for the Wyoming 2026 Voter Guide at candidates.skovgard2026.org." />
+    <meta name="robots" content="noindex" />
+    <title>Privacy Policy — Wyoming 2026 Voter Guide</title>
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="site-header" aria-label="Candidates voter guide">
+        <a class="brand-mark" href="/" aria-label="Candidates home">
+          <span class="brand-mark__rule"></span>
+          <span>
+            <span class="brand-mark__project">The Integrity Project</span>
+            <strong>Wyoming 2026</strong>
+            <small>Primary Voter Guide</small>
+          </span>
+        </a>
+      </header>
+
+      <section class="privacy-content">
+        <h1>Privacy Policy</h1>
+        <p class="meta">Effective Date: September 3, 2025 &mdash; Last updated: June 28, 2026</p>
+
+        <p>The Wyoming 2026 Voter Guide (<strong>candidates.skovgard2026.org</strong>) is a public civic project
+        operated by Skovgard for Senate. This policy explains how information is handled on this site.</p>
+
+        <h2>Information Collected</h2>
+        <ul>
+          <li>The voting address you enter for ballot lookup. This address is used only to match your legislative
+          district and return the races on your ballot. It is not stored, linked to your identity, or used for
+          any other purpose.</li>
+          <li>GPS coordinates, if you choose to use the location button. These may be logged anonymously in
+          aggregate to improve district-matching accuracy. They are not linked to your identity.</li>
+        </ul>
+
+        <h2>Bot Protection &mdash; Cloudflare Turnstile</h2>
+        <p>
+          The ballot lookup form on this site uses <strong>Cloudflare Turnstile</strong>, an invisible security
+          service that verifies visitors are human without displaying a visible CAPTCHA. Turnstile runs silently
+          in the background. It does not use cookies for verification and does not collect personal information
+          on our behalf.
+        </p>
+        <p>
+          By using the ballot lookup form, you acknowledge that Cloudflare may process certain technical signals
+          from your browser in accordance with the
+          <a href="https://www.cloudflare.com/en-gb/turnstile-privacy-policy/" target="_blank" rel="noopener">
+            Cloudflare Turnstile Privacy Addendum
+          </a>.
+        </p>
+
+        <h2>Sharing</h2>
+        <p>We do not sell or share address or lookup data with third parties. Candidate and race data displayed
+        on this site is drawn from publicly available Wyoming Secretary of State filings.</p>
+
+        <h2>Contact</h2>
+        <p>Skovgard for Senate &middot; 5685 Hanly Mills Wy, Casper, WY 82604 &middot;
+        <a href="mailto:skovgard2026@gmail.com">skovgard2026@gmail.com</a></p>
+
+        <p class="back-link"><a href="/">&larr; Back to voter guide</a></p>
+      </section>
+    </main>
+
+    <footer class="site-footer" aria-label="Campaign disclaimer">
+      <span class="site-footer__rule"></span>
+      <p>Paid for by Skovgard for Senate</p>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .privacy-content {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 20px 80px;
+  }
+  .privacy-content h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: var(--color-navy, #0f2742);
+  }
+  .privacy-content h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 2rem 0 0.5rem;
+    color: var(--color-navy, #0f2742);
+  }
+  .privacy-content p,
+  .privacy-content li {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #374151;
+    margin-bottom: 0.75rem;
+  }
+  .privacy-content ul {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .privacy-content a {
+    color: #b22234;
+    text-decoration: underline;
+  }
+  .meta {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+  }
+  .back-link {
+    margin-top: 2.5rem;
+    font-size: 0.9rem;
+  }
+</style>
