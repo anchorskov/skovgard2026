@@ -143,116 +143,131 @@ const JIMMYS_STORY_BODY_HTML = `
   </table>
 `;
 
-const FREEDOM_VS_CONTROL_BODY_HTML = `
+const FREEDOM_OR_CONTROL_BODY_HTML = `
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
-    I want to share a breakdown of what Wyoming&#8217;s Legislature actually did on voting
-    and elections in 2025 and 2026.
+    Wyoming voters are being shaped by forces most of them will never hear named.
   </p>
 
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
-    Out of 38 election-related bills, one arguably helped voters. An email notice before
-    your name is removed from the voter rolls. That is the high-water mark for voter access.
+    National PACs. Billionaire-funded advocacy networks. Out-of-state consulting firms.
+    Dark money organizations. Social media algorithms built to divide. Cable news outrage
+    engineered to exhaust. AI-generated persuasion at scale.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    This is not a left problem or a right problem. It is a Wyoming problem.
   </p>
 
   <p style="margin:0 0 10px;font-size:16px;line-height:1.65;color:#111827;">
-    Everything else moved the other direction.
+    The question is not whether the influence comes from one direction or another.
+    The question is whether Wyoming voters are making Wyoming decisions &#8212; or whether
+    powerful organizations headquartered outside this state are shaping our choices
+    before we have a chance to think them through.
   </p>
 
+  <h2 style="margin:26px 0 14px;font-size:20px;line-height:1.3;color:#0f2742;">
+    What has been documented
+  </h2>
+
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-      style="margin:22px 0;border-left:5px solid #b22234;background:#fef7f7;">
+      style="margin:0 0 22px;border-left:5px solid #0f2742;background:#f8fafc;">
     <tr>
-      <td style="padding:14px 18px;border-bottom:1px solid #fecdd3;">
-        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;">
-          <strong style="color:#b22234;">WYOMING PASSED HB0156</strong> &#8212;
-          requiring proof of citizenship, proof of residence, and a 30-day residency
-          requirement before voter eligibility.
+      <td style="padding:14px 18px;border-bottom:1px solid #e5e7eb;">
+        <p style="margin:0 0 4px;font-size:15px;font-weight:bold;color:#0f2742;">
+          Americans for Prosperity / AFP-Wyoming
+        </p>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#374151;">
+          Connected to the Koch political network. AFP-Wyoming described its 2024 Wyoming
+          primary investment as historic, endorsing legislative candidates before voters
+          had spoken. In June 2026, AFP-Wyoming announced nine more endorsements ahead
+          of the August 18 primary.
         </p>
       </td>
     </tr>
     <tr>
-      <td style="padding:14px 18px;border-bottom:1px solid #fecdd3;">
-        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;">
-          <strong style="color:#b22234;">WYOMING PASSED SF0078</strong> &#8212;
-          no person except a county clerk or Secretary of State may distribute an absentee
-          ballot request form unless the voter specifically asks for one.
+      <td style="padding:14px 18px;border-bottom:1px solid #e5e7eb;">
+        <p style="margin:0 0 4px;font-size:15px;font-weight:bold;color:#0f2742;">
+          Young Americans for Liberty and Make Liberty Win
+        </p>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#374151;">
+          Young Americans for Liberty (Austin, Texas) runs &#8220;Operation Win at the
+          Door&#8221; nationwide. Its affiliated PAC, Make Liberty Win (Fairfax, Virginia),
+          spent more than $370,000 on mail, texts, and voter outreach in Wyoming&#8217;s
+          2024 legislative primaries &#8212; with YAL identified as the PAC&#8217;s
+          primary financial backer. <em>Source: Wyoming Public Media.</em>
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:14px 18px;border-bottom:1px solid #e5e7eb;">
+        <p style="margin:0 0 4px;font-size:15px;font-weight:bold;color:#0f2742;">
+          State Freedom Caucus Network / Wyoming Freedom Caucus
+        </p>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#374151;">
+          WyoFile reported that the Wyoming Freedom Caucus aligned with a national
+          organization and moved to control the statehouse. It is now working to retain
+          and expand that position in 2026.
         </p>
       </td>
     </tr>
     <tr>
       <td style="padding:14px 18px;">
-        <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;">
-          <strong style="color:#b22234;">WYOMING PASSED SF0030</strong> &#8212;
-          clarifying the definition of &#8220;qualified elector&#8221; and making
-          conforming changes to voter registration and qualifications.
+        <p style="margin:0 0 4px;font-size:15px;font-weight:bold;color:#0f2742;">
+          Wyoming GOP Pre-Primary Endorsement Lawsuit
+        </p>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#374151;">
+          The Wyoming Republican Party filed a federal lawsuit challenging the state law
+          that blocks parties from spending to back one primary candidate before voters
+          choose the nominee. The fight is in court: can party insiders steer your
+          primary before you vote?
         </p>
       </td>
     </tr>
   </table>
 
-  <h2 style="margin:26px 0 14px;font-size:22px;line-height:1.3;color:#0f2742;">
-    Freedom vs. Control
-  </h2>
-
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-      style="margin:0 0 22px;border:1px solid #e5e7eb;">
-    <tr style="background:#f8fafc;">
-      <td style="padding:8px 14px;font-size:12px;font-weight:bold;text-transform:uppercase;
-          letter-spacing:0.08em;color:#6b7280;border-bottom:1px solid #e5e7eb;width:50%;">
-        Freedom would mean&#8230;
-      </td>
-      <td style="padding:8px 14px;font-size:12px;font-weight:bold;text-transform:uppercase;
-          letter-spacing:0.08em;color:#b22234;border-bottom:1px solid #e5e7eb;">
-        Control means&#8230;
-      </td>
-    </tr>
+      style="margin:0 0 22px;background:#0f2742;border-radius:8px;">
     <tr>
-      <td style="padding:12px 14px;font-size:15px;color:#111827;
-          border-bottom:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-        Online voter registration.
-      </td>
-      <td style="padding:12px 14px;font-size:15px;color:#111827;border-bottom:1px solid #e5e7eb;">
-        More paperwork.
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:12px 14px;font-size:15px;color:#111827;
-          border-bottom:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-        Longer early voting.
-      </td>
-      <td style="padding:12px 14px;font-size:15px;color:#111827;border-bottom:1px solid #e5e7eb;">
-        Proof before participation.
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:12px 14px;font-size:15px;color:#111827;
-          border-bottom:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-        Easier absentee access.
-      </td>
-      <td style="padding:12px 14px;font-size:15px;color:#111827;border-bottom:1px solid #e5e7eb;">
-        Restricting who can hand you a form.
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:12px 14px;font-size:15px;color:#111827;border-right:1px solid #e5e7eb;">
-        Broader ballot access.
-      </td>
-      <td style="padding:12px 14px;font-size:15px;color:#111827;">
-        Tighter deadlines and more barriers.
+      <td style="padding:20px 24px;">
+        <p style="margin:0 0 14px;font-size:15px;line-height:2;color:#f1ece1;">
+          Outside money comes in.<br/>
+          Messages get sharpened.<br/>
+          Neighbors get divided.<br/>
+          Candidates get pressured.<br/>
+          Local judgment gets weakened.
+        </p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#f1ece1;">
+          Then we are told this is &#8220;freedom.&#8221;
+        </p>
+        <p style="margin:0;font-size:17px;font-weight:bold;color:#e87a86;">
+          I call it control.
+        </p>
       </td>
     </tr>
   </table>
 
-  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
-    This was not a voting freedom agenda. It was a control agenda dressed up as election
-    security.
+  <p style="margin:0 0 6px;font-size:16px;line-height:1.65;color:#111827;font-weight:600;">
+    Transparency strengthens freedom.<br/>
+    Hidden influence strengthens control.
   </p>
 
-  <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#111827;">
-    <a href="https://skovgard2026.org/share/freedom-vs-control/sources/"
+  <p style="margin:14px 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Every voter deserves to know who is speaking, who is paying for the message,
+    and what interests are being advanced before casting a ballot.
+  </p>
+
+  <p style="margin:0 0 22px;font-size:17px;line-height:1.8;color:#0f2742;font-weight:bold;">
+    The people choose.<br/>
+    The party serves.<br/>
+    The government answers to us.
+  </p>
+
+  <p style="margin:0;font-size:16px;line-height:1.65;color:#111827;">
+    <a href="https://skovgard2026.org/share/freedom-or-control/sources/"
         style="color:#0f2742;font-weight:bold;">
-      Read the full breakdown with sources
+      Read the evidence with sources
     </a>
-    at skovgard2026.org/share/freedom-vs-control/sources/
+    at skovgard2026.org/share/freedom-or-control/sources/
   </p>
 `;
 
@@ -1279,6 +1294,115 @@ const WYOMING_NOT_FOR_SALE_BODY_HTML = `
   </p>
 `;
 
+const ONE_MILLION_MESSAGES_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Every generation faces a defining question.
+  </p>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Will our future be shaped more by freedom or by control?
+  </p>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    I believe the answer begins with us.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #d8b46a;background:#fbf8f1;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#c68a4a;">Who</p>
+        <p style="margin:0;font-size:16px;line-height:1.65;color:#111827;">
+          You. Me. Every citizen willing to have one honest conversation with another person.
+          Together, our goal is simple: <strong>one million messages</strong>.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #b22234;background:#fef7f7;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#b22234;">What</p>
+        <p style="margin:0 0 10px;font-size:16px;line-height:1.65;color:#111827;">
+          One million conversations centered on one question:
+        </p>
+        <p style="margin:0;font-size:17px;line-height:1.65;color:#111827;font-weight:bold;">
+          Are we moving toward greater freedom, or greater control?
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:0 0 22px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+    <tr style="background:#f8fafc;">
+      <td style="padding:10px 16px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6b7280;border-bottom:1px solid #e5e7eb;">When / Where / Why / How</td>
+    </tr>
+    <tr>
+      <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-size:15px;line-height:1.6;color:#111827;">
+        <strong style="color:#0f2742;">When:</strong> It starts today. One conversation at a time.
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-size:15px;line-height:1.6;color:#111827;">
+        <strong style="color:#0f2742;">Where:</strong> Across Wyoming. Across America. At the kitchen table, over coffee, at work, at community events &#8212; anywhere people are willing to look each other in the eye.
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-size:15px;line-height:1.6;color:#111827;">
+        <strong style="color:#0f2742;">Why:</strong> Freedom grows with informed, engaged citizens. Trust grows through conversation. Communities grow stronger when we listen, learn, and work together.
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:14px 16px;font-size:15px;line-height:1.6;color:#111827;">
+        <strong style="color:#0f2742;">How:</strong> Join the Pulse platform at Skovgard2026.org. Receive conversation starters and ideas worth sharing. Then carry them into your community.
+      </td>
+    </tr>
+  </table>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #b22234;background:#fef7f7;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 8px;font-size:15px;line-height:1.7;color:#111827;">One conversation becomes ten.</p>
+        <p style="margin:0 0 8px;font-size:15px;line-height:1.7;color:#111827;">Ten become one hundred.</p>
+        <p style="margin:0 0 8px;font-size:15px;line-height:1.7;color:#111827;">One hundred become one thousand.</p>
+        <p style="margin:0;font-size:15px;line-height:1.7;color:#111827;font-weight:bold;">Together, we can share one million messages.</p>
+      </td>
+    </tr>
+  </table>
+
+  <h2 style="margin:26px 0 10px;font-size:22px;line-height:1.3;color:#0f2742;">Your Next Step</h2>
+
+  <p style="margin:0 0 10px;font-size:16px;line-height:1.65;color:#111827;">
+    Join the movement. Start one conversation today. Invite one other person to do the same.
+    Share one message that encourages curiosity, understanding, and participation.
+  </p>
+
+  <table cellpadding="0" cellspacing="0" style="margin:18px 0 22px;">
+    <tr>
+      <td style="background:#b22234;border-radius:8px;padding:12px 28px;">
+        <a href="https://skovgard2026.org/pulse"
+           style="color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;">
+          Join the Pulse platform at Skovgard2026.org &#8594;
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #d8b46a;background:#fbf8f1;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 6px;font-size:15px;line-height:1.7;color:#111827;">One conversation.</p>
+        <p style="margin:0 0 6px;font-size:15px;line-height:1.7;color:#111827;">One neighbor.</p>
+        <p style="margin:0 0 6px;font-size:15px;line-height:1.7;color:#111827;">One community.</p>
+        <p style="margin:0;font-size:15px;line-height:1.7;color:#111827;font-weight:bold;">Our future begins with us.</p>
+      </td>
+    </tr>
+  </table>
+`;
+
 export const SHARE_MESSAGES = {
   "wyoming-not-for-sale": {
     title:        "Wyoming Is Not for Sale",
@@ -1370,19 +1494,19 @@ export const SHARE_MESSAGES = {
         : "A Wyoming neighbor wanted to share this with you.";
     },
   },
-  "freedom-vs-control": {
-    title:        "Freedom vs. Control",
-    body_html:    FREEDOM_VS_CONTROL_BODY_HTML,
-    preview_text: "Wyoming passed 38 election bills. One helped voters. The rest moved toward control.",
+  "freedom-or-control": {
+    title:        "Freedom or Control?",
+    body_html:    FREEDOM_OR_CONTROL_BODY_HTML,
+    preview_text: "National PACs and outside organizations are shaping Wyoming's 2026 primary. Here is what has been documented.",
     subject(n) {
       return n
-        ? `${n} wanted you to see this Wyoming election breakdown`
-        : "Wyoming's election legislation — freedom vs. control";
+        ? `${n} shared this with you — Freedom or Control?`
+        : "Freedom or Control? — Wyoming voters deserve to know who's paying";
     },
     intro(n) {
       return n
-        ? `${n} wanted to share this breakdown with you.`
-        : "A Wyoming neighbor wanted to share this breakdown with you.";
+        ? `${n} wanted to share this with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
     },
   },
   "wyoming-voters-choose": {
@@ -1573,6 +1697,21 @@ export const SHARE_MESSAGES = {
     intro(n) {
       return n
         ? `${n} wanted to share this Wyoming message with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "one-million-messages": {
+    title:        "One Million Messages",
+    body_html:    ONE_MILLION_MESSAGES_BODY_HTML,
+    preview_text: "One conversation. One neighbor. One community. One million messages toward freedom.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — One Million Messages`
+        : "One million messages — will you start one today?";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this movement with you.`
         : "A Wyoming neighbor wanted to share this with you.";
     },
   },
@@ -1908,35 +2047,59 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "Read the sources:",
           "https://skovgard2026.org/share/wyoming-voters-choose/sources/",
         ]
-    : slug === "freedom-vs-control"
+    : slug === "freedom-or-control"
       ? [
-          "I want to share a breakdown of what Wyoming's Legislature actually did on voting",
-          "and elections in 2025 and 2026.",
+          "Wyoming voters are being shaped by forces most of them will never hear named.",
           "",
-          "Out of 38 election-related bills, one arguably helped voters. An email notice",
-          "before your name is removed from the voter rolls. That is the high-water mark.",
+          "National PACs. Billionaire-funded advocacy networks. Out-of-state consulting firms.",
+          "Dark money organizations. Social media algorithms built to divide.",
+          "AI-generated persuasion at scale.",
           "",
-          "Everything else moved the other direction.",
+          "This is not a left problem or a right problem. It is a Wyoming problem.",
           "",
-          "WYOMING PASSED HB0156 — requiring proof of citizenship, proof of residence, and",
-          "a 30-day residency requirement before voter eligibility.",
+          "Here is what has been documented.",
           "",
-          "WYOMING PASSED SF0078 — no person except a county clerk or Secretary of State",
-          "may distribute an absentee ballot request form unless the voter specifically asks.",
+          "AMERICANS FOR PROSPERITY / AFP-WYOMING",
+          "Connected to the Koch political network. AFP-Wyoming described its 2024 Wyoming",
+          "primary investment as historic and issued endorsements before voters had spoken.",
+          "In June 2026, AFP-Wyoming announced nine more endorsements ahead of August 18.",
           "",
-          "WYOMING PASSED SF0030 — clarifying the definition of \"qualified elector\" and",
-          "making conforming changes to voter registration and qualifications.",
+          "YOUNG AMERICANS FOR LIBERTY AND MAKE LIBERTY WIN",
+          "YAL (Austin, Texas) runs Operation Win at the Door nationwide.",
+          "Its affiliated PAC, Make Liberty Win (Fairfax, Virginia), spent more than $370,000",
+          "in Wyoming's 2024 primary — with YAL as the PAC's primary financial backer.",
+          "Source: Wyoming Public Media.",
           "",
-          "Freedom would mean online voter registration.   Control means more paperwork.",
-          "Freedom would mean longer early voting.          Control means proof before participation.",
-          "Freedom would mean easier absentee access.       Control means restricting who can hand you a form.",
-          "Freedom would mean broader ballot access.        Control means tighter deadlines and more barriers.",
+          "STATE FREEDOM CAUCUS NETWORK / WYOMING FREEDOM CAUCUS",
+          "WyoFile reported the Wyoming Freedom Caucus aligned with a national organization",
+          "and moved to control the statehouse. Now seeking to retain that power in 2026.",
           "",
-          "This was not a voting freedom agenda. It was a control agenda dressed up as",
-          "election security.",
+          "WYOMING GOP PRE-PRIMARY ENDORSEMENT LAWSUIT",
+          "The Wyoming GOP filed a federal lawsuit challenging the state law that blocks",
+          "parties from spending to back one primary candidate before voters choose.",
+          "Can party insiders steer your primary before you vote? That fight is in court now.",
           "",
-          "Read the full breakdown with sources:",
-          "https://skovgard2026.org/share/freedom-vs-control",
+          "Outside money comes in.",
+          "Messages get sharpened.",
+          "Neighbors get divided.",
+          "Candidates get pressured.",
+          "Local judgment gets weakened.",
+          "Then we are told this is \"freedom.\"",
+          "",
+          "I call it control.",
+          "",
+          "Transparency strengthens freedom.",
+          "Hidden influence strengthens control.",
+          "",
+          "Every voter deserves to know who is speaking, who is paying for the message,",
+          "and what interests are being advanced before casting a ballot.",
+          "",
+          "The people choose.",
+          "The party serves.",
+          "The government answers to us.",
+          "",
+          "Read the evidence with sources:",
+          "https://skovgard2026.org/share/freedom-or-control/sources/",
         ]
     : slug === "wy-primary-election-participation"
       ? [

@@ -1,13 +1,13 @@
 ---
-// src/pages/share/freedom-vs-control.astro
+// src/pages/share/one-million-messages.astro
 import Base from '../../layouts/Base.astro';
 import Nav from '../../components/Nav.astro';
 import Footer from '../../components/Footer.astro';
 ---
 <Base
-  title="Freedom vs. Control — Skovgard 2026"
-  description="Wyoming passed 38 election bills in 2025 and 2026. One helped voters. The rest moved toward tighter control. Read the breakdown."
-  ogImage="/images/share/meme-freedom-vs-control.png"
+  title="One Million Messages — Skovgard 2026"
+  description="One million conversations. One question: are we moving toward greater freedom, or greater control? Start one conversation today."
+  ogImage="/images/share/meme-one-million-messages.png"
 >
   <Nav />
   <main class="pt-20">
@@ -20,14 +20,13 @@ import Footer from '../../components/Footer.astro';
         </svg>
         All messages
       </a>
-      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Election Issues</p>
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Civic Movement</p>
       <h1 class="text-4xl sm:text-5xl font-serif font-extrabold mb-4 leading-tight">
-        <span class="text-wy-bone">Freedom</span>
-        <span class="text-wy-ember"> vs. </span>
-        <span class="text-wy-ember">Control</span>
+        <span class="text-wy-bone">One Million</span>
+        <span class="text-wy-ember"> Messages</span>
       </h1>
       <p class="text-wy-bone/70 text-lg max-w-xl mx-auto mb-8">
-        Wyoming passed 38 election bills in 2025 and 2026. One helped voters. The rest moved toward tighter control.
+        One conversation at a time. One neighbor at a time. One community at a time.
       </p>
       <div class="flex flex-wrap justify-center gap-3">
         <button id="hero-copy-link" type="button" class="share-btn-outline">
@@ -58,15 +57,15 @@ import Footer from '../../components/Footer.astro';
         <p class="section-kicker">Share on social media</p>
         <p class="section-desc">
           This image and link are what people see when you post on Facebook or X.
-          When someone clicks the link, they land on this page with the full breakdown.
+          When someone clicks the link, they land on this page with the full message.
         </p>
 
         <figure class="rounded-xl overflow-hidden shadow-lg mb-7">
           <img
-            src="/images/share/meme-freedom-vs-control.png"
-            alt="Freedom vs. Control — Wyoming election legislation infographic showing 38 bills reviewed, with Freedom items on the left and Control legislation on the right"
+            src="/images/share/meme-one-million-messages.png"
+            alt="One Million Messages — one conversation, one neighbor, one community at a time"
             class="w-full block"
-            style="background-color:#8b1a26;min-height:180px;"
+            style="background-color:#2b2b2b;min-height:180px;"
             loading="eager"
           />
         </figure>
@@ -109,11 +108,11 @@ import Footer from '../../components/Footer.astro';
 
           <!-- Your name -->
           <div class="mb-6">
-            <label for="fvc-sender" class="block text-sm font-semibold text-gray-700 mb-1">
+            <label for="omm-sender" class="block text-sm font-semibold text-gray-700 mb-1">
               Your name <span class="font-normal text-gray-400">(optional — personalises the message)</span>
             </label>
             <input
-              id="fvc-sender"
+              id="omm-sender"
               type="text"
               autocomplete="given-name"
               placeholder="e.g. Sarah"
@@ -123,7 +122,7 @@ import Footer from '../../components/Footer.astro';
           </div>
 
           <!-- Honeypot -->
-          <input id="fvc-trap" name="fvc_trap" type="text" autocomplete="off" tabindex="-1"
+          <input id="omm-trap" name="omm_trap" type="text" autocomplete="off" tabindex="-1"
             style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
 
           <!-- Recipient input -->
@@ -132,7 +131,7 @@ import Footer from '../../components/Footer.astro';
               <label class="text-sm font-semibold text-gray-700">
                 Friends' email addresses
               </label>
-              <button id="fvc-contacts-btn" type="button" hidden
+              <button id="omm-contacts-btn" type="button" hidden
                 class="text-xs font-semibold text-wy-ember hover:text-wy-ember-dark flex items-center gap-1">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -141,10 +140,10 @@ import Footer from '../../components/Footer.astro';
                 Add from contacts
               </button>
             </div>
-            <div id="fvc-tag-box"
+            <div id="omm-tag-box"
               class="min-h-[48px] w-full px-2 py-1.5 border border-gray-300 rounded-lg bg-white cursor-text flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-wy-ember focus-within:border-wy-ember"
               aria-label="Recipient email list">
-              <input id="fvc-email-input" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
+              <input id="omm-email-input" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
                 placeholder="Type an address and press Enter"
                 class="flex-1 min-w-[180px] border-0 outline-none text-sm py-1 px-1 bg-transparent" />
             </div>
@@ -157,10 +156,10 @@ import Footer from '../../components/Footer.astro';
           <div class="email-preview-wrap mb-6">
             <div class="email-preview-header">
               <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
-              <div class="epf"><span class="epl">Subject:</span> <span id="fvc-preview-subject">Wyoming's election legislation — freedom vs. control</span></div>
+              <div class="epf"><span class="epl">Subject:</span> <span id="omm-preview-subject">One million messages — will you start one today?</span></div>
             </div>
             <iframe
-              id="fvc-preview-iframe"
+              id="omm-preview-iframe"
               title="Preview of the email your contacts will receive"
               sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
               scrolling="yes"
@@ -169,16 +168,16 @@ import Footer from '../../components/Footer.astro';
           </div>
 
           <!-- Status -->
-          <div id="fvc-status" role="status" aria-live="polite" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+          <div id="omm-status" role="status" aria-live="polite" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
 
           <!-- Action button -->
-          <button id="fvc-send-btn" type="button"
+          <button id="omm-send-btn" type="button"
             class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
-            <span id="fvc-send-label">Have us send it</span>
+            <span id="omm-send-label">Have us send it</span>
           </button>
 
           <p class="text-xs text-gray-400 text-center mt-4 leading-relaxed">
@@ -189,83 +188,76 @@ import Footer from '../../components/Footer.astro';
       </div>
     </section>
 
-    <!-- Full breakdown article -->
+    <!-- Full message -->
     <article class="bg-wy-bone border-t border-gray-200 py-14 px-4">
       <div class="max-w-3xl mx-auto">
-        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-8">Full breakdown</p>
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-8">The full message</p>
 
         <div class="prose-content">
-          <h2>What did the control caucus do to increase voter access?</h2>
-          <p>Almost nothing.</p>
-          <p>
-            After reviewing the 2025 and 2026 Wyoming election bills, I found one measure that could be called
-            mildly voter-protective: <strong>SEA 75, SF0165</strong>. It allows a voter cancellation notice to be sent
-            by email in addition to first-class mail. In plain English, if the government is preparing to remove you
-            from the voter rolls, you might also get an email saying so. That is the high-water mark for "helping" voters.
-          </p>
-          <p>That is not expanding freedom. That is a courtesy notice before the trapdoor opens.</p>
-          <p>Now compare that with what actually moved through the Legislature.</p>
-          <p>
-            Wyoming passed <strong>HB0156</strong>, requiring proof of citizenship, proof of residence, and a
-            30-day residency requirement before voter eligibility. The Secretary of State publicly described HB0156
-            as requiring proof of U.S. citizenship, proof of Wyoming residency, and a durational residency requirement.
-            <a href="https://sos.wyo.gov/Media/2025/SoS_Release_2025-03-21.pdf" target="_blank" rel="noopener" class="source-link">[1]</a>
-          </p>
-          <p>
-            Wyoming passed <strong>SF0078</strong>, which says no person, except a county clerk, the Secretary of
-            State, or their designees, may distribute an absentee ballot request form unless the voter specifically
-            asks for one.
-            <a href="https://legiscan.com/WY/text/SF0078/id/3130886/Wyoming-2025-SF0078-Enrolled.pdf" target="_blank" rel="noopener" class="source-link">[2]</a>
-          </p>
-          <p>
-            Wyoming passed <strong>SF0030</strong> in 2026, described as clarifying the definition of
-            "qualified elector" and making conforming changes to voter registration and voter qualifications.
-            <a href="https://wyoleg.gov/Legislation/2026/SF0030" target="_blank" rel="noopener" class="source-link">[3]</a>
-          </p>
 
-          <div class="contrast-grid my-10" role="table" aria-label="Freedom vs. Control comparison">
-            <div class="contrast-header" role="row">
-              <span class="h-freedom" role="columnheader">Freedom</span>
-              <span class="h-control" role="columnheader">Control</span>
-            </div>
-            <div class="pair" role="row">
-              <div class="freedom" role="cell">Freedom would mean online voter registration.</div>
-              <div class="control" role="cell">Control means more paperwork.</div>
-            </div>
-            <div class="pair" role="row">
-              <div class="freedom" role="cell">Freedom would mean longer early voting.</div>
-              <div class="control" role="cell">Control means proof before participation.</div>
-            </div>
-            <div class="pair" role="row">
-              <div class="freedom" role="cell">Freedom would mean easier absentee access.</div>
-              <div class="control" role="cell">Control means restricting who can even hand you an absentee ballot request form.</div>
-            </div>
-            <div class="pair" role="row">
-              <div class="freedom" role="cell">Freedom would mean broader ballot access.</div>
-              <div class="control" role="cell">Control means tighter deadlines, more technical barriers, and more ways to keep people off the ballot.</div>
-            </div>
-            <div class="pair" role="row">
-              <div class="freedom" role="cell">Freedom would mean restoring voting rights and trusting citizens.</div>
-              <div class="control" role="cell">Control means expanding verification, cancellation, proof requirements, and voter-roll policing.</div>
-            </div>
+          <p>Every generation faces a defining question.</p>
+          <p>Will our future be shaped more by freedom or by control?</p>
+          <p>I believe the answer begins with us.</p>
+
+          <h2>Who</h2>
+          <p>You.</p>
+          <p>Me.</p>
+          <p>Every citizen willing to have one honest conversation with another person.</p>
+          <p>Together, our goal is simple: one million messages.</p>
+
+          <h2>What</h2>
+          <p>One million conversations centered on one question:</p>
+          <p><strong>Are we moving toward greater freedom, or greater control?</strong></p>
+          <p>We listen. We think. We learn. We understand. We build trust.</p>
+          <p>Every conversation brings another perspective, another idea, and another opportunity to strengthen our communities.</p>
+
+          <h2>When</h2>
+          <p>It starts today.</p>
+          <p>It continues one conversation at a time as more people join the effort.</p>
+
+          <h2>Where</h2>
+          <p>Across Wyoming. Across America.</p>
+          <p>At the kitchen table. Over coffee. At work. At community events.</p>
+          <p>Anywhere people are willing to look each other in the eye and have an honest conversation.</p>
+
+          <h2>Why</h2>
+          <p>Freedom grows with informed, engaged citizens.</p>
+          <p>Trust grows through conversation.</p>
+          <p>Communities grow stronger when we listen, learn, and work together.</p>
+          <p>One conversation can inspire another. One idea can spark a movement. One million conversations can help shape the future.</p>
+          <p class="context-note">For the data behind this question, see our breakdown of Wyoming election legislation: <a href="/share/freedom-or-control" class="inline-link">Freedom or Control?</a>.</p>
+
+          <h2>How</h2>
+          <p>Join the Pulse platform at Skovgard2026.org.</p>
+          <p>Receive conversation starters, questions, and ideas worth sharing.</p>
+          <p>Then carry those conversations into your community.</p>
+
+          <div class="count-block my-10">
+            <p>One conversation becomes ten.</p>
+            <p>Ten become one hundred.</p>
+            <p>One hundred become one thousand.</p>
+            <p><strong>Together, we can share one million messages.</strong></p>
+          </div>
+
+          <h2>Your Next Step</h2>
+          <p>Join the movement.</p>
+          <p>Start one conversation today.</p>
+          <p>Invite one other person to do the same.</p>
+          <p>Share one message that encourages curiosity, understanding, and participation.</p>
+
+          <div class="closing-block my-10">
+            <p>One conversation.</p>
+            <p>One neighbor.</p>
+            <p>One community.</p>
+            <p>One million messages.</p>
+            <p><strong>Our future begins with us.</strong></p>
           </div>
 
           <p>
-            Out of the review, we flagged <strong>38 election-related bills</strong> touching voting, registration,
-            ballot access, absentee voting, voter rolls, election administration, or candidate access. The one item
-            that arguably helped voters was an email notice before cancellation. Everything else worth watching moved
-            toward tighter control.
+            <a href="https://skovgard2026.org/pulse" class="cta-link">Join the Pulse platform at Skovgard2026.org</a>
           </p>
-          <p>That tells us something.</p>
-          <p>This was not a voting freedom agenda.</p>
-          <p>It was a control agenda dressed up as election security.</p>
-          <p>
-            And the clearest example is <strong>HB0156</strong>. It places proof, paperwork, timing, and government
-            verification between a Wyoming citizen and the ballot. That deserves constitutional review because
-            Wyoming's Constitution says elections are supposed to be open, free, and equal.
-          </p>
-        </div>
 
+        </div>
       </div>
     </article>
 
@@ -297,39 +289,11 @@ import Footer from '../../components/Footer.astro';
       </div>
     </div>
 
-    <!-- Sources -->
-    <section class="bg-wy-bone py-12 px-4">
-      <div class="max-w-3xl mx-auto">
-        <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-6">Sources</h2>
-        <ol class="space-y-4 text-sm text-gray-600 list-none">
-          <li>
-            <strong>1.</strong> Wyoming Secretary of State — HB0156 release<br />
-            <a href="https://sos.wyo.gov/Media/2025/SoS_Release_2025-03-21.pdf" target="_blank" rel="noopener" class="text-wy-ember hover:underline break-all">
-              https://sos.wyo.gov/Media/2025/SoS_Release_2025-03-21.pdf
-            </a>
-          </li>
-          <li>
-            <strong>2.</strong> SF0078 enrolled text — LegiScan<br />
-            <a href="https://legiscan.com/WY/text/SF0078/id/3130886/Wyoming-2025-SF0078-Enrolled.pdf" target="_blank" rel="noopener" class="text-wy-ember hover:underline break-all">
-              https://legiscan.com/WY/text/SF0078/id/3130886/Wyoming-2025-SF0078-Enrolled.pdf
-            </a>
-          </li>
-          <li>
-            <strong>3.</strong> SF0030 — Wyoming Legislature<br />
-            <a href="https://wyoleg.gov/Legislation/2026/SF0030" target="_blank" rel="noopener" class="text-wy-ember hover:underline break-all">
-              https://wyoleg.gov/Legislation/2026/SF0030
-            </a>
-          </li>
-        </ol>
-      </div>
-    </section>
-
   </main>
   <Footer />
 </Base>
 
 <style>
-  /* Section headers */
   .section-kicker {
     font-size: 0.6875rem;
     font-weight: 700;
@@ -346,7 +310,6 @@ import Footer from '../../components/Footer.astro';
     max-width: 52ch;
   }
 
-  /* Social share buttons */
   .social-btn {
     display: inline-flex;
     align-items: center;
@@ -397,54 +360,6 @@ import Footer from '../../components/Footer.astro';
     border-color: #f1ece1;
   }
 
-  /* Instructions */
-  .instructions-box {
-    background: #fff;
-    border: 1px solid #e5e2da;
-    border-radius: 14px;
-    padding: 22px 24px;
-  }
-  .instructions-label {
-    font-size: 0.6875rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #c68a4a;
-    margin-bottom: 14px;
-  }
-  .instructions-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .instructions-list li {
-    display: flex;
-    gap: 14px;
-    align-items: flex-start;
-    font-size: 0.9rem;
-    color: #4b4b4b;
-    line-height: 1.55;
-  }
-  .instructions-list li strong { color: #2b2b2b; }
-  .step-n {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #b22234;
-    color: #f1ece1;
-    font-weight: 800;
-    font-size: 0.8125rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 1px;
-  }
-
-  /* Email preview frame */
   .email-preview-wrap {
     border: 1px solid #d1d5db;
     border-radius: 12px;
@@ -456,16 +371,8 @@ import Footer from '../../components/Footer.astro';
     background: #f9fafb;
     border-bottom: 1px solid #e5e7eb;
   }
-  .epf {
-    font-size: 0.8125rem;
-    color: #374151;
-    line-height: 1.6;
-  }
-  .epl {
-    font-weight: 700;
-    color: #6b7280;
-    margin-right: 4px;
-  }
+  .epf { font-size: 0.8125rem; color: #374151; line-height: 1.6; }
+  .epl { font-weight: 700; color: #6b7280; margin-right: 4px; }
   .email-preview-iframe {
     display: block;
     width: 100%;
@@ -473,10 +380,9 @@ import Footer from '../../components/Footer.astro';
     border: none;
   }
 
-  #fvc-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #omm-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* Email chip tags */
-  .fvc-chip {
+  .omm-chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -490,8 +396,8 @@ import Footer from '../../components/Footer.astro';
     white-space: nowrap;
     max-width: 220px;
   }
-  .fvc-chip span { overflow: hidden; text-overflow: ellipsis; }
-  .fvc-chip button {
+  .omm-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .omm-chip button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -507,7 +413,7 @@ import Footer from '../../components/Footer.astro';
     padding: 0;
     flex-shrink: 0;
   }
-  .fvc-chip button:hover { background: #b22234; color: #fff; }
+  .omm-chip button:hover { background: #b22234; color: #fff; }
 
   kbd {
     padding: 1px 5px;
@@ -518,61 +424,80 @@ import Footer from '../../components/Footer.astro';
     color: #6b7280;
   }
 
-  /* Essay typography */
   .prose-content { line-height: 1.8; color: #2b2b2b; }
   .prose-content h2 {
     font-family: 'Bitter', serif;
     font-weight: 700;
     font-size: 1.5rem;
-    margin-bottom: 1rem;
+    margin: 2rem 0 0.75rem;
     color: #2b2b2b;
   }
-  .prose-content p { margin-bottom: 1.25rem; font-size: 1.0625rem; }
-  .source-link {
+  .prose-content p { margin-bottom: 1rem; font-size: 1.0625rem; }
+
+  .count-block {
+    border-left: 4px solid #b22234;
+    background: #fef7f7;
+    padding: 20px 24px;
+    border-radius: 0 8px 8px 0;
+  }
+  .count-block p { margin-bottom: 0.5rem; font-size: 1.0625rem; }
+  .count-block p:last-child { margin-bottom: 0; }
+
+  .closing-block {
+    border-left: 4px solid #d8b46a;
+    background: #fbf8f1;
+    padding: 20px 24px;
+    border-radius: 0 8px 8px 0;
+  }
+  .closing-block p { margin-bottom: 0.5rem; font-size: 1.0625rem; }
+  .closing-block p:last-child { margin-bottom: 0; }
+
+  .context-note {
+    font-size: 0.9375rem;
+    color: #6b7280;
+    border-left: 3px solid #d8b46a;
+    padding-left: 14px;
+    margin-top: 1.25rem;
+  }
+  .inline-link {
     color: #b22234;
+    font-weight: 600;
     text-decoration: none;
-    font-size: 0.85em;
-    vertical-align: super;
   }
-  .source-link:hover { text-decoration: underline; }
+  .inline-link:hover { text-decoration: underline; }
 
-  /* Freedom / Control comparison grid */
-  .contrast-grid { border: 1px solid #ddd8ce; border-radius: 12px; overflow: hidden; }
-  .contrast-header { display: grid; grid-template-columns: 1fr 1fr; background: #2b2b2b; }
-  .contrast-header span { padding: 10px 18px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; }
-  .h-freedom { color: #f1ece1; border-right: 1px solid rgba(255,255,255,0.12); }
-  .h-control  { color: #e87a86; }
-  .pair { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #ddd8ce; }
-  .pair:last-child { border-bottom: none; }
-  .freedom { padding: 14px 18px; font-size: 0.9375rem; color: #2b2b2b; border-right: 1px solid #ddd8ce; background: #f1ece1; }
-  .control  { padding: 14px 18px; font-size: 0.9375rem; color: #2b2b2b; background: #fef7f7; }
-  @media (max-width: 600px) {
-    .pair { grid-template-columns: 1fr; }
-    .freedom { border-right: none; border-bottom: 1px solid #ddd8ce; }
-    .contrast-header { grid-template-columns: 1fr; }
-    .h-freedom { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.12); }
+  .cta-link {
+    display: inline-block;
+    background: #b22234;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 14px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.15s;
   }
+  .cta-link:hover { background: #8b1a26; }
 
-  #fvc-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
-  #fvc-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-  #fvc-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+  #omm-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  #omm-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  #omm-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
 </style>
 
 <script>
 (function () {
-  const PAGE_URL = 'https://skovgard2026.org/share/freedom-vs-control';
+  const PAGE_URL = 'https://skovgard2026.org/share/one-million-messages';
 
-  /* ── Social share links ──────────────────────────────────── */
   const fb = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
   const tw = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_URL) +
-    '&text=' + encodeURIComponent('Wyoming: 38 election bills. 1 helped voters. The rest added barriers. That is a control agenda, not election security.');
+    '&text=' + encodeURIComponent('One million conversations. One question: are we moving toward freedom or control? Start one conversation today. — Jimmy Skovgard for U.S. Senate');
   ['hero-facebook', 'social-facebook', 'footer-facebook'].forEach(id => { const el = document.getElementById(id); if (el) el.href = fb; });
   ['hero-twitter',  'social-twitter',  'footer-twitter' ].forEach(id => { const el = document.getElementById(id); if (el) el.href = tw; });
 
-  async function copyText(text, label) {
+  async function copyText(text) {
     try {
       await navigator.clipboard.writeText(text);
-      setStatus(label + ' copied!', 'success');
+      setStatus('Link copied!', 'success');
       setTimeout(() => setStatus('', ''), 3000);
     } catch {
       setStatus('Could not copy — please copy manually.', 'error');
@@ -580,21 +505,20 @@ import Footer from '../../components/Footer.astro';
   }
 
   ['hero-copy-link', 'social-copy-link', 'footer-copy-link']
-    .forEach(id => { const btn = document.getElementById(id); if (btn) btn.addEventListener('click', () => copyText(PAGE_URL, 'Link')); });
+    .forEach(id => { const btn = document.getElementById(id); if (btn) btn.addEventListener('click', () => copyText(PAGE_URL)); });
 
-  /* ── Email state ─────────────────────────────────────────── */
-  const fvcEmails      = [];
-  const FVC_MAX        = 10;
-  const tagBox         = document.getElementById('fvc-tag-box');
-  const emailInput     = document.getElementById('fvc-email-input');
-  const senderInput    = document.getElementById('fvc-sender');
-  const contactsBtn    = document.getElementById('fvc-contacts-btn');
-  const previewIframe  = document.getElementById('fvc-preview-iframe');
-  const previewSubject = document.getElementById('fvc-preview-subject');
-  const sendBtn        = document.getElementById('fvc-send-btn');
-  const sendLabel      = document.getElementById('fvc-send-label');
-  const statusEl       = document.getElementById('fvc-status');
-  const trapEl         = document.getElementById('fvc-trap');
+  const ommEmails   = [];
+  const OMM_MAX     = 10;
+  const tagBox      = document.getElementById('omm-tag-box');
+  const emailInput  = document.getElementById('omm-email-input');
+  const senderInput = document.getElementById('omm-sender');
+  const contactsBtn = document.getElementById('omm-contacts-btn');
+  const previewIframe  = document.getElementById('omm-preview-iframe');
+  const previewSubject = document.getElementById('omm-preview-subject');
+  const sendBtn     = document.getElementById('omm-send-btn');
+  const sendLabel   = document.getElementById('omm-send-label');
+  const statusEl    = document.getElementById('omm-status');
+  const trapEl      = document.getElementById('omm-trap');
 
   function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
 
@@ -606,12 +530,12 @@ import Footer from '../../components/Footer.astro';
   }
 
   function renderTags() {
-    Array.from(tagBox.querySelectorAll('.fvc-chip')).forEach(c => c.remove());
-    fvcEmails.forEach((email, i) => {
+    Array.from(tagBox.querySelectorAll('.omm-chip')).forEach(c => c.remove());
+    ommEmails.forEach((email, i) => {
       const chip = document.createElement('span');
-      chip.className = 'fvc-chip';
+      chip.className = 'omm-chip';
       chip.innerHTML = `<span title="${email}">${email}</span><button type="button" aria-label="Remove ${email}">✕</button>`;
-      chip.querySelector('button').addEventListener('click', () => { fvcEmails.splice(i, 1); setStatus('', ''); renderTags(); });
+      chip.querySelector('button').addEventListener('click', () => { ommEmails.splice(i, 1); setStatus('', ''); renderTags(); });
       tagBox.insertBefore(chip, emailInput);
     });
     updateButtons();
@@ -622,21 +546,19 @@ import Footer from '../../components/Footer.astro';
     const e = raw.trim().toLowerCase();
     if (!e) return;
     if (!isValidEmail(e)) { setStatus(`"${e}" doesn't look like a valid email address.`, 'error'); return; }
-    if (fvcEmails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
-    if (fvcEmails.length >= FVC_MAX) { setStatus(`Maximum ${FVC_MAX} recipients.`, 'info'); return; }
+    if (ommEmails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
+    if (ommEmails.length >= OMM_MAX) { setStatus(`Maximum ${OMM_MAX} recipients.`, 'info'); return; }
     setStatus('', '');
-    fvcEmails.push(e);
+    ommEmails.push(e);
     renderTags();
   }
 
-  function updateButtons() {
-    sendBtn.disabled = fvcEmails.length === 0;
-  }
+  function updateButtons() { sendBtn.disabled = ommEmails.length === 0; }
 
   emailInput.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addEmail(emailInput.value); emailInput.value = ''; }
-    else if (e.key === 'Backspace' && emailInput.value === '' && fvcEmails.length > 0) {
-      fvcEmails.splice(fvcEmails.length - 1, 1); setStatus('', ''); renderTags();
+    else if (e.key === 'Backspace' && emailInput.value === '' && ommEmails.length > 0) {
+      ommEmails.splice(ommEmails.length - 1, 1); setStatus('', ''); renderTags();
     }
   });
   emailInput.addEventListener('blur', () => { if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; } });
@@ -659,12 +581,11 @@ import Footer from '../../components/Footer.astro';
     } catch (_) {}
   })();
 
-  /* ── Live email preview via Worker ──────────────────────── */
   let previewTimer = null;
 
   function buildPreviewUrl() {
     const name = senderInput.value.trim().slice(0, 80);
-    const params = new URLSearchParams({ slug: 'freedom-vs-control' });
+    const params = new URLSearchParams({ slug: 'one-million-messages' });
     if (name) params.set('sender_name', name);
     return '/api/share/preview?' + params.toString();
   }
@@ -673,8 +594,8 @@ import Footer from '../../components/Footer.astro';
     const name = senderInput.value.trim();
     if (previewSubject) {
       previewSubject.textContent = name
-        ? `${name} wanted you to see this Wyoming election breakdown`
-        : "Wyoming's election legislation — freedom vs. control";
+        ? `${name} wanted you to see this — One Million Messages`
+        : 'One million messages — will you start one today?';
     }
   }
 
@@ -684,9 +605,7 @@ import Footer from '../../components/Footer.astro';
     try {
       const resp = await fetch(buildPreviewUrl());
       if (resp.ok) previewIframe.srcdoc = await resp.text();
-    } catch (_) {
-      // Worker not running locally — leave iframe blank
-    }
+    } catch (_) {}
   }
 
   function schedulePreview() {
@@ -696,9 +615,8 @@ import Footer from '../../components/Footer.astro';
 
   senderInput.addEventListener('input', schedulePreview);
 
-  /* ── Send via Worker ─────────────────────────────────────── */
   sendBtn.addEventListener('click', async () => {
-    if (fvcEmails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
+    if (ommEmails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
     if (trapEl.value.trim()) return;
 
     sendBtn.disabled = true;
@@ -710,9 +628,9 @@ import Footer from '../../components/Footer.astro';
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          message_slug: 'freedom-vs-control',
+          message_slug: 'one-million-messages',
           sender_name:  senderInput.value.trim(),
-          recipients:   fvcEmails.slice(),
+          recipients:   ommEmails.slice(),
           _trap: "",
           _t:    Date.now(),
         }),
@@ -729,9 +647,9 @@ import Footer from '../../components/Footer.astro';
           'error'
         );
       } else {
-        const n = data.sent || fvcEmails.length;
+        const n = data.sent || ommEmails.length;
         setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} accepted for delivery. Thank you for spreading the word.`, 'success');
-        fvcEmails.length = 0;
+        ommEmails.length = 0;
         renderTags();
       }
     } catch (_) {
@@ -747,7 +665,6 @@ import Footer from '../../components/Footer.astro';
     }
   });
 
-  /* ── Init ────────────────────────────────────────────────── */
   updateButtons();
   fetchPreview();
 
