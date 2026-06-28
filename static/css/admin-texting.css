@@ -698,3 +698,39 @@ main .contact-edit-form .contact-edit-status {
     grid-template-columns: 1fr;
   }
 }
+
+/* Load failed recipients panel */
+main .load-failed-panel {
+  border: 1px solid #e2b96a;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  background: #fffbf2;
+}
+main .load-failed-panel > summary {
+  padding: .6rem .9rem;
+  font-weight: 600;
+  font-size: .85rem;
+  color: #7a5a10;
+  cursor: pointer;
+  list-style: disclosure-closed;
+  user-select: none;
+}
+main .load-failed-panel[open] > summary {
+  list-style: disclosure-open;
+  border-bottom: 1px solid #e2b96a;
+}
+main .load-failed-panel .load-failed-body {
+  padding: .75rem .9rem;
+}
+main .load-failed-panel .load-failed-body .help {
+  margin-bottom: .6rem;
+}
+#admin-texting-shell .load-failed-panel .button-row button {
+  background: #b45309;
+  border-color: #b45309;
+  color: #fff;
+}
+#admin-texting-shell .load-failed-panel .button-row button:hover {
+  background: #92400e;
+  border-color: #92400e;
+}

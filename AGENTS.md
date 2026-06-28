@@ -195,6 +195,18 @@ When creating audio/video files with `ffmpeg`, review `how_to_mp4.md` first. If 
 - Suggest cleanup of odd or stray files created in the project root when you notice them.
 - Keep edits scoped to the user request. Do not fold in unrelated cleanup or cross-project standardization unless asked.
 
+## Manual Single-Contact Add
+
+To add one contact directly (name + phone and/or email, provided verbally or in person):
+
+Read `instructions/manual_contact_add.md` for the exact SQL patterns, phone number formatting, and verification query. This folder is git-ignored — do not commit files from it.
+
+- SMS only: insert into `contacts` + `consent_status` (status `opted_in`)
+- Email only: insert into `newsletter_subscribers` (active `1`)
+- Both: all three tables; also set `email` and `consent_email=1` on the `consent_status` row
+- Use `source = 'admin_manual'` and `source_detail = 'admin add YYYY-MM-DD'`
+- For 10+ contacts use the CSV import workflow below instead
+
 ## CSV Import Workflow
 
 When a user provides a signup-sheet CSV to add contacts to the SMS/email systems:

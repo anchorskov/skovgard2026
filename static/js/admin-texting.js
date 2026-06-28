@@ -1938,6 +1938,45 @@ recipientTrayClearBtn?.addEventListener("click", () => {
   invalidateBroadcastPreview("Broadcast preview cleared because the recipient tray changed.");
 });
 
+// Load failed recipients into tray
+document.getElementById("load-failed-btn")?.addEventListener("click", async () => {
+  const sinceInput = document.getElementById("failed_since");
+  const untilInput = document.getElementById("failed_until");
+  const statusEl = document.getElementById("load-failed-status");
+  const since = sinceInput?.value?.trim();
+  if (!since) {
+    if (statusEl) statusEl.textContent = "From date is required.";
+    return;
+  }
+  const until = untilInput?.value?.trim() || "";
+  if (statusEl) statusEl.textContent = "Loading…";
+  try {
+    const params = new URLSearchParams({ since: since + "T00:00:00" });
+    if (until) params.set("until", until + "T23:59:59");
+    const res = await authedFetch(`/api/admin/texting/failed-recipients?${params}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    const list = data.recipients || [];
+    if (!list.length) {
+      if (statusEl) statusEl.textContent = "No delivery failures found in that date range.";
+      return;
+    }
+    let added = 0;
+    for (const r of list) {
+      if (!r.phone_e164) continue;
+      if (!recipientTray.has(r.phone_e164)) {
+        recipientTray.set(r.phone_e164, { phone_e164: r.phone_e164, first_name: r.first_name || "", status: "opted_in" });
+        added++;
+      }
+    }
+    renderRecipientTray();
+    invalidateBroadcastPreview("Broadcast preview cleared because the recipient tray changed.");
+    if (statusEl) statusEl.textContent = `Added ${added} failed recipient${added === 1 ? "" : "s"} to tray (${list.length - added} already in tray).`;
+  } catch (err) {
+    if (statusEl) statusEl.textContent = `Error: ${err.message}`;
+  }
+});
+
 const savedKey = localStorage.getItem(STORAGE_KEY);
 const savedEmail = localStorage.getItem(STORAGE_EMAIL);
 if (savedKey) keyInput.value = savedKey;

@@ -69,6 +69,7 @@ downloads/
 
 # Local assistant/process artifacts
 .codex
+instructions/
 agents.md
 how_to_mp4.md
 proj_review_*.txt

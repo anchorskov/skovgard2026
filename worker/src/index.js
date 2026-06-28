@@ -3952,6 +3952,36 @@ export default {
         }
       }
 
+      if (req.method === "GET" && path === "/api/admin/texting/failed-recipients") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const since = String(url.searchParams.get("since") || "").trim();
+        const until = String(url.searchParams.get("until") || "").trim();
+        if (!since) return json(req, env, { error: "since parameter required (ISO date)" }, 400);
+
+        const rows = await env.DB.prepare(
+          `SELECT DISTINCT om.phone_to, cs.first_name
+             FROM outbound_messages om
+             LEFT JOIN consent_status cs ON cs.phone_e164 = om.phone_to
+            WHERE om.status = 'delivery_failed'
+              AND om.created_at >= ?1
+              AND (?2 = '' OR om.created_at <= ?2)
+              AND om.phone_to IS NOT NULL
+              AND om.phone_to != ''
+            ORDER BY om.created_at DESC`
+        ).bind(since, until).all();
+
+        return json(req, env, {
+          recipients: (rows.results || []).map(r => ({
+            phone_e164: r.phone_to,
+            first_name: r.first_name || null,
+          })),
+          count: (rows.results || []).length,
+        });
+      }
+
       if (req.method === "POST" && path === "/api/admin/texting/send-batch") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
         const auth = mustBeAdmin(req, env, url);
