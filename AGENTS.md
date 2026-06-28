@@ -172,7 +172,7 @@ When asked whether localhost, the repo, or production are in sync — or before 
 
 ## Media Workflow
 
-When creating audio/video files with `ffmpeg`, review `how_to_mp4.md` first. If the user asks to create an MP4 from an audio file and image, follow that process.
+When creating audio/video files with `ffmpeg`, review `instructions/how_to_mp4.md` first. If the user asks to create an MP4 from an audio file and image, follow that process.
 
 ### Media Asset Paths
 
@@ -233,6 +233,8 @@ When a user provides a signup-sheet CSV to add contacts to the SMS/email systems
 
 ## Candidates Sub-project (Wyoming 2026 Voter Guide)
 
+**Sub-project agent instructions:** `Candidates/AGENTS.md` — read this file first when doing any work inside `Candidates/`. It covers the Worker name, D1 bindings, migration warnings, deploy rules, and county seed workflow.
+
 The voter guide lives in `Candidates/` — a standalone Astro 6 SSR project deployed to `candidates.skovgard2026.org` via Cloudflare Pages. It has its own `wrangler.toml`, D1 databases, and package.
 
 **Data reference:** `Candidates/candidate_data.md` — start there for the full D1 schema, field definitions, migration history, and enrichment batch workflow.
@@ -279,6 +281,22 @@ Notes:
 - `wrangler pages deploy` is not sufficient for the live custom-domain route.
 - Do not deploy through the main `skovgard2026` Pages project or `skovgard2026-api` Worker.
 - The canonical config is `Candidates/wrangler.toml`.
+
+## Guide Sub-project (Voter Guide Admin)
+
+**Sub-project agent instructions:** `Guide/AGENTS.md` — read this file first when doing any work inside `Guide/`. It covers the Cloudflare Pages project name, WY_DB bindings, migration steps, deploy rules, and guide table descriptions.
+
+The guide admin lives in `Guide/` — a standalone Astro 6 SSR project deployed to `guide.skovgard2026.org` as a **Cloudflare Pages** project (`skovgard-guide`). It shares the same `wy` D1 database as the Candidates sub-project.
+
+Deploy:
+```bash
+./scripts/deploy_guide.sh
+SKIP_BUILD=1 ./scripts/deploy_guide.sh   # data-only redeploy
+```
+
+Do NOT run `npx wrangler pages deploy` directly — the deploy script validates the Pages project name and guards against `[env.production]` misrouting.
+
+---
 
 ## Polling Location Workflow
 
