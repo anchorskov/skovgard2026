@@ -780,6 +780,7 @@ import Footer from '../../components/Footer.astro';
   });
 
   emailInput.addEventListener('blur', () => {
+  emailInput.addEventListener('input', updateButtons);
     if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
   });
 

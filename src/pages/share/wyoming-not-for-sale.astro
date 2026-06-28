@@ -434,7 +434,7 @@ import { MEDIA_BASE_URL } from '../../constants';
 
   function removeEmail(index) { emails.splice(index, 1); setStatus('', ''); renderTags(); }
 
-  function updateButtons() { sendBtn.disabled = emails.length === 0; }
+  function updateButtons() { sendBtn.disabled = emails.length === 0 && !isValidEmail(emailInput.value.trim()); }
 
   /* ── Live email preview via Worker ──────────────────────── */
   let previewTimer = null;
@@ -482,6 +482,7 @@ import { MEDIA_BASE_URL } from '../../constants';
   });
 
   emailInput.addEventListener('blur', () => {
+  emailInput.addEventListener('input', updateButtons);
     if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
   });
 

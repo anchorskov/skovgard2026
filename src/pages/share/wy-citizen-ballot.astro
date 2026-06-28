@@ -1015,7 +1015,7 @@ const smsText = `The Citizens Nonpartisan Ballot adds a 3rd nominee to the gener
 
   function removeEmail(i) { emails.splice(i, 1); setStatus('', ''); renderTags(); }
 
-  function updateButtons() { sendBtn.disabled = emails.length === 0; }
+  function updateButtons() { sendBtn.disabled = emails.length === 0 && !isValidEmail(emailInput.value.trim()); }
 
   let previewTimer = null;
 
@@ -1062,6 +1062,7 @@ const smsText = `The Citizens Nonpartisan Ballot adds a 3rd nominee to the gener
   });
 
   emailInput.addEventListener('blur', () => {
+  emailInput.addEventListener('input', updateButtons);
     if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
   });
 

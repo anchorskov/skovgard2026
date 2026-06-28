@@ -503,7 +503,7 @@ import { MEDIA_BASE_URL } from '../../constants';
 
   function removeEmail(index) { emails.splice(index, 1); setStatus('', ''); renderTags(); }
 
-  function updateButtons() { sendBtn.disabled = emails.length === 0; }
+  function updateButtons() { sendBtn.disabled = emails.length === 0 && !isValidEmail(emailInput.value.trim()); }
 
   let previewTimer = null;
 
@@ -544,6 +544,7 @@ import { MEDIA_BASE_URL } from '../../constants';
     else if (e.key === 'Backspace' && emailInput.value === '' && emails.length > 0) { removeEmail(emails.length - 1); }
   });
   emailInput.addEventListener('blur', () => { if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; } });
+  emailInput.addEventListener('input', updateButtons);
   emailInput.addEventListener('paste', e => {
     e.preventDefault();
     (e.clipboardData || window.clipboardData).getData('text').split(/[,;\s\n]+/).forEach(p => { if (p.trim()) addEmail(p); });

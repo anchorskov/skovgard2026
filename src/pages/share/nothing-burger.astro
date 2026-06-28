@@ -755,7 +755,7 @@ import Footer from '../../components/Footer.astro';
 
   function removeEmail(index) { emails.splice(index, 1); setStatus('', ''); renderTags(); }
 
-  function updateButtons() { sendBtn.disabled = emails.length === 0; }
+  function updateButtons() { sendBtn.disabled = emails.length === 0 && !isValidEmail(emailInput.value.trim()); }
 
   /* ── Live email preview ──────────────────────────────────── */
   let previewTimer = null;
@@ -803,6 +803,7 @@ import Footer from '../../components/Footer.astro';
   });
 
   emailInput.addEventListener('blur', () => {
+  emailInput.addEventListener('input', updateButtons);
     if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
   });
 

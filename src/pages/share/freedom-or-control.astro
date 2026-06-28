@@ -742,7 +742,7 @@ import Footer from '../../components/Footer.astro';
     renderTags();
   }
 
-  function updateButtons() { sendBtn.disabled = focEmails.length === 0; }
+  function updateButtons() { sendBtn.disabled = focEmails.length === 0 && !isValidEmail(emailInput.value.trim()); }
 
   emailInput.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addEmail(emailInput.value); emailInput.value = ''; }
@@ -751,6 +751,7 @@ import Footer from '../../components/Footer.astro';
     }
   });
   emailInput.addEventListener('blur', () => { if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; } });
+  emailInput.addEventListener('input', updateButtons);
   emailInput.addEventListener('paste', e => {
     e.preventDefault();
     (e.clipboardData || window.clipboardData).getData('text').split(/[,;\s\n]+/).forEach(p => { if (p.trim()) addEmail(p); });
@@ -807,6 +808,7 @@ import Footer from '../../components/Footer.astro';
 
   /* ── Send via Worker ─────────────────────────────────────── */
   sendBtn.addEventListener('click', async () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
     if (focEmails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
     if (trapEl.value.trim()) return;
 
