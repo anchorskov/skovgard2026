@@ -12,12 +12,14 @@ const {
   <noscript>
     <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-amber-800 text-sm">
       JavaScript is required to submit this form securely. Please email
-      <a href="mailto:skovgard2026@gmail.com?subject=Pulse%20Opt-in" class="underline">skovgard2026@gmail.com</a>
-      with the subject "Pulse Opt-in" and include your name, street address, city, ZIP, and mobile number.
+      <a href="mailto:anchorskov@gmail.com?subject=Pulse%20Opt-in" class="underline">anchorskov@gmail.com</a>
+      with the subject "Pulse Opt-in" and include your name and mobile number.
     </div>
   </noscript>
 
   <form id="optin-form" class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-gray-100 space-y-5" method="post" novalidate>
+
+    <!-- Name -->
     <div class="grid sm:grid-cols-2 gap-4">
       <div>
         <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">First name <span class="text-red-500">*</span></label>
@@ -27,7 +29,7 @@ const {
           type="text"
           autocomplete="given-name"
           required
-          class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
+          class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
         />
       </div>
       <div>
@@ -38,52 +40,12 @@ const {
           type="text"
           autocomplete="family-name"
           required
-          class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
+          class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
         />
       </div>
     </div>
 
-    <div>
-      <label for="address1" class="block text-sm font-medium text-gray-700 mb-1">Street address <span class="text-red-500">*</span></label>
-      <input
-        id="address1"
-        name="address1"
-        type="text"
-        autocomplete="address-line1"
-        required
-        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
-      />
-    </div>
-
-    <input id="state" name="state" type="hidden" value="WY" />
-
-    <div class="grid sm:grid-cols-[minmax(0,1fr)_11rem] gap-4">
-      <div>
-        <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
-        <input
-          id="city"
-          name="city"
-          type="text"
-          autocomplete="address-level2"
-          required
-          class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
-        />
-      </div>
-      <div>
-        <label for="zip" class="block text-sm font-medium text-gray-700 mb-1">ZIP code <span class="text-red-500">*</span></label>
-        <input
-          id="zip"
-          name="zip"
-          type="text"
-          inputmode="numeric"
-          pattern="[0-9]{5}"
-          placeholder="82001"
-          required
-          class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
-        />
-      </div>
-    </div>
-
+    <!-- Mobile (required) -->
     <div>
       <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Mobile number <span class="text-red-500">*</span></label>
       <input
@@ -92,13 +54,52 @@ const {
         type="tel"
         inputmode="tel"
         placeholder="307-555-1234"
+        autocomplete="tel"
         required
-        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-gold focus:outline-none"
+        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
       />
-      <p class="text-xs text-gray-500 mt-1">We format as +1XXXXXXXXXX. Standard rates may apply.</p>
+      <p class="text-xs text-gray-400 mt-1">Standard message and data rates may apply. Reply STOP to opt out.</p>
     </div>
 
-    <div id="consent-panel" class="pulse-consent-panel rounded-xl border border-wy-gold/25 bg-wy-stone/50 px-4 py-4 space-y-3">
+    <!-- Email (optional) -->
+    <div>
+      <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+        Email address <span class="text-gray-400 font-normal text-xs">(optional)</span>
+      </label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        inputmode="email"
+        autocomplete="email"
+        placeholder="you@example.com"
+        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
+      />
+      <p class="text-xs text-gray-400 mt-1">Add your email to also receive campaign updates in your inbox.</p>
+    </div>
+
+    <!-- ZIP (optional) -->
+    <div>
+      <label for="zip" class="block text-sm font-medium text-gray-700 mb-1">
+        ZIP code <span class="text-gray-400 font-normal text-xs">(optional)</span>
+      </label>
+      <input
+        id="zip"
+        name="zip"
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9]{5}"
+        placeholder="82001"
+        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
+      />
+      <p class="text-xs text-gray-400 mt-1">Helps us send updates relevant to your area.</p>
+    </div>
+
+    <!-- Hidden fields -->
+    <input id="state" name="state" type="hidden" value="WY" />
+
+    <!-- SMS consent (required) -->
+    <div id="consent-panel" class="pulse-consent-panel rounded-xl border border-wy-ember/25 bg-wy-bone/50 px-4 py-4 space-y-3">
       <label class="flex items-start gap-3 cursor-pointer">
         <input
           type="checkbox"
@@ -106,23 +107,41 @@ const {
           name="consent_sms"
           required
           aria-describedby="consent-copy consent-error"
-          class="mt-1 accent-wy-gold w-4 h-4 shrink-0"
+          class="mt-1 w-4 h-4 shrink-0"
+          style="accent-color:#b22234"
         />
         <span class="text-sm text-gray-700 font-medium">
-          I agree to receive campaign text messages from Jimmy Skovgard.
+          I agree to receive campaign text messages from Jimmy Skovgard. <span class="text-red-500">*</span>
         </span>
       </label>
       <p id="consent-copy" class="text-xs leading-5 text-gray-500 pl-7">
         By checking this box and submitting your mobile number, you agree to receive campaign text messages from Skovgard for Senate.
         Message frequency may vary. Message and data rates may apply. Reply STOP to opt out. Reply HELP for help.
         Consent is not a condition of donation. View
-        <a href="/privacy" class="text-wy-gold underline">Privacy Policy</a>
+        <a href="/privacy" class="text-wy-ember underline">Privacy Policy</a>
         and
-        <a href="/terms" class="text-wy-gold underline">Terms</a>.
+        <a href="/terms" class="text-wy-ember underline">Terms</a>.
       </p>
       <p id="consent-error" class="hidden pl-7 text-sm font-semibold text-[#991b1b]" aria-live="polite"></p>
     </div>
 
+    <!-- Email consent (shown only when email is filled — toggled by JS) -->
+    <div id="email-consent-wrap" style="display:none">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          id="consent_email"
+          name="consent_email"
+          class="mt-0.5 w-4 h-4 shrink-0"
+          style="accent-color:#b22234"
+        />
+        <span class="text-sm text-gray-700">
+          I also agree to receive campaign emails from Jimmy Skovgard.
+        </span>
+      </label>
+    </div>
+
+    <!-- Honeypot -->
     <div class="hp-field" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;pointer-events:none;">
       <label for="website">Website</label>
       <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
@@ -133,9 +152,9 @@ const {
     <button
       type="submit"
       id="optin-submit"
-      class="w-full bg-wy-gold text-wy-navy font-bold py-4 rounded-lg text-lg hover:bg-amber-400 transition-colors"
+      class="w-full bg-wy-ember text-wy-bone font-bold py-4 rounded-xl text-lg hover:bg-wy-ember-dark transition-colors"
     >
-      Confirm Opt-In
+      Join the Pulse
     </button>
 
     <div id="form-message" class="hidden mt-2 text-center text-sm"></div>
@@ -143,17 +162,17 @@ const {
 
   {showPrivacyNote && (
     <div class="mt-6 bg-white rounded-xl p-5 border border-gray-100 text-sm text-gray-500">
-      <h3 class="font-semibold text-wy-navy mb-2">How we protect your information</h3>
+      <h3 class="font-semibold text-wy-charcoal mb-2">How we protect your information</h3>
       <p>
-        We collect the information needed to send updates and place you in the right district, including your name,
-        street address, city, ZIP, and mobile number. We protect data in transit with HTTPS, store consent records securely,
-        and do not sell or share mobile opt-in data for promotional or marketing purposes.
+        We collect the minimum information needed to send updates, including your name, mobile number,
+        and optionally your email and ZIP. We protect data in transit with HTTPS, store consent records
+        securely, and do not sell or share opt-in data for promotional or marketing purposes.
       </p>
     </div>
   )}
 </div>
 
-<script type="module" src="/js/pulse-optin.js"></script>
+<script type="module" src="/js/pulse-optin.js?v=4"></script>
 
 <style is:global>
   #optin-form .optin-success {

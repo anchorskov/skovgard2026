@@ -45,7 +45,7 @@ if (form) {
     const btn = $('#optin-submit'); if (!btn) return;
     btn.textContent = txt;
     btn.disabled = disabled;
-    btn.style.setProperty('background', success ? '#059669' : '#2563eb', 'important');
+    btn.style.setProperty('background', success ? '#059669' : '#b22234', 'important');
     btn.style.setProperty('color', '#fff', 'important');
     btn.style.setProperty('opacity', (success && disabled) ? '.9' : '', 'important');
   };
@@ -252,6 +252,21 @@ function resetTurnstile() {
     if (consentCheckbox.checked) clearConsentError();
   });
 
+  /* ---------- show email consent panel only when email is filled ---------- */
+  const emailField = $('#email');
+  const emailConsentWrap = document.getElementById('email-consent-wrap');
+  const updateEmailConsent = () => {
+    if (!emailConsentWrap) return;
+    const hasEmail = (emailField?.value || '').trim().length > 0;
+    emailConsentWrap.style.display = hasEmail ? 'block' : 'none';
+    if (!hasEmail) {
+      const cb = document.getElementById('consent_email');
+      if (cb) cb.checked = false;
+    }
+  };
+  emailField?.addEventListener('input', updateEmailConsent);
+  updateEmailConsent();
+
   /* ---------- submit ---------- */
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -287,11 +302,7 @@ function resetTurnstile() {
     // client validation
     if (!first_name) return err('First name is required.');
     if (!last_name)  return err('Last name is required.');
-    if (!address1)   return err('Street address is required.');
-    if (!city)       return err('City is required.');
-    if (!state)      return err('State is required.');
-    if (state !== 'WY') return err('This SMS list is for Wyoming addresses only.');
-    if (!/^\d{5}$/.test(zip)) return err('Enter a 5-digit Wyoming ZIP.');
+    if (zip && !/^\d{5}$/.test(zip)) return err('Enter a valid 5-digit ZIP.');
     if (phone10.length !== 10) return err('Enter a valid 10-digit mobile.');
     if (!consent_sms) {
       showConsentError();
@@ -358,7 +369,8 @@ function resetTurnstile() {
       resetTurnstile();
       setBtn('Opt-In Confirmed', { disabled: true, success: true });
       $('#optin-submit').style.display = 'none';
-      ok('Thanks! You’re on the SMS list. Reply STOP anytime to opt out.');
+      const channels = consent_email ? ‘text and email lists’ : ‘SMS list’;
+      ok(`Thanks! You’re on our ${channels}. Reply STOP anytime to opt out of texts.`);
       modal.show();
     } catch (e3) {
       console.error('opt-in error', e3);

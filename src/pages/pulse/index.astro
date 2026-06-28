@@ -5,26 +5,54 @@ import Nav from '../../components/Nav.astro';
 import Footer from '../../components/Footer.astro';
 ---
 <Base
-  title="Pulse — Campaign Text Updates"
-  description="Opt in to receive campaign text updates from Skovgard for Senate."
+  title="Join the Pulse — Campaign Updates — Skovgard 2026"
+  description="Get Wyoming campaign updates by text and email. Join the Pulse — the Skovgard 2026 messaging list for voters who want to stay informed."
 >
   <Nav />
-  <main class="pt-24 pb-20 px-4">
-    <div class="max-w-4xl mx-auto">
-      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Stay Informed</p>
-      <h1 class="text-5xl font-serif font-bold text-wy-navy mb-4">Campaign Text Updates</h1>
+  <main>
 
-      <div class="max-w-3xl prose prose-lg text-gray-600 mb-8">
-        <p>
-          Opt in to receive occasional campaign text messages from <strong>Skovgard for Senate</strong>.
+    <!-- Hero + opt-in form -->
+    <div class="bg-wy-charcoal pt-28 pb-16 px-4">
+      <div class="max-w-xl mx-auto">
+        <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3 text-center">One Million Messages</p>
+        <h1 class="text-4xl sm:text-5xl font-serif font-extrabold text-wy-bone text-center mb-3 leading-tight">
+          Join the Pulse
+        </h1>
+        <p class="text-wy-bone/70 text-lg text-center mb-8 max-w-md mx-auto">
+          Get Wyoming campaign updates by text and email.
         </p>
-        <p>
-          We want to keep Wyoming informed with timely campaign updates, resources, and important election information.
+        <PulseOptInForm showPrivacyNote={false} />
+        <p class="text-wy-bone/40 text-xs text-center mt-5">
+          We never sell your information. Reply STOP to opt out at any time.
         </p>
       </div>
-
-      <PulseOptInForm />
     </div>
+
+    <!-- What you'll receive -->
+    <div class="bg-wy-bone py-14 px-4">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-2xl font-serif font-bold text-wy-charcoal mb-8 text-center">What you'll receive</h2>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="bg-white rounded-xl p-5 border border-gray-200">
+            <p class="font-bold text-wy-charcoal mb-1">Campaign updates</p>
+            <p class="text-sm text-gray-600">Timely news from the trail — events, milestones, and moments that matter.</p>
+          </div>
+          <div class="bg-white rounded-xl p-5 border border-gray-200">
+            <p class="font-bold text-wy-charcoal mb-1">Conversation starters</p>
+            <p class="text-sm text-gray-600">Questions and ideas for the One Million Messages movement — ready to share with neighbors.</p>
+          </div>
+          <div class="bg-white rounded-xl p-5 border border-gray-200">
+            <p class="font-bold text-wy-charcoal mb-1">Wyoming election info</p>
+            <p class="text-sm text-gray-600">Key dates, ballot information, and voter resources specific to Wyoming.</p>
+          </div>
+          <div class="bg-white rounded-xl p-5 border border-gray-200">
+            <p class="font-bold text-wy-charcoal mb-1">Low volume</p>
+            <p class="text-sm text-gray-600">We send only what matters. Reply STOP anytime to opt out of texts.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
   <Footer />
 </Base>

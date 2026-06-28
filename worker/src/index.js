@@ -2360,19 +2360,8 @@ export default {
           return json(req, env, { error: "First name is required" }, 400);
         if (!lastName)
           return json(req, env, { error: "Last name is required" }, 400);
-        if (!isNonEmpty(address1))
-          return json(req, env, { error: "Street address is required" }, 400);
-        if (!isNonEmpty(city))
-          return json(req, env, { error: "City is required" }, 400);
-        if (state !== "WY")
-          return json(
-            req,
-            env,
-            { error: "This SMS list is for Wyoming addresses only." },
-            400
-          );
-        if (!/^\d{5}$/.test(zip))
-          return json(req, env, { error: "5-digit ZIP required" }, 400);
+        if (zip && !/^\d{5}$/.test(zip))
+          return json(req, env, { error: "Enter a valid 5-digit ZIP." }, 400);
         if (!phoneE164)
           return json(
             req,
