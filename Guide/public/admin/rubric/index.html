@@ -290,62 +290,69 @@ textarea.f-input { resize: vertical; }
 
       <!-- ② AI Research Prompts -->
       <div class="card">
-        <div class="card-head">② AI RESEARCH PROMPTS — copy, paste into the tool, bring back results</div>
+        <div class="card-head">② AI RESEARCH PROMPTS — 3-step flow: Gemini → ChatGPT → Claude</div>
         <div class="card-body">
           <p style="font-size:0.8rem;color:var(--gray-600);margin-bottom:0.8rem;">
-            <strong>Workflow:</strong> Start with Gemini (web search) → bring results back → paste into Claude for score review → use ChatGPT for finance deep-dives. Then enter scores below.
+            <strong>Step 1 — Gemini</strong> (web search: SoS filing, website, voting record, news) &nbsp;→&nbsp;
+            <strong>Step 2 — ChatGPT</strong> (WYCFIS / FEC finance deep-dive) &nbsp;→&nbsp;
+            <strong>Step 3 — Claude</strong> (consolidates both, verifies evidence, suggests rubric scores).
           </p>
           <div class="tab-bar">
-            <button class="tab-btn active" onclick="tab('gemini',this)">Gemini</button>
-            <button class="tab-btn" onclick="tab('claude',this)">Claude</button>
-            <button class="tab-btn" onclick="tab('chatgpt',this)">ChatGPT</button>
+            <button class="tab-btn active" onclick="tab('gemini',this)">① Gemini</button>
+            <button class="tab-btn" onclick="tab('chatgpt',this)">② ChatGPT</button>
+            <button class="tab-btn" onclick="tab('claude',this)">③ Claude</button>
           </div>
 
-          <!-- Gemini tab: copy prompt → run → paste output back in the field below -->
+          <!-- ① Gemini: copy prompt → run → paste output → go to ChatGPT -->
           <div id="tp-gemini" class="tab-panel active">
-            <p class="prompt-meta"><strong>Step 1 — Copy this prompt and run it in Gemini.</strong> Gemini uses live web search to find SoS filings, campaign site, WYCFIS finance, and news.</p>
+            <p class="prompt-meta"><strong>Step 1a — Copy this prompt and run it in Gemini.</strong> Gemini uses live web search to find SoS filings, campaign site, voting record, and news coverage.</p>
             <textarea id="pr-gemini" class="prompt-ta" readonly></textarea>
             <div class="prompt-actions">
               <button class="btn btn-ember btn-sm" onclick="copyPrompt('gemini')">Copy Prompt</button>
               <a href="https://gemini.google.com/" target="_blank" class="btn btn-gray btn-sm">Open Gemini →</a>
             </div>
             <div style="margin-top:0.9rem;padding-top:0.9rem;border-top:1px dashed var(--gray-200)">
-              <label class="f-lbl" style="font-size:0.82rem;color:var(--charcoal);font-weight:600;">Step 2 — Paste Gemini output here (feeds into the Claude prompt automatically):</label>
-              <textarea id="gemini-output" class="prompt-ta" style="height:140px;background:#fff" placeholder="Paste your full Gemini research results here…" oninput="rebuildClaudePrompt()"></textarea>
+              <label class="f-lbl" style="font-size:0.82rem;color:var(--charcoal);font-weight:600;">Step 1b — Paste Gemini output here:</label>
+              <textarea id="gemini-output" class="prompt-ta" style="height:160px;background:#fff" placeholder="Paste your full Gemini research results here…" oninput="rebuildClaudePrompt()"></textarea>
+              <div class="prompt-actions" style="margin-top:0.75rem">
+                <button class="btn btn-ember btn-sm" onclick="goToChatgptPrompt()">Next — Get ChatGPT Prompt →</button>
+              </div>
             </div>
           </div>
 
-          <!-- Claude tab: paste-in fields auto-assemble the full prompt -->
-          <div id="tp-claude" class="tab-panel">
-            <p class="prompt-meta"><strong>Claude</strong> — paste your Gemini evidence and draft scores below. The prompt assembles automatically — then copy and send.</p>
-            <div style="display:flex;gap:0.6rem;margin-bottom:0.6rem">
-              <div style="flex:1">
-                <label class="f-lbl">① Gemini research output:</label>
-                <textarea id="claude-evidence" class="f-input" rows="5" placeholder="Paste Gemini output here (or it auto-fills from the Gemini tab)…" oninput="rebuildClaudePrompt()"></textarea>
-              </div>
-              <div style="flex:1">
-                <label class="f-lbl">② Your draft rubric scores (optional):</label>
-                <textarea id="claude-scores" class="f-input" rows="5" placeholder="Paste your draft scores here for Claude to review…" oninput="rebuildClaudePrompt()"></textarea>
-              </div>
-            </div>
-            <label class="f-lbl" style="font-size:0.82rem;color:var(--charcoal);font-weight:600;">Complete Claude prompt (auto-assembled — copy this):</label>
-            <textarea id="pr-claude" class="prompt-ta" readonly></textarea>
-            <div class="prompt-actions">
-              <button class="btn btn-ember btn-sm" onclick="copyPrompt('claude')">Copy Prompt</button>
-              <a href="https://claude.ai/new" target="_blank" class="btn btn-gray btn-sm">Open Claude →</a>
-            </div>
-          </div>
-
-          <!-- ChatGPT tab: paste finance data, prompt assembles with it -->
+          <!-- ② ChatGPT: paste finance data → copy assembled prompt → paste output → go to Claude -->
           <div id="tp-chatgpt" class="tab-panel">
-            <p class="prompt-meta"><strong>ChatGPT</strong> — paste raw WYCFIS or FEC finance data below. The prompt assembles with your data included.</p>
-            <label class="f-lbl">① Paste WYCFIS / FEC finance data here:</label>
-            <textarea id="chatgpt-finance" class="f-input" style="width:100%;margin-bottom:0.6rem" rows="5" placeholder="Paste campaign finance data from cfinance.wyo.gov or FEC.gov here…" oninput="rebuildChatgptPrompt()"></textarea>
-            <label class="f-lbl" style="font-size:0.82rem;color:var(--charcoal);font-weight:600;">② Complete ChatGPT prompt (auto-assembled — copy this):</label>
+            <p class="prompt-meta"><strong>Step 2a — Paste raw WYCFIS or FEC finance data below,</strong> then copy the assembled prompt and run it in ChatGPT. ChatGPT deep-dives donor patterns, PAC contributions, and spending.</p>
+            <label class="f-lbl">Paste WYCFIS / FEC finance data here:</label>
+            <textarea id="chatgpt-finance" class="f-input" style="width:100%;margin-bottom:0.6rem" rows="5" placeholder="Paste campaign finance data from cfinance.wyo.gov or FEC.gov here… (leave blank if N/A — the prompt still works)" oninput="rebuildChatgptPrompt()"></textarea>
+            <label class="f-lbl" style="font-size:0.82rem;color:var(--charcoal);font-weight:600;">ChatGPT prompt (auto-assembled — copy this):</label>
             <textarea id="pr-chatgpt" class="prompt-ta" readonly></textarea>
             <div class="prompt-actions">
               <button class="btn btn-ember btn-sm" onclick="copyPrompt('chatgpt')">Copy Prompt</button>
               <a href="https://chatgpt.com/" target="_blank" class="btn btn-gray btn-sm">Open ChatGPT →</a>
+            </div>
+            <div style="margin-top:0.9rem;padding-top:0.9rem;border-top:1px dashed var(--gray-200)">
+              <label class="f-lbl" style="font-size:0.82rem;color:var(--charcoal);font-weight:600;">Step 2b — Paste ChatGPT output here:</label>
+              <textarea id="chatgpt-output" class="prompt-ta" style="height:160px;background:#fff" placeholder="Paste the full ChatGPT finance analysis here…" oninput="rebuildClaudePrompt()"></textarea>
+              <div class="prompt-actions" style="margin-top:0.75rem">
+                <button class="btn btn-ember btn-sm" onclick="goToClaudePrompt()">Next — Get Claude Prompt →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ③ Claude: auto-assembled from Gemini + ChatGPT — copy and send -->
+          <div id="tp-claude" class="tab-panel">
+            <p class="prompt-meta"><strong>Step 3 — Claude consolidates Gemini + ChatGPT results,</strong> verifies the evidence against rubric rules, and suggests scores. The prompt is assembled automatically below — copy it and paste into Claude.</p>
+            <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;font-size:0.78rem;color:var(--gray-600)">
+              <span id="claude-gemini-status">Gemini: <strong style="color:var(--ember)">not pasted</strong></span>
+              <span style="opacity:0.4">·</span>
+              <span id="claude-chatgpt-status">ChatGPT: <strong style="color:var(--ember)">not pasted</strong></span>
+            </div>
+            <label class="f-lbl" style="font-size:0.82rem;color:var(--charcoal);font-weight:600;">Complete Claude prompt (auto-assembled from both sources):</label>
+            <textarea id="pr-claude" class="prompt-ta" style="height:320px" readonly></textarea>
+            <div class="prompt-actions">
+              <button class="btn btn-ember btn-sm" id="claude-copy-btn" onclick="copyPrompt('claude')">Copy Prompt</button>
+              <a href="https://claude.ai/new" target="_blank" class="btn btn-gray btn-sm">Open Claude →</a>
             </div>
           </div>
         </div>
@@ -545,33 +552,28 @@ function copyPrompt(name) {
   setTimeout(() => btn.textContent = orig, 1600);
 }
 
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function staleThresholdStr() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 function buildPrompts(c) {
   // Clear paste-in fields when switching candidates
-  document.getElementById('gemini-output').value  = '';
-  document.getElementById('claude-evidence').value = '';
-  document.getElementById('claude-scores').value   = '';
+  document.getElementById('gemini-output').value   = '';
   document.getElementById('chatgpt-finance').value = '';
+  document.getElementById('chatgpt-output').value  = '';
 
   const name   = c.name;
   const office = c.office;
   const loc    = [c.district, c.county].filter(Boolean).join(', ') || 'Wyoming';
   document.getElementById('pr-gemini').value  = promptGemini(name, office, loc);
-  document.getElementById('pr-claude').value  = promptClaude(name, office, loc, '', '');
   document.getElementById('pr-chatgpt').value = promptChatgpt(name, office, loc, c.party, '');
-}
-
-// Sync Gemini output → Claude evidence field, then rebuild
-function rebuildClaudePrompt() {
-  if (!selected) return;
-  // If the user typed in the Gemini tab output field, mirror it to the Claude evidence field
-  const geminiOut = document.getElementById('gemini-output').value;
-  const claudeEv  = document.getElementById('claude-evidence');
-  if (geminiOut && !claudeEv.value) claudeEv.value = geminiOut;
-
-  const evidence = claudeEv.value.trim();
-  const scores   = document.getElementById('claude-scores').value.trim();
-  const loc = [selected.district, selected.county].filter(Boolean).join(', ') || 'Wyoming';
-  document.getElementById('pr-claude').value = promptClaude(selected.name, selected.office, loc, evidence, scores);
+  document.getElementById('pr-claude').value  = promptClaude(name, office, loc, '', '');
+  updateClaudeStatusBadges();
 }
 
 function rebuildChatgptPrompt() {
@@ -581,8 +583,59 @@ function rebuildChatgptPrompt() {
   document.getElementById('pr-chatgpt').value = promptChatgpt(selected.name, selected.office, loc, selected.party, finance);
 }
 
+// Rebuild Claude prompt from Gemini output + ChatGPT output
+function rebuildClaudePrompt() {
+  if (!selected) return;
+  const geminiOut  = document.getElementById('gemini-output').value.trim();
+  const chatgptOut = document.getElementById('chatgpt-output').value.trim();
+  const loc = [selected.district, selected.county].filter(Boolean).join(', ') || 'Wyoming';
+  document.getElementById('pr-claude').value = promptClaude(selected.name, selected.office, loc, geminiOut, chatgptOut);
+  updateClaudeStatusBadges();
+}
+
+function updateClaudeStatusBadges() {
+  const geminiOut  = (document.getElementById('gemini-output')?.value  || '').trim();
+  const chatgptOut = (document.getElementById('chatgpt-output')?.value || '').trim();
+  const gs = document.getElementById('claude-gemini-status');
+  const cs = document.getElementById('claude-chatgpt-status');
+  if (gs) gs.innerHTML = `Gemini: <strong style="color:${geminiOut ? 'var(--sage)' : 'var(--ember)'}">${geminiOut ? '✓ pasted' : 'not pasted'}</strong>`;
+  if (cs) cs.innerHTML = `ChatGPT: <strong style="color:${chatgptOut ? 'var(--sage)' : 'var(--ember)'}">${chatgptOut ? '✓ pasted' : 'not pasted'}</strong>`;
+}
+
+// "Next — Get ChatGPT Prompt →" — switches from Gemini tab to ChatGPT tab
+function goToChatgptPrompt() {
+  rebuildChatgptPrompt();
+  const btn = document.querySelector('.tab-btn[onclick="tab(\'chatgpt\',this)"]');
+  if (btn) tab('chatgpt', btn);
+  document.getElementById('tp-chatgpt')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// "Next — Get Claude Prompt →" — assembles from both sources, switches to Claude tab, copies
+function goToClaudePrompt() {
+  rebuildClaudePrompt();
+  const btn = document.querySelector('.tab-btn[onclick="tab(\'claude\',this)"]');
+  if (btn) tab('claude', btn);
+  const ta = document.getElementById('pr-claude');
+  if (ta?.value) {
+    navigator.clipboard.writeText(ta.value).catch(() => { ta.select(); document.execCommand('copy'); });
+  }
+  ta?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const copyBtn = document.getElementById('claude-copy-btn');
+  if (copyBtn) {
+    const orig = copyBtn.textContent;
+    copyBtn.textContent = 'Copied ✓ — Open Claude →';
+    copyBtn.style.background = 'var(--sage)';
+    setTimeout(() => { copyBtn.textContent = orig; copyBtn.style.background = ''; }, 3000);
+  }
+}
+
 function promptGemini(name, office, loc) {
+  const today = todayStr();
+  const stale  = staleThresholdStr();
   return `Research ${name}, candidate for ${office} (${loc}, Wyoming) — 2026 primary election. Use live web search.
+
+TODAY'S DATE: ${today}
+STALE DATA THRESHOLD: Any source whose content or filing date is before ${stale} must be marked [STALE — data may not reflect current record].
 
 FIND AND SUMMARIZE:
 
@@ -593,10 +646,12 @@ FIND AND SUMMARIZE:
 2. Campaign website
    Locate site. List stated positions on: taxes/spending, education, public lands,
    water rights, energy policy, law enforcement. Direct quotes preferred.
+   For each quote or position note the page URL and the date published or last updated.
 
 3. Campaign finance — WYCFIS (cfinance.wyo.gov) or FEC.gov if federal
    Report: total raised, total spent, top 5 donors with amounts,
    any PAC contributions, self-funded amount.
+   Include the reporting period covered by each figure.
 
 4. Legislative voting record (incumbents only — mark N/A if challenger)
    Search wyoleg.gov for votes on major bills, bill sponsorships, committee work.
@@ -607,24 +662,27 @@ FIND AND SUMMARIZE:
 5. News coverage
    Search "${name} Wyoming ${office} 2026" — summarize top 3 results
    (source, date, headline, key point).
+   If the article is dated before ${stale}, mark it [STALE] in the source log.
 
 ---
 FORMAT YOUR RESPONSE:
 
 CANDIDATE: ${name}
 OFFICE: ${office}, ${loc}
-DATE RESEARCHED: [today]
+DATE RESEARCHED: ${today}
 
 SOURCE LOG:
-1. [source name] | [URL] | [date accessed] | Weight: [1–5]
+1. [source name] | [URL] | [publication or access date — required] | Weight: [1–5] | [STALE if before ${stale}]
    Weight scale: 5=official records, 4=candidate statements, 3=forum/questionnaire,
    2=credible local reporting, 1=social/mailers, 0=rumor (never use)
+   IMPORTANT: Every source must include a date. If no date is visible, note "undated" and
+   treat it as potentially stale.
 
-KEY FINDINGS:
+KEY FINDINGS (each finding must include "as of [date]"):
 Strengths (what the record supports):
--
+- [finding — as of YYYY-MM-DD]
 Concerns (what the record raises):
--
+- [finding — as of YYYY-MM-DD]
 Open questions (for follow-up):
 -
 
@@ -632,6 +690,8 @@ SUGGESTED RUBRIC SCORES (0–5 or ? if insufficient evidence):
 Rules: Mark ? if you cannot score from evidence. Do NOT infer or guess.
 Do NOT penalize challengers for no voting record. A disclosed financial
 interest is a fact, not misconduct.
+For each score, note the most recent source date supporting it; if that source
+is before ${stale} append [STALE].
 
 Note: Evaluate Criterion 1 strictly through the framework of the constitutional oath
 and co-equal branches of government.
@@ -642,69 +702,111 @@ and co-equal branches of government.
    or whether they abandoned their oath by bypassing the established path of a constitutional
    amendment in favor of passing statutory restrictions that subvert judicial precedent.
 
-2. Character, honesty, and courage: [?] — [reason]
-3. Competence and readiness: [?] — [reason]
-4. Accountability and transparency: [?] — [reason]
-5. Fiscal responsibility: [?] — [reason]
-6. Local impact and Wyoming fit: [?] — [reason]
-7. Public service over self-interest: [?] — [reason]
-8. Issue alignment (fiscal conservatism, local control, public lands, water): [?] — [reason]
-9. Coalition-building and temperament: [?] — [reason]
-10. Evidence quality (overall strength of this evidence base): [?] — [reason]
+2. Character, honesty, and courage: [?] — [reason] | Source date: [YYYY-MM-DD]
+3. Competence and readiness: [?] — [reason] | Source date: [YYYY-MM-DD]
+4. Accountability and transparency: [?] — [reason] | Source date: [YYYY-MM-DD]
+5. Fiscal responsibility: [?] — [reason] | Source date: [YYYY-MM-DD]
+6. Local impact and Wyoming fit: [?] — [reason] | Source date: [YYYY-MM-DD]
+7. Public service over self-interest: [?] — [reason] | Source date: [YYYY-MM-DD]
+8. Issue alignment (fiscal conservatism, local control, public lands, water): [?] — [reason] | Source date: [YYYY-MM-DD]
+9. Coalition-building and temperament: [?] — [reason] | Source date: [YYYY-MM-DD]
+10. Evidence quality (overall strength of this evidence base): [?] — [reason] | Source date: [YYYY-MM-DD]
 
 OVERALL EVIDENCE CONFIDENCE: [High / Medium / Low]
-(High = multiple weight-4/5 sources; Medium = mix; Low = mostly weight-1/2)`;
+(High = multiple weight-4/5 sources dated after ${stale}; Medium = mix; Low = mostly weight-1/2 or majority stale)`;
 }
 
-function promptClaude(name, office, loc, evidence = '', draftScores = '') {
-  const evidenceBlock = evidence || '[No evidence pasted yet — add Gemini output in the field above]';
-  const scoresBlock   = draftScores || '[No draft scores yet — optional]';
-  return `I am building an independent Wyoming voter guide (guide.skovgard2026.org). I have assembled evidence on ${name}, 2026 candidate for ${office} (${loc}). Please review my draft rubric scores.
+function promptClaude(name, office, loc, geminiOutput = '', chatgptOutput = '') {
+  const today = todayStr();
+  const stale  = staleThresholdStr();
+  const geminiBlock  = geminiOutput  || '[No Gemini research pasted — complete Step 1 first]';
+  const financeBlock = chatgptOutput || '[No ChatGPT finance analysis pasted — complete Step 2, or mark N/A if not applicable]';
+  return `I am building an independent Wyoming voter guide (guide.skovgard2026.org). I have gathered research on ${name}, 2026 candidate for ${office} (${loc}) using two AI research tools.
+
+GOAL: Produce a suggested rubric score (0–5) for ALL 10 categories below. You must always infer a score from the available evidence — do not leave a category blank. Use the confidence level to communicate how certain you are, not whether to score. The only exception is a category where truly zero relevant information exists, in which case score it 3 (neutral) with confidence: none and explain why no inference was possible.
+
+TODAY'S DATE: ${today}
+STALE DATA THRESHOLD: ${stale}
+Any source or claim whose underlying data or publication date is before ${stale} should be flagged [STALE] in your output. Stale evidence can still support a score — reduce confidence to low rather than skipping the score.
 
 RUBRIC RULES:
-- 0–5 scale. Null/? = insufficient evidence. Null ≠ zero.
-- 0 means a serious documented concern, not absence of data.
-- Do NOT penalize challengers for lacking a voting record.
+- 0–5 scale per category. You must suggest a score for every category.
+- 0 = serious documented concern. 3 = neutral / no signal. 5 = exceptional positive record.
+- Do NOT penalize challengers for lacking a voting record — infer from stated positions and public conduct.
 - A disclosed financial interest is a fact. Note it; don't penalize it alone.
-- Evidence scale: 5=official records, 4=candidate statements,
+- Evidence weight: 5=official records, 4=candidate's own statements,
   3=forum/questionnaire, 2=credible local reporting, 1=social/mailers
+- Data currency: if the only supporting source is before ${stale} and no fresher corroboration exists, keep the score but set confidence to low.
 
---- EVIDENCE ---
-${evidenceBlock}
+CONFIDENCE LEVELS (per category):
+  none  — no relevant evidence found; score is a neutral placeholder (3)
+  low   — indirect, thin, or stale-only evidence; score is an inference
+  medium — reasonable corroboration from weight-2/3 sources or inferred from related evidence
+  high  — weight-4/5 direct sources, fresh (after ${stale})
 
---- DRAFT RUBRIC SCORES ---
-${scoresBlock}
+--- STEP 1: GEMINI WEB RESEARCH ---
+(SoS filing, campaign website, voting record, news coverage, financial disclosures)
 
-PLEASE:
+${geminiBlock}
 
-1. FLAG inconsistencies — any score that seems too high or low vs. the evidence.
+--- STEP 2: CHATGPT FINANCE ANALYSIS ---
+(WYCFIS / FEC donor patterns, PAC contributions, spending breakdown)
 
-2. SUGGEST follow-up questions for open questions or low-confidence categories.
+${financeBlock}
 
-3. DRAFT a 2–3 sentence neutral public summary for the voter guide profile page.
-   Lead with office and party. State key positions. End with evidence confidence.
+---
 
-4. RATE overall evidence confidence:
-   High = multiple independent weight-4/5 sources
-   Medium = mix of weights, partial picture
-   Low = mostly weight-1/2, thin record
+PLEASE PROVIDE:
 
-5. FLAG anything a voter should know that may not appear in the rubric.`;
+1. EVIDENCE CONFLICTS, GAPS, AND STALENESS
+   - Flag any inconsistency between the two sources.
+   - Flag any claim that needs official verification before publishing.
+   - Flag any source or figure whose data predates ${stale} as [STALE — verify before publishing].
+   - Note the most recent date for which reliable data exists for this candidate.
+
+2. SUGGESTED RUBRIC SCORES — all 10 required:
+   Format each as: [score] | Confidence: [none/low/medium/high] — [one-line reason] | Data as of: [YYYY-MM-DD or stale]
+   1. Constitutional oath and rule of law (weight 15)
+   2. Character, honesty, and courage (weight 15)
+   3. Competence and readiness (weight 10)
+   4. Accountability and transparency (weight 10)
+   5. Fiscal responsibility (weight 10)
+   6. Local impact and Wyoming fit (weight 10)
+   7. Public service over self-interest (weight 10)
+   8. Issue alignment vs. Skovgard2026 (weight 10)
+   9. Coalition-building and temperament (weight 5)
+   10. Evidence quality — overall strength of this evidence base (weight 5)
+
+3. OVERALL PICTURE
+   - Weighted score estimate (if you can compute it from the 10 scores above)
+   - Summary confidence: none / low / medium / high across the full rubric
+   - Count of categories at each confidence level
+
+4. FOLLOW-UP QUESTIONS — top 2–3 open questions for the candidate questionnaire or further research. Flag any that are urgent due to stale or missing data.
+
+5. VOTER GUIDE SUMMARY — 2–3 neutral sentences for the public profile. Lead with office and party. State key positions. End with overall confidence level and the as-of date of the most recent reliable source.`;
 }
 
 function promptChatgpt(name, office, loc, party, financeData = '') {
+  const today = todayStr();
+  const stale  = staleThresholdStr();
   const financeBlock = financeData || '[No finance data pasted yet — add WYCFIS / FEC data in the field above]';
   return `Analyze Wyoming campaign finance data for ${name}, candidate for ${office} in ${loc}. Party: ${party || 'unknown'}.
+
+TODAY'S DATE: ${today}
+STALE DATA THRESHOLD: Any finance report whose period-end date is before ${stale} must be marked [STALE REPORT — may not reflect current fundraising activity].
+
+For every figure you cite, include the report period it covers (e.g., "Q1 2026: Jan 1 – Mar 31") and the filing date. If a report is from before ${stale}, flag it clearly.
 
 PROVIDE:
 
 1. DONOR PATTERN ANALYSIS
-   - In-state vs. out-of-state ratio
-   - PAC, corporate, or lobbyist contributions (names + amounts)
+   - In-state vs. out-of-state ratio (note report period)
+   - PAC, corporate, or lobbyist contributions (names + amounts + report period)
    - Self-funded percentage
    - Unusually large individual donors
 
-2. SPENDING PATTERN
+2. SPENDING PATTERN (note report period for each figure)
    - Where is money going? (advertising, consulting, staff, travel, other)
    - Any unusual or noteworthy expenditures
 
@@ -712,16 +814,17 @@ PROVIDE:
    - Conflict-of-interest indicators
    - Transparency concerns
    - Unusual support sources
+   - Any data gaps due to missing or stale reports
 
-4. ONE-SENTENCE VOTER GUIDE SUMMARY (neutral)
-   Example: "Raised $42k, 85% from in-state donors, no PAC money, self-funded 20%."
+4. ONE-SENTENCE VOTER GUIDE SUMMARY (neutral — include as-of date)
+   Example: "As of ${today}: Raised $42k through Q1 2026, 85% from in-state donors, no PAC money, self-funded 20%."
 
 5. RUBRIC IMPACT (finance data only)
    Does this affect:
    - Fiscal responsibility score?
    - Public service over self-interest score?
    - Accountability and transparency score?
-   Briefly explain each.
+   For each, note the most recent report period the conclusion is based on.
 
 --- FINANCE DATA ---
 ${financeBlock}`;

@@ -63,6 +63,37 @@ function corsHeaders(env, req) {
     : base;
 }
 
+function parseSubstackRSS(xml) {
+  const items = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/g;
+  let m;
+  while ((m = itemRe.exec(xml)) !== null) {
+    const raw = m[1];
+    const get = (tag) => {
+      const r = new RegExp(`<${tag}(?:\\s[^>]*)?>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i");
+      const x = raw.match(r);
+      return x ? x[1].trim() : "";
+    };
+    const linkM = raw.match(/<link>([^<]+)<\/link>/i) || raw.match(/<guid[^>]*>([^<]+)<\/guid>/i);
+    const encM  = raw.match(/<enclosure[^>]+url="([^"]+)"/i);
+    const durM  = raw.match(/<itunes:duration>([^<]+)<\/itunes:duration>/i);
+    const desc  = get("description")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/\s+/g, " ").trim();
+    items.push({
+      title: get("title").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">"),
+      link: linkM ? linkM[1].trim() : "",
+      date: get("pubDate"),
+      description: desc.length > 220 ? desc.slice(0, 220) + "…" : desc,
+      audio: encM ? encM[1] : null,
+      duration: durM ? durM[1].trim() : null,
+    });
+  }
+  return items.filter(i => i.title && i.link).slice(0, 20);
+}
+
 function json(req, env, data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
     status,
@@ -2290,6 +2321,30 @@ export default {
           return json(req, env, { mediaBaseUrl: base, episodes });
         } catch (err) {
           return json(req, env, { error: "Failed to load podcasts" }, 500);
+        }
+      }
+
+      // Substack RSS proxy (public, cached 1 hour)
+      if (req.method === "GET" && path === "/api/podcast-feed") {
+        try {
+          const upstream = await fetch("https://jimskovgard.substack.com/feed", {
+            headers: {
+              "Accept": "application/rss+xml, application/xml, text/xml",
+              "User-Agent": "Mozilla/5.0 (compatible; skovgard2026-bot/1.0)",
+            },
+          });
+          if (!upstream.ok) return json(req, env, { error: "Feed unavailable", status: upstream.status }, 502);
+          const xml = await upstream.text();
+          const episodes = parseSubstackRSS(xml);
+          return new Response(JSON.stringify({ episodes }), {
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+              "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400",
+              "access-control-allow-origin": "*",
+            },
+          });
+        } catch (e) {
+          return json(req, env, { error: String(e) }, 500);
         }
       }
 

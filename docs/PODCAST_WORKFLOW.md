@@ -1,302 +1,220 @@
-# Skovgard 2026 Podcast Workflow
+# Podcast Workflow — skovgard2026
 
-## Overview
-This document describes the complete process for uploading podcast episodes to skovgard2026.org and making them available on the podcast page.
+> **Last updated:** July 2026  
+> **Architecture:** Astro 6 static site + Cloudflare Worker + D1 + R2  
+> **Note:** The previous version of this file described a Hugo + Hugo shortcode workflow. Hugo is no longer used. Do not follow any Hugo instructions.
 
-## Architecture
+---
 
-### Components
-- **Audio Storage**: Cloudflare R2 bucket named `podcasts`
-- **Media CDN**: `https://media.this-is-us.org` (shared across projects)
-- **Database**: D1 SQLite database `ballot_sources` with `podcast_uploads` table
-- **Frontend**: Hugo static site generator with audio shortcode
+## Overview: Two Content Streams
 
-### URL Structure
-Podcasts are accessed via:
+The podcast page (`/podcast`) and the landing page "On the Record" section pull from two independent sources. Neither requires code changes when new content is added.
+
+| Stream | Source | How surfaced | Maintenance |
+|---|---|---|---|
+| **Daily Substack episodes** | `https://jimskovgard.substack.com/feed` | Worker proxies RSS → `/api/podcast-feed` | Zero — post to Substack, done |
+| **Hosted episodes** (audio/video) | Cloudflare R2 + D1 `podcast_uploads` | Worker queries D1 → `/api/podcasts` | One D1 row per file |
+
+---
+
+## Stream 1: Substack Daily Episodes
+
+Jimmy posts every morning at `https://jimskovgard.substack.com/`. No action is needed in this repo. The Worker endpoint `/api/podcast-feed` proxies the RSS feed and returns up to 20 episodes as JSON. The podcast page and landing page fetch this endpoint on page load.
+
+**Cache:** 1-hour CDN cache, 24-hour stale-while-revalidate. Changes appear within the hour.
+
+**If the feed appears broken:** check `worker/src/index.js` → the `parseSubstackRSS()` function and the `/api/podcast-feed` route. Confirm the upstream fetch includes a `User-Agent` header — without it Substack may reject the request. Do **not** add `cf: { cacheEverything: true }` to the upstream fetch; it causes Cloudflare to cache an empty response.
+
+---
+
+## Stream 2: Hosted Episodes (R2 + D1)
+
+Use this stream for long-form interviews, multi-part series, and campaign videos stored in R2.
+
+### Architecture
+
+- **R2 bucket:** `podcasts`
+- **CDN host:** `https://media.skovgard2026.org`
+- **Public URL:** `https://media.skovgard2026.org/{r2_key}`
+- **D1 table:** `podcast_uploads` in `ballot_sources` database (binding `DB`)
+- **API endpoint:** `/api/podcasts` — returns all rows ordered by `episode_date DESC`
+
+### Table schema
+
+```sql
+CREATE TABLE podcast_uploads (
+  id           INTEGER PRIMARY KEY,
+  guest_slug   TEXT NOT NULL,
+  episode_date TEXT NOT NULL,       -- YYYY-MM-DD
+  part_number  INTEGER,
+  r2_key       TEXT NOT NULL UNIQUE, -- path within R2 bucket, no leading slash
+  sha256       TEXT NOT NULL UNIQUE,
+  bytes        INTEGER,
+  uploaded_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  summary      TEXT                 -- JSON: {"title":"...","slug":"...","duration":"..."}
+);
 ```
-https://media.this-is-us.org/{guest_slug}/{episode_date}/{filename}.mp3
+
+### `summary` JSON format
+
+The `summary` column is a JSON string used by the podcast page and landing page to display metadata:
+
+```json
+{"title": "Episode Title", "slug": "share-page-slug", "duration": "38:04"}
 ```
 
-Example:
-```
-https://media.this-is-us.org/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3
-https://media.this-is-us.org/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp3
-```
+- `title` — display title shown on the site
+- `slug` — share page slug if a `/share/<slug>` page exists (set to `null` if none)
+- `duration` — formatted `MM:SS` (set to `null` if unknown)
 
-## Step 1: Prepare MP3 Files
+### URL construction
 
-### Location Options
-- Primary: `/home/anchor/projects/Media_Conversion/sound_files/`
-- This-is-us: `/home/anchor/projects/this-is-us/worker/jr-riggins/2025-12-14/`
+The Worker builds the public URL as `${MEDIA_BASE_URL}/${r2_key}`. The `r2_key` in the table should **not** include a leading slash. Examples:
 
-### Naming Convention
-Use consistent naming:
-- Format: `{GUEST_NAME}_-{PART_NUMBER}.mp3` (e.g., `JR_RIGGINS_-01.mp3`)
-- Or alternative: `part-01.mp3`, `part-02.mp3`, etc.
+| r2_key | Public URL |
+|---|---|
+| `jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3` | `https://media.skovgard2026.org/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3` |
+| `videos/wyoming-not-for-sale.mp4` | `https://media.skovgard2026.org/videos/wyoming-not-for-sale.mp4` |
 
-### Extract Duration
-Use `ffprobe` to get audio duration:
+### `guest_slug` conventions
+
+| Value | Used for |
+|---|---|
+| `jack-daniels`, `jr-riggins` | Named guest interviews |
+| `campaign` | Campaign videos (shorts, town halls, issue messages) |
+
+Multi-part episodes use the same `guest_slug` and `episode_date` with `part_number` 1, 2, 3 … The podcast page groups them automatically by `guest_slug|episode_date`.
+
+---
+
+## Adding a New Hosted Episode (Audio or Video)
+
+### Step 1: Upload to R2
+
+From the repo root:
+
 ```bash
-ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1:precision=6 "Jack_Daniels_Jimmy_Skovgard_R2.mp3"
-```
-
-Convert seconds to MM:SS format for Hugo shortcode.
-
-## Step 2: Upload to R2
-
-### From Worker Directory
-```bash
-cd /home/anchor/projects/skovgard2026/worker
-```
-
-### Upload Command
-```bash
-wrangler r2 object put "podcasts/{guest_slug}/{episode_date}/{filename}.mp3" \
+npx wrangler r2 object put "podcasts/{r2_key}" \
   --file /path/to/local/file.mp3 \
   --remote
 ```
 
-### Example
-```bash
-wrangler r2 object put "podcasts/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3" \
-  --file /home/anchor/projects/skovgard2026/data/Jack_Daniels_Jimmy_Skovgard_R2.mp3 \
-  --remote
+For audio interviews, the conventional key pattern is:
+```
+{guest-slug}/{YYYY-MM-DD}/{FILENAME}.mp3
 ```
 
-### Verify Upload
-```bash
-curl -I "https://media.this-is-us.org/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3"
+For campaign videos:
+```
+videos/{descriptive-name}.mp4
 ```
 
-Expected response: `HTTP/2 200` with `Content-Type: audio/mpeg`
-
-## Step 3: Create Database Entry
-
-### Query Existing Entries
+Verify the upload:
 ```bash
-cd /home/anchor/projects/skovgard2026/worker
-wrangler d1 execute ballot_sources --remote \
-  --command "SELECT guest_slug, episode_date, part_number, r2_key, bytes FROM podcast_uploads;"
+curl -I "https://media.skovgard2026.org/{r2_key}"
+# Expect: HTTP/2 200
 ```
 
-### Insert New Entry
-```bash
-wrangler d1 execute ballot_sources --remote \
-  --command "INSERT INTO podcast_uploads (guest_slug, episode_date, part_number, r2_key, sha256, bytes, summary) 
-    VALUES ('jack-daniels', '2026-01-25', 1, 'podcasts/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3', 
-    '1f4beed697460a6e0a3aa3dcff44763cdf6af6e9eeb3e3d613b06be521fdf2cb', 35369393, 
-    'Jack Daniels and Jimmy discuss Wyoming Politics');"
-```
+### Step 2: Get file metadata
 
-### Get SHA256 Hash
 ```bash
+# File size in bytes
+wc -c < /path/to/file.mp3
+
+# Real SHA256 (use this when the file is available locally)
 sha256sum /path/to/file.mp3
+
+# Duration (audio or video)
+ffprobe -v error -show_entries format=duration -of csv=p=0 /path/to/file.mp3
+# Convert seconds → MM:SS manually or: python3 -c "s=2284; print(f'{s//60}:{s%60:02d}')"
 ```
 
-## Step 4: Update podcast.md
-
-### Location
-`/home/anchor/projects/skovgard2026/content/podcast.md`
-
-### Format
-Use Hugo audio shortcode with **absolute HTTPS URLs**:
-
-```markdown
-## {Guest Name}, {Date}
-
-### {Part/Title}
-{{< audio title="{Full Title}" duration="{MM:SS}" src="https://media.this-is-us.org/{guest_slug}/{date}/{filename}.mp3" >}}
-```
-
-### Example
-```markdown
-## Jack Daniels, January 25, 2026
-
-{{< audio title="Jack Daniels and Jimmy discuss Wyoming Politics and Concerns as we see it 1-25-26." duration="38:04" src="https://media.this-is-us.org/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3" >}}
-
-## JR Riggins, December 14, 2025
-
-### Stories of Redemption, Part 1
-{{< audio title="JR Riggins Part 1" duration="18:42" src="https://media.this-is-us.org/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp3" >}}
-```
-
-### Important Notes
-- **Always use absolute HTTPS URLs** starting with `https://media.this-is-us.org/`
-- Do NOT use relative paths - Hugo shortcode parameter parsing has issues with relative paths
-- Include full path without `podcasts/` prefix (already part of bucket structure)
-- Audio shortcode location: `layouts/shortcodes/audio.html`
-
-## Step 5: Build and Commit
-
-### Build Hugo
+If the file is not available locally (already in R2 only), use a placeholder `sha256`:
 ```bash
-cd /home/anchor/projects/skovgard2026
-hugo --destination public
+python3 -c "import hashlib; print(hashlib.sha256(b'legacy:{r2_key}').hexdigest())"
 ```
 
-### Verify Audio Output
+### Step 3: Register in D1
+
 ```bash
-grep "audio controls" public/podcast/index.html
+npx wrangler d1 execute ballot_sources --env production --remote --command "
+INSERT OR IGNORE INTO podcast_uploads (guest_slug, episode_date, part_number, r2_key, sha256, bytes, summary)
+VALUES (
+  'guest-slug',
+  '2026-01-25',
+  1,
+  'guest-slug/2026-01-25/filename.mp3',
+  'sha256hexhere',
+  35369393,
+  '{\"title\": \"Episode Title\", \"slug\": \"share-page-slug\", \"duration\": \"38:04\"}'
+);"
 ```
 
-Check that `src="https://media.this-is-us.org/..."` is populated (not empty).
+Use `INSERT OR IGNORE` — the unique constraints on `r2_key` and `sha256` prevent duplicates silently.
 
-### Git Workflow
+### Step 4: Verify
+
 ```bash
-# Stage changes
-git add content/podcast.md
-
-# Commit with descriptive message
-git commit -m "Add {Guest Name} podcast episode
-
-- Title: {Episode Title}
-- Date: {Episode Date}
-- Parts: {Number of parts}
-- Duration: {Total duration}
-- R2 Key: podcasts/{guest_slug}/{episode_date}/{filename}.mp3
-- File Size: {Size} MB
-- Verified: HTTP 200 from media.this-is-us.org"
-
-# Push to GitHub
-git push origin main
+npx wrangler d1 execute ballot_sources --env production --remote --command \
+  "SELECT guest_slug, episode_date, r2_key, summary FROM podcast_uploads ORDER BY episode_date DESC LIMIT 10;"
 ```
 
-## Step 6: Verify on Live Site
-
-### Test from Browser
-Visit: `https://skovgard2026.org/podcast/`
-
-Check:
-- Audio player loads
-- Play button works
-- Audio streams without errors
-- Download link works
-
-### Test with curl
+Then hit the live API to confirm the new row appears:
 ```bash
-curl -I "https://media.this-is-us.org/{guest_slug}/{date}/{filename}.mp3"
+curl -s "https://www.skovgard2026.org/api/podcasts" | python3 -m json.tool | grep -A5 "guest-slug"
 ```
 
-Expected: `HTTP/2 200`
+### Step 5: No deploy needed
+
+The Worker reads D1 at request time. New rows appear on the site immediately — no code change, no deploy.
+
+---
+
+## Multi-Part Episodes
+
+Register each part as a separate row with the same `guest_slug` and `episode_date` but different `part_number`:
+
+```bash
+# Part 1
+INSERT OR IGNORE INTO podcast_uploads (...) VALUES ('jr-riggins', '2025-12-14', 1, 'jr-riggins/2025-12-14/JR_RIGGINS_-01.mp3', ...);
+# Part 2
+INSERT OR IGNORE INTO podcast_uploads (...) VALUES ('jr-riggins', '2025-12-14', 2, 'jr-riggins/2025-12-14/JR_RIGGINS_-02.mp3', ...);
+```
+
+The podcast page groups all parts with the same `guest_slug|episode_date` key into a single episode block.
+
+---
+
+## Campaign Videos
+
+Campaign videos use `guest_slug = 'campaign'`. For the specific D1 registration and landing page behavior, see `docs/media/AddCampaignVideo.md`.
+
+---
+
+## Podcast Page Architecture
+
+`src/pages/podcast/index.astro` — three sections, all populated client-side:
+
+1. **Latest from Substack** — fetches `/api/podcast-feed`, renders top 20 episodes with audio player if enclosure present
+2. **Hosted Episodes** — fetches `/api/podcasts`, filters out `guest_slug = 'campaign'` rows, groups multi-part episodes
+3. **More Conversations** — static array in frontmatter for YouTube/Facebook one-offs
+
+External links (YouTube, Facebook) are a static array in the frontmatter — update them manually in `src/pages/podcast/index.astro` when needed.
+
+---
 
 ## Troubleshooting
 
-### Audio Player Shows "0:00 / 0:00"
-**Problem**: Audio source not loading
-- Verify URL is absolute HTTPS URL (starts with `https://`)
-- Check `curl -I` returns HTTP 200
-- Verify R2 file exists in correct path
+**Episode not showing on site:**
+1. Check `npx wrangler d1 execute ballot_sources --env production --remote --command "SELECT * FROM podcast_uploads ORDER BY episode_date DESC LIMIT 5;"`
+2. Check `curl -s https://www.skovgard2026.org/api/podcasts | python3 -m json.tool`
+3. Check `curl -I https://media.skovgard2026.org/{r2_key}` for HTTP 200
 
-### File Not Found (HTTP 404)
-- Check R2 key matches exactly (case-sensitive)
-- Verify path format: `podcasts/{guest_slug}/{episode_date}/{filename}.mp3`
-- Confirm upload completed without errors
+**Audio/video URL broken (404):**
+- Confirm the `r2_key` in D1 has no leading slash
+- Confirm `MEDIA_BASE_URL` in `worker/wrangler.toml` `[env.production.vars]` equals `https://media.skovgard2026.org`
+- Confirm the R2 object exists: `npx wrangler r2 object get "podcasts/{r2_key}" --remote --pipe > /dev/null && echo OK`
 
-### Duration Not Showing
-- Extract duration with ffprobe
-- Format must be MM:SS (e.g., "38:04", not "38:04.382")
-- Manually enter - Hugo shortcode uses this value
-
-## Database Schema
-
-### Table: podcast_uploads
-```sql
-CREATE TABLE podcast_uploads (
-  id INTEGER PRIMARY KEY,
-  guest_slug TEXT NOT NULL,
-  episode_date TEXT NOT NULL,
-  part_number INTEGER,
-  r2_key TEXT NOT NULL UNIQUE,
-  sha256 TEXT NOT NULL UNIQUE,
-  bytes INTEGER,
-  uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  summary TEXT
-);
-```
-
-## Hugo Audio Shortcode
-
-### Location
-`layouts/shortcodes/audio.html`
-
-### Parameters
-- `title`: Episode title with description
-- `duration`: Episode duration in MM:SS format
-- `src`: **Absolute HTTPS URL** to MP3 file
-
-### Output
-Generates HTML5 `<audio>` element with controls and download link.
-
-## Checklist for New Episodes
-
-- [ ] MP3 file(s) prepared with proper naming
-- [ ] Duration extracted and formatted (MM:SS)
-- [ ] SHA256 hash computed
-- [ ] File uploaded to R2 via wrangler
-- [ ] R2 URL verified with curl (HTTP 200)
-- [ ] Database entry created in podcast_uploads
-- [ ] podcast.md updated with shortcode (absolute HTTPS URL)
-- [ ] Hugo built locally
-- [ ] HTML output verified (audio src populated)
-- [ ] Changes committed with descriptive message
-- [ ] Changes pushed to GitHub
-- [ ] Live site tested (player loads, audio plays)
-
-## Example: Complete Workflow
-
-```bash
-# 1. Extract duration
-ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1:precision=6 \
-  "Jack_Daniels_Jimmy_Skovgard_R2.mp3"
-# Output: 2284.382041 seconds = 38:04
-
-# 2. Get SHA256
-sha256sum Jack_Daniels_Jimmy_Skovgard_R2.mp3
-# Output: 1f4beed697460a6e0a3aa3dcff44763cdf6af6e9eeb3e3d613b06be521fdf2cb
-
-# 3. Upload to R2
-cd /home/anchor/projects/skovgard2026/worker
-wrangler r2 object put "podcasts/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3" \
-  --file /home/anchor/projects/skovgard2026/data/Jack_Daniels_Jimmy_Skovgard_R2.mp3 \
-  --remote
-
-# 4. Verify
-curl -I "https://media.this-is-us.org/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3"
-
-# 5. Add database entry
-wrangler d1 execute ballot_sources --remote \
-  --command "INSERT INTO podcast_uploads (guest_slug, episode_date, part_number, r2_key, sha256, bytes, summary) 
-    VALUES ('jack-daniels', '2026-01-25', 1, 'podcasts/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3', 
-    '1f4beed697460a6e0a3aa3dcff44763cdf6af6e9eeb3e3d613b06be521fdf2cb', 35369393, 'Jack Daniels discussion');"
-
-# 6. Edit podcast.md
-cd /home/anchor/projects/skovgard2026
-# Add to content/podcast.md:
-# {{< audio title="Jack Daniels and Jimmy..." duration="38:04" src="https://media.this-is-us.org/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3" >}}
-
-# 7. Build
-hugo --destination public
-
-# 8. Verify
-grep "audio controls" public/podcast/index.html
-
-# 9. Commit and push
-git add content/podcast.md
-git commit -m "Add Jack Daniels podcast episode - January 25, 2026"
-git push origin main
-```
-
-## Related Documentation
-- Hugo Audio Shortcode: `layouts/shortcodes/audio.html`
-- Podcast Page: `content/podcast.md`
-- Database Migrations: `worker/migrations/006_create_podcast_uploads.sql`
-- Wrangler Config: `worker/wrangler.toml`
-
-## Last Updated
-January 27, 2026
-
-## Notes
-- All podcasts are stored in the shared `https://media.this-is-us.org` CDN
-- D1 database is shared across `this-is-us.org` and `skovgard2026.org` projects
-- Use absolute HTTPS URLs in Hugo shortcodes to avoid cross-domain loading issues
-- File sizes are typically 8-35 MB per episode/part
+**Feed shows stale content:**
+- The `/api/podcast-feed` response is CDN-cached for 1 hour. Wait or purge Cloudflare cache for that URL.
+- Do NOT add `cf: { cacheEverything: true }` to the upstream Substack fetch — it causes empty cached responses.

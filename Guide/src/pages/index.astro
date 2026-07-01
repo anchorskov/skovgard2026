@@ -3,18 +3,53 @@
 import Base from '../layouts/Base.astro';
 ---
 
-<Base title="Wyoming 2026 Candidate Guide" currentPath="/">
-  <div class="py-12 text-center">
-    <h1 class="text-3xl font-bold text-wy-charcoal mb-4">Wyoming 2026 Candidate Guide</h1>
-    <p class="text-lg text-wy-dust max-w-xl mx-auto">
-      Independent candidate evaluations and endorsements for the Wyoming 2026 primary.
-      Profiles and endorsements coming soon.
-    </p>
-    <a
-      href="https://candidates.skovgard2026.org"
-      class="inline-block mt-8 px-6 py-3 bg-wy-ember text-white rounded font-medium hover:bg-wy-ember-dark transition-colors"
-    >
-      Browse all candidates →
+<Base title="Guide Admin — Wyoming 2026" currentPath="/">
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-wy-charcoal mb-1">Guide Admin</h1>
+    <p class="text-sm text-wy-dust">Wyoming 2026 candidate research, rubric scoring, and evidence review.</p>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+
+    <a href="/admin/rubric/index.html"
+       class="block rounded-lg border border-wy-dust/40 bg-white p-6 hover:border-wy-ember hover:shadow-sm transition-all group">
+      <div class="text-xs font-bold uppercase tracking-widest text-wy-sandstone mb-2">Rubric Scoring</div>
+      <h2 class="text-lg font-semibold text-wy-charcoal group-hover:text-wy-ember transition-colors mb-1">
+        Score Candidates
+      </h2>
+      <p class="text-sm text-wy-dust leading-relaxed">
+        Enter category scores, evidence notes, and source citations for each candidate.
+        Save to update endorsement status and final score.
+      </p>
     </a>
+
+    <a href="/admin/evidence/index.html"
+       class="block rounded-lg border border-wy-dust/40 bg-white p-6 hover:border-wy-ember hover:shadow-sm transition-all group">
+      <div class="text-xs font-bold uppercase tracking-widest text-wy-sandstone mb-2">Reference Evidence</div>
+      <h2 class="text-lg font-semibold text-wy-charcoal group-hover:text-wy-ember transition-colors mb-1">
+        Review Evidence Links
+      </h2>
+      <p class="text-sm text-wy-dust leading-relaxed">
+        Review Freedom Caucus membership, CORE-2026 bill alignment, and accountability data.
+        Flip ballot_visible to ON after cross-checking official records.
+      </p>
+    </a>
+
+  </div>
+
+  <div class="mt-8 pt-6 border-t border-wy-dust/40">
+    <p class="text-xs text-wy-dust mb-3 font-semibold uppercase tracking-widest">External links</p>
+    <div class="flex flex-wrap gap-4 text-sm">
+      <a href="https://candidates.skovgard2026.org"
+         target="_blank" rel="noopener"
+         class="text-wy-sandstone hover:text-wy-ember transition-colors">
+        Public voter guide ↗
+      </a>
+      <a href="https://grassrootsmvt.org/ballot/"
+         target="_blank" rel="noopener"
+         class="text-wy-sandstone hover:text-wy-ember transition-colors">
+        Ballot survey ↗
+      </a>
+    </div>
   </div>
 </Base>

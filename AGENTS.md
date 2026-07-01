@@ -172,7 +172,32 @@ When asked whether localhost, the repo, or production are in sync — or before 
 
 ## Media Workflow
 
+### MP4 Creation (ffmpeg)
+
 When creating audio/video files with `ffmpeg`, review `instructions/how_to_mp4.md` first. If the user asks to create an MP4 from an audio file and image, follow that process.
+
+### Podcast — Two Content Streams
+
+The podcast page and landing page "On the Record" section pull from two independent sources. **Neither requires code changes when new content is added.**
+
+| Stream | Source | Endpoint | Maintenance |
+|---|---|---|---|
+| Daily Substack episodes | `jimskovgard.substack.com/feed` | `/api/podcast-feed` | Zero — post to Substack |
+| Hosted episodes (R2/D1) | R2 bucket + `podcast_uploads` table | `/api/podcasts` | One D1 row per file |
+
+**Full podcast workflow:** `docs/PODCAST_WORKFLOW.md`
+
+**Adding a campaign video to the site:** `docs/media/AddCampaignVideo.md`
+
+Key rules for hosted episodes:
+- R2 bucket is `podcasts`; CDN host is `https://media.skovgard2026.org`
+- `r2_key` in D1 has **no** leading slash; public URL = `${MEDIA_BASE_URL}/${r2_key}`
+- Campaign videos use `guest_slug = 'campaign'` and keys like `videos/{name}.mp4`
+- `summary` column is JSON: `{"title":"...","slug":"share-slug-or-null","duration":"M:SS"}`
+- After inserting a D1 row, the site updates automatically — no deploy needed
+- Use `INSERT OR IGNORE` — never UPDATE or DELETE rows except via an approved migration
+
+Do NOT follow `docs/PODCAST_WORKFLOW.md` instructions that reference Hugo, `media.this-is-us.org`, shortcodes, or `content/podcast.md` — those sections are outdated. The file has been rewritten for the current Astro architecture.
 
 ### Media Asset Paths
 
@@ -180,15 +205,15 @@ When creating audio/video files with `ffmpeg`, review `instructions/how_to_mp4.m
 - Do not introduce or switch frontend links back to `https://media.this-is-us.org` unless the user explicitly asks for that shared legacy domain.
 - For Astro pages and components, prefer the shared constant in `/home/anchor/projects/skovgard2026/src/constants.ts` rather than hardcoding media hosts inline.
 - `worker/wrangler.toml` is authoritative for the deployed `MEDIA_BASE_URL` value.
-- Public-facing media URLs should look like `https://media.skovgard2026.org/{folder}/{date-or-subpath}/{filename}`.
-- The backing R2 object key may still include the bucket prefix, for example `podcasts/{guest_slug}/{episode_date}/{filename}.mp3`, but the public CDN URL should omit that `podcasts/` prefix unless the deployed routing explicitly requires it.
+- Public-facing media URLs should look like `https://media.skovgard2026.org/{r2_key}` where `r2_key` has no leading slash.
 - Example public URLs used by the site:
   - `https://media.skovgard2026.org/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3`
+  - `https://media.skovgard2026.org/videos/wyoming-not-for-sale.mp4`
   - `https://media.skovgard2026.org/townhall/intro_townhall.mp4`
 - If a media asset appears broken, verify all three separately before changing code:
-  - the URL emitted by the Astro page
+  - the URL emitted by the Astro page or API response
   - the canonical host in `src/constants.ts`
-  - the corresponding `MEDIA_BASE_URL` and upload key pattern in `worker/wrangler.toml`
+  - the `MEDIA_BASE_URL` in `worker/wrangler.toml` `[env.production.vars]`
 
 ## Repository Hygiene
 

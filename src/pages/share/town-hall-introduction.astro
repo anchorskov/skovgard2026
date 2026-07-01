@@ -1,14 +1,14 @@
 ---
-// src/pages/share/citizens-defend-the-constitution.astro
+// src/pages/share/town-hall-introduction.astro
 import Base from '../../layouts/Base.astro';
 import Nav from '../../components/Nav.astro';
 import Footer from '../../components/Footer.astro';
 import { MEDIA_BASE_URL } from '../../constants';
 ---
 <Base
-  title="Citizens Defend the Constitution — Skovgard 2026"
-  description="A short Wyoming message with Heart Mountain as the backdrop — the Golden Rule, and the three pillars of this campaign: defend the Constitution, restore accountability, and listen to Wyoming."
-  ogImage="/images/share/meme-citizens-defend-the-constitution.png"
+  title="If It Said R, I Hit the Checkbox. — Skovgard 2026"
+  description="Jimmy Skovgard's honest admission at a Wyoming town hall — and why he's done checking boxes without paying attention."
+  ogImage="/images/share/meme-town-hall-introduction.png"
 >
   <Nav />
   <main class="pt-20">
@@ -23,81 +23,31 @@ import { MEDIA_BASE_URL } from '../../constants';
           All messages
         </a>
         <span class="text-gray-300 text-sm">/</span>
-        <span class="text-sm font-semibold text-wy-charcoal truncate">Citizens Defend the Constitution</span>
+        <span class="text-sm font-semibold text-wy-charcoal truncate">Town Hall Introduction</span>
       </div>
     </div>
 
-    <!-- Hero -->
-    <div class="bg-wy-charcoal py-14 px-4 text-center">
-      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Featured Message</p>
-      <h1 class="text-4xl sm:text-5xl font-serif font-extrabold text-wy-bone mb-4 leading-tight">
-        Citizens Defend the Constitution
-      </h1>
-      <p class="text-wy-bone/70 text-lg max-w-xl mx-auto mb-8">
-        Heart Mountain as the backdrop. The Golden Rule. The three pillars of this campaign.
-      </p>
-      <div class="flex flex-wrap justify-center gap-3">
-        <button id="hero-copy-link" type="button" class="share-btn-outline">
-          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          Copy link
-        </button>
-        <a id="hero-facebook" href="#" target="_blank" rel="noopener" class="share-btn-outline">
-          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
-          </svg>
-          Facebook
-        </a>
-        <a id="hero-twitter" href="#" target="_blank" rel="noopener" class="share-btn-outline">
-          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-          </svg>
-          X / Twitter
-        </a>
-      </div>
-    </div>
-
-    <!-- ① Watch & share -->
+    <!-- ① Share on social media -->
     <section class="bg-wy-bone py-12 px-4">
       <div class="max-w-3xl mx-auto">
 
-        <p class="section-kicker">Watch &amp; share</p>
+        <p class="section-kicker">Share on social media</p>
         <p class="section-desc">
-          Watch the video, then share this page on Facebook or X — or copy the link and send it yourself.
-          When someone clicks through, they land here and can watch it too.
+          This image and link are what people see when you post on Facebook or X.
+          When someone clicks the link, they land on this page.
         </p>
 
-        <!-- Video player -->
-        <div class="rounded-xl overflow-hidden shadow-lg mb-7" style="line-height:0;">
-          <video
-            controls
-            preload="metadata"
-            class="w-full block"
-            style="max-height:480px;border-radius:inherit;"
-          >
-            <source src={`${MEDIA_BASE_URL}/videos/Jimmy_6-14.mp4`} type="video/mp4" />
-          </video>
-        </div>
-
-        <div class="mb-2">
-          <p class="text-xs font-bold uppercase tracking-widest text-wy-sandstone mb-1">June 2026 · Video · 4:54</p>
-          <p class="font-serif font-extrabold text-wy-charcoal text-xl mb-1">Three Pillars of the Campaign</p>
-          <p class="text-gray-600 text-sm">Citizens defend the Constitution. Public servants swear the oath.</p>
-        </div>
-
-        <figure class="rounded-xl overflow-hidden shadow-lg mt-8 mb-4">
+        <figure class="rounded-xl overflow-hidden shadow-lg mb-7">
           <img
-            src="/images/share/meme-citizens-defend-the-constitution.png"
-            alt="Citizens Defend the Constitution — Jimmy Skovgard with Heart Mountain as the backdrop, June 2026"
+            src="/images/share/meme-town-hall-introduction.png"
+            alt="If it said R, I hit the checkbox. — Jimmy Skovgard, Wyoming Town Hall, April 2026"
             class="w-full block"
             style="background-color:#2b2b2b;min-height:180px;"
             loading="eager"
           />
         </figure>
-        <p class="text-xs text-gray-400 mb-4">Share this image directly, or use the buttons below to post with the link.</p>
 
-        <div class="flex flex-wrap gap-3 mt-2">
+        <div class="flex flex-wrap gap-3">
           <a id="social-facebook" href="#" target="_blank" rel="noopener" class="social-btn">
             <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
               <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
@@ -134,14 +84,33 @@ import { MEDIA_BASE_URL } from '../../constants';
       </div>
     </section>
 
-    <!-- ② Send by email -->
+    <!-- ② Watch the video -->
+    <section class="bg-wy-charcoal py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="section-kicker" style="color:#c68a4a;">Watch the town hall</p>
+        <p class="section-desc" style="color:#f1ece1/70;">
+          Jimmy opens a Wyoming community meeting in April 2026 with an honest admission — and a challenge.
+        </p>
+        <video
+          controls
+          preload="metadata"
+          class="w-full rounded-xl shadow-lg"
+          style="background:#000;"
+        >
+          <source src={`${MEDIA_BASE_URL}/townhall/intro_townhall.mp4`} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </section>
+
+    <!-- ③ Send by email -->
     <section class="bg-white py-12 px-4">
       <div class="max-w-2xl mx-auto">
 
         <p class="section-kicker">Send by email to your contacts</p>
         <p class="section-desc">
           This is the written message your contacts receive in their inbox.
-          It is not the video above — it is a personal email that comes from you, with a link to watch it.
+          It is not the image above — it is a personal email that comes from you.
         </p>
 
         <div class="bg-wy-bone rounded-2xl border border-gray-200 p-8">
@@ -209,7 +178,7 @@ import { MEDIA_BASE_URL } from '../../constants';
           <div class="email-preview-wrap mb-6">
             <div class="email-preview-header">
               <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
-              <div class="epf"><span class="epl">Subject:</span> <span id="preview-subject-line">Citizens defend the Constitution — a Wyoming message from Jimmy Skovgard</span></div>
+              <div class="epf"><span class="epl">Subject:</span> <span id="preview-subject-line">"If it said R, I hit the checkbox." — A Wyoming voice</span></div>
             </div>
             <iframe
               id="email-preview-iframe"
@@ -246,15 +215,20 @@ import { MEDIA_BASE_URL } from '../../constants';
       </div>
     </section>
 
-    <!-- Three pillars -->
+    <!-- Why share -->
     <section class="bg-white py-16 px-4">
-      <div class="max-w-3xl mx-auto">
-        <p class="text-xs font-bold uppercase tracking-widest text-wy-sandstone mb-4">Three Pillars of the Campaign</p>
+      <div class="max-w-3xl mx-auto text-center">
+        <h2 class="text-2xl font-serif font-bold text-wy-charcoal mb-4">Why it matters</h2>
+        <p class="text-gray-600 leading-relaxed mb-10 max-w-xl mx-auto">
+          Most Wyoming voters have been where Jimmy was — checking the box without looking closely.
+          A message from someone you know carries more weight than any ad.
+          If it resonated with you, pass it on.
+        </p>
         <div class="grid sm:grid-cols-3 gap-6 text-left">
           {[
-            { n: '1', head: 'Defend the Constitution', body: 'The oath still matters. Wyoming deserves a Senator who takes it seriously.' },
-            { n: '2', head: 'Restore Accountability', body: 'Public servants answer to Wyoming — not to party insiders, donors, or Washington.' },
-            { n: '3', head: 'Listen to Wyoming', body: 'Real decisions require real input. From ranch roads to main streets, Wyoming voices count.' },
+            { n: '1', head: 'Takes 30 seconds', body: 'Enter a few email addresses and hit send. That\'s it.' },
+            { n: '2', head: 'Comes from you', body: 'Arrives as a personal note, not a campaign blast or a PAC mailer.' },
+            { n: '3', head: 'No strings', body: 'People you share with are not added to our list — they choose that for themselves.' },
           ].map(item => (
             <div class="flex gap-4">
               <span class="text-wy-ember font-serif font-extrabold text-2xl leading-none mt-0.5">{item.n}.</span>
@@ -275,34 +249,6 @@ import { MEDIA_BASE_URL } from '../../constants';
         </div>
       </div>
     </section>
-
-    <!-- Bottom share bar -->
-    <div class="bg-wy-charcoal py-14 px-4 text-center">
-      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Spread the Word</p>
-      <p class="text-wy-bone/70 text-sm mb-6 max-w-md mx-auto">
-        One message from someone you know carries more weight than any ad. Share this with Wyoming neighbors.
-      </p>
-      <div class="flex flex-wrap justify-center gap-3">
-        <button id="footer-copy-link" type="button" class="share-btn-outline">
-          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          Copy link
-        </button>
-        <a id="footer-facebook" href="#" target="_blank" rel="noopener" class="share-btn-outline">
-          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
-          </svg>
-          Facebook
-        </a>
-        <a id="footer-twitter" href="#" target="_blank" rel="noopener" class="share-btn-outline">
-          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-          </svg>
-          X / Twitter
-        </a>
-      </div>
-    </div>
 
   </main>
   <Footer />
@@ -390,24 +336,19 @@ import { MEDIA_BASE_URL } from '../../constants';
   }
   .social-btn-outline:hover { background: #2b2b2b; color: #f1ece1; }
 
-  .share-btn-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 18px;
-    border: 2px solid rgba(241, 236, 225, 0.45);
-    color: #f1ece1;
-    font-weight: 700;
-    font-size: 0.875rem;
-    border-radius: 8px;
-    text-decoration: none;
-    cursor: pointer;
-    background: transparent;
-    transition: background-color 0.15s, border-color 0.15s;
-  }
-  .share-btn-outline:hover {
-    background-color: rgba(241, 236, 225, 0.1);
-    border-color: #f1ece1;
+  #share-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  #share-status.status-error  { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  #share-status.status-success{ background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  #share-status.status-info   { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+
+  kbd {
+    padding: 1px 5px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    color: #6b7280;
   }
 
   .email-preview-wrap {
@@ -424,48 +365,34 @@ import { MEDIA_BASE_URL } from '../../constants';
   .epf { font-size: 0.8125rem; color: #374151; line-height: 1.6; }
   .epl { font-weight: 700; color: #6b7280; margin-right: 4px; }
   .email-preview-iframe { display: block; width: 100%; height: 460px; border: none; }
-
-  #share-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  #share-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-  #share-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
-  #share-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
-
-  kbd {
-    padding: 1px 5px;
-    background: #f3f4f6;
-    border-radius: 4px;
-    font-family: ui-monospace, monospace;
-    font-size: 0.8em;
-    color: #6b7280;
-  }
 </style>
 
 <script>
 (function () {
-  const PAGE_URL = 'https://skovgard2026.org/share/citizens-defend-the-constitution';
-  const tweetText = 'Citizens defend the Constitution. Public servants swear the oath. Wyoming deserves a Senator who takes that oath seriously. — Jimmy Skovgard for U.S. Senate 2026';
+  const PAGE_URL = 'https://skovgard2026.org/share/town-hall-introduction';
 
+  /* ── Social share links ──────────────────────────────────── */
+  const tweetText = '"If it said R, I hit the checkbox." Wyoming deserves a Senator who earns the vote. — Jimmy Skovgard for U.S. Senate 2026';
   const fbUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
   const twUrl = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_URL) +
     '&text=' + encodeURIComponent(tweetText);
 
-  ['hero-facebook', 'social-facebook', 'footer-facebook'].forEach(id => { const el = document.getElementById(id); if (el) el.href = fbUrl; });
-  ['hero-twitter',  'social-twitter',  'footer-twitter' ].forEach(id => { const el = document.getElementById(id); if (el) el.href = twUrl; });
+  const elFb = document.getElementById('social-facebook');
+  if (elFb) elFb.href = fbUrl;
+  const elTw = document.getElementById('social-twitter');
+  if (elTw) elTw.href = twUrl;
 
-  async function copyLink(btnId) {
+  async function copyLink() {
     try {
       await navigator.clipboard.writeText(PAGE_URL);
-      const btn = document.getElementById(btnId);
-      if (btn) {
-        const orig = btn.innerHTML;
-        btn.innerHTML = btn.innerHTML.replace(/Copy link/, 'Copied!');
-        setTimeout(() => { btn.innerHTML = orig; }, 2000);
-      }
-    } catch { setStatus('Could not copy — please copy the URL manually.', 'error'); }
+      setStatus('Link copied!', 'success');
+      setTimeout(() => setStatus('', ''), 3000);
+    } catch {
+      setStatus('Could not copy automatically — please copy the URL manually.', 'error');
+    }
   }
 
-  ['hero-copy-link', 'social-copy-link', 'footer-copy-link']
-    .forEach(id => { const btn = document.getElementById(id); if (btn) btn.addEventListener('click', () => copyLink(id)); });
+  const copyLinkBtn = document.getElementById('social-copy-link');
 
   /* ── WhatsApp + Web Share API ───────────────────────────── */
   const elWa = document.getElementById('social-whatsapp');
@@ -480,9 +407,11 @@ import { MEDIA_BASE_URL } from '../../constants';
     });
   }
 
+  if (copyLinkBtn) copyLinkBtn.addEventListener('click', copyLink);
+
   /* ── Email state ─────────────────────────────────────────── */
   const emails = [];
-  const MAX    = 10;
+  const MAX = 10;
 
   const tagBox             = document.getElementById('share-tag-box');
   const emailInput         = document.getElementById('share-email-input');
@@ -529,13 +458,14 @@ import { MEDIA_BASE_URL } from '../../constants';
 
   function removeEmail(index) { emails.splice(index, 1); setStatus('', ''); renderTags(); }
 
-  function updateButtons() { sendBtn.disabled = emails.length === 0 && !isValidEmail(emailInput.value.trim()); }
+  function updateButtons() { sendBtn.disabled = emails.length === 0; }
 
+  /* ── Live email preview via Worker ──────────────────────── */
   let previewTimer = null;
 
   function buildPreviewUrl() {
     const name = senderInput.value.trim().slice(0, 80);
-    const params = new URLSearchParams({ slug: 'citizens-defend-the-constitution' });
+    const params = new URLSearchParams({ slug: 'town-hall-introduction' });
     if (name) params.set('sender_name', name);
     return '/api/share/preview?' + params.toString();
   }
@@ -544,8 +474,8 @@ import { MEDIA_BASE_URL } from '../../constants';
     const name = senderInput.value.trim();
     if (previewSubjectLine) {
       previewSubjectLine.textContent = name
-        ? `${name} wanted you to see this — Citizens Defend the Constitution`
-        : 'Citizens defend the Constitution — a Wyoming message from Jimmy Skovgard';
+        ? `${name} shared this — a Wyoming neighbor's honest admission`
+        : '"If it said R, I hit the checkbox." — A Wyoming voice';
     }
   }
 
@@ -554,7 +484,7 @@ import { MEDIA_BASE_URL } from '../../constants';
     if (!previewIframe) return;
     try {
       const resp = await fetch(buildPreviewUrl());
-      if (resp.ok) previewIframe.srcdoc = await resp.text();
+      if (resp.ok) { previewIframe.srcdoc = await resp.text(); }
     } catch (_) {}
   }
 
@@ -565,17 +495,28 @@ import { MEDIA_BASE_URL } from '../../constants';
 
   senderInput.addEventListener('input', schedulePreview);
 
-  emailInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addEmail(emailInput.value); emailInput.value = ''; }
-    else if (e.key === 'Backspace' && emailInput.value === '' && emails.length > 0) { removeEmail(emails.length - 1); }
+  emailInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addEmail(emailInput.value);
+      emailInput.value = '';
+    } else if (e.key === 'Backspace' && emailInput.value === '' && emails.length > 0) {
+      removeEmail(emails.length - 1);
+    }
   });
-  emailInput.addEventListener('blur', () => { if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; } });
-  emailInput.addEventListener('input', updateButtons);
-  emailInput.addEventListener('paste', e => {
+
+  emailInput.addEventListener('blur', () => {
+    emailInput.addEventListener('input', updateButtons);
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+  });
+
+  emailInput.addEventListener('paste', (e) => {
     e.preventDefault();
-    (e.clipboardData || window.clipboardData).getData('text').split(/[,;\s\n]+/).forEach(p => { if (p.trim()) addEmail(p); });
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    pasted.split(/[,;\s\n]+/).forEach(part => { if (part.trim()) addEmail(part); });
     emailInput.value = '';
   });
+
   tagBox.addEventListener('click', () => emailInput.focus());
 
   (async () => {
@@ -585,7 +526,10 @@ import { MEDIA_BASE_URL } from '../../constants';
       if (!props.includes('email')) return;
       contactsBtn.hidden = false;
       contactsBtn.addEventListener('click', async () => {
-        try { const picked = await navigator.contacts.select(['name', 'email'], { multiple: true }); picked.forEach(c => (c.email || []).forEach(e => addEmail(e))); } catch (_) {}
+        try {
+          const picked = await navigator.contacts.select(['name', 'email'], { multiple: true });
+          picked.forEach(c => (c.email || []).forEach(e => addEmail(e)));
+        } catch (_) {}
       });
     } catch (_) {}
   })();
@@ -603,7 +547,7 @@ import { MEDIA_BASE_URL } from '../../constants';
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          message_slug: 'citizens-defend-the-constitution',
+          message_slug: 'town-hall-introduction',
           sender_name:  senderInput.value.trim(),
           recipients:   emails.slice(),
           _trap: "",
@@ -612,7 +556,7 @@ import { MEDIA_BASE_URL } from '../../constants';
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok || !data.ok) {
-        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const isLocal = ['localhost','127.0.0.1'].includes(window.location.hostname);
         setStatus(
           resp.status === 404 && isLocal
             ? 'Route not found — make sure the Worker is running: cd worker && npx wrangler dev'
@@ -629,7 +573,7 @@ import { MEDIA_BASE_URL } from '../../constants';
       }
     } catch (_) {
       setStatus(
-        ['localhost', '127.0.0.1'].includes(window.location.hostname)
+        ['localhost','127.0.0.1'].includes(window.location.hostname)
           ? 'Worker not reachable. Run `cd worker && npx wrangler dev` in a second terminal.'
           : 'Network error — please check your connection and try again.',
         'error'
@@ -643,7 +587,7 @@ import { MEDIA_BASE_URL } from '../../constants';
   updateButtons();
   fetchPreview();
 
-  if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+  if (['localhost','127.0.0.1'].includes(window.location.hostname)) {
     setStatus(
       'Local dev: "Have us send it" needs the Worker running. ' +
       'In a second terminal: cd worker && npx wrangler dev.',

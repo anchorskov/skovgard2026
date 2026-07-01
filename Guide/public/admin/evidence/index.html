@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide Admin — Reference Evidence</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bone: #f1ece1;
+  --charcoal: #2b2b2b;
+  --ember: #b22234;
+  --ember-dark: #8b1a26;
+  --sandstone: #c68a4a;
+  --sage: #7a8a6b;
+  --white: #ffffff;
+  --gray-100: #f7f7f7;
+  --gray-200: #e0e0e0;
+  --gray-400: #999;
+  --gray-600: #555;
+  --green: #2d7a2d;
+  --green-bg: #f0faf0;
+  --warn-bg: #fffbea;
+  --warn-border: #e6b800;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bone);
+  color: var(--charcoal);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ── Auth overlay ─────────────────────────────────────────────── */
+#auth-overlay {
+  position: fixed; inset: 0;
+  background: var(--charcoal);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+#auth-box {
+  background: var(--bone); border-radius: 8px;
+  padding: 2rem; width: 100%; max-width: 380px; text-align: center;
+}
+#auth-box h1 { font-size: 1.2rem; color: var(--ember); margin-bottom: 0.25rem; }
+#auth-box p  { font-size: 0.83rem; color: var(--gray-600); margin-bottom: 1.25rem; }
+#auth-key {
+  width: 100%; padding: 0.6rem 0.75rem;
+  border: 2px solid var(--gray-200); border-radius: 4px;
+  font-size: 1rem; margin-bottom: 0.75rem;
+}
+#auth-key:focus { outline: none; border-color: var(--ember); }
+#auth-error { color: var(--ember); font-size: 0.83rem; margin-top: 0.5rem; display: none; }
+
+/* ── Top nav ──────────────────────────────────────────────────── */
+#top-nav {
+  background: var(--charcoal); color: var(--white);
+  padding: 0.65rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem;
+}
+#top-nav h1 { font-size: 0.9rem; font-weight: 700; letter-spacing: 0.06em; }
+#top-nav nav { display: flex; gap: 1.1rem; align-items: center; }
+#top-nav a  { color: var(--sandstone); font-size: 0.82rem; text-decoration: none; }
+#top-nav a:hover { color: var(--white); }
+
+/* ── Layout ───────────────────────────────────────────────────── */
+#main-content { max-width: 960px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.card {
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: 8px; margin-bottom: 1.1rem; overflow: hidden;
+}
+.card-head {
+  background: var(--charcoal); color: var(--white);
+  padding: 0.55rem 1rem;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; display: flex; align-items: center;
+  justify-content: space-between;
+}
+.card-head span.meta { font-weight: 400; opacity: 0.6; font-size: 0.72rem; }
+.card-body { padding: 1rem; }
+
+/* ── Candidate selector ───────────────────────────────────────── */
+.filter-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.filter-row label { font-size: 0.8rem; color: var(--gray-600); white-space: nowrap; }
+.filter-row select { padding: 0.3rem 0.5rem; font-size: 0.82rem; border: 1px solid var(--gray-200); border-radius: 4px; background: var(--white); }
+
+#candidate-search {
+  width: 100%; padding: 0.55rem 0.75rem;
+  border: 2px solid var(--gray-200); border-radius: 4px;
+  font-size: 1rem; margin-bottom: 0.5rem; background: var(--white);
+}
+#candidate-search:focus { outline: none; border-color: var(--ember); }
+
+#candidate-list {
+  list-style: none; max-height: 240px; overflow-y: auto;
+  border: 1px solid var(--gray-200); border-radius: 4px; background: var(--white);
+}
+#candidate-list li {
+  padding: 0.55rem 0.75rem; cursor: pointer;
+  border-bottom: 1px solid var(--gray-200); font-size: 0.88rem;
+}
+#candidate-list li:last-child { border-bottom: none; }
+#candidate-list li:hover, #candidate-list li.active { background: var(--bone); }
+#candidate-list li .sub { font-size: 0.76rem; color: var(--gray-600); margin-top: 0.1rem; }
+
+#selected-display {
+  margin-top: 0.5rem; padding: 0.55rem 0.75rem;
+  background: var(--charcoal); color: var(--white);
+  border-radius: 4px; font-size: 0.88rem; display: none;
+}
+
+/* ── Level badges ─────────────────────────────────────────────── */
+.lvl-badge {
+  display: inline-block; font-size: 0.67rem; font-weight: 700;
+  padding: 0.1rem 0.35rem; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.04em; margin-left: 0.35rem; vertical-align: middle;
+}
+.lvl-federal   { background: #1a3a6b; color: #fff; }
+.lvl-statewide { background: var(--ember); color: #fff; }
+.lvl-wy_senate,
+.lvl-wy_house  { background: var(--sage); color: #fff; }
+.lvl-county    { background: var(--sandstone); color: #fff; }
+.lvl-other     { background: var(--gray-400); color: #fff; }
+
+/* ── Evidence table ───────────────────────────────────────────── */
+#evidence-panel { display: none; }
+
+.ev-summary {
+  display: flex; gap: 1.25rem; align-items: center;
+  padding: 0.6rem 0; margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 0.83rem; color: var(--gray-600); flex-wrap: wrap;
+}
+.ev-summary strong { color: var(--charcoal); }
+
+.ev-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.ev-table th {
+  text-align: left; padding: 0.45rem 0.6rem;
+  background: var(--gray-100); border-bottom: 2px solid var(--gray-200);
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--gray-600); white-space: nowrap;
+}
+.ev-table td {
+  padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--gray-200);
+  vertical-align: middle;
+}
+.ev-table tr:last-child td { border-bottom: none; }
+.ev-table tr.row-changed { background: var(--warn-bg); }
+.ev-table tr.row-saved   { background: var(--green-bg); }
+
+/* Category badges */
+.cat-badge {
+  display: inline-block; font-size: 0.67rem; font-weight: 700;
+  padding: 0.15rem 0.4rem; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+}
+.cat-coalition        { background: #1a3a6b; color: #fff; }
+.cat-issue_alignment  { background: var(--ember); color: #fff; }
+.cat-accountability   { background: var(--charcoal); color: #fff; }
+.cat-local_impact     { background: var(--sage); color: #fff; }
+.cat-evidence_quality { background: var(--sandstone); color: #fff; }
+.cat-public_service   { background: #4a7a9b; color: #fff; }
+.cat-other            { background: var(--gray-400); color: #fff; }
+
+/* ballot_visible toggle */
+.vis-btn {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.3rem 0.65rem; border-radius: 20px; border: 2px solid;
+  font-size: 0.76rem; font-weight: 700; cursor: pointer;
+  background: none; white-space: nowrap; transition: all 0.1s;
+}
+.vis-btn[data-visible="1"] { border-color: var(--green); color: var(--green); }
+.vis-btn[data-visible="0"] { border-color: var(--gray-400); color: var(--gray-400); }
+
+/* verify status select */
+.verif-select {
+  font-size: 0.76rem; padding: 0.25rem 0.4rem;
+  border: 1px solid var(--gray-200); border-radius: 4px;
+  background: var(--white); max-width: 160px;
+}
+.verif-select.status-verified     { border-color: var(--green); }
+.verif-select.status-do_not_publish { border-color: var(--ember); color: var(--ember); }
+
+/* notes input */
+.notes-input {
+  font-size: 0.76rem; padding: 0.25rem 0.4rem;
+  border: 1px solid var(--gray-200); border-radius: 4px;
+  width: 140px;
+}
+
+/* save button */
+.btn-save {
+  padding: 0.3rem 0.7rem; border: none; border-radius: 4px;
+  background: var(--ember); color: #fff; font-size: 0.76rem; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+.btn-save:hover { background: var(--ember-dark); }
+.btn-save:disabled { background: var(--gray-200); color: var(--gray-400); cursor: default; }
+
+.save-msg {
+  font-size: 0.72rem; color: var(--green); margin-left: 0.4rem; white-space: nowrap;
+}
+.save-msg.error { color: var(--ember); }
+
+/* Save All button */
+#save-all-row {
+  display: flex; justify-content: flex-end; gap: 0.5rem;
+  padding: 0.75rem 0 0; margin-top: 0.25rem;
+  border-top: 1px solid var(--gray-200);
+}
+.btn-save-all {
+  padding: 0.45rem 1.2rem; border: none; border-radius: 4px;
+  background: var(--charcoal); color: #fff; font-size: 0.83rem; font-weight: 700;
+  cursor: pointer;
+}
+.btn-save-all:hover { background: #444; }
+
+/* verify guard banner */
+.verify-guard {
+  background: var(--warn-bg); border: 1px solid var(--warn-border);
+  border-radius: 4px; padding: 0.6rem 0.9rem; font-size: 0.82rem;
+  margin-bottom: 0.75rem; color: #7a5800;
+}
+
+/* empty state */
+.ev-empty {
+  text-align: center; padding: 2rem; color: var(--gray-600); font-size: 0.88rem;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.btn {
+  display: inline-block; padding: 0.42rem 0.9rem;
+  border: none; border-radius: 4px; font-size: 0.83rem; font-weight: 600;
+  cursor: pointer; text-decoration: none; transition: background 0.12s;
+}
+.btn-ember { background: var(--ember); color: #fff; }
+.btn-ember:hover { background: var(--ember-dark); }
+.btn-gray  { background: var(--gray-200); color: var(--charcoal); }
+.btn-gray:hover { background: #ccc; }
+</style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div id="auth-overlay">
+  <div id="auth-box">
+    <h1>Guide Admin</h1>
+    <p>Reference Evidence Review</p>
+    <input type="password" id="auth-key" placeholder="Admin key" autocomplete="current-password">
+    <br>
+    <button class="btn btn-ember" onclick="submitAuth()">Sign in</button>
+    <div id="auth-error">Incorrect key — try again.</div>
+  </div>
+</div>
+
+<!-- Top nav -->
+<nav id="top-nav">
+  <h1>GUIDE ADMIN — REFERENCE EVIDENCE</h1>
+  <nav>
+    <a href="/admin/rubric/index.html">Rubric Scoring</a>
+    <a href="#" id="sign-out-link">Sign out</a>
+  </nav>
+</nav>
+
+<div id="main-content">
+
+  <!-- Candidate selector -->
+  <div class="card">
+    <div class="card-head">
+      <span>SELECT CANDIDATE</span>
+      <span class="meta" id="cand-count-meta"></span>
+    </div>
+    <div class="card-body">
+      <div class="filter-row">
+        <label for="level-filter">Office level:</label>
+        <select id="level-filter">
+          <option value="">All levels</option>
+          <option value="federal">Federal</option>
+          <option value="statewide">Statewide</option>
+          <option value="wy_senate">WY Senate</option>
+          <option value="wy_house">WY House</option>
+          <option value="county">County</option>
+        </select>
+        <label for="evidence-filter" style="margin-left:0.5rem">Show:</label>
+        <select id="evidence-filter">
+          <option value="">All candidates</option>
+          <option value="has_evidence">Has evidence links</option>
+        </select>
+      </div>
+      <input type="search" id="candidate-search" placeholder="Search by name…" autocomplete="off">
+      <ul id="candidate-list"><li style="padding:0.7rem;color:var(--gray-400);font-size:0.85rem">Loading candidates…</li></ul>
+      <div id="selected-display"></div>
+    </div>
+  </div>
+
+  <!-- Evidence panel -->
+  <div id="evidence-panel">
+    <div class="card">
+      <div class="card-head">
+        <span id="ev-panel-title">REFERENCE EVIDENCE LINKS</span>
+        <span class="meta" id="ev-count-meta"></span>
+      </div>
+      <div class="card-body">
+        <div class="verify-guard">
+          <strong>Before flipping ballot_visible to ON:</strong> cross-check claim against
+          official WY Legislature roll-call records and SOS primary roster.
+          Rows with VERIFY-* reference keys must remain OFF until resolved.
+        </div>
+        <div id="ev-summary" class="ev-summary"></div>
+        <div id="ev-table-wrap"></div>
+        <div id="save-all-row" style="display:none">
+          <button class="btn-save-all" onclick="saveAll()">Save All Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-content -->
+
+<script>
+(function () {
+  const STORAGE_KEY = 'guide_admin_key';
+  let adminKey = '';
+  let allCandidates = [];
+  let selectedCandidateId = null;
+  let evidenceRows = [];
+
+  // ── Auth ─────────────────────────────────────────────────────────────
+  function submitAuth() {
+    const val = document.getElementById('auth-key').value.trim();
+    if (!val) return;
+    // Verify by hitting the candidates endpoint
+    fetch('/api/admin/candidates', { headers: { 'x-admin-key': val } })
+      .then(r => {
+        if (r.status === 401) {
+          document.getElementById('auth-error').style.display = 'block';
+          return null;
+        }
+        return r.json();
+      })
+      .then(data => {
+        if (!data) return;
+        adminKey = val;
+        try { sessionStorage.setItem(STORAGE_KEY, val); } catch (_) {}
+        document.getElementById('auth-overlay').style.display = 'none';
+        processCandidates(data);
+      })
+      .catch(() => { document.getElementById('auth-error').style.display = 'block'; });
+  }
+
+  document.getElementById('auth-key').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitAuth();
+  });
+
+  document.getElementById('sign-out-link').addEventListener('click', e => {
+    e.preventDefault();
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
+    adminKey = '';
+    document.getElementById('auth-overlay').style.display = 'flex';
+  });
+
+  // Auto-login from sessionStorage
+  const savedKey = (() => { try { return sessionStorage.getItem(STORAGE_KEY); } catch (_) { return null; } })();
+  if (savedKey) {
+    document.getElementById('auth-key').value = savedKey;
+    submitAuth();
+  }
+
+  // ── Candidate list ────────────────────────────────────────────────────
+  function processCandidates(data) {
+    allCandidates = data.results ?? data ?? [];
+    document.getElementById('cand-count-meta').textContent = `${allCandidates.length} candidates`;
+    renderCandidateList();
+  }
+
+  function renderCandidateList() {
+    const searchVal = document.getElementById('candidate-search').value.toLowerCase();
+    const levelVal  = document.getElementById('level-filter').value;
+    const evFilter  = document.getElementById('evidence-filter').value;
+
+    let filtered = allCandidates.filter(c => {
+      if (levelVal && c.level !== levelVal) return false;
+      if (searchVal && !c.name.toLowerCase().includes(searchVal)) return false;
+      return true;
+    });
+
+    const list = document.getElementById('candidate-list');
+    if (filtered.length === 0) {
+      list.innerHTML = '<li style="padding:0.7rem;color:var(--gray-400);font-size:0.85rem">No candidates match.</li>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(c => {
+      const levelClass = 'lvl-' + (c.level ?? 'other');
+      const guideStatus = c.guide_status ? `<div class="sub">Score: ${c.final_score ?? '—'} · ${c.guide_status}</div>` : '';
+      return `<li data-id="${c.id}" onclick="selectCandidate(${c.id}, ${JSON.stringify(c.name)})">
+        ${escH(c.name)}<span class="lvl-badge ${levelClass}">${escH(c.level ?? '')}</span>
+        <div class="sub">${escH(c.office ?? '')}</div>
+        ${guideStatus}
+      </li>`;
+    }).join('');
+
+    // Re-mark active selection
+    if (selectedCandidateId) {
+      const li = list.querySelector(`[data-id="${selectedCandidateId}"]`);
+      if (li) li.classList.add('active');
+    }
+  }
+
+  document.getElementById('candidate-search').addEventListener('input', renderCandidateList);
+  document.getElementById('level-filter').addEventListener('change', renderCandidateList);
+  document.getElementById('evidence-filter').addEventListener('change', renderCandidateList);
+
+  // ── Select and load evidence ──────────────────────────────────────────
+  window.selectCandidate = function (id, name) {
+    selectedCandidateId = id;
+    document.querySelectorAll('#candidate-list li').forEach(li => li.classList.remove('active'));
+    const li = document.querySelector(`#candidate-list li[data-id="${id}"]`);
+    if (li) li.classList.add('active');
+
+    const disp = document.getElementById('selected-display');
+    disp.textContent = `Selected: ${name}`;
+    disp.style.display = 'block';
+
+    loadEvidence(id);
+  };
+
+  function loadEvidence(candidateId) {
+    const panel = document.getElementById('evidence-panel');
+    panel.style.display = 'block';
+    document.getElementById('ev-table-wrap').innerHTML = '<p style="color:var(--gray-400);padding:1rem 0;font-size:0.85rem">Loading…</p>';
+    document.getElementById('ev-count-meta').textContent = '';
+    document.getElementById('save-all-row').style.display = 'none';
+
+    fetch(`/api/admin/reference-evidence?candidate_id=${candidateId}`, {
+      headers: { 'x-admin-key': adminKey },
+    })
+      .then(r => r.json())
+      .then(data => {
+        evidenceRows = data.evidence ?? [];
+        renderEvidenceTable();
+      })
+      .catch(err => {
+        document.getElementById('ev-table-wrap').innerHTML =
+          `<p style="color:var(--ember);padding:1rem 0;font-size:0.85rem">Error: ${escH(err.message)}</p>`;
+      });
+  }
+
+  function renderEvidenceTable() {
+    const wrap = document.getElementById('ev-table-wrap');
+    document.getElementById('ev-count-meta').textContent = `${evidenceRows.length} row${evidenceRows.length !== 1 ? 's' : ''}`;
+
+    if (evidenceRows.length === 0) {
+      wrap.innerHTML = '<div class="ev-empty">No evidence links found for this candidate.</div>';
+      return;
+    }
+
+    const visibleCount = evidenceRows.filter(r => r.ballot_visible === 1).length;
+    const verifiedCount = evidenceRows.filter(r => r.verification_status === 'verified').length;
+
+    document.getElementById('ev-summary').innerHTML =
+      `<span><strong>${visibleCount}</strong> ballot visible</span>` +
+      `<span><strong>${verifiedCount}</strong> verified</span>` +
+      `<span><strong>${evidenceRows.length - verifiedCount}</strong> needs review</span>`;
+
+    const rows = evidenceRows.map((row, idx) => {
+      const catClass = 'cat-' + (row.category_key ?? 'other');
+      const isVerify = row.reference_key && row.reference_key.startsWith('VERIFY-');
+      const visLabel = row.ballot_visible === 1 ? '● ON' : '○ OFF';
+      const updAt = row.updated_at ? row.updated_at.slice(0, 10) : '—';
+
+      return `<tr id="ev-row-${row.id}">
+        <td><span class="cat-badge ${catClass}">${escH(row.category_key ?? '')}</span></td>
+        <td style="font-size:0.75rem;white-space:nowrap">
+          <span style="color:var(--gray-600)">${escH(row.reference_kind ?? '')}</span><br>
+          <strong>${escH(row.reference_key ?? '')}</strong>
+        </td>
+        <td style="max-width:240px;font-size:0.8rem">${escH(row.claim_summary ?? '')}</td>
+        <td>
+          <select class="verif-select status-${row.verification_status ?? ''}"
+                  data-idx="${idx}" onchange="onFieldChange(${idx})">
+            <option value="draft"${row.verification_status === 'draft' ? ' selected' : ''}>draft</option>
+            <option value="needs_official_verification"${row.verification_status === 'needs_official_verification' ? ' selected' : ''}>needs verification</option>
+            <option value="verified"${row.verification_status === 'verified' ? ' selected' : ''}>verified</option>
+            <option value="do_not_publish"${row.verification_status === 'do_not_publish' ? ' selected' : ''}>do not publish</option>
+          </select>
+        </td>
+        <td>
+          <button class="vis-btn" data-visible="${row.ballot_visible}" data-idx="${idx}"
+                  onclick="toggleVisible(${idx})"
+                  ${isVerify ? 'title="VERIFY flag — resolve before enabling" style="opacity:0.45;cursor:not-allowed" disabled' : ''}>
+            ${visLabel}
+          </button>
+        </td>
+        <td>
+          <input type="text" class="notes-input" data-idx="${idx}"
+                 value="${escAttr(row.notes ?? '')}"
+                 placeholder="Notes…"
+                 oninput="onFieldChange(${idx})">
+        </td>
+        <td style="white-space:nowrap">
+          <button class="btn-save" data-idx="${idx}" onclick="saveRow(${idx})" disabled>Save</button>
+          <span class="save-msg" id="save-msg-${row.id}"></span>
+        </td>
+        <td style="font-size:0.71rem;color:var(--gray-400);white-space:nowrap">${updAt}</td>
+      </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <table class="ev-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Reference</th>
+            <th>Claim Summary</th>
+            <th>Verify Status</th>
+            <th>Ballot Visible</th>
+            <th>Notes</th>
+            <th>Action</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+    document.getElementById('save-all-row').style.display = 'flex';
+  }
+
+  // ── Field change tracking ─────────────────────────────────────────────
+  function onFieldChange(idx) {
+    const row = evidenceRows[idx];
+    if (!row) return;
+    const tr = document.getElementById(`ev-row-${row.id}`);
+    if (tr) tr.classList.add('row-changed');
+    const btn = tr?.querySelector('.btn-save');
+    if (btn) btn.disabled = false;
+  }
+
+  // ── Ballot visible toggle ─────────────────────────────────────────────
+  window.toggleVisible = function (idx) {
+    const row = evidenceRows[idx];
+    if (!row) return;
+    const newVal = row.ballot_visible === 1 ? 0 : 1;
+    row.ballot_visible = newVal;
+
+    const tr = document.getElementById(`ev-row-${row.id}`);
+    const btn = tr?.querySelector('.vis-btn');
+    if (btn) {
+      btn.dataset.visible = String(newVal);
+      btn.textContent = newVal === 1 ? '● ON' : '○ OFF';
+    }
+    onFieldChange(idx);
+  };
+
+  // ── Save single row ───────────────────────────────────────────────────
+  window.saveRow = async function (idx) {
+    const row = evidenceRows[idx];
+    if (!row) return;
+
+    const tr = document.getElementById(`ev-row-${row.id}`);
+    const verSelect = tr?.querySelector('.verif-select');
+    const notesInput = tr?.querySelector('.notes-input');
+    const saveBtn = tr?.querySelector('.btn-save');
+    const msg = document.getElementById(`save-msg-${row.id}`);
+
+    const verification_status = verSelect?.value ?? row.verification_status;
+    const notes = notesInput?.value?.trim() ?? null;
+
+    if (saveBtn) saveBtn.disabled = true;
+    if (msg) { msg.textContent = 'Saving…'; msg.className = 'save-msg'; }
+
+    try {
+      const res = await fetch('/api/admin/reference-evidence', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-admin-key': adminKey },
+        body: JSON.stringify({
+          id: row.id,
+          ballot_visible: row.ballot_visible,
+          verification_status,
+          notes: notes || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      // Update in-memory row
+      row.verification_status = verification_status;
+      row.notes = notes || null;
+      row.updated_at = new Date().toISOString().slice(0, 10);
+
+      if (tr) {
+        tr.classList.remove('row-changed');
+        tr.classList.add('row-saved');
+        setTimeout(() => tr.classList.remove('row-saved'), 2000);
+        // Update updated_at cell
+        const cells = tr.querySelectorAll('td');
+        if (cells[7]) cells[7].textContent = row.updated_at;
+        // Update verif select styling
+        if (verSelect) verSelect.className = `verif-select status-${verification_status}`;
+      }
+      if (msg) {
+        msg.textContent = 'Saved ✓';
+        msg.className = 'save-msg';
+        setTimeout(() => { if (msg) msg.textContent = ''; }, 2500);
+      }
+    } catch (err) {
+      if (msg) { msg.textContent = err.message; msg.className = 'save-msg error'; }
+      if (saveBtn) saveBtn.disabled = false;
+    }
+  };
+
+  // ── Save All ──────────────────────────────────────────────────────────
+  window.saveAll = async function () {
+    const changedRows = evidenceRows.filter((_, idx) => {
+      const row = evidenceRows[idx];
+      const tr = document.getElementById(`ev-row-${row.id}`);
+      return tr?.classList.contains('row-changed');
+    });
+
+    if (changedRows.length === 0) {
+      alert('No unsaved changes.');
+      return;
+    }
+
+    for (let idx = 0; idx < evidenceRows.length; idx++) {
+      const row = evidenceRows[idx];
+      const tr = document.getElementById(`ev-row-${row.id}`);
+      if (!tr?.classList.contains('row-changed')) continue;
+      await saveRow(idx);
+    }
+  };
+
+  // ── Utilities ─────────────────────────────────────────────────────────
+  function escH(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function escAttr(s) {
+    return String(s ?? '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+})();
+</script>
+</body>
+</html>

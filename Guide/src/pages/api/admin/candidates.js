@@ -47,8 +47,8 @@ export async function GET(context) {
         CASE o.level
           WHEN 'federal'       THEN 1
           WHEN 'statewide'     THEN 2
-          WHEN 'state_senate'  THEN 3
-          WHEN 'state_house'   THEN 4
+          WHEN 'wy_senate'     THEN 3
+          WHEN 'wy_house'      THEN 4
           WHEN 'county'        THEN 5
           ELSE 6
         END,

@@ -1,0 +1,659 @@
+---
+// src/pages/guide/index.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+
+const pillars = [
+  {
+    number: 'I',
+    title: 'Defend the Constitution',
+    color: 'ember',
+    criteria: [
+      {
+        id: 'const-fidelity',
+        number: 1,
+        defaultWeight: 5,
+        title: 'Constitutional fidelity',
+        body: 'The oath is not a formality. A candidate who will bend the Constitution for a popular cause will bend it for an unpopular one next. The document is the floor, not the ceiling.',
+        sources: [
+          { label: 'Citizens Defend the Constitution', href: '/share/citizens-defend-the-constitution' },
+        ],
+      },
+      {
+        id: 'accountable-office',
+        number: 2,
+        defaultWeight: 4,
+        title: 'Accountable use of public office',
+        body: 'Public resources — staff, postage, letterhead, floor time — belong to the public. Using official tools to advance a personal campaign is an early and reliable signal of how someone treats authority.',
+        sources: [
+          { label: 'The Fleecing Letters', href: '/share/fleecing-letters' },
+          { label: 'Postage Bandit', href: '/share/postage-bandit' },
+        ],
+      },
+      {
+        id: 'honest-costs',
+        number: 3,
+        defaultWeight: 4,
+        title: 'Honest about costs and tradeoffs',
+        body: 'Every policy has a price. Elected officials who explain benefits but hide costs are not being straight with you. Look for candidates who name the tradeoff, not just the promise.',
+        sources: [
+          { label: 'Higher Prices, Washington Debt', href: '/share/higher-prices-washington-debt' },
+        ],
+      },
+    ],
+  },
+  {
+    number: 'II',
+    title: 'Restore Accountability',
+    color: 'sandstone',
+    criteria: [
+      {
+        id: 'integrity',
+        number: 4,
+        defaultWeight: 5,
+        title: 'Integrity — your word is your bond',
+        body: 'A candidate who says one thing to one audience and something else to another is already telling you who they are. Wyoming does not have patience for that.',
+        sources: [
+          { label: "Jimmy's Story", href: '/share/jimmys-story' },
+        ],
+      },
+      {
+        id: 'character',
+        number: 5,
+        defaultWeight: 5,
+        title: 'Character — actions speak louder than words',
+        body: 'Look at what a candidate has done, not just what they say they will do. Past decisions under pressure are the most honest resume anyone can have.',
+        sources: [
+          { label: 'Postage Bandit', href: '/share/postage-bandit' },
+          { label: 'The Fleecing Letters', href: '/share/fleecing-letters' },
+        ],
+      },
+      {
+        id: 'outside-influence',
+        number: 6,
+        defaultWeight: 4,
+        title: 'Freedom from outside influence',
+        body: 'National PACs, billionaire networks, and out-of-state consulting firms are not neutral. When outside money shapes the message, Wyoming voters deserve to know who is paying and what they expect in return.',
+        sources: [
+          { label: 'Freedom or Control?', href: '/share/freedom-or-control' },
+          { label: 'Wyoming Is Not for Sale', href: '/share/wyoming-not-for-sale' },
+        ],
+      },
+    ],
+  },
+  {
+    number: 'III',
+    title: 'Listen to Wyoming',
+    color: 'sage',
+    criteria: [
+      {
+        id: 'wy-first',
+        number: 7,
+        defaultWeight: 4,
+        title: 'Wyoming first, national templates second',
+        body: 'National consulting firms write scripts. Wyoming has specific land, water, energy, and economic conditions that do not fit a national template. Candidates should know this place, not just the talking points.',
+        sources: [
+          { label: 'A Good Economy Starts at the Kitchen Table', href: '/share/wyoming-family-economy' },
+        ],
+      },
+      {
+        id: 'voters-choose',
+        number: 8,
+        defaultWeight: 4,
+        title: 'Voters choose, party serves',
+        body: 'Party structures exist to help voters make decisions — not to make decisions for them. When insiders pre-select before primary voters have spoken, they have reversed the order.',
+        sources: [
+          { label: 'Wyoming Voters Should Choose', href: '/share/wyoming-voters-choose' },
+          { label: 'Citizens Nonpartisan Ballot', href: '/share/wy-citizen-ballot' },
+        ],
+      },
+      {
+        id: 'structured-listening',
+        number: 9,
+        defaultWeight: 4,
+        title: 'Structured listening between elections',
+        body: 'Showing up at election time is not listening. A representative who only hears from constituents every four years is not representing — they are governing. Real accountability requires real input, not just polling at campaign time.',
+        sources: [
+          { label: 'Who Do Our Representatives Work For?', href: '/share/representatives-work-for' },
+          { label: 'Wyoming Voter Access Survey', href: '/share/wy-voter-access' },
+        ],
+      },
+      {
+        id: 'public-lands',
+        number: 10,
+        defaultWeight: 4,
+        title: 'Public lands stewardship',
+        body: "Wyoming's public lands sustain water, wildlife, ranching, recreation, and rural economies. Decisions about those lands belong to Wyoming voters and stakeholders — not to absentee federal managers or distant developers.",
+        sources: [
+          { label: 'Wyoming Roadless Areas Survey', href: '/share/wy-roadless-areas' },
+          { label: 'Wyoming Data Centers Survey', href: '/share/wy-data-centers' },
+        ],
+      },
+    ],
+  },
+];
+
+const pillarColors: Record<string, { accent: string; border: string; badge: string; kicker: string; strip: string }> = {
+  ember: {
+    accent: 'text-wy-ember',
+    border: 'border-wy-ember',
+    badge: 'bg-wy-ember text-white',
+    kicker: 'text-wy-ember',
+    strip: 'border-wy-ember/40',
+  },
+  sandstone: {
+    accent: 'text-wy-sandstone',
+    border: 'border-wy-sandstone',
+    badge: 'bg-wy-sandstone text-white',
+    kicker: 'text-wy-sandstone',
+    strip: 'border-wy-sandstone/40',
+  },
+  sage: {
+    accent: 'text-wy-sage',
+    border: 'border-wy-sage',
+    badge: 'bg-wy-sage text-white',
+    kicker: 'text-wy-sage',
+    strip: 'border-wy-sage/40',
+  },
+};
+---
+
+<Base
+  title="The Candidate Rubric — Skovgard 2026"
+  description="How Jimmy Skovgard picks candidates: three pillars, ten criteria, built from Wyoming research. See the rubric, adjust the weights, and make it yours."
+>
+  <Nav />
+
+  <!-- HERO -->
+  <section class="bg-wy-charcoal pt-24 pb-16 px-4">
+    <div class="max-w-4xl mx-auto">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.20em] text-xs mb-5">The Candidate Rubric</p>
+      <h1 class="font-serif font-extrabold text-4xl sm:text-5xl text-wy-bone leading-tight mb-6">
+        How I Pick a Candidate.<br />
+        <span class="text-wy-ember">And How You Can Too.</span>
+      </h1>
+      <p class="text-wy-bone/80 text-lg leading-relaxed max-w-2xl mb-4">
+        Picking a candidate by party label alone is easy. It is also how Wyoming keeps getting the same results.
+      </p>
+      <p class="text-wy-bone/80 text-lg leading-relaxed max-w-2xl mb-4">
+        I built this rubric from the ground up — working through issues, reading the research, and asking what Wyoming actually needs from a public servant.
+        Three pillars. Ten criteria. Each one backed by work you can read.
+      </p>
+      <p class="text-wy-bone/80 text-lg leading-relaxed max-w-2xl mb-8">
+        This is how I am evaluating every candidate in 2026, including the ones running against me.
+        You are welcome to use it, argue with it, or build your own.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <a href="#pillar-I" class="bg-wy-ember text-white font-bold px-6 py-3 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors">
+          Read Jimmy's Rubric
+        </a>
+        <a href="#build-rubric" class="border border-wy-dust/50 text-wy-bone/80 font-semibold px-6 py-3 rounded-sm hover:border-wy-dust hover:text-wy-bone transition-colors">
+          Customize Yours →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PILLAR SUMMARY BAR -->
+  <div class="bg-wy-charcoal border-t border-wy-dust/20 px-4 pb-12">
+    <div class="max-w-4xl mx-auto grid sm:grid-cols-3 gap-4">
+      {pillars.map((p) => (
+        <a
+          href={`#pillar-${p.number}`}
+          class="block rounded-sm border border-wy-dust/30 bg-wy-charcoal/60 px-5 py-4 hover:border-wy-dust/60 transition-colors group"
+        >
+          <p class={`text-xs font-bold uppercase tracking-widest mb-1 ${pillarColors[p.color].kicker}`}>
+            Pillar {p.number}
+          </p>
+          <p class="font-serif font-bold text-wy-bone text-lg group-hover:text-wy-sandstone transition-colors">
+            {p.title}
+          </p>
+        </a>
+      ))}
+    </div>
+  </div>
+
+  <!-- PILLARS -->
+  {pillars.map((pillar, pi) => (
+    <section
+      id={`pillar-${pillar.number}`}
+      class={`px-4 py-16 ${pi % 2 === 0 ? 'bg-wy-bone' : 'bg-white'}`}
+    >
+      <div class="max-w-4xl mx-auto">
+        <div class={`flex items-start gap-4 mb-10 pb-6 border-b-2 ${pillarColors[pillar.color].border}`}>
+          <div class={`flex-shrink-0 w-10 h-10 rounded-sm flex items-center justify-center font-serif font-bold text-sm ${pillarColors[pillar.color].badge}`}>
+            {pillar.number}
+          </div>
+          <div>
+            <p class={`text-xs font-bold uppercase tracking-widest mb-1 ${pillarColors[pillar.color].kicker}`}>
+              Pillar {pillar.number}
+            </p>
+            <h2 class="font-serif font-extrabold text-3xl text-wy-charcoal">
+              {pillar.title}
+            </h2>
+          </div>
+        </div>
+
+        <div class="space-y-8">
+          {pillar.criteria.map((c) => (
+            <article class="grid sm:grid-cols-[2.5rem_1fr] gap-4">
+              <div class="flex-shrink-0 pt-0.5">
+                <span class={`inline-flex items-center justify-center w-9 h-9 rounded-sm border-2 font-serif font-bold text-sm ${pillarColors[pillar.color].border} ${pillarColors[pillar.color].accent}`}>
+                  {c.number}
+                </span>
+              </div>
+              <div>
+                <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-2">{c.title}</h3>
+                <p class="text-wy-charcoal/80 leading-relaxed mb-3">{c.body}</p>
+                {c.sources.length > 0 && (
+                  <div class="flex flex-wrap gap-2">
+                    <span class="text-xs font-semibold uppercase tracking-widest text-wy-dust mr-1 self-center">Source:</span>
+                    {c.sources.map((s) => (
+                      <a
+                        href={s.href}
+                        class="inline-block text-xs font-semibold text-wy-ember border border-wy-ember/40 rounded-sm px-2 py-0.5 hover:bg-wy-ember hover:text-white transition-colors"
+                      >
+                        {s.label} →
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <!-- DIVIDER -->
+  <div class="bg-wy-bone px-4 py-6">
+    <div class="max-w-4xl mx-auto">
+      <hr class="topo-rule" />
+    </div>
+  </div>
+
+  <!-- HOW I BUILT IT -->
+  <section class="bg-wy-bone px-4 py-16">
+    <div class="max-w-4xl mx-auto grid sm:grid-cols-2 gap-10 items-start">
+      <div>
+        <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-xs mb-3">How I Built It</p>
+        <h2 class="font-serif font-extrabold text-3xl text-wy-charcoal mb-5">Not a talking point. A working tool.</h2>
+        <p class="text-wy-charcoal/80 leading-relaxed mb-4">
+          I did not start with the rubric. I started with the issues. The share page research — the fleecing letters, the outside money, the debt numbers, the public lands fight — pushed these criteria up from the work.
+        </p>
+        <p class="text-wy-charcoal/80 leading-relaxed mb-4">
+          The three pillars match the three commitments I made when I decided to run: defend the Constitution, restore accountability, and listen to Wyoming.
+          Each criterion is a specific, testable thing. You can apply it to any candidate, including me.
+        </p>
+        <p class="text-wy-charcoal/80 leading-relaxed">
+          The rubric starts with federal top-of-ticket races. Weights for other offices are coming.
+        </p>
+      </div>
+      <div class="rounded-sm border border-wy-dust bg-white p-6 space-y-3">
+        <p class="text-xs font-bold uppercase tracking-widest text-wy-dust">The full research</p>
+        <ul class="space-y-2">
+          {[
+            { label: 'Citizens Defend the Constitution', href: '/share/citizens-defend-the-constitution' },
+            { label: 'The Fleecing Letters', href: '/share/fleecing-letters' },
+            { label: 'Postage Bandit', href: '/share/postage-bandit' },
+            { label: 'Higher Prices, Washington Debt', href: '/share/higher-prices-washington-debt' },
+            { label: 'Freedom or Control?', href: '/share/freedom-or-control' },
+            { label: 'Wyoming Voters Should Choose', href: '/share/wyoming-voters-choose' },
+            { label: 'Who Do Our Representatives Work For?', href: '/share/representatives-work-for' },
+            { label: 'Wyoming Roadless Areas Survey', href: '/share/wy-roadless-areas' },
+            { label: 'Wyoming Data Centers Survey', href: '/share/wy-data-centers' },
+          ].map((item) => (
+            <li>
+              <a href={item.href} class="text-sm text-wy-ember font-semibold hover:text-wy-ember-dark hover:underline">
+                {item.label} →
+              </a>
+            </li>
+          ))}
+        </ul>
+        <a href="/share" class="block pt-2 text-xs font-semibold uppercase tracking-widest text-wy-charcoal/50 hover:text-wy-ember transition-colors border-t border-wy-dust/50">
+          All share pages →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIVIDER -->
+  <div class="bg-white px-4 py-6">
+    <div class="max-w-4xl mx-auto">
+      <hr class="topo-rule" />
+    </div>
+  </div>
+
+  <!-- BUILD YOUR RUBRIC -->
+  <section id="build-rubric" class="bg-white px-4 py-16">
+    <div class="max-w-4xl mx-auto">
+
+      <!-- Header -->
+      <div class="mb-10">
+        <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-xs mb-3">Build Your Rubric</p>
+        <h2 class="font-serif font-extrabold text-3xl text-wy-charcoal mb-4">Adjust the weights. Make it yours.</h2>
+        <p class="text-wy-charcoal/70 max-w-2xl leading-relaxed mb-6">
+          Every criterion starts at Jimmy's suggested weight. Raise what matters most to you, lower what matters less,
+          or turn off criteria that do not fit the race you are evaluating.
+          Your rubric saves automatically in this browser and carries forward into the citizens' ballot when it opens.
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            id="rubric-reset"
+            class="text-sm font-semibold border border-wy-dust text-wy-charcoal/70 px-4 py-2 rounded-sm hover:border-wy-charcoal/60 hover:text-wy-charcoal transition-colors"
+          >
+            Reset to Jimmy's defaults
+          </button>
+          <button
+            id="rubric-share"
+            class="text-sm font-semibold border border-wy-ember/50 text-wy-ember px-4 py-2 rounded-sm hover:bg-wy-ember hover:text-white transition-colors"
+          >
+            Copy share link
+          </button>
+          <span id="rubric-status" class="text-sm font-semibold text-wy-sage" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <!-- Two-column layout: controls + summary -->
+      <div class="grid lg:grid-cols-[1fr_260px] gap-10 items-start">
+
+        <!-- Criteria groups -->
+        <div class="space-y-10">
+          {pillars.map((pillar) => (
+            <div>
+              <div class={`flex items-center gap-2 mb-4 pb-3 border-b ${pillarColors[pillar.color].strip}`}>
+                <span class={`text-xs font-bold uppercase tracking-widest ${pillarColors[pillar.color].kicker}`}>
+                  Pillar {pillar.number} — {pillar.title}
+                </span>
+              </div>
+              <div class="space-y-2">
+                {pillar.criteria.map((c) => (
+                  <div
+                    class="rubric-row flex items-center gap-3 rounded-sm bg-wy-bone px-4 py-3 transition-opacity"
+                    data-rubric-row={c.id}
+                  >
+                    <!-- Toggle pill -->
+                    <label class="relative inline-flex items-center cursor-pointer flex-shrink-0" title={`Include "${c.title}" in your rubric`}>
+                      <input
+                        type="checkbox"
+                        class="sr-only peer"
+                        checked
+                        data-rubric-toggle={c.id}
+                      />
+                      <div class="w-9 h-5 rounded-full bg-wy-dust peer-checked:bg-wy-ember transition-colors
+                                  after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                                  after:w-4 after:h-4 after:bg-white after:rounded-full after:shadow-sm
+                                  after:transition-transform peer-checked:after:translate-x-4">
+                      </div>
+                    </label>
+
+                    <!-- Criterion title -->
+                    <span class="text-sm font-semibold text-wy-charcoal flex-1 leading-snug select-none">
+                      {c.title}
+                    </span>
+
+                    <!-- Weight slider + display -->
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                      <span class="text-xs text-wy-charcoal/30 hidden sm:inline">1</span>
+                      <input
+                        type="range"
+                        min="1"
+                        max="5"
+                        value={c.defaultWeight}
+                        class="w-24 accent-wy-ember cursor-pointer"
+                        data-rubric-weight={c.id}
+                        aria-label={`Weight for ${c.title}`}
+                      />
+                      <span class="text-xs text-wy-charcoal/30 hidden sm:inline">5</span>
+                      <span
+                        class="inline-flex items-center justify-center w-7 h-7 rounded-sm bg-wy-ember text-white text-xs font-bold flex-shrink-0"
+                        data-rubric-weight-display={c.id}
+                      >
+                        {c.defaultWeight}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <!-- Summary panel -->
+        <aside class="lg:sticky lg:top-6">
+          <div class="rounded-sm border border-wy-dust bg-wy-bone p-5">
+            <p class="text-xs font-bold uppercase tracking-widest text-wy-dust mb-4">Your rubric at a glance</p>
+            <div id="rubric-summary-list">
+              <!-- Populated by JS on load -->
+            </div>
+            <p class="mt-4 pt-3 border-t border-wy-dust/40 text-xs text-wy-charcoal/40 leading-relaxed">
+              Federal top-of-ticket races. State, county, and local office criteria coming soon.
+            </p>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA STRIP -->
+  <section class="bg-wy-charcoal px-4 py-14">
+    <div class="max-w-4xl mx-auto flex flex-col sm:flex-row gap-8 items-start sm:items-center justify-between">
+      <div>
+        <h2 class="font-serif font-extrabold text-2xl text-wy-bone mb-2">Your rubric is ready. Now use it.</h2>
+        <p class="text-wy-bone/70 max-w-lg">
+          The citizens' preference ballot opens soon. Your saved rubric will carry forward automatically —
+          the ballot will show how each candidate lines up against what you said matters most.
+        </p>
+      </div>
+      <div class="flex flex-col gap-3 flex-shrink-0">
+        <a
+          href="/share"
+          class="inline-block bg-wy-ember text-white font-bold px-7 py-3 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors text-center"
+        >
+          Read the Research →
+        </a>
+        <a
+          href="#build-rubric"
+          class="inline-block border border-wy-dust/40 text-wy-bone/70 font-semibold px-7 py-3 rounded-sm hover:border-wy-dust hover:text-wy-bone transition-colors text-center text-sm"
+        >
+          Adjust my rubric
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <Footer />
+</Base>
+
+<script is:inline>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'guide_rubric_v1';
+
+  // Must match frontmatter criteria ids and defaultWeights exactly
+  const CRITERIA = [
+    { id: 'const-fidelity',       title: 'Constitutional fidelity',                    dw: 5, pillar: 1 },
+    { id: 'accountable-office',   title: 'Accountable use of public office',            dw: 4, pillar: 1 },
+    { id: 'honest-costs',         title: 'Honest about costs and tradeoffs',            dw: 4, pillar: 1 },
+    { id: 'integrity',            title: 'Integrity — your word is your bond',          dw: 5, pillar: 2 },
+    { id: 'character',            title: 'Character — actions speak louder than words', dw: 5, pillar: 2 },
+    { id: 'outside-influence',    title: 'Freedom from outside influence',              dw: 4, pillar: 2 },
+    { id: 'wy-first',             title: 'Wyoming first, national templates second',    dw: 4, pillar: 3 },
+    { id: 'voters-choose',        title: 'Voters choose, party serves',                 dw: 4, pillar: 3 },
+    { id: 'structured-listening', title: 'Structured listening between elections',      dw: 4, pillar: 3 },
+    { id: 'public-lands',         title: 'Public lands stewardship',                    dw: 4, pillar: 3 },
+  ];
+
+  function jimmyDefaults() {
+    return Object.fromEntries(CRITERIA.map(c => [c.id, { w: c.dw, on: true }]));
+  }
+
+  function loadRubric() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.v === 1 && parsed.criteria) return parsed;
+      }
+    } catch (_) {}
+    return { v: 1, criteria: jimmyDefaults() };
+  }
+
+  function saveRubric(rubric) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(rubric)); } catch (_) {}
+    flashStatus('Saved.');
+  }
+
+  let _timer;
+  function flashStatus(msg) {
+    const el = document.getElementById('rubric-status');
+    if (!el) return;
+    el.textContent = msg;
+    clearTimeout(_timer);
+    _timer = setTimeout(function () { el.textContent = ''; }, 2000);
+  }
+
+  function renderSummary(rubric) {
+    const el = document.getElementById('rubric-summary-list');
+    if (!el) return;
+
+    const active = CRITERIA
+      .map(function (c) { return Object.assign({}, c, { state: rubric.criteria[c.id] || { w: c.dw, on: true } }); })
+      .filter(function (c) { return c.state.on !== false; })
+      .sort(function (a, b) { return b.state.w - a.state.w; });
+
+    const inactive = CRITERIA.filter(function (c) {
+      return (rubric.criteria[c.id] || { on: true }).on === false;
+    });
+
+    var max = 1;
+    active.forEach(function (c) { if (c.state.w > max) max = c.state.w; });
+
+    el.innerHTML = active.map(function (c) {
+      var pct = Math.round((c.state.w / max) * 100);
+      return '<div class="flex items-center gap-2 py-1">' +
+        '<span class="text-xs font-bold text-wy-ember w-4 text-right flex-shrink-0">' + c.state.w + '</span>' +
+        '<div class="flex-1 bg-wy-dust/40 rounded-full h-1.5">' +
+        '<div class="bg-wy-ember h-1.5 rounded-full" style="width:' + pct + '%"></div>' +
+        '</div>' +
+        '<span class="text-xs text-wy-charcoal leading-tight" style="min-width:8rem">' + c.title + '</span>' +
+        '</div>';
+    }).join('') + (inactive.length ? (
+      '<p class="text-xs text-wy-charcoal/40 mt-3 pt-3 border-t border-wy-dust/40 leading-relaxed">' +
+      'Skipped: ' + inactive.map(function (c) { return c.title; }).join(' &middot; ') +
+      '</p>'
+    ) : '');
+  }
+
+  function applyRubric(rubric) {
+    CRITERIA.forEach(function (c) {
+      var state = rubric.criteria[c.id] || { w: c.dw, on: true };
+      var on = state.on !== false;
+
+      var toggle = document.querySelector('[data-rubric-toggle="' + c.id + '"]');
+      var slider = document.querySelector('[data-rubric-weight="' + c.id + '"]');
+      var display = document.querySelector('[data-rubric-weight-display="' + c.id + '"]');
+      var row = document.querySelector('[data-rubric-row="' + c.id + '"]');
+
+      if (toggle) toggle.checked = on;
+      if (slider) {
+        slider.value = state.w || c.dw;
+        slider.disabled = !on;
+      }
+      if (display) display.textContent = state.w || c.dw;
+      if (row) {
+        if (on) { row.style.opacity = ''; } else { row.style.opacity = '0.4'; }
+      }
+    });
+    renderSummary(rubric);
+  }
+
+  function loadFromUrl() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var r = params.get('r');
+      if (!r) return false;
+      var decoded = atob(r);
+      var criteria = {};
+      decoded.split(',').forEach(function (part) {
+        var segs = part.split(':');
+        var id = segs[0], w = segs[1], on = segs[2];
+        if (id && w) criteria[id] = { w: parseInt(w, 10), on: on !== '0' };
+      });
+      var rubric = { v: 1, criteria: criteria };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rubric));
+      return true;
+    } catch (_) { return false; }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (loadFromUrl()) {
+      flashStatus('Rubric loaded from shared link.');
+    }
+    applyRubric(loadRubric());
+
+    // Toggle on/off
+    document.querySelectorAll('[data-rubric-toggle]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        var r = loadRubric();
+        var id = input.dataset.rubricToggle;
+        var def = CRITERIA.find(function (c) { return c.id === id; });
+        if (!r.criteria[id]) r.criteria[id] = { w: def ? def.dw : 4, on: true };
+        r.criteria[id].on = input.checked;
+        saveRubric(r);
+        applyRubric(r);
+      });
+    });
+
+    // Weight slider
+    document.querySelectorAll('[data-rubric-weight]').forEach(function (input) {
+      input.addEventListener('input', function () {
+        var r = loadRubric();
+        var id = input.dataset.rubricWeight;
+        var def = CRITERIA.find(function (c) { return c.id === id; });
+        if (!r.criteria[id]) r.criteria[id] = { w: def ? def.dw : 4, on: true };
+        r.criteria[id].w = parseInt(input.value, 10);
+        var display = document.querySelector('[data-rubric-weight-display="' + id + '"]');
+        if (display) display.textContent = input.value;
+        saveRubric(r);
+        renderSummary(r);
+      });
+    });
+
+    // Reset
+    var resetBtn = document.getElementById('rubric-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function () {
+        var r = { v: 1, criteria: jimmyDefaults() };
+        saveRubric(r);
+        applyRubric(r);
+        flashStatus("Reset to Jimmy's defaults.");
+      });
+    }
+
+    // Share link
+    var shareBtn = document.getElementById('rubric-share');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', function () {
+        var r = loadRubric();
+        var compact = Object.entries(r.criteria)
+          .map(function (entry) {
+            var id = entry[0], s = entry[1];
+            return id + ':' + (s.w || 4) + ':' + (s.on === false ? 0 : 1);
+          })
+          .join(',');
+        var url = window.location.origin + '/guide/?r=' + btoa(compact);
+        if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(function () { flashStatus('Share link copied.'); });
+        } else {
+          flashStatus('Copy: ' + url);
+        }
+      });
+    }
+  });
+})();
+</script>

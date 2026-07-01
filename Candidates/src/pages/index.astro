@@ -82,16 +82,16 @@ const addressFields = [
     <meta name="viewport" content="width=device-width" />
     <meta
       name="description"
-      content="Wyoming 2026 primary voter guide and candidate lookup for candidates.skovgard2026.org."
+      content="Find your Wyoming 2026 primary ballot, compare candidates, browse races, and learn who is running in your county, district, and precinct."
     />
     <meta name="generator" content={Astro.generator} />
-    <title>Wyoming 2026 Voter Guide | Candidates</title>
+    <title>Wyoming 2026 Primary Ballot Guide — Find Candidates by County &amp; District</title>
 
     <!-- Open Graph -->
     <meta property="og:type"        content="website" />
     <meta property="og:url"         content="https://candidates.skovgard2026.org/" />
-    <meta property="og:title"       content="Wyoming 2026 Voter Guide | Candidates" />
-    <meta property="og:description" content="Every candidate. One place. Find who is on your Wyoming ballot and compare the field before August 18." />
+    <meta property="og:title"       content="Wyoming 2026 Primary Ballot Guide — Find Candidates by County &amp; District" />
+    <meta property="og:description" content="Find your Wyoming 2026 primary ballot, compare candidates, browse races, and learn who is running in your county, district, and precinct." />
     <meta property="og:image"       content="https://candidates.skovgard2026.org/og-image.png" />
     <meta property="og:image:width"  content="1200" />
     <meta property="og:image:height" content="630" />
@@ -102,8 +102,8 @@ const addressFields = [
 
     <!-- Twitter / X card -->
     <meta name="twitter:card"        content="summary_large_image" />
-    <meta name="twitter:title"       content="Wyoming 2026 Voter Guide | Candidates" />
-    <meta name="twitter:description" content="Every candidate. One place. Find who is on your Wyoming ballot and compare the field before August 18." />
+    <meta name="twitter:title"       content="Wyoming 2026 Primary Ballot Guide — Find Candidates by County &amp; District" />
+    <meta name="twitter:description" content="Find your Wyoming 2026 primary ballot, compare candidates, browse races, and learn who is running in your county, district, and precinct." />
     <meta name="twitter:image"       content="https://candidates.skovgard2026.org/og-image.png" />
   </head>
   <body>
@@ -333,6 +333,38 @@ const addressFields = [
         return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
       }
 
+      // Browsers have no standard autocomplete token for "house number alone," so
+      // autofill sometimes drops the full street address into either the house-number
+      // field or the street field (never splitting it the way this form expects).
+      function reconcileAddressFields(houseNumber, street) {
+        let workingHouse = String(houseNumber || '').trim().replace(/\s+/g, ' ');
+        let workingStreet = String(street || '').trim().replace(/\s+/g, ' ');
+        const warnings = [];
+        let changed = false;
+
+        const houseMatch = workingHouse.match(/^(\d+[A-Za-z]?(?:-\d+)?)\s+(.+)$/);
+        if (houseMatch) {
+          const [, extractedNumber, remainder] = houseMatch;
+          workingHouse = extractedNumber;
+          if (!workingStreet) workingStreet = remainder;
+          changed = true;
+          warnings.push('Split the combined address entered in the house number field.');
+        }
+
+        if (!workingHouse) {
+          const streetMatch = workingStreet.match(/^(\d+[A-Za-z]?(?:-\d+)?)\s+(.+)$/);
+          if (streetMatch) {
+            const [, extractedNumber, remainder] = streetMatch;
+            workingHouse = extractedNumber;
+            workingStreet = remainder;
+            changed = true;
+            warnings.push('Split the combined address entered in the street field.');
+          }
+        }
+
+        return { houseNumber: workingHouse, street: workingStreet, changed, warnings };
+      }
+
       function standardizeStreetName(street, houseNumber = '') {
         const original = String(street || '').trim().replace(/\s+/g, ' ');
         const houseKey = normalizeHouseNumber(houseNumber);
@@ -388,6 +420,17 @@ const addressFields = [
         };
         const fieldErrors = {};
         const warnings = [];
+
+        const reconciled = reconcileAddressFields(payload.houseNumber, payload.street);
+        if (reconciled.changed) {
+          payload.houseNumber = reconciled.houseNumber;
+          payload.street = reconciled.street;
+          const houseField = getField('houseNumber');
+          const streetField = getField('street');
+          if (houseField) houseField.value = reconciled.houseNumber;
+          if (streetField) streetField.value = reconciled.street;
+          warnings.push(...reconciled.warnings);
+        }
 
         const streetNormalization = standardizeStreetName(payload.street, payload.houseNumber);
         if (streetNormalization.value && streetNormalization.value !== payload.street) {
@@ -450,6 +493,12 @@ const addressFields = [
               </li>`;
             }).join('')}
           </ul>
+          <div class="guide-ballot-cta">
+            <p class="guide-ballot-cta__text">Ready to record your choices?</p>
+            <a class="guide-ballot-cta__link" href="https://grassrootsmvt.org/ballot/" target="_blank" rel="noopener">
+              Go to My Ballot &rarr;
+            </a>
+          </div>
         `;
         setHidden(lookupResults, false);
       }
@@ -768,6 +817,9 @@ const addressFields = [
             if (data.fieldErrors) {
               markFieldErrors(data.fieldErrors);
               const firstError = Object.keys(data.fieldErrors)[0];
+              if (data.suggestedFix?.houseNumber && getField('houseNumber')) {
+                getField('houseNumber').value = data.suggestedFix.houseNumber;
+              }
               if (data.suggestedFix?.street && getField('street')) {
                 getField('street').value = data.suggestedFix.street;
               }
@@ -777,6 +829,9 @@ const addressFields = [
             return;
           }
 
+          if (data.address?.standardizedFields?.houseNumber && getField('houseNumber')) {
+            getField('houseNumber').value = data.address.standardizedFields.houseNumber;
+          }
           if (data.address?.standardizedFields?.street && getField('street')) {
             getField('street').value = data.address.standardizedFields.street;
           }
@@ -1695,6 +1750,43 @@ const addressFields = [
 
   .poll-clerk-link a:hover {
     text-decoration-color: var(--ember);
+  }
+
+  .guide-ballot-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    padding: 0.875rem 1rem;
+    border: 1.5px solid var(--sandstone);
+    border-radius: 0.4rem;
+    background: #fdf7ef;
+  }
+
+  .guide-ballot-cta__text {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--navy);
+  }
+
+  .guide-ballot-cta__link {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    background: var(--ember);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    border-radius: 0.3rem;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+
+  .guide-ballot-cta__link:hover {
+    background: #8b1a26;
+    color: #fff;
   }
 
   .site-footer {

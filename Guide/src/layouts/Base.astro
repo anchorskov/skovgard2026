@@ -34,12 +34,16 @@ const canonicalUrl = `https://guide.skovgard2026.org${currentPath || '/'}`;
         <a href="/" class="font-semibold text-wy-charcoal hover:text-wy-ember transition-colors">
           Wyoming 2026 Candidate Guide
         </a>
-        <a
-          href="https://candidates.skovgard2026.org"
-          class="text-sm text-wy-sandstone hover:text-wy-rust transition-colors"
-        >
-          Full voter guide →
-        </a>
+        <nav class="flex gap-5 text-sm">
+          <a href="/admin/rubric/index.html"
+             class="text-wy-sandstone hover:text-wy-ember transition-colors">
+            Rubric
+          </a>
+          <a href="/admin/evidence/index.html"
+             class="text-wy-sandstone hover:text-wy-ember transition-colors">
+            Evidence
+          </a>
+        </nav>
       </div>
     </header>
 

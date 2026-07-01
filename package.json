@@ -36,5 +36,8 @@
   },
   "overrides": {
     "vite": "^7"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.3"
   }
 }

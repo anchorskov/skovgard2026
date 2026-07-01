@@ -34,11 +34,14 @@ import { MEDIA_BASE_URL } from '../constants';
         The oath still matters. Wyoming deserves accountability, local control, and action.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="/donate" class="bg-wy-ember text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember-dark transition-colors shadow-lg shadow-wy-charcoal/40">
+        <a href="/donate" class="border-2 border-wy-ember bg-wy-ember/10 text-wy-ember font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember/20 transition-colors">
           Support Jimmy
         </a>
-        <a href="/volunteer" class="border-2 border-wy-bone text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-bone/10 transition-colors">
+        <a href="/volunteer" class="border-2 border-wy-bone bg-wy-bone/10 text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-bone/20 transition-colors">
           Volunteer
+        </a>
+        <a href="https://candidates.skovgard2026.org" target="_blank" rel="noopener" class="border-2 border-wy-sandstone bg-wy-sandstone/10 text-wy-sandstone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-sandstone/20 transition-colors">
+          My Ballot
         </a>
       </div>
     </div>
@@ -124,40 +127,29 @@ import { MEDIA_BASE_URL } from '../constants';
     </div>
   </section>
 
-  <!-- LATEST PODCAST -->
+  <!-- LATEST PODCAST — populated client-side from /api/podcast-feed -->
   <section class="bg-wy-stone py-20 px-4">
     <div class="max-w-5xl mx-auto">
       <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-3">On the Record</p>
       <h2 class="text-4xl font-serif font-bold text-wy-navy mb-10">Listen to Jimmy</h2>
-      <div class="grid md:grid-cols-2 gap-6">
-        <!-- Featured episode card -->
-        <div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust">
-          <p class="text-sm text-wy-charcoal/50 mb-2">Jan 25, 2026 · 38 min</p>
-          <h3 class="font-serif font-extrabold text-wy-charcoal text-xl mb-3">Jack Daniels &amp; Jimmy: Wyoming Politics</h3>
-          <p class="text-wy-charcoal/70 mb-4">An unscripted conversation about what's really going on in Cheyenne and Washington.</p>
-          <audio controls class="w-full rounded" preload="none">
-            <source src={`${MEDIA_BASE_URL}/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3`} type="audio/mpeg" />
-          </audio>
-          <a
-            href={`${MEDIA_BASE_URL}/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3`}
-            target="_blank"
-            rel="noopener"
-            class="mt-3 inline-block text-sm font-semibold text-wy-sandstone hover:text-wy-ember hover:underline"
-          >
-            Open audio directly
-          </a>
+      <div id="otr-grid" class="grid md:grid-cols-2 gap-6">
+        <!-- skeleton cards while feed loads -->
+        <div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust animate-pulse">
+          <div class="h-3 bg-wy-dust/50 rounded w-1/3 mb-3"></div>
+          <div class="h-5 bg-wy-dust/50 rounded w-3/4 mb-2"></div>
+          <div class="h-4 bg-wy-dust/30 rounded w-full mb-1"></div>
+          <div class="h-4 bg-wy-dust/30 rounded w-5/6"></div>
         </div>
-        <div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust flex flex-col justify-between">
-          <div>
-            <p class="text-sm text-wy-charcoal/50 mb-2">Mar 20, 2026 · YouTube</p>
-            <h3 class="font-serif font-extrabold text-wy-charcoal text-xl mb-3">Jimmy &amp; Kevin: Real Wyoming Issues</h3>
-            <p class="text-wy-charcoal/70 mb-4">Live conversation diving into water rights, federal land use, and rural healthcare.</p>
-          </div>
-          <a href="https://youtu.be/yiqVj_xtO7Q?t=156" target="_blank" rel="noopener"
-             class="inline-flex items-center gap-2 text-wy-ember font-semibold hover:text-wy-ember-dark hover:underline">
-            Watch on YouTube →
-          </a>
+        <div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust animate-pulse">
+          <div class="h-3 bg-wy-dust/50 rounded w-1/3 mb-3"></div>
+          <div class="h-5 bg-wy-dust/50 rounded w-3/4 mb-2"></div>
+          <div class="h-4 bg-wy-dust/30 rounded w-full mb-1"></div>
+          <div class="h-4 bg-wy-dust/30 rounded w-5/6"></div>
         </div>
+      </div>
+      <div id="otr-older-row" class="mt-6 hidden">
+        <p class="text-xs text-wy-charcoal/50 uppercase tracking-widest mb-3 font-semibold">Older Videos</p>
+        <div id="otr-older-chips" class="flex flex-wrap gap-2"></div>
       </div>
       <div class="mt-8 text-center">
         <a href="/podcast" class="text-wy-charcoal font-semibold border-b-2 border-wy-ember pb-1 hover:text-wy-ember transition-colors">
@@ -170,3 +162,120 @@ import { MEDIA_BASE_URL } from '../constants';
   <Footer />
 
 </Base>
+
+<script>
+(function () {
+  const grid = document.getElementById('otr-grid');
+  const olderRow = document.getElementById('otr-older-row');
+  const olderChips = document.getElementById('otr-older-chips');
+  if (!grid) return;
+
+  function fmtDate(rfc) {
+    try { return new Date(rfc).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
+    catch (_) { return rfc || ''; }
+  }
+
+  function fmtISODate(iso) {
+    try { return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
+    catch (_) { return iso || ''; }
+  }
+
+  function parseMeta(summary) {
+    try { return typeof summary === 'string' && summary.startsWith('{') ? JSON.parse(summary) : { title: summary, slug: null, duration: null }; }
+    catch (_) { return { title: summary, slug: null, duration: null }; }
+  }
+
+  function substackCard(ep) {
+    const isAudio = ep.audio && !ep.audio.endsWith('.mp4');
+    return `
+      <div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust flex flex-col justify-between">
+        <div>
+          <p class="text-sm text-wy-charcoal/50 mb-2">${fmtDate(ep.date)}${ep.duration ? ' · ' + ep.duration : ''}</p>
+          <h3 class="font-serif font-extrabold text-wy-charcoal text-xl mb-3">
+            <a href="${ep.link}" target="_blank" rel="noopener" class="hover:text-wy-ember transition-colors">${ep.title}</a>
+          </h3>
+          ${ep.description ? `<p class="text-wy-charcoal/70 mb-4 text-sm">${ep.description}</p>` : ''}
+        </div>
+        ${isAudio ? `<audio controls class="w-full rounded mt-2" preload="none"><source src="${ep.audio}" type="audio/mpeg" /></audio>` : ''}
+        <a href="${ep.link}" target="_blank" rel="noopener"
+           class="mt-4 inline-block text-sm font-semibold text-wy-sandstone hover:text-wy-ember hover:underline">
+          Listen on Substack →
+        </a>
+      </div>`;
+  }
+
+  function campaignCard(ep) {
+    const meta = parseMeta(ep.summary);
+    const title = meta.title || ep.guest_slug;
+    const slug = meta.slug;
+    const dur = meta.duration;
+    return `
+      <div id="otr-campaign-card" class="bg-white rounded-sm shadow-md border border-wy-dust flex flex-col overflow-hidden">
+        <video controls preload="none" class="w-full block bg-black" style="max-height:280px">
+          <source src="${ep.url}" type="video/mp4" />
+        </video>
+        <div class="p-5 flex flex-col flex-1 justify-between">
+          <div>
+            <p class="text-xs text-wy-charcoal/50 mb-1">${fmtISODate(ep.episode_date)}${dur ? ' · ' + dur : ''} · Campaign</p>
+            <h3 class="font-serif font-extrabold text-wy-charcoal text-lg mb-2 leading-snug">${title}</h3>
+          </div>
+          ${slug ? `<a href="/share/${slug}" class="mt-2 inline-block text-sm font-semibold text-wy-sandstone hover:text-wy-ember hover:underline">Watch &amp; Share →</a>` : ''}
+        </div>
+      </div>`;
+  }
+
+  function chipLabel(ep) {
+    const meta = parseMeta(ep.summary);
+    const title = meta.title || ep.guest_slug;
+    const dur = meta.duration;
+    const d = new Date(ep.episode_date + 'T12:00:00Z');
+    const shortDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${shortDate} · ${title}${dur ? ' (' + dur + ')' : ''}`;
+  }
+
+  Promise.all([
+    fetch('/api/podcast-feed').then(r => r.ok ? r.json() : Promise.reject()),
+    fetch('/api/podcasts').then(r => r.ok ? r.json() : Promise.reject()),
+  ]).then(([feedData, podcastData]) => {
+    const substackEp = (feedData.episodes || [])[0];
+    const campaignVids = (podcastData.episodes || []).filter(e => e.guest_slug === 'campaign');
+    // campaignVids[0] is already shown in the Featured Message Video section above — skip it
+    const slotVids = campaignVids.slice(1);
+    const featured = slotVids[0];
+    const older = slotVids.slice(1);
+
+    const slot1 = substackEp
+      ? substackCard(substackEp)
+      : '<div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust"><p class="text-wy-charcoal/50 text-sm">No recent posts.</p></div>';
+
+    grid.innerHTML = slot1 + (featured ? campaignCard(featured) : '');
+
+    if (older.length > 0 && olderRow && olderChips) {
+      olderChips.innerHTML = older.map((v, i) =>
+        `<button class="text-xs px-3 py-1.5 rounded border border-wy-dust bg-white text-wy-charcoal/70 hover:border-wy-ember hover:text-wy-ember transition-colors font-semibold whitespace-nowrap" data-idx="${i}">${chipLabel(v)}</button>`
+      ).join('');
+      olderRow.classList.remove('hidden');
+
+      olderChips.addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-idx]');
+        if (!btn) return;
+        const ep = older[parseInt(btn.dataset.idx, 10)];
+        if (!ep) return;
+        const card = document.getElementById('otr-campaign-card');
+        if (card) {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = campaignCard(ep);
+          card.parentNode.replaceChild(tmp.firstElementChild, card);
+        }
+      });
+    }
+  }).catch(() => {
+    grid.innerHTML = `
+      <div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust col-span-2 text-center">
+        <p class="text-wy-charcoal/60 mb-3">Visit Substack for the latest episodes.</p>
+        <a href="https://jimskovgard.substack.com/" target="_blank" rel="noopener"
+           class="text-wy-ember font-semibold hover:underline">Open Substack →</a>
+      </div>`;
+  });
+})();
+</script>

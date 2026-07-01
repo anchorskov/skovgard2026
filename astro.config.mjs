@@ -1,6 +1,7 @@
 // astro.config.mjs
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
+import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
 // Pure static output — backend is a separate Cloudflare Worker
@@ -9,7 +10,7 @@ export default defineConfig({
   site: 'https://www.skovgard2026.org',
   output: 'static',
   publicDir: 'static',   // Hugo-style: static/ directory served as public assets
-  integrations: [mdx()],
+  integrations: [mdx(), sitemap()],
   vite: {
     plugins: [tailwindcss()],
     server: {

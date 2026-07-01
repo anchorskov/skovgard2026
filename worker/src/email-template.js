@@ -1403,6 +1403,116 @@ const ONE_MILLION_MESSAGES_BODY_HTML = `
   </table>
 `;
 
+const TOWN_HALL_INTRODUCTION_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    At a Wyoming town hall this spring, Jimmy Skovgard opened with something you don't hear
+    from politicians very often — an honest admission.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #b22234;background:#fef7f7;">
+    <tr>
+      <td style="padding:20px 22px;">
+        <p style="margin:0 0 10px;font-size:18px;line-height:1.55;color:#111827;font-style:italic;font-weight:bold;">
+          "If it said R, I hit the checkbox."
+        </p>
+        <p style="margin:0;font-size:13px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">
+          — Jimmy Skovgard, Wyoming Town Hall, April 2026
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Most Wyoming voters have been exactly where he was. We pick a party and check the box
+    without always looking closely at who we're actually electing or what they'll do
+    once they get there.
+  </p>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Jimmy's message: that comfortable habit has a real cost, and Wyoming is paying it right now.
+  </p>
+
+  <h2 style="margin:26px 0 12px;font-size:20px;line-height:1.3;color:#0f2742;">The Legislative Branch Has Left Wyoming Behind</h2>
+
+  <p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#111827;">
+    The founders placed Congress at Article I for a reason — it was meant to be the most powerful
+    branch of government. Jimmy laid it out plainly: Article I legislators have handed their authority
+    to Article II executives, and Wyoming citizens are left with representatives who follow
+    rather than lead.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #d8b46a;background:#fbf8f1;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#c68a4a;">Example he raised</p>
+        <p style="margin:0;font-size:15px;line-height:1.7;color:#111827;">
+          Nine cabinet members. <strong>Combined wealth over $460 billion.</strong>
+          The wealthy are represented well — how about the rest of us?
+          The Wyoming congressional delegation had one question to answer: do we confirm these appointments
+          and trust the process, or do we ask harder questions first?
+          Their answer told us something.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <h2 style="margin:26px 0 12px;font-size:20px;line-height:1.3;color:#0f2742;">The Tools Exist — the Willpower Doesn't</h2>
+
+  <p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#111827;">
+    Jimmy pointed to the technology and the platforms Wyoming citizens now have to make their
+    voices heard at the district level — verified public input, direct to their representatives.
+    The tools are there. The bottleneck is whether the people we send to Washington are willing
+    to listen and act.
+  </p>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    That's what this campaign is built around: putting Wyoming citizens back in the driver's seat.
+  </p>
+
+  <h2 style="margin:26px 0 12px;font-size:20px;line-height:1.3;color:#0f2742;">What You Can Do</h2>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:0 0 22px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+    <tr>
+      <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-size:15px;line-height:1.6;color:#111827;">
+        <strong style="color:#b22234;">1.</strong>&nbsp; Watch the town hall and share this page with a neighbor who might be thinking the same thing.
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-size:15px;line-height:1.6;color:#111827;">
+        <strong style="color:#b22234;">2.</strong>&nbsp; Ask your own honest question: who did you vote for last time, and do you know what they did with it?
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:14px 16px;font-size:15px;line-height:1.6;color:#111827;">
+        <strong style="color:#b22234;">3.</strong>&nbsp; Volunteer. The August 18th primary is close. Wyoming citizens deciding this race — not outside money — is exactly what Jimmy is talking about.
+      </td>
+    </tr>
+  </table>
+
+  <table cellpadding="0" cellspacing="0" style="margin:18px 0 22px;">
+    <tr>
+      <td style="background:#b22234;border-radius:8px;padding:12px 28px;">
+        <a href="https://skovgard2026.org/share/town-hall-introduction"
+           style="color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;">
+          Watch the Town Hall &#8594;
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #d8b46a;background:#fbf8f1;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 6px;font-size:15px;line-height:1.7;color:#111827;">Citizens are the fourth branch of government.</p>
+        <p style="margin:0 0 6px;font-size:15px;line-height:1.7;color:#111827;">Our representatives work for us.</p>
+        <p style="margin:0;font-size:15px;line-height:1.7;color:#111827;font-weight:bold;">Freedom works only when citizens use it.</p>
+      </td>
+    </tr>
+  </table>
+`;
+
 export const SHARE_MESSAGES = {
   "wyoming-not-for-sale": {
     title:        "Wyoming Is Not for Sale",
@@ -1712,6 +1822,21 @@ export const SHARE_MESSAGES = {
     intro(n) {
       return n
         ? `${n} wanted to share this movement with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "town-hall-introduction": {
+    title:        "If It Said R, I Hit the Checkbox.",
+    body_html:    TOWN_HALL_INTRODUCTION_BODY_HTML,
+    preview_text: "\"If it said R, I hit the checkbox.\" — Jimmy Skovgard's honest admission at a Wyoming town hall.",
+    subject(n) {
+      return n
+        ? `${n} shared this — a Wyoming neighbor's honest admission`
+        : '"If it said R, I hit the checkbox." — A Wyoming voice';
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this Wyoming town hall moment with you.`
         : "A Wyoming neighbor wanted to share this with you.";
     },
   },
@@ -2478,6 +2603,50 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "We are Wyoming.",
           "Our representatives work for us.",
           "The Constitution belongs to the people.",
+        ]
+    : slug === "town-hall-introduction"
+      ? [
+          "At a Wyoming town hall this spring, Jimmy Skovgard opened with an honest admission.",
+          "",
+          "  \"If it said R, I hit the checkbox.\"",
+          "  — Jimmy Skovgard, Wyoming Town Hall, April 2026",
+          "",
+          "Most Wyoming voters have been exactly there. We pick a party and check the box",
+          "without always looking closely at who we're electing or what they'll do in office.",
+          "Jimmy's point: that comfortable habit has a real cost, and Wyoming is paying it.",
+          "",
+          "THE LEGISLATIVE BRANCH HAS LEFT WYOMING BEHIND",
+          "",
+          "Congress sits at Article I for a reason — it was meant to be the most powerful branch.",
+          "Instead, Article I legislators have handed their authority to Article II executives.",
+          "Wyoming is left with representatives who follow rather than lead.",
+          "",
+          "He raised a clear example: nine cabinet members, combined wealth over $460 billion.",
+          "The wealthy are represented well — how about the rest of us?",
+          "One question for the Wyoming delegation — confirm and trust the process, or ask",
+          "harder questions first? Their answer told us something.",
+          "",
+          "THE TOOLS EXIST — THE WILLPOWER DOESN'T",
+          "",
+          "Wyoming citizens now have technology and platforms to deliver verified public input",
+          "directly to their representatives, district by district. The bottleneck is whether",
+          "the people we send to Washington are willing to listen and act.",
+          "",
+          "WHAT YOU CAN DO",
+          "",
+          "  1. Watch the town hall and share it with a neighbor who might be thinking the same thing.",
+          "     https://skovgard2026.org/share/town-hall-introduction",
+          "",
+          "  2. Ask your own honest question: who did you vote for last time, and do you",
+          "     know what they did with it?",
+          "",
+          "  3. Volunteer. The August 18th primary is close. Wyoming citizens deciding this",
+          "     race — not outside money — is exactly what Jimmy is talking about.",
+          "     https://skovgard2026.org/volunteer/",
+          "",
+          "Citizens are the fourth branch of government.",
+          "Our representatives work for us.",
+          "Freedom works only when citizens use it.",
         ]
       : [
           "This campaign is built around two simple beliefs.",

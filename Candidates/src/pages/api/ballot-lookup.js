@@ -165,9 +165,49 @@ async function parsePayload(request) {
   return Object.fromEntries(formData.entries());
 }
 
+// Browsers have no standard autocomplete token for "house number alone," so
+// autofill sometimes drops the full street address (e.g. "123 Main St") into
+// either the house-number field or the street field. Detect that shape and
+// split it back apart, whichever field it landed in.
+function reconcileAddressFields(houseNumber, street) {
+  let workingHouse = normalizeText(houseNumber);
+  let workingStreet = normalizeText(street);
+  const warnings = [];
+  let changed = false;
+
+  const houseMatch = workingHouse.match(/^(\d+[A-Za-z]?(?:-\d+)?)\s+(.+)$/);
+  if (houseMatch) {
+    const [, extractedNumber, remainder] = houseMatch;
+    workingHouse = extractedNumber;
+    if (!workingStreet) workingStreet = remainder;
+    changed = true;
+    warnings.push({
+      field: 'houseNumber',
+      message: 'Split the combined address entered in the house number field.',
+    });
+  }
+
+  if (!workingHouse) {
+    const streetMatch = workingStreet.match(/^(\d+[A-Za-z]?(?:-\d+)?)\s+(.+)$/);
+    if (streetMatch) {
+      const [, extractedNumber, remainder] = streetMatch;
+      workingHouse = extractedNumber;
+      workingStreet = remainder;
+      changed = true;
+      warnings.push({
+        field: 'street',
+        message: 'Split the combined address entered in the street field.',
+      });
+    }
+  }
+
+  return { houseNumber: workingHouse, street: workingStreet, changed, warnings };
+}
+
 function buildAddress(payload) {
-  const houseNumber = normalizeText(payload.houseNumber);
-  const streetNormalization = standardizeStreetName(payload.street, houseNumber);
+  const reconciled = reconcileAddressFields(payload.houseNumber, payload.street);
+  const houseNumber = normalizeText(reconciled.houseNumber);
+  const streetNormalization = standardizeStreetName(reconciled.street, houseNumber);
   const street = streetNormalization.value;
   const city = normalizeText(payload.city);
   const zip = normalizeZip(payload.zip);
@@ -176,14 +216,15 @@ function buildAddress(payload) {
   return {
     houseNumber,
     street,
-    rawStreet: normalizeText(payload.street),
+    rawStreet: normalizeText(reconciled.street),
     city,
     state: 'WY',
     zip,
     combined,
-    inputWarnings: streetNormalization.warnings,
+    inputWarnings: [...reconciled.warnings, ...streetNormalization.warnings],
     standardizedFields: {
-      street: streetNormalization.changed ? street : null,
+      houseNumber: reconciled.changed ? houseNumber : null,
+      street: (streetNormalization.changed || reconciled.changed) ? street : null,
     },
   };
 }
@@ -1115,6 +1156,7 @@ export async function POST({ request }) {
         message: 'Please correct the highlighted address fields.',
         fieldErrors,
         suggestedFix: {
+          houseNumber: address.standardizedFields.houseNumber,
           street: address.standardizedFields.street,
         },
       },

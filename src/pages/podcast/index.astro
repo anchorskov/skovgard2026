@@ -2,47 +2,30 @@
 import Base from '../../layouts/Base.astro';
 import Nav from '../../components/Nav.astro';
 import Footer from '../../components/Footer.astro';
-import { MEDIA_BASE_URL } from '../../constants';
 
-const episodes = [
+// YouTube / Facebook one-offs — external links, genuinely static, updated manually
+const externalEpisodes = [
   {
     date: 'March 20, 2026', guest: 'Kevin',
     title: 'Real Wyoming Issues',
     description: 'Water rights, federal land use, and rural healthcare: what Washington gets wrong about the West.',
-    type: 'youtube', url: 'https://youtu.be/yiqVj_xtO7Q?t=156', label: 'Watch on YouTube',
+    url: 'https://youtu.be/yiqVj_xtO7Q?t=156', label: 'Watch on YouTube',
   },
   {
     date: 'February 17, 2026', guest: 'Jake, Cowboy State Daily',
     title: 'Cowboy State Daily Interview',
     description: 'Wide-ranging conversation for Cowboy State Daily.',
-    type: 'youtube', url: 'https://youtu.be/yrcZ6PyU1mE?t=5270', label: 'Watch on YouTube (starts 1:27:50)',
+    url: 'https://youtu.be/yrcZ6PyU1mE?t=5270', label: 'Watch on YouTube (starts 1:27:50)',
   },
   {
     date: 'February 6, 2026', guest: 'Eric Henderson',
     title: 'Talk Shop',
     description: 'Eric Henderson and Jimmy talk shop on Wyoming civic life.',
-    type: 'facebook', url: 'https://www.facebook.com/share/v/187BgDeHSQ/', label: 'Watch on Facebook',
-  },
-  {
-    date: 'January 25, 2026', guest: 'Jack Daniels', duration: '38:04',
-    title: 'Wyoming Politics and Concerns',
-    description: 'Unscripted conversation on what is really happening in Wyoming politics.',
-    type: 'audio', src: MEDIA_BASE_URL + '/jack-daniels/2026-01-25/Jack_Daniels_Jimmy_Skovgard_R2.mp3',
-  },
-  {
-    date: 'December 14, 2025', guest: 'JR Riggins',
-    title: 'Stories of Redemption',
-    description: 'Three-part conversation on redemption, resilience, and Wyoming character.',
-    type: 'video-series',
-    parts: [
-      { label: 'Part 1 · 18:42', audio: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp3', video: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-01.mp4' },
-      { label: 'Part 2 · 16:08', audio: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-02.mp3', video: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-02.mp4' },
-      { label: 'Part 3 · 14:27', audio: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-03.mp3', video: MEDIA_BASE_URL + '/jr-riggins/2025-12-14/JR_RIGGINS_-03.mp4' },
-    ],
+    url: 'https://www.facebook.com/share/v/187BgDeHSQ/', label: 'Watch on Facebook',
   },
 ];
 ---
-<Base title='Podcast — Skovgard 2026' description='Jimmy Skovgard in conversation with Wyoming leaders and citizens.'>
+<Base title='Podcast — Skovgard 2026' description='Jimmy Skovgard in conversation with Wyoming leaders and citizens. New episodes every morning on Substack.'>
   <Nav />
   <main class='pt-24 pb-20 px-4'>
     <div class='max-w-4xl mx-auto'>
@@ -50,69 +33,171 @@ const episodes = [
       <h1 class='text-5xl font-serif font-bold text-wy-navy mb-4'>Podcast</h1>
       <p class='text-gray-600 text-lg mb-12 max-w-2xl'>
         Real conversations with Wyoming leaders, teachers, and newsmakers about restoration, renewal, and civic infrastructure.
+        New episodes every morning on <a href='https://jimskovgard.substack.com/' target='_blank' rel='noopener' class='text-wy-gold hover:underline'>Substack</a>.
       </p>
 
-      <div class='space-y-8'>
-        {episodes.map(ep => (
-          <article class='bg-white rounded-xl shadow-md p-6 border border-gray-100'>
-            <p class='text-sm text-gray-400 mb-1'>{ep.date} &middot; {ep.guest}</p>
-            <h2 class='text-xl font-serif font-bold text-wy-navy mb-2'>{ep.title}</h2>
-            <p class='text-gray-600 mb-4'>{ep.description}</p>
-
-            {ep.type === 'audio' && (
-              <div>
-                {ep.duration && <p class='text-xs text-gray-400 mb-2'>{ep.duration}</p>}
-                <audio controls class='w-full rounded' preload='none'>
-                  <source src={ep.src} type='audio/mpeg' />
-                </audio>
-                <a
-                  href={ep.src}
-                  target='_blank'
-                  rel='noopener'
-                  class='mt-3 inline-block text-sm font-semibold text-wy-gold hover:underline'
-                >
-                  Open audio directly
-                </a>
-              </div>
-            )}
-
-            {ep.type === 'video-series' && (
-              <div class='space-y-4'>
-                {ep.parts.map(part => (
-                  <div>
-                    <p class='text-sm font-semibold text-wy-navy mb-2'>{part.label}</p>
-                    <video controls class='w-full rounded-lg bg-black' preload='none' style='max-height:360px'>
-                      <source src={part.video} type='video/mp4' />
-                      <source src={part.audio} type='audio/mpeg' />
-                    </video>
-                    <div class='mt-3 flex flex-wrap gap-4 text-sm font-semibold'>
-                      <a href={part.video} target='_blank' rel='noopener' class='text-wy-gold hover:underline'>Open video directly</a>
-                      <a href={part.audio} target='_blank' rel='noopener' class='text-wy-navy hover:underline'>Audio only</a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {(ep.type === 'youtube' || ep.type === 'facebook') && (
-              <a href={ep.url} target='_blank' rel='noopener'
-                 class='inline-flex items-center gap-2 bg-wy-navy text-white text-sm font-semibold px-5 py-2.5 rounded hover:bg-wy-sky transition-colors'>
-                {ep.label}
-              </a>
-            )}
-          </article>
-        ))}
+      <!-- Live Substack feed — populated client-side from /api/podcast-feed -->
+      <div class='mb-14'>
+        <div class='flex items-center justify-between mb-5'>
+          <h2 class='text-2xl font-serif font-bold text-wy-navy'>Latest from Substack</h2>
+          <a href='https://jimskovgard.substack.com/' target='_blank' rel='noopener'
+             class='text-sm font-semibold text-wy-gold hover:underline'>View all →</a>
+        </div>
+        <div id='substack-feed'>
+          <p class='text-gray-400 text-sm' id='feed-status'>Loading latest posts…</p>
+        </div>
       </div>
 
-      <div class='mt-12 bg-wy-stone rounded-2xl p-8 text-center'>
-        <h2 class='text-2xl font-serif font-bold text-wy-navy mb-3'>More on Substack</h2>
-        <p class='text-gray-600 mb-6'>Hundreds of essays and podcast chapters. The full archive lives on Substack.</p>
-        <a href='https://jimskovgard.substack.com/' target='_blank' rel='noopener'
-           class='bg-wy-navy text-white font-bold px-8 py-3 rounded hover:bg-wy-sky transition-colors'>
-          Read on Substack
-        </a>
+      <!-- Hosted episodes — fetched from /api/podcasts (R2-backed D1) -->
+      <div class='mb-14'>
+        <h2 class='text-2xl font-serif font-bold text-wy-navy mb-6'>Hosted Episodes</h2>
+        <div id='hosted-episodes'>
+          <p class='text-gray-400 text-sm'>Loading…</p>
+        </div>
+      </div>
+
+      <!-- External conversations — YouTube / Facebook, updated manually -->
+      <div class='mb-14'>
+        <h2 class='text-2xl font-serif font-bold text-wy-navy mb-6'>More Conversations</h2>
+        <div class='space-y-4'>
+          {externalEpisodes.map(ep => (
+            <article class='bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex items-start justify-between gap-4'>
+              <div>
+                <p class='text-xs text-gray-400 mb-1'>{ep.date} &middot; {ep.guest}</p>
+                <h3 class='text-lg font-serif font-bold text-wy-navy mb-1'>{ep.title}</h3>
+                <p class='text-gray-600 text-sm'>{ep.description}</p>
+              </div>
+              <a href={ep.url} target='_blank' rel='noopener'
+                 class='shrink-0 inline-flex items-center gap-1 bg-wy-navy text-white text-sm font-semibold px-4 py-2 rounded hover:bg-wy-sky transition-colors'>
+                {ep.label}
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div class='bg-wy-stone rounded-2xl p-8 text-center'>
+        <h2 class='text-2xl font-serif font-bold text-wy-navy mb-3'>Full Archive</h2>
+        <p class='text-gray-600 mb-6'>Hundreds of essays and podcast chapters. Subscribe for the daily morning post.</p>
+        <div class='flex flex-col sm:flex-row gap-4 justify-center'>
+          <a href='https://jimskovgard.substack.com/' target='_blank' rel='noopener'
+             class='bg-wy-navy text-white font-bold px-8 py-3 rounded hover:bg-wy-sky transition-colors'>
+            Read on Substack
+          </a>
+          <a href='https://www.facebook.com/jimskovgard' target='_blank' rel='noopener'
+             class='border-2 border-wy-navy text-wy-navy font-bold px-8 py-3 rounded hover:bg-wy-navy/5 transition-colors'>
+            Follow on Facebook
+          </a>
+        </div>
       </div>
     </div>
   </main>
   <Footer />
 </Base>
+
+<script>
+(function () {
+  const feed = document.getElementById('substack-feed');
+  const status = document.getElementById('feed-status');
+
+  function fmtDate(rfc) {
+    if (!rfc) return '';
+    try {
+      return new Date(rfc).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (_) { return rfc; }
+  }
+
+  function renderEpisodes(episodes) {
+    if (!episodes || episodes.length === 0) {
+      feed.innerHTML = '<p class="text-gray-400 text-sm">No posts found.</p>';
+      return;
+    }
+    feed.innerHTML = episodes.map(ep => `
+      <article class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 mb-4">
+        <p class="text-xs text-gray-400 mb-1">${fmtDate(ep.date)}</p>
+        <h3 class="text-lg font-serif font-bold text-wy-navy mb-2">
+          <a href="${ep.link}" target="_blank" rel="noopener" class="hover:text-wy-gold transition-colors">${ep.title}</a>
+        </h3>
+        ${ep.description ? `<p class="text-gray-600 text-sm mb-3">${ep.description}</p>` : ''}
+        ${ep.audio ? `
+          <audio controls class="w-full rounded mb-2" preload="none">
+            <source src="${ep.audio}" type="audio/mpeg" />
+          </audio>
+          ${ep.duration ? `<p class="text-xs text-gray-400 mb-2">${ep.duration}</p>` : ''}
+        ` : ''}
+        <a href="${ep.link}" target="_blank" rel="noopener"
+           class="inline-block text-sm font-semibold text-wy-gold hover:underline">
+          Read on Substack →
+        </a>
+      </article>
+    `).join('');
+  }
+
+  fetch('/api/podcast-feed')
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(data => {
+      if (status) status.remove();
+      renderEpisodes(data.episodes);
+    })
+    .catch(() => {
+      feed.innerHTML = '<p class="text-gray-400 text-sm">Could not load latest posts. <a href="https://jimskovgard.substack.com/" target="_blank" rel="noopener" class="text-wy-gold hover:underline">Visit Substack directly →</a></p>';
+    });
+
+  // Hosted episodes (R2 / D1)
+  const hostedEl = document.getElementById('hosted-episodes');
+  if (hostedEl) {
+    fetch('/api/podcasts')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        const eps = data.episodes || [];
+        if (!eps.length) { hostedEl.innerHTML = '<p class="text-gray-400 text-sm">No hosted episodes yet.</p>'; return; }
+
+        // Group multi-part episodes by guest_slug + episode_date
+        const groups = [];
+        const seen = new Map();
+        eps.forEach(ep => {
+          const key = `${ep.guest_slug}|${ep.episode_date}`;
+          if (!seen.has(key)) { seen.set(key, []); groups.push({ key, ep, parts: seen.get(key) }); }
+          seen.get(key).push(ep);
+        });
+
+        hostedEl.innerHTML = groups.map(({ ep: first, parts }) => {
+          const isAudio = first.r2_key && first.r2_key.endsWith('.mp3');
+          const isMultiPart = parts.length > 1;
+          const guestLabel = first.guest_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          const dateLabel = new Date(first.episode_date + 'T12:00:00Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+          const partsHtml = parts.map(p => {
+            const audioUrl = p.url.replace(/\.mp4$/, '.mp3');
+            return isAudio
+              ? `<div class="mb-3">
+                  ${p.summary ? `<p class="text-sm font-semibold text-wy-navy mb-2">${p.summary}</p>` : ''}
+                  <audio controls class="w-full rounded" preload="none"><source src="${p.url}" type="audio/mpeg"/></audio>
+                  <a href="${p.url}" target="_blank" rel="noopener" class="mt-2 inline-block text-sm font-semibold text-wy-gold hover:underline">Open audio →</a>
+                </div>`
+              : `<div class="mb-4">
+                  ${p.summary ? `<p class="text-sm font-semibold text-wy-navy mb-2">${p.summary}</p>` : ''}
+                  <video controls class="w-full rounded-lg bg-black" preload="none" style="max-height:360px">
+                    <source src="${p.url}" type="video/mp4"/>
+                    <source src="${audioUrl}" type="audio/mpeg"/>
+                  </video>
+                  <div class="mt-2 flex flex-wrap gap-4 text-sm font-semibold">
+                    <a href="${p.url}" target="_blank" rel="noopener" class="text-wy-gold hover:underline">Open video →</a>
+                    <a href="${audioUrl}" target="_blank" rel="noopener" class="text-wy-navy hover:underline">Audio only →</a>
+                  </div>
+                </div>`;
+          }).join('');
+
+          return `<article class="bg-white rounded-xl shadow-md p-6 border border-gray-100 mb-6">
+            <p class="text-sm text-gray-400 mb-1">${dateLabel} · ${guestLabel}</p>
+            <h3 class="text-xl font-serif font-bold text-wy-navy mb-4">${isMultiPart ? guestLabel + ' — Multi-part Series' : (first.summary || guestLabel)}</h3>
+            ${partsHtml}
+          </article>`;
+        }).join('');
+      })
+      .catch(() => {
+        hostedEl.innerHTML = '<p class="text-gray-400 text-sm">Could not load hosted episodes.</p>';
+      });
+  }
+})();
+</script>
