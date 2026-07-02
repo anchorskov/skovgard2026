@@ -795,6 +795,65 @@ const WY_ROADLESS_AREAS_BODY_HTML = `
   </p>
 `;
 
+const WY_COMMERCIAL_PROPERTY_TAX_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Commercial property taxes affect more than building owners &#8212; they shape local businesses,
+    rents, payroll, prices, downtown investment, county budgets, and the cost of doing business
+    in Wyoming.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Wyoming&#8217;s commercial assessment rate is generally set statewide at 9.5&#37; of market
+    value, so the real public question isn&#8217;t the rate &#8212; it&#8217;s whether valuation,
+    classifications, notices, mill levies, business personal property rules, and appeal rights are
+    clear enough for the people paying the bill. This survey uses Natrona County and Casper as a
+    case study, since public records are available for review, then asks whether the same
+    questions matter statewide.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+    <tr>
+      <td style="background:#f7f3ec;border-left:4px solid #c68a4a;padding:14px 18px;border-radius:6px;">
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#374151;">
+          <strong style="color:#2b2b2b;">This is about transparency, not wrongdoing.</strong>
+          Wyoming&#8217;s Constitution calls for equal and uniform taxation within each class and
+          subclass of property &#8212; citizens should be able to understand how values are set,
+          how bills are calculated, and how to ask questions when something looks off.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+    <tr>
+      <td style="text-align:center;padding:4px 0 20px;">
+        <a href="https://grassrootsmvt.org/surveys/wy-commercial-property-tax"
+           style="display:inline-block;padding:14px 28px;background:#b22234;color:#f1ece1;font-weight:bold;font-size:16px;text-decoration:none;border-radius:8px;">
+          Take the Survey
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Please share with three Wyoming neighbors. The more counties represented, the clearer the picture.
+  </p>
+
+  <p style="margin:0 0 18px;font-size:15px;line-height:1.65;color:#111827;">
+    <a href="https://skovgard2026.org/share/wy-commercial-property-tax/sources/"
+        style="color:#0f2742;font-weight:bold;">
+      Read the full breakdown with sources
+    </a>
+    at skovgard2026.org/share/wy-commercial-property-tax/sources/
+  </p>
+
+  <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#6b7280;">
+    This survey is a public-input project by Skovgard for Senate. It does not claim wrongdoing.
+    Individual responses are never published. Results are reported in aggregate only, by county
+    where enough responses are available.
+  </p>
+`;
+
 const NOTHING_BURGER_BODY_HTML = `
   <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
     I want to share a breakdown of a taxpayer-funded congressional mailing about Wyoming&#8217;s public lands &#8212; and the question it does not answer.
@@ -1750,6 +1809,21 @@ export const SHARE_MESSAGES = {
         : "A Wyoming neighbor wanted to share this survey with you.";
     },
   },
+  "wy-commercial-property-tax": {
+    title:        "Wyoming Commercial Property Tax Transparency Survey",
+    body_html:    WY_COMMERCIAL_PROPERTY_TAX_BODY_HTML,
+    preview_text: "Same statewide rate. Real questions about valuation, clarity, and consistency — starting with Natrona County and Casper.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this: Commercial Property Tax Transparency`
+        : "Wyoming commercial property tax: is the process clear enough?";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this survey with you.`
+        : "A Wyoming neighbor wanted to share this survey with you.";
+    },
+  },
   "nothing-burger": {
     title:        "Taxpayer-Funded Nothing Burger",
     body_html:    NOTHING_BURGER_BODY_HTML,
@@ -2359,6 +2433,30 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Share page:",
           "https://skovgard2026.org/share/wy-roadless-areas/",
+        ]
+    : slug === "wy-commercial-property-tax"
+      ? [
+          "Commercial property taxes affect more than building owners — they shape local businesses,",
+          "rents, payroll, prices, downtown investment, county budgets, and the cost of doing business",
+          "in Wyoming.",
+          "",
+          "Wyoming's commercial assessment rate is generally set statewide at 9.5% of market value, so",
+          "the real public question isn't the rate — it's whether valuation, classifications, notices,",
+          "mill levies, business personal property rules, and appeal rights are clear enough for the",
+          "people paying the bill. This survey uses Natrona County and Casper as a case study, then asks",
+          "whether the same questions matter statewide.",
+          "",
+          "This is about transparency, not wrongdoing. Wyoming's Constitution calls for equal and",
+          "uniform taxation within each class and subclass of property.",
+          "",
+          "Take the survey:",
+          "https://grassrootsmvt.org/surveys/wy-commercial-property-tax",
+          "",
+          "Read the sources and background:",
+          "https://skovgard2026.org/share/wy-commercial-property-tax/sources/",
+          "",
+          "Share page:",
+          "https://skovgard2026.org/share/wy-commercial-property-tax/",
         ]
     : slug === "nothing-burger"
       ? [

@@ -1,0 +1,596 @@
+---
+// src/pages/share/wy-commercial-property-tax/sources.astro
+import Base from '../../../layouts/Base.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+---
+<Base
+  title="Wyoming Commercial Property Tax — Sources & Background | Skovgard 2026"
+  description="Source links and background for the Wyoming Commercial Property Tax Transparency Survey. Official Wyoming Department of Revenue, Legislature, and Natrona County sources."
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Breadcrumb bar -->
+    <div class="bg-wy-bone border-b border-gray-200 py-3 px-4">
+      <div class="max-w-3xl mx-auto flex items-center gap-2 flex-wrap">
+        <a href="/share" class="inline-flex items-center gap-1.5 text-gray-400 hover:text-wy-ember text-xs font-semibold uppercase tracking-widest transition-colors shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          All messages
+        </a>
+        <span class="text-gray-300 text-sm">/</span>
+        <a href="/share/wy-commercial-property-tax/" class="text-xs font-semibold text-gray-400 hover:text-wy-ember transition-colors truncate">
+          Wyoming Commercial Property Tax Transparency Survey
+        </a>
+        <span class="text-gray-300 text-sm">/</span>
+        <span class="text-sm font-semibold text-wy-charcoal">Sources</span>
+      </div>
+    </div>
+
+    <!-- Page header -->
+    <div class="bg-wy-charcoal py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Research Aid</p>
+        <h1 class="text-2xl sm:text-3xl font-serif font-extrabold text-wy-bone mb-4 leading-tight">
+          Wyoming Commercial Property Tax<br />
+          <span class="text-wy-sandstone">Sources &amp; Background</span>
+        </h1>
+        <p class="text-wy-bone/75 text-base leading-relaxed max-w-2xl">
+          These links let Wyoming voters review the rules and public records behind the survey.
+          Source review is optional and is not required to answer the survey. The questions are
+          intended to measure opinion, not persuade.
+        </p>
+      </div>
+    </div>
+
+    <!-- Preamble -->
+    <section class="bg-wy-bone py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <div class="preamble-box">
+          <p class="preamble-label">Research aid — not legal advice</p>
+          <p class="preamble-text">
+            This page is a research aid for Wyoming voters. It pairs claims made in the survey
+            context with their primary official sources — the Wyoming Department of Revenue, the
+            Wyoming Legislature, the Wyoming Secretary of State, the State Board of Equalization,
+            and Natrona County. County offices, the Department of Revenue, the Legislature, and the
+            State Board of Equalization remain the official sources for decisions and deadlines.
+            Do not treat this page as legal advice.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download the packet -->
+    <section class="bg-white py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="sources-h2">Download the full source packet</h2>
+        <p class="body-prose">
+          All of the sources below, plus survey-ready explanations for market value, taxable value,
+          mill levies, notices, appeals, and business personal property, are collected in one PDF.
+        </p>
+        <a href="/docs/wy-commercial-property-tax-source-packet.pdf" target="_blank" rel="noopener" class="packet-download-link">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+          </svg>
+          Download the Source Packet (PDF)
+        </a>
+      </div>
+    </section>
+
+    <!-- Why this survey -->
+    <section class="bg-wy-bone py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="sources-h2">Why this survey was created</h2>
+        <p class="body-prose">
+          Wyoming commercial property is generally assessed at 9.5% of market value (industrial
+          property generally at 11.5%). That means the core public question is not whether every
+          county invents its own commercial tax rate &#8212; the rate is set statewide. The better
+          question is whether valuation methods, classifications, notices, mill levies, business
+          personal property rules, and appeal rights are clear enough for the people paying the bill.
+        </p>
+        <p class="body-prose">
+          Natrona County and Casper are the starting case study because public records and local
+          tools &#8212; a valuation review process, published mill levies, a property search portal,
+          and business personal property guidance &#8212; are available for review. This survey asks
+          citizens across all 23 Wyoming counties whether the same questions matter statewide.
+        </p>
+
+        <h3 class="sources-h3">Key distinctions</h3>
+        <ul class="key-distinctions">
+          <li>The statewide assessment <em>rate</em> (9.5% commercial, 11.5% industrial) is set by law — it is not set county-by-county.</li>
+          <li>Assessed value is not the same as the final tax bill: mill levies (set by cities, school districts, and special districts) are applied on top of assessed value to produce the bill.</li>
+          <li>An appeal concerns market value and assessment correctness, not general tax policy or mill-levy rates.</li>
+          <li>Business personal property (equipment used to generate revenue) is self-reported annually, generally by March 1, separately from real property valuation.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Claims and sources table -->
+    <section class="bg-white py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="sources-h2">Claims and source support</h2>
+
+        <div class="sources-table">
+
+          <div class="source-row">
+            <div class="source-claim">Commercial property is generally assessed at 9.5% of market value; industrial property generally at 11.5%.</div>
+            <div class="source-backing">
+              <a href="https://wyo-prop-div.wyo.gov/commercial-industrial" target="_blank" rel="noopener" class="source-link">
+                Wyoming Dept. of Revenue — Commercial &amp; Industrial Property
+              </a>
+              <span class="source-note">Defines market value vs. taxable value and states the statewide assessment percentages.</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">Wyoming's Constitution requires equal and uniform taxation within each class and subclass of property.</div>
+            <div class="source-backing">
+              <a href="https://sos.wyo.gov/Forms/Publications/WYConstitution.pdf" target="_blank" rel="noopener" class="source-link">
+                Wyoming Constitution, Article 15, Section 11 (official PDF)
+              </a>
+              <span class="source-note">Requires uniform valuation, establishes property classes, and gives the Legislature authority to set assessment percentages.</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">Property is listed, valued, and assessed annually as of January 1; assessment schedules include current/prior fair market value, the assessment ratio, prior-year taxes, estimated current-year taxes, and a statement of the contest process.</div>
+            <div class="source-backing">
+              <a href="https://wyoleg.gov/statutes/compress/title39.pdf" target="_blank" rel="noopener" class="source-link">
+                Wyoming Statutes Title 39, W.S. 39-13-103 (official PDF)
+              </a>
+              <span class="source-note">Sets the annual valuation cycle and required contents of assessment schedules/notices.</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">A taxpayer may contest an assessment by filing a statement with the county assessor within 30 days after the assessment schedule is sent.</div>
+            <div class="source-backing">
+              <a href="https://wyoleg.gov/statutes/compress/title39.pdf" target="_blank" rel="noopener" class="source-link">
+                Wyoming Statutes Title 39, W.S. 39-13-109 (official PDF)
+              </a>
+              <span class="source-note">Sets the appeal filing deadline and evidence-exchange procedure before a county board hearing.</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">Final county board of equalization decisions may be appealed to the State Board of Equalization by written notice within 30 days.</div>
+            <div class="source-backing">
+              <a href="https://taxappeals.state.wy.us/FAQ2.htm" target="_blank" rel="noopener" class="source-link">
+                Wyoming State Board of Equalization — Appeal FAQ
+              </a>
+              <span class="source-note">Explains the next step in the appeal process after a county board decision.</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">A mill levy is calculated as assessed value multiplied by the mill rate, divided by 1,000; 2025 mill levies are published by taxing district, including Casper and surrounding areas.</div>
+            <div class="source-backing">
+              <a href="https://www.natronacounty-wy.gov/78/Mill-Levies" target="_blank" rel="noopener" class="source-link">
+                Natrona County Assessor — Mill Levies
+              </a>
+              <span class="source-note">Explains the mill-levy formula and publishes district-by-district rates.</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">The Property Tax Division maps governmental entities and special districts that can levy a mill; county assessors use this in the statewide CAMA system.</div>
+            <div class="source-backing">
+              <a href="https://wyo-prop-div.wyo.gov/tax-districts/general-information" target="_blank" rel="noopener" class="source-link">
+                Wyoming Dept. of Revenue — Tax Districts, General Information
+              </a>
+              <span class="source-note">Explains tax-district mapping and statewide mass-appraisal (CAMA) methodology.</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">Chapter 9 rules govern county assessment methodology under Department of Revenue rules.</div>
+            <div class="source-backing">
+              <a href="https://revenue.wyo.gov/rules-and-regulations" target="_blank" rel="noopener" class="source-link">
+                Wyoming Dept. of Revenue — Rules &amp; Regulations (Chapter 9)
+              </a>
+              <span class="source-note">Property Tax Valuation Methodology and Assessment (County Assessments).</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">Natrona County publishes a valuation review process, including the 2026 assessment mailing date, review deadline, and appeal next steps.</div>
+            <div class="source-backing">
+              <a href="https://www.natronacounty-wy.gov/866/Property-Valuation-Review-Process" target="_blank" rel="noopener" class="source-link">
+                Natrona County Assessor — Property Valuation Review Process
+              </a>
+              <span class="source-note">The Natrona County / Casper case-study source for review deadlines and appeal steps.</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">Natrona County lists real property, business personal property, and commercial income-approach resources, including self-reporting guidance.</div>
+            <div class="source-backing">
+              <a href="https://www.natronacounty-wy.gov/860/Real-Property" target="_blank" rel="noopener" class="source-link">
+                Natrona County Assessor — Real Property
+              </a>
+              <span class="source-note">Business personal property self-reporting and commercial income-approach valuation resources.</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">A public property search tool provides ownership, characteristics, assessed values, and taxes for the assessment year.</div>
+            <div class="source-backing">
+              <a href="https://assessorsearch.natronacounty-wy.gov/" target="_blank" rel="noopener" class="source-link">
+                Natrona County Assessor — Property Search
+              </a>
+              <span class="source-note">Public comparison tool referenced by the survey's transparency-tool questions.</span>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <div class="source-claim">The Department of Revenue publishes statewide assessment data for download, current as of January 1, 2026.</div>
+            <div class="source-backing">
+              <a href="https://wyo-prop-div.wyo.gov/assessment-data-download" target="_blank" rel="noopener" class="source-link">
+                Wyoming Dept. of Revenue — Assessment Data Download
+              </a>
+              <span class="source-note">Statewide data resource referenced by the survey's public-trend-report questions.</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Official sources -->
+    <section class="bg-wy-bone py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="sources-h2">Official sources</h2>
+
+        <div class="link-list">
+          <div class="link-entry">
+            <a href="https://wyo-prop-div.wyo.gov/commercial-industrial" target="_blank" rel="noopener" class="link-title">
+              Wyoming Dept. of Revenue — Commercial &amp; Industrial Property
+            </a>
+            <p class="link-desc">Market value, taxable value, assessment rates, and personal property reporting deadlines.</p>
+          </div>
+          <div class="link-entry">
+            <a href="https://sos.wyo.gov/Forms/Publications/WYConstitution.pdf" target="_blank" rel="noopener" class="link-title">
+              Wyoming Constitution (official PDF)
+            </a>
+            <p class="link-desc">Article 15, Section 11 — uniform valuation and equal and uniform taxation within class/subclass.</p>
+          </div>
+          <div class="link-entry">
+            <a href="https://wyoleg.gov/statutes/compress/title39.pdf" target="_blank" rel="noopener" class="link-title">
+              Wyoming Statutes Title 39 (official PDF)
+            </a>
+            <p class="link-desc">W.S. 39-13-103 (valuation, notices) and W.S. 39-13-109 (appeals) among other property tax statutes.</p>
+          </div>
+          <div class="link-entry">
+            <a href="https://taxappeals.state.wy.us/FAQ2.htm" target="_blank" rel="noopener" class="link-title">
+              Wyoming State Board of Equalization — Appeal FAQ
+            </a>
+            <p class="link-desc">What happens after a county board of equalization decision.</p>
+          </div>
+          <div class="link-entry">
+            <a href="https://revenue.wyo.gov/rules-and-regulations" target="_blank" rel="noopener" class="link-title">
+              Wyoming Dept. of Revenue — Rules &amp; Regulations
+            </a>
+            <p class="link-desc">Chapter 9, Property Tax Valuation Methodology and Assessment.</p>
+          </div>
+          <div class="link-entry">
+            <a href="https://wyo-prop-div.wyo.gov/tax-districts/general-information" target="_blank" rel="noopener" class="link-title">
+              Wyoming Dept. of Revenue — Tax Districts
+            </a>
+            <p class="link-desc">Tax-district mapping and statewide CAMA methodology.</p>
+          </div>
+          <div class="link-entry">
+            <a href="https://wyo-prop-div.wyo.gov/assessment-data-download" target="_blank" rel="noopener" class="link-title">
+              Wyoming Dept. of Revenue — Assessment Data Download
+            </a>
+            <p class="link-desc">Statewide assessment data resources, current as of January 1, 2026.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Natrona County case-study sources -->
+    <section class="bg-white py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="sources-h2">Natrona County / Casper case-study sources</h2>
+        <p class="body-prose sources-note">
+          Natrona County is the case study because these public tools are available for review.
+          Other Wyoming counties may publish similar information at different addresses.
+        </p>
+
+        <div class="link-list">
+          <div class="link-entry">
+            <a href="https://www.natronacounty-wy.gov/866/Property-Valuation-Review-Process" target="_blank" rel="noopener" class="link-title">
+              Natrona County Assessor — Property Valuation Review Process
+            </a>
+            <p class="link-desc">2026 assessment mailing date, review deadline, review process, and appeal next steps.</p>
+          </div>
+          <div class="link-entry">
+            <a href="https://www.natronacounty-wy.gov/78/Mill-Levies" target="_blank" rel="noopener" class="link-title">
+              Natrona County Assessor — Mill Levies
+            </a>
+            <p class="link-desc">Mill-levy formula and 2025 rates by taxing district, including Casper.</p>
+          </div>
+          <div class="link-entry">
+            <a href="https://www.natronacounty-wy.gov/860/Real-Property" target="_blank" rel="noopener" class="link-title">
+              Natrona County Assessor — Real Property
+            </a>
+            <p class="link-desc">Residential/commercial/industrial resources, income approach to value, and business personal property guidance.</p>
+          </div>
+          <div class="link-entry">
+            <a href="https://assessorsearch.natronacounty-wy.gov/" target="_blank" rel="noopener" class="link-title">
+              Natrona County Assessor — Property Search
+            </a>
+            <p class="link-desc">Public search for ownership, characteristics, assessed values, and taxes.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Questions to consider -->
+    <section class="bg-wy-bone py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="sources-h2">Questions to consider while reading</h2>
+        <ul class="key-distinctions">
+          <li>Is the concern the statewide assessment rate, or the valuation/notice/appeal process around it?</li>
+          <li>Do published notices give owners enough information to understand a change in value?</li>
+          <li>Would a public trend report or comparison tool make county-to-county review easier?</li>
+          <li>Do small businesses have what they need to understand personal property reporting and appeals?</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Responsible use note -->
+    <section class="bg-white py-10 px-4">
+      <div class="max-w-3xl mx-auto">
+        <div class="use-note-box">
+          <p class="use-note-label">Notes for responsible use</p>
+          <ul class="use-note-list">
+            <li>This packet is for public education and survey design. It is not legal advice — county offices, the Department of Revenue, the Legislature, and the State Board of Equalization remain the official sources for decisions and deadlines.</li>
+            <li>Distinguish the statewide assessment <em>rate</em> (fixed by law) from local mill levies (which vary by taxing district) — these are different steps in the calculation.</li>
+            <li>Deadlines (e.g., the 30-day appeal window, March 1 personal property reporting) should be verified against current official notices before citing as universal.</li>
+            <li>Results from this survey represent participating voters only. They are not a scientific sample of Wyoming public opinion.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Back CTA -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto text-center">
+        <p class="text-gray-500 text-sm mb-6">
+          Ready to take the survey or share it with Wyoming neighbors?
+        </p>
+        <div class="flex flex-wrap justify-center gap-3">
+          <a
+            href="https://grassrootsmvt.org/surveys/wy-commercial-property-tax"
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow"
+          >
+            Take the Survey
+          </a>
+          <a
+            href="/share/wy-commercial-property-tax/"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-wy-charcoal text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm"
+          >
+            Share the survey
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .body-prose {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #2b2b2b;
+    margin: 0 0 20px;
+  }
+  .sources-note {
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  .sources-h2 {
+    font-family: 'Bitter', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2b2b2b;
+    margin: 0 0 18px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5ddd0;
+  }
+  .sources-h3 {
+    font-family: 'Bitter', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2b2b2b;
+    margin: 24px 0 10px;
+  }
+
+  /* Preamble */
+  .preamble-box {
+    background: #fff;
+    border: 1px solid #e5ddd0;
+    border-left: 4px solid #7a8a6b;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .preamble-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #7a8a6b;
+    margin: 0 0 8px;
+  }
+  .preamble-text {
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: #4b4b4b;
+    margin: 0;
+  }
+
+  /* Packet download */
+  .packet-download-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    background: #b22234;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.15s;
+  }
+  .packet-download-link:hover { background: #8b1a26; }
+
+  /* Key distinctions list */
+  .key-distinctions {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .key-distinctions li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 12px;
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: #2b2b2b;
+  }
+  .key-distinctions li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 8px;
+    height: 8px;
+    background: #c68a4a;
+    border-radius: 50%;
+  }
+
+  /* Claims and sources table */
+  .sources-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid #e5ddd0;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .source-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid #e5ddd0;
+  }
+  .source-row:last-child { border-bottom: none; }
+  @media (max-width: 600px) {
+    .source-row { grid-template-columns: 1fr; }
+  }
+  .source-claim {
+    padding: 16px 18px;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #2b2b2b;
+    background: #f9f6f0;
+    border-right: 1px solid #e5ddd0;
+  }
+  @media (max-width: 600px) {
+    .source-claim { border-right: none; border-bottom: 1px solid #e5ddd0; }
+  }
+  .source-backing {
+    padding: 16px 18px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .source-link {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0f2742;
+    text-decoration: none;
+    line-height: 1.5;
+  }
+  .source-link:hover { text-decoration: underline; }
+  .source-note {
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+
+  /* Link list */
+  .link-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .link-entry { }
+  .link-title {
+    display: inline;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #0f2742;
+    text-decoration: none;
+    line-height: 1.5;
+  }
+  .link-title:hover { text-decoration: underline; }
+  .link-desc {
+    font-size: 0.875rem;
+    color: #4b4b4b;
+    line-height: 1.6;
+    margin: 3px 0 0;
+  }
+
+  /* Responsible use note */
+  .use-note-box {
+    background: #f9f6f0;
+    border: 1px solid #e5ddd0;
+    border-left: 4px solid #c68a4a;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .use-note-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #7a8a6b;
+    margin: 0 0 10px;
+  }
+  .use-note-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .use-note-list li {
+    position: relative;
+    padding-left: 18px;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #4b4b4b;
+  }
+  .use-note-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 6px;
+    height: 6px;
+    background: #7a8a6b;
+    border-radius: 50%;
+  }
+</style>
