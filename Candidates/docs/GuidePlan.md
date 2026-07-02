@@ -35,7 +35,7 @@ This document is the HOW.
 - Vote-splitting simulator: ❌ not built
 - Magic link (passwordless) auth: ❌ not built
 
-**The next thing to do:** Write and apply the five migrations in Phase 1 order.
+**The next thing to do:** Write and apply the four migrations in Phase 1 order.
 Migration files go in `grassmvt_survey/db/migrations/`.
 
 ---
@@ -47,7 +47,7 @@ TWO PIPELINES — ONE DATABASE (grassmvt_survey)
 
 CANDIDATE PIPELINE (admin runs this before voters arrive)
   1. Seed guide_questions (8–12 questions, 4 issue categories)
-  2. Seed ballot_surveys rows for statewide + 60 HD + 30 SD races
+  2. Seed ballot_surveys rows for statewide/federal (7) + 62 HD + the 17 contested SD races
   3. Email candidates → they submit structured answers via token-gated form
   4. Admin reviews answers → sets reviewed = 1 → answers go live
   5. Candidate data from wy D1 (read-only) feeds comparison display
@@ -100,53 +100,27 @@ Apply in this exact order to `grassmvt_survey`. Files go in `db/migrations/`.
 
 ---
 
-#### Migration 0037 — passwordless accounts
+#### Migration 0037 — passwordless accounts: DROPPED, not needed
 
-Make `password_hash` nullable so magic-link (email-only) users can be created
-without a password. SQLite does not support `ALTER COLUMN`, so this requires
-a table rebuild.
+**Revised 2026-07-01 after auditing the live `user` table.** The original plan called for
+rebuilding the `user` table (drop + rename) to make `password_hash` nullable. That table
+is depended on by `session`, `user_profile`, `oauth_accounts`, `email_verification_tokens`,
+`voter_verify_tokens`, and WebAuthn credentials — a rebuild is unnecessary risk on a live
+production auth table for a cosmetic nullability change.
 
-```sql
--- db/migrations/0037_passwordless_accounts.sql
-
-PRAGMA foreign_keys = OFF;
-
-CREATE TABLE user_v2 (
-  id                  TEXT NOT NULL PRIMARY KEY,
-  email               TEXT NOT NULL UNIQUE,
-  password_hash       TEXT,                              -- NULL for magic-link accounts
-  email_verified_at   TEXT,
-  account_status      TEXT NOT NULL DEFAULT 'pending',
-  is_verified_voter   INTEGER NOT NULL DEFAULT 0,
-  verified_at         TEXT,
-  verification_method TEXT,
-  verified_scope      TEXT,
-  verified_district   TEXT,
-  created_at          TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-INSERT INTO user_v2
-  SELECT id, email, password_hash, email_verified_at, account_status,
-         is_verified_voter, verified_at, verification_method,
-         verified_scope, verified_district, created_at
-  FROM user;
-
-DROP TABLE user;
-ALTER TABLE user_v2 RENAME TO user;
-
--- Restore indexes
-CREATE INDEX IF NOT EXISTS idx_user_account_status ON user (account_status);
-CREATE INDEX IF NOT EXISTS idx_user_is_verified_voter ON user (is_verified_voter);
-
-PRAGMA foreign_keys = ON;
-```
+The existing OAuth login handler (`src/worker.js` ~line 3224) already solves this problem
+without a schema change: it creates "passwordless-feeling" accounts by generating a random,
+never-surfaced `password_hash` (`hashPassword(base64UrlEncode(crypto.getRandomValues(...)))`)
+that the user never sees or uses. Magic-link account creation reuses this exact pattern —
+`password_hash` stays `NOT NULL`, no migration required. Phase 1 now needs 4 new migrations,
+not 5.
 
 ---
 
-#### Migration 0038 — magic link tokens
+#### Migration 0037 — magic link tokens
 
 ```sql
--- db/migrations/0038_magic_link_tokens.sql
+-- db/migrations/0037_magic_link_tokens.sql
 
 CREATE TABLE IF NOT EXISTS magic_link_tokens (
   id              TEXT NOT NULL PRIMARY KEY,   -- UUID v4
@@ -166,10 +140,10 @@ CREATE INDEX IF NOT EXISTS idx_magic_link_tokens_expires_at
 
 ---
 
-#### Migration 0039 — guide questions
+#### Migration 0038 — guide questions
 
 ```sql
--- db/migrations/0039_guide_questions.sql
+-- db/migrations/0038_guide_questions.sql
 
 CREATE TABLE IF NOT EXISTS guide_questions (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -195,10 +169,10 @@ CREATE INDEX IF NOT EXISTS idx_guide_questions_scope
 
 ---
 
-#### Migration 0040 — guide answers (candidate submissions)
+#### Migration 0039 — guide answers (candidate submissions)
 
 ```sql
--- db/migrations/0040_guide_answers.sql
+-- db/migrations/0039_guide_answers.sql
 
 CREATE TABLE IF NOT EXISTS guide_answers (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -231,14 +205,14 @@ CREATE INDEX IF NOT EXISTS idx_guide_answers_question
 
 ---
 
-#### Migration 0041 — voter quiz responses
+#### Migration 0040 — voter quiz responses
 
 ```sql
--- db/migrations/0041_voter_quiz_responses.sql
+-- db/migrations/0040_voter_quiz_responses.sql
 
 CREATE TABLE IF NOT EXISTS voter_quiz_responses (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id      TEXT    NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+  user_id      TEXT    NOT NULL REFERENCES user_profile(user_id) ON DELETE CASCADE,
   question_id  INTEGER NOT NULL REFERENCES guide_questions(id),
   position     TEXT
     CHECK (position IS NULL OR position IN (
@@ -261,7 +235,7 @@ CREATE INDEX IF NOT EXISTS idx_voter_quiz_question
 
 ### Seed data — Phase 1 questions
 
-Apply after migration 0039. These are the starting question set for statewide
+Apply after migration 0038. These are the starting question set for statewide
 and legislative races. Questions are neutral, tied to public responsibilities,
 and verifiable against public records or candidate statements.
 
@@ -331,36 +305,60 @@ npx --prefix Candidates wrangler d1 execute wy --remote \
   --command "SELECT id, title, level, district FROM offices ORDER BY level, sort_order LIMIT 100;"
 ```
 
+**Verified against wy D1 on 2026-07-01 — use these numbers, not the earlier 60/30 guess:**
+
+- Wyoming has **62 House districts** (not 60) post-redistricting. `offices.id` 25–86 map to
+  districts 1–62 in order (id 25 = HD1, id 26 = HD2, … id 86 = HD62).
+- Wyoming has **31 Senate districts** total (not 30), staggered 4-year terms. Only **17** are
+  contested on the 2026 ballot — not a clean odd/even split:
+  `1, 3, 5, 6, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31`.
+  `offices.id` 8–24 map to these 17 districts in the order listed above.
+- Statewide + federal `offices.id` 1–7: `1` US Senate, `2` US House, `3` Governor,
+  `4` Secretary of State, `5` State Auditor, `6` State Treasurer, `7` Superintendent of
+  Public Instruction.
+
 Then build the INSERT statements. Pattern:
 
 ```sql
--- db/seed/ballot_surveys_phase1.sql (template — fill wy_db_office_id from wy D1 query)
+-- db/seed/ballot_surveys_phase1.sql
 
--- Statewide
+-- Statewide + federal (offices.id 1–7)
 INSERT OR IGNORE INTO ballot_surveys
   (race_slug, title, scope_type, scope_value, wy_db_office_id, display_order)
 VALUES
-  ('us-senate-2026',       'U.S. Senate — Wyoming 2026',    'federal',    NULL, <id>, 10),
-  ('us-house-2026',        'U.S. House — Wyoming 2026',     'federal',    NULL, <id>, 20),
-  ('governor-2026',        'Governor — Wyoming 2026',       'statewide',  NULL, <id>, 30),
-  ('secretary-state-2026', 'Secretary of State — WY 2026',  'statewide',  NULL, <id>, 40),
-  -- ... other statewide offices
+  ('us-senate-2026',       'U.S. Senate — Wyoming 2026',    'federal',    NULL, 1, 10),
+  ('us-house-2026',        'U.S. House — Wyoming 2026',     'federal',    NULL, 2, 20),
+  ('governor-2026',        'Governor — Wyoming 2026',       'statewide',  NULL, 3, 30),
+  ('secretary-state-2026', 'Secretary of State — WY 2026',  'statewide',  NULL, 4, 40),
+  ('state-auditor-2026',   'State Auditor — WY 2026',       'statewide',  NULL, 5, 50),
+  ('state-treasurer-2026', 'State Treasurer — WY 2026',     'statewide',  NULL, 6, 60),
+  ('superintendent-2026',  'Superintendent of Public Instruction — WY 2026', 'statewide', NULL, 7, 70),
 
--- House districts HD01–HD60
-  ('wy-house-hd01-2026', 'WY House District 1 — 2026', 'state_house', '01', <id>, 100),
-  ('wy-house-hd02-2026', 'WY House District 2 — 2026', 'state_house', '02', <id>, 101),
-  -- ... HD03–HD60
+-- House districts HD01–HD62 (offices.id 25–86)
+  ('wy-house-hd01-2026', 'WY House District 1 — 2026', 'state_house', '01', 25, 100),
+  ('wy-house-hd02-2026', 'WY House District 2 — 2026', 'state_house', '02', 26, 101),
+  -- ... HD03–HD62 (offices.id 27–86, sequential)
 
--- Senate districts SD01–SD30 (even-numbered only run in 2026 — verify from SOS)
-  ('wy-senate-sd01-2026', 'WY Senate District 1 — 2026', 'state_senate', '01', <id>, 200),
-  -- ... remaining SD districts on 2026 ballot
+-- Senate districts contested in 2026 (offices.id 8–24; only these 17 SDs are on the ballot)
+  ('wy-senate-sd01-2026', 'WY Senate District 1 — 2026', 'state_senate', '01', 8, 200),
+  ('wy-senate-sd03-2026', 'WY Senate District 3 — 2026', 'state_senate', '03', 9, 201),
+  ('wy-senate-sd05-2026', 'WY Senate District 5 — 2026', 'state_senate', '05', 10, 202),
+  ('wy-senate-sd06-2026', 'WY Senate District 6 — 2026', 'state_senate', '06', 11, 203),
+  ('wy-senate-sd07-2026', 'WY Senate District 7 — 2026', 'state_senate', '07', 12, 204),
+  ('wy-senate-sd09-2026', 'WY Senate District 9 — 2026', 'state_senate', '09', 13, 205),
+  ('wy-senate-sd11-2026', 'WY Senate District 11 — 2026', 'state_senate', '11', 14, 206),
+  ('wy-senate-sd13-2026', 'WY Senate District 13 — 2026', 'state_senate', '13', 15, 207),
+  ('wy-senate-sd15-2026', 'WY Senate District 15 — 2026', 'state_senate', '15', 16, 208),
+  ('wy-senate-sd17-2026', 'WY Senate District 17 — 2026', 'state_senate', '17', 17, 209),
+  ('wy-senate-sd19-2026', 'WY Senate District 19 — 2026', 'state_senate', '19', 18, 210),
+  ('wy-senate-sd21-2026', 'WY Senate District 21 — 2026', 'state_senate', '21', 19, 211),
+  ('wy-senate-sd23-2026', 'WY Senate District 23 — 2026', 'state_senate', '23', 20, 212),
+  ('wy-senate-sd25-2026', 'WY Senate District 25 — 2026', 'state_senate', '25', 21, 213),
+  ('wy-senate-sd27-2026', 'WY Senate District 27 — 2026', 'state_senate', '27', 22, 214),
+  ('wy-senate-sd29-2026', 'WY Senate District 29 — 2026', 'state_senate', '29', 23, 215),
+  ('wy-senate-sd31-2026', 'WY Senate District 31 — 2026', 'state_senate', '31', 24, 216)
 ;
 ```
-
-> **Important:** Not all 30 senate districts are on the 2026 primary ballot.
-> Wyoming senators serve 4-year terms and districts are staggered.
-> Confirm which SD numbers are up in 2026 against the SOS candidate list before seeding.
-> The `wy` D1 `candidates` table already has the authoritative list — use that.
 
 ---
 
@@ -671,11 +669,10 @@ WHERE rc.is_active = 1
 ## File inventory — new files to create
 
 ### grassmvt_survey/db/migrations/
-- `0037_passwordless_accounts.sql`
-- `0038_magic_link_tokens.sql`
-- `0039_guide_questions.sql`
-- `0040_guide_answers.sql`
-- `0041_voter_quiz_responses.sql`
+- `0037_magic_link_tokens.sql`
+- `0038_guide_questions.sql`
+- `0039_guide_answers.sql`
+- `0040_voter_quiz_responses.sql`
 
 ### grassmvt_survey/db/seed/
 - `guide_questions_phase1.sql`
@@ -772,20 +769,25 @@ Wyoming voters appreciate the effort.
 
 ## How to apply migrations
 
+This project uses `wrangler.jsonc`, not `wrangler.toml`, and the `d1 migrations` subcommand
+(not `d1 execute --file`) — migrations are tracked and applied by number automatically.
+
 ```bash
 cd /home/anchor/projects/grassmvt_survey
 
 # Local dev
-npx wrangler d1 execute <db_name> --local --file db/migrations/0037_passwordless_accounts.sql
+npx wrangler d1 migrations list wy_local --local --config wrangler.jsonc
+npx wrangler d1 migrations apply wy_local --local --config wrangler.jsonc
 
-# Production (check wrangler.toml for db name first)
-cat wrangler.toml | grep database_name
-npx wrangler d1 execute <db_name> --remote --file db/migrations/0037_passwordless_accounts.sql
+# Production
+npx wrangler d1 migrations list wy --remote --env production --config wrangler.jsonc
+npx wrangler d1 migrations apply wy --remote --env production --config wrangler.jsonc
 ```
 
-Apply in order: 0037 → 0038 → 0039 → 0040 → 0041.
-Seed after 0039: `guide_questions_phase1.sql`.
-Seed ballot_surveys after confirming `wy_db_office_id` values from wy D1.
+Migrations apply in filename order automatically: 0037 → 0038 → 0039 → 0040.
+Seed after 0038: `guide_questions_phase1.sql`.
+Seed ballot_surveys after confirming `wy_db_office_id` values from wy D1 (see verified
+office ID table above — no query needed, values are already confirmed as of 2026-07-01).
 
 ---
 
@@ -796,7 +798,7 @@ After each phase, verify with these queries before moving to the next:
 **Phase 1 complete when:**
 ```sql
 SELECT COUNT(*) FROM guide_questions WHERE active = 1;       -- expect 12+
-SELECT COUNT(*) FROM ballot_surveys WHERE active = 1;         -- expect 90+ (statewide + HD + SD)
+SELECT COUNT(*) FROM ballot_surveys WHERE active = 1;         -- expect 86 (7 statewide/federal + 62 HD + 17 contested SD)
 SELECT COUNT(*) FROM magic_link_tokens LIMIT 1;               -- table exists
 SELECT COUNT(*) FROM voter_quiz_responses LIMIT 1;            -- table exists
 ```

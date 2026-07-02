@@ -325,8 +325,12 @@ CREATE INDEX IF NOT EXISTS idx_voter_quiz_user
 The `ballot_surveys` table needs rows for every race the guide covers.
 Phase 1 (statewide + legislative) requires seeding:
 - All statewide races (`scope_type = 'statewide'`)
-- All 60 house districts (`scope_type = 'state_house'`, `scope_value = '01'` through `'60'`)
-- All 30 senate districts (`scope_type = 'state_senate'`, `scope_value = '01'` through `'30'`)
+- All 62 house districts (`scope_type = 'state_house'`, `scope_value = '01'` through `'62'`) —
+  Wyoming has 62 House districts post-redistricting, not 60. Confirmed against `offices` in wy D1.
+- The 17 senate districts actually contested in 2026 (`scope_type = 'state_senate'`), not all 31 —
+  Wyoming has 31 Senate districts total (not 30) with staggered 4-year terms. The 2026 ballot
+  contests districts 1, 3, 5, 6, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 — confirmed
+  against `offices` in wy D1, do not assume a clean odd/even split.
 
 Each row needs `wy_db_office_id` populated to link to the `offices` table in the wy D1.
 The enrichment script that maps `race_candidates.wy_candidate_id` already establishes
@@ -407,27 +411,19 @@ The existing `user_verification` table already captures:
 No new verification tables are needed. The dual path is the existing system
 with `is_verified_voter` used as the segment key.
 
-### Migration required — make `password_hash` nullable
+### No migration needed for "passwordless" accounts
 
-The current `user` table (migration 0006) has `password_hash TEXT NOT NULL`.
-Magic-link / email-only users do not have a password. One migration is needed:
+**Revised 2026-07-01.** The current `user` table (migration 0006) has
+`password_hash TEXT NOT NULL`. The original plan called for a table rebuild
+(drop + rename) to make it nullable — but `user` is depended on by `session`,
+`user_profile`, `oauth_accounts`, `email_verification_tokens`, `voter_verify_tokens`,
+and WebAuthn credentials, so that rebuild is unnecessary risk on a live production
+auth table for a cosmetic nullability change.
 
-```sql
--- Migration: allow passwordless (magic link) accounts
-CREATE TABLE user_new (
-  id            TEXT NOT NULL PRIMARY KEY,
-  email         TEXT NOT NULL UNIQUE,
-  password_hash TEXT,                          -- NULL for magic-link accounts
-  is_verified_voter INTEGER NOT NULL DEFAULT 0,-- already added in migration 0021
-  verified_at   TEXT,
-  verification_method TEXT,
-  verified_scope TEXT,
-  verified_district TEXT,
-  created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
--- Copy existing rows, migrate, drop old table, rename new table.
--- See migration 0037_passwordless_accounts.sql.
-```
+The existing OAuth login handler (`src/worker.js` ~line 3224) already solves this:
+it creates "passwordless-feeling" accounts by generating a random, never-surfaced
+`password_hash` that the user never sees or uses. Magic-link account creation reuses
+this exact pattern. `password_hash` stays `NOT NULL`; no migration required.
 
 ### Magic link table
 
@@ -527,31 +523,126 @@ It starts equal. The voter experiments freely.
 ## Build sequence
 
 ### Phase 1 — Foundation (target: July 10)
-- [ ] Migration 0037: `passwordless_accounts` — make `password_hash` nullable on `user`
-- [ ] Migration 0038: `magic_link_tokens` table
-- [ ] Migration 0039: `guide_questions` table
-- [ ] Migration 0040: `guide_answers` table
-- [ ] Migration 0041: `voter_quiz_responses` table
-- [ ] Magic link auth flow — email entry → token email → click → session created, `is_verified_voter = 0`
-- [ ] Seed Phase 1 questions (statewide + legislative, 8–12 questions, 4 categories)
-- [ ] Seed `ballot_surveys` rows for all statewide + 60 HD + 30 SD races with `wy_db_office_id`
-- [ ] Candidate submission form (token-gated, renders questions by office level)
-- [ ] `/api/guide/submit-answer` endpoint (writes to `guide_answers`, `reviewed = 0`)
-- [ ] Admin review UI (list unreviewed answers, approve/reject)
-- [ ] Voter quiz UI (`/ballot/quiz` — renders questions, stores to `voter_quiz_responses`)
+
+**Built and tested locally 2026-07-01. Not yet applied to production — see note below.**
+
+- [x] Migration 0037: `magic_link_tokens` table
+- [x] Migration 0038: `guide_questions` table
+- [x] Migration 0039: `guide_answers` table
+- [x] Migration 0040: `voter_quiz_responses` table (`user_id` references `user_profile(user_id)`,
+      matching the existing `ballot_responses` convention)
+- [x] Migration 0041: `guide_answer_tokens` table (candidate questionnaire access token —
+      not in the original plan; needed because reusing `voter_verify_tokens` would have
+      mixed two unrelated concerns in one table)
+- [x] Magic link auth flow — email entry → token email → click → session created,
+      `is_verified_voter = 0`. Accounts get a random never-surfaced `password_hash`
+      (same pattern as the existing OAuth login), not a schema change to `user`.
+- [x] Seed Phase 1 questions (12 questions, 6 categories, seeded and verified locally)
+- [x] Seed `ballot_surveys` rows — 86 rows: 7 statewide/federal + 62 HD + 17 contested SD,
+      verified against wy D1 `offices`
+- [x] Candidate submission form (`/guide/submit/`, token-gated, filters questions by
+      office level via `offices.level` → `guide_questions.applicable_to` mapping)
+- [x] `/api/guide/submit-answer` endpoint (writes to `guide_answers`, `reviewed = 0`,
+      partial submission allowed, candidates can resubmit to update)
+- [x] Admin review UI (`/admin/guide-answers/` — list unreviewed answers, approve sets
+      `reviewed = 1`, reject deletes the row so the candidate can resubmit) plus a
+      candidate-link generator (`/api/guide/admin/create-answer-token`)
+- [x] Voter quiz UI (`/ballot/quiz` — renders questions grouped by category, stores to
+      `voter_quiz_responses`, localStorage scratch pad + DB sync on save)
+
+**Deployed to production 2026-07-01.** Migrations 0037–0041 applied to the shared `wy`
+D1, `guide_questions_phase1.sql` seeded (12 rows), and the `grassmvtsurvey` Worker
+deployed via `npm run deploy`. Live at `grassrootsmvt.org/auth/magic-link/`,
+`/ballot/quiz/`, `/guide/submit/`, `/admin/guide-answers/`.
+
+**`ballot_surveys_phase1.sql` was NOT applied to production** — production already had
+a complete, independently-seeded 86-row `ballot_surveys` table (same office ID mapping,
+different race_slug convention: `wy-house-district-01-2026` vs. this plan's
+`wy-house-hd01-2026`, `secretary-of-state-2026` vs. `secretary-state-2026`, etc.).
+Applying the seed file would have created duplicate race entries. None of the Phase 1
+code depends on `ballot_surveys` slug naming, so this only affected the (now unused)
+seed file — no code changes were needed.
+
+**Also discovered during deploy:** a `Guide/` sub-project (`guide.skovgard2026.org`,
+Cloudflare Pages `skovgard-guide`) exists with a newer, actively-seeded rubric-evidence
+layer (`guide_rubric_evidence_links`, `guide_candidate_reference_links`, Freedom Caucus
+matching, 200/203 candidates linked) — this is separate from the empty
+`guide_rubric_scores`/`guide_endorsements` tables referenced earlier in this doc. See
+`Guide/AGENTS.md`. Its claim that `ballot_surveys`/`ballot_responses`/`race_candidates`/
+`user_address_verification` live in a separate `ballot_sources` D1 is stale — confirmed
+via direct query that all of these, plus `user`/`session`, live in `wy` in production.
 
 ### Phase 2 — Comparison + My Ballot (target: July 22)
-- [ ] `/api/ballot/guide-questions` and `/api/ballot/candidate-answers` endpoints
-- [ ] `/ballot/compare/[race_slug]` — alignment view with bar display and breakdown
-- [ ] `/ballot/summary` — My Ballot structured summary
-- [ ] Print stylesheet for summary
-- [ ] Email-to-self from summary
-- [ ] Public aggregate results display (solidarity view, anonymized)
+
+**Built and tested locally 2026-07-01. Adapted from the original plan after discovering
+what actually already existed — see notes below each item.**
+
+- [x] `GET /api/ballot/alignment/<race_slug>` — per-candidate alignment scoring
+      (`Decision B` formula, implemented exactly: position values ±2..0, weight
+      values 3/2/1, skip excludes for all candidates, no_answer excludes per-candidate
+      only). Shared scoring helpers (`scoreCandidateAgainstVoter`, `getAlignmentInputs`,
+      `getReviewedAnswersByCandidate`) factored to module scope so `/api/ballot/card`
+      reuses the same math.
+- [x] `/ballot/compare/` — alignment view with bar display, question-by-question
+      breakdown, ★ top-priority badge, "No response" tag, "Add to My Ballot" button.
+      **Path differs from the plan:** built as a single static page reading
+      `?race=<race_slug>` from the query string, not a per-slug
+      `/ballot/compare/[race_slug]/` route — this project has no getStaticPaths/SSR
+      pattern for D1-backed dynamic routes (86 races), and every other ballot page
+      (`/ballot/quiz/`, `/guide/submit/`) already uses this same query-string
+      convention. Linked from the ballot card ("Compare in My Ballot Guide →").
+- [x] **No separate `/ballot/summary` page was built.** `/ballot/results/` already
+      existed as the private "My Ballot Choices" page (chosen candidates, notes,
+      print) — the plan's assumption that this was the public aggregate page was
+      wrong. Enhanced it in place instead of building a competing page: added
+      alignment %, top reason (highest-weighted matched question), and no-answer
+      gap count per chosen candidate.
+- [x] Print stylesheet — already existed on `/ballot/results/`; extended the
+      `@media print` rule to also hide the new email button.
+- [x] Email-to-self — `POST /api/ballot/email-summary`, sends the chosen-candidate
+      list with alignment % via the existing Resend wrapper, no request body needed.
+- [x] Public aggregate results — **new page `/ballot/solidarity/`** (not `/ballot/results/`,
+      which was already taken) + `GET /api/ballot/solidarity/<race_slug>` (not
+      `/api/ballot/results/<race_slug>`, same reason). Two segments
+      (all participants / verified voters), each suppressed until 10+ responses,
+      required disclaimer included verbatim in the API response. Linked from the
+      compare page ("See guide participant results").
+
+**Production note:** none of Phase 2 has been deployed yet — local only, pending
+the same review-before-deploy process used for Phase 1 (check for existing
+production data/naming before applying anything).
 
 ### Phase 3 — Simulator + polish (target: August 1)
-- [ ] `/ballot/simulator/[race_slug]` — vote-splitting simulator
-- [ ] Data lock automation (August 14 — auto-set `no_answer` for missing submissions)
-- [ ] QA pass: verify fairness rules, alignment math, No Answer display
+
+**Built and tested locally 2026-07-02.**
+
+- [x] `/ballot/simulator/` — vote-splitting simulator. **Path differs from the plan**
+      (`?race=<race_slug>` query string, not `[race_slug]`) — same reasoning as
+      `/ballot/compare/` in Phase 2, no getStaticPaths/SSR pattern in this project.
+      Every candidate starts at an exactly equal share; sliders redistribute the
+      remaining percentage proportionally across the others so the total always
+      sums to 100 (verified with a standalone Node test, not just in-browser).
+      Shows current winner, winner %, a "no majority but still wins" note when
+      the winner is under 50%, and a visible 50% threshold line on each bar.
+      New public, no-auth endpoint `GET /api/ballot/candidates/<race_slug>`
+      backs it (civic-education tool, shouldn't require signing in — matches
+      the platform's existing browse-first design rule). Linked from
+      `/ballot/compare/` only when a race has 3+ candidates, per the plan.
+- [x] Data lock automation:
+      - `POST /api/guide/submit-answer` now self-closes: checks the current
+        date against `GUIDE_SUBMISSION_DEADLINE` (`2026-08-14T23:59:59Z`,
+        `src/worker.js`) and returns `410 Gone` once passed. This part is
+        already live code, not a manual step.
+      - The `no_answer` backfill is a separate one-time script, deliberately
+        **not run automatically**: `db/seed/data_lock_no_answer_2026-08-14.sql`.
+        Matches the plan's SQL exactly (verified column names against the live
+        schema: `race_candidates.is_active`, `guide_questions.active`). Do not
+        run this before August 14 — an admin runs it once, manually, after the
+        deadline passes.
+- [x] QA pass: alignment math verified by hand against test fixtures in Phase 2;
+      fairness rules (same questions per race, no_answer never candidate-selected,
+      skip excludes symmetrically) hold by construction in the scoring code, not
+      just by convention.
 
 ---
 
