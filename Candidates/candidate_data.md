@@ -98,6 +98,21 @@ candidate_email_suppressions
   suppressed_at TEXT NOT NULL DEFAULT (datetime('now'))
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
   updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+
+multi_seat_race_sources (367 rows)  -- see "Multi-seat race sources workflow" below
+  id                 INTEGER PK AUTOINCREMENT
+  ballot_group_key   TEXT NOT NULL UNIQUE   -- deterministic re-run key
+  county              TEXT NOT NULL
+  election_phase, jurisdiction_type, city_or_town, precinct, precinct_name,
+  party, office_name, district_or_scope, term                    -- race description
+  seats_open, max_selections    INTEGER NOT NULL DEFAULT 0
+  ui_instruction                 TEXT NULLABLE
+  source_type, source_url, source_status, notes                  -- provenance
+  office_id          INTEGER REFERENCES offices(id)  -- set only once applied
+  office_id_guess    INTEGER REFERENCES offices(id)  -- best guess, may be unresolved
+  match_status       TEXT NOT NULL DEFAULT 'not_attempted'  -- not_attempted|exact|ambiguous|no_office_found
+  match_notes        TEXT NULLABLE
+  applied_at, imported_at, updated_at                              TEXT
 ```
 
 ## Indexes
@@ -165,6 +180,9 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/migrations/0008_precinct_polygons.sql` | Creates local precinct polygon fallback table |
 | `db/migrations/0009_offices_precinct_code.sql` | Adds `offices.precinct_code` and backfills title-derived precinct committee rows |
 | `db/migrations/0011_candidate_email_suppressions.sql` | Adds the candidate bulk-email suppression table |
+| `db/migrations/0019_multi_seat_race_sources.sql` | Creates `multi_seat_race_sources`, the staging table for the multi-seat candidates flow (see below) |
+
+**Applying migrations:** the `wy` database is shared with other projects (Guide, and other unrelated features) and their `d1_migrations` bookkeeping rows live in the same table. Candidates' own 0001–0019 migrations have never been recorded in that ledger — they've always been applied by hand. Apply a new migration with `npx wrangler d1 execute wy --remote --file=db/migrations/NNNN_name.sql` from `Candidates/`. Do **not** run `wrangler d1 migrations apply` for this project — it will try to replay the entire untracked history from 0001 and fail (migration 0001's `uq_offices_statewide`/`uq_offices_district` indexes no longer match live data, which now has legitimate duplicate titles across different counties).
 
 ## Seed files
 
@@ -196,6 +214,39 @@ npx wrangler d1 execute wy --file=db/seed/002_enrichment_updates.sql
 ```
 
 All 10 batches (rows 1–200) are complete and included in `002_enrichment_updates.sql`.
+
+## Multi-seat race sources workflow
+
+Some county/city/precinct races elect more than one candidate (county commissioner
+boards, city council wards, school/hospital/special districts, precinct committee
+seats). `offices.seats_available` (added in `0004_offices_expand.sql`) is what
+actually caps selections in the "My choice" UI on `/race/[id]`, but seat counts
+need a traceable source before they're trusted — that's what
+`multi_seat_race_sources` (added in `0019_multi_seat_race_sources.sql`) is for.
+
+This is a **repeatable, re-runnable flow**, not a one-time import:
+
+1. A research pass (spreadsheet) identifies multi-seat races per county, with a
+   source URL and confidence status per row. Field names in that spreadsheet
+   follow `docs/data_import_field_standards.md` — read that file before
+   changing the sheet's schema or building a similar table for other wild data.
+2. `scripts/import_multi_seat_race_sources.py` reads the spreadsheet and
+   generates an idempotent `UPSERT` seed file, keyed on `ballot_group_key`
+   (safe to re-run against a refreshed spreadsheet — existing rows update in
+   place, nothing duplicates).
+3. `scripts/match_multi_seat_race_sources.py` reconciles staged rows against
+   live `offices` rows. It only ever writes to `offices.seats_available` for a
+   single, unambiguous match (`match_status = 'exact'`) — everything else
+   (`ambiguous`, `no_office_found`) gets a best-guess `office_id_guess` and
+   `match_notes` recorded on the staging row for human review, without
+   touching the live table. Re-run after resolving an ambiguous row by hand
+   (or seeding a new office) — only rows still at `match_status =
+   'not_attempted'` are reconsidered.
+
+State as of 2026-07-02: 367 rows imported (353 races + 14 manual-review
+placeholders for counties with no extractable source yet); 154 applied
+exact matches, 25 ambiguous, 174 no matching office yet (mostly school/
+special/community-college districts, which have no seeded offices at all).
 
 ## Database bindings
 
