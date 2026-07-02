@@ -1,5 +1,7 @@
 ---
 // src/components/Nav.astro
+import { CANDIDATES_BASE_URL } from '../constants';
+
 const navLinks = [
   { href: '/about', label: 'About' },
   { href: '/civ-tech', label: 'Civ-Tech' },
@@ -8,7 +10,7 @@ const navLinks = [
   { href: '/pulse', label: 'Pulse' },
   { href: '/podcast', label: 'Podcast' },
   { href: '/finance', label: 'Finance' },
-  { href: 'https://candidates.skovgard2026.org', label: 'Candidates', external: true },
+  { href: CANDIDATES_BASE_URL, label: 'Candidates', external: true, candidateSite: true },
   { href: '/share', label: 'Share' },
 ];
 
@@ -29,6 +31,7 @@ const current = Astro.url.pathname;
       {navLinks.map(link => (
         <a
           href={link.href}
+          data-candidates-link={link.candidateSite ? '' : undefined}
           {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
           class={[
             'text-sm font-medium transition-colors',
@@ -76,6 +79,7 @@ const current = Astro.url.pathname;
     {navLinks.map(link => (
       <a
         href={link.href}
+        data-candidates-link={link.candidateSite ? '' : undefined}
         {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
         class={[
           'block py-2 text-sm font-medium transition-colors',

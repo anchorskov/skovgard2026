@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SESSION_NAME="skovgard-dev"
-PORTS=(4321 8787)
+PORTS=(4321 4322 8787)
 stopped_any=0
 
 listener_pids() {

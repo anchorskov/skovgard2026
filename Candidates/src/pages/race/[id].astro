@@ -6,7 +6,7 @@ import { env } from 'cloudflare:workers';
 const { id } = Astro.params;
 
 const office = await env.WY_DB.prepare(
-  'SELECT id, title, level, district FROM offices WHERE id = ?1'
+  'SELECT id, title, level, district, seats_available FROM offices WHERE id = ?1'
 ).bind(id).first();
 
 if (!office) {
@@ -77,7 +77,7 @@ function isAbsoluteUrl(url: string | null): boolean {
   ) : (
     <ul class="candidate-grid" role="list">
       {candidates.map((c) => (
-        <li class="candidate-card">
+        <li class="candidate-card" data-candidate-card={String(c.id)}>
           <div class="candidate-card__header">
             <div class="candidate-card__badges">
               {String(c.incumbency_status).toLowerCase() === 'incumbent' ? <span class="badge badge--incumbent">Incumbent</span> : null}
@@ -89,6 +89,20 @@ function isAbsoluteUrl(url: string | null): boolean {
           {c.summary ? (
             <p class="candidate-card__summary">{c.summary}</p>
           ) : null}
+
+          <button
+            type="button"
+            class="choice-pill"
+            data-choice-button
+            data-candidate-id={String(c.id)}
+            data-candidate-name={String(c.full_name)}
+            data-candidate-party={partyLabel(c.party ? String(c.party) : null)}
+            data-office-id={String(office.id)}
+            data-office-name={String(officeName)}
+            aria-pressed="false"
+          >
+            My choice
+          </button>
 
           <div class="candidate-card__links">
             {isAbsoluteUrl(String(c.website_url)) ? (
@@ -119,6 +133,45 @@ function isAbsoluteUrl(url: string | null): boolean {
         </li>
       ))}
     </ul>
+  )}
+
+  {candidates.length > 0 && (
+    <section
+      class="choice-list"
+      id="my-choice-list"
+      data-seats-available={String(office.seats_available ?? 1)}
+      aria-labelledby="choice-list-title"
+    >
+      <div class="choice-list__heading">
+        <div>
+          <p class="eyebrow">Optional planning tool</p>
+          <h2 id="choice-list-title">My candidate list</h2>
+        </div>
+        <span class="choice-list__count" id="choice-list-count">0 choices</span>
+      </div>
+      <p class="choice-list__intro">
+        Your choices stay in this browser. They are not votes and are not sent to us.
+      </p>
+      <div id="choice-list-items"></div>
+      <div class="choice-list__actions" id="choice-list-actions" hidden>
+        <button type="button" id="copy-choice-list">Copy list</button>
+        <a id="email-choice-list" href="#">Email to myself</a>
+        <button type="button" class="choice-list__clear" id="clear-choice-list">Clear list</button>
+      </div>
+      <p class="choice-list__status" id="choice-list-status" aria-live="polite"></p>
+      <div class="race-progress" id="race-progress">
+        <div>
+          <p class="race-progress__label">Continue through your ballot</p>
+          <p class="race-progress__note" id="race-progress-note"></p>
+        </div>
+        <a class="race-progress__next" id="next-race-link" href="/" hidden>Next undecided race →</a>
+        <div class="race-progress__jump" id="race-progress-jump" hidden>
+          <label for="race-jump-select">Jump to a race</label>
+          <select id="race-jump-select"></select>
+          <button type="button" id="race-jump-button">Go</button>
+        </div>
+      </div>
+    </section>
   )}
 
   <div class="race-footer">
@@ -180,6 +233,7 @@ function isAbsoluteUrl(url: string | null): boolean {
   }
 
   .candidate-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -194,6 +248,7 @@ function isAbsoluteUrl(url: string | null): boolean {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding-right: 118px;
   }
 
   .candidate-card__badges {
@@ -215,6 +270,37 @@ function isAbsoluteUrl(url: string | null): boolean {
     line-height: 1.55;
     color: #444;
     flex: 1;
+  }
+
+  .choice-pill {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    min-height: 34px;
+    padding: 6px 14px;
+    border: 1.5px solid var(--ember);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ember-dark);
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .choice-pill:hover,
+  .choice-pill:focus-visible {
+    background: var(--ember);
+    color: var(--bone);
+  }
+
+  .choice-pill[aria-pressed="true"] {
+    background: var(--ember);
+    color: var(--bone);
+  }
+
+  .candidate-card:has(.choice-pill[aria-pressed="true"]) {
+    border-color: var(--ember);
   }
 
   .candidate-card__links {
@@ -275,6 +361,243 @@ function isAbsoluteUrl(url: string | null): boolean {
     color: var(--rust);
   }
 
+  .choice-list {
+    margin-top: 48px;
+    padding: 24px;
+    border: 1px solid var(--dust);
+    border-top: 4px solid var(--sandstone);
+    background: var(--bone);
+  }
+
+  .choice-list__heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .choice-list__heading .eyebrow {
+    margin: 0 0 4px;
+  }
+
+  .choice-list__heading h2 {
+    margin: 0;
+    font-size: 1.65rem;
+  }
+
+  .choice-list__count {
+    flex: 0 0 auto;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--charcoal);
+    color: var(--bone);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .choice-list__intro {
+    margin: 10px 0 20px;
+    color: var(--rust);
+    line-height: 1.5;
+  }
+
+  :global(.choice-list__empty) {
+    margin: 0;
+    padding: 16px;
+    border: 1px dashed var(--dust);
+    color: var(--rust);
+  }
+
+  :global(.choice-list__items) {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  :global(.choice-list__item) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 16px;
+    align-items: center;
+    padding: 12px 14px;
+    border-left: 4px solid var(--ember);
+    background: color-mix(in srgb, var(--dust) 20%, var(--bone));
+  }
+
+  :global(.choice-list__office) {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--rust);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  :global(.choice-list__candidate) {
+    display: block;
+    margin-top: 2px;
+    font-weight: 800;
+  }
+
+  :global(.choice-list__party) {
+    font-size: 0.85rem;
+    color: var(--rust);
+  }
+
+  :global(.choice-list__remove) {
+    padding: 5px 8px;
+    border: 1px solid var(--dust);
+    background: transparent;
+    color: var(--ember-dark);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .choice-list__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .choice-list__actions[hidden] {
+    display: none;
+  }
+
+  .choice-list__actions button,
+  .choice-list__actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 7px 14px;
+    border: 1px solid var(--charcoal);
+    border-radius: 3px;
+    background: var(--charcoal);
+    color: var(--bone);
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .choice-list__actions button:hover,
+  .choice-list__actions button:focus-visible,
+  .choice-list__actions a:hover,
+  .choice-list__actions a:focus-visible {
+    border-color: var(--ember);
+    background: var(--ember);
+  }
+
+  .choice-list__actions .choice-list__clear {
+    background: transparent;
+    color: var(--ember-dark);
+    border-color: var(--ember-dark);
+  }
+
+  .choice-list__status {
+    min-height: 1.3em;
+    margin: 10px 0 0;
+    color: var(--rust);
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .race-progress {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px 24px;
+    align-items: end;
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--dust);
+  }
+
+  .race-progress__label {
+    margin: 0;
+    color: var(--charcoal);
+    font-weight: 800;
+  }
+
+  .race-progress__note {
+    margin: 3px 0 0;
+    color: var(--rust);
+    font-size: 0.88rem;
+  }
+
+  .race-progress__note a {
+    color: var(--ember);
+    font-weight: 800;
+  }
+
+  .race-progress__next {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 8px 16px;
+    border: 1px solid var(--ember);
+    border-radius: 3px;
+    background: var(--ember);
+    color: var(--bone);
+    font-size: 0.88rem;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .race-progress__next:hover,
+  .race-progress__next:focus-visible {
+    background: var(--ember-dark);
+    border-color: var(--ember-dark);
+  }
+
+  .race-progress__next[hidden],
+  .race-progress__jump[hidden] {
+    display: none;
+  }
+
+  .race-progress__jump {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(220px, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .race-progress__jump label {
+    font-size: 0.84rem;
+    font-weight: 800;
+    color: var(--rust);
+  }
+
+  .race-progress__jump select,
+  .race-progress__jump button {
+    min-height: 40px;
+    border: 1px solid var(--charcoal);
+    border-radius: 3px;
+    font: inherit;
+  }
+
+  .race-progress__jump select {
+    width: 100%;
+    padding: 7px 10px;
+    background: var(--bone);
+    color: var(--charcoal);
+  }
+
+  .race-progress__jump button {
+    padding: 7px 16px;
+    background: var(--charcoal);
+    color: var(--bone);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
   .race-footer a {
     font-weight: 700;
     color: var(--ember);
@@ -289,5 +612,277 @@ function isAbsoluteUrl(url: string | null): boolean {
     .candidate-grid {
       grid-template-columns: 1fr;
     }
+
+    .race-progress {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+
+    .race-progress__jump {
+      grid-template-columns: 1fr auto;
+    }
+
+    .race-progress__jump label {
+      grid-column: 1 / -1;
+    }
   }
 </style>
+
+<script>
+  const STORAGE_KEY = 'wyoming-2026-my-candidate-list-v1';
+  const AVAILABLE_RACES_STORAGE_KEY = 'wyoming-2026-my-available-races-v1';
+  const choiceList = document.querySelector<HTMLElement>('#my-choice-list');
+
+  if (choiceList) {
+    const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-choice-button]'));
+    const itemsRoot = document.querySelector<HTMLElement>('#choice-list-items');
+    const countRoot = document.querySelector<HTMLElement>('#choice-list-count');
+    const actions = document.querySelector<HTMLElement>('#choice-list-actions');
+    const status = document.querySelector<HTMLElement>('#choice-list-status');
+    const copyButton = document.querySelector<HTMLButtonElement>('#copy-choice-list');
+    const emailLink = document.querySelector<HTMLAnchorElement>('#email-choice-list');
+    const clearButton = document.querySelector<HTMLButtonElement>('#clear-choice-list');
+    const progressNote = document.querySelector<HTMLElement>('#race-progress-note');
+    const nextRaceLink = document.querySelector<HTMLAnchorElement>('#next-race-link');
+    const raceJump = document.querySelector<HTMLElement>('#race-progress-jump');
+    const raceJumpSelect = document.querySelector<HTMLSelectElement>('#race-jump-select');
+    const raceJumpButton = document.querySelector<HTMLButtonElement>('#race-jump-button');
+    const seatsAvailable = Math.max(1, Number(choiceList.dataset.seatsAvailable || 1));
+    const currentOfficeId = buttons[0]?.dataset.officeId || '';
+
+    type Choice = {
+      candidateId: string;
+      candidateName: string;
+      candidateParty: string;
+      officeId: string;
+      officeName: string;
+    };
+
+    type AvailableRace = {
+      id: string;
+      name: string;
+      level?: string;
+    };
+
+    function loadChoices(): Choice[] {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((choice) => choice && choice.candidateId && choice.officeId);
+      } catch {
+        return [];
+      }
+    }
+
+    function saveChoices(choices: Choice[]) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(choices));
+    }
+
+    function loadAvailableRaces(): AvailableRace[] {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(AVAILABLE_RACES_STORAGE_KEY) || '[]');
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((race) => race && race.id && race.name);
+      } catch {
+        return [];
+      }
+    }
+
+    function choiceFromButton(button: HTMLButtonElement): Choice {
+      return {
+        candidateId: button.dataset.candidateId || '',
+        candidateName: button.dataset.candidateName || '',
+        candidateParty: button.dataset.candidateParty || '',
+        officeId: button.dataset.officeId || '',
+        officeName: button.dataset.officeName || '',
+      };
+    }
+
+    function formatChoices(choices: Choice[]) {
+      const sorted = [...choices].sort((a, b) =>
+        a.officeName.localeCompare(b.officeName) || a.candidateName.localeCompare(b.candidateName)
+      );
+      return [
+        'My Wyoming 2026 candidate choices',
+        '',
+        ...sorted.map((choice) =>
+          `${choice.officeName}: ${choice.candidateName}${choice.candidateParty ? ` (${choice.candidateParty})` : ''}`
+        ),
+        '',
+        'This is a personal planning list, not a cast ballot.',
+      ].join('\n');
+    }
+
+    function setStatus(message: string) {
+      if (status) status.textContent = message;
+    }
+
+    function renderRaceProgress(choices: Choice[]) {
+      if (!progressNote || !nextRaceLink || !raceJump || !raceJumpSelect) return;
+      const availableRaces = loadAvailableRaces();
+      const otherRaces = availableRaces.filter((race) => race.id !== currentOfficeId);
+
+      if (availableRaces.length === 0) {
+        progressNote.textContent = 'Complete one ballot lookup to load the races available for your address.';
+        nextRaceLink.href = '/#address-form-section';
+        nextRaceLink.textContent = 'Find my races →';
+        nextRaceLink.hidden = false;
+        raceJump.hidden = true;
+        return;
+      }
+
+      const decidedOfficeIds = new Set(choices.map((choice) => choice.officeId));
+      const allUndecidedRaces = availableRaces.filter((race) => !decidedOfficeIds.has(race.id));
+      const undecidedRaces = otherRaces.filter((race) => !decidedOfficeIds.has(race.id));
+      const currentHasChoice = decidedOfficeIds.has(currentOfficeId);
+
+      if (undecidedRaces.length > 0) {
+        const nextRace = undecidedRaces[0];
+        progressNote.textContent = `${allUndecidedRaces.length} ${allUndecidedRaces.length === 1 ? 'race still needs' : 'races still need'} a choice.`;
+        nextRaceLink.href = `/race/${encodeURIComponent(nextRace.id)}`;
+        nextRaceLink.textContent = `Next: ${nextRace.name} →`;
+        nextRaceLink.hidden = false;
+      } else {
+        progressNote.textContent = currentHasChoice
+          ? 'You have a choice recorded for every available race.'
+          : 'This is the last race without a choice.';
+        nextRaceLink.hidden = true;
+      }
+
+      raceJumpSelect.replaceChildren();
+      for (const race of otherRaces) {
+        const option = document.createElement('option');
+        option.value = race.id;
+        option.textContent = `${decidedOfficeIds.has(race.id) ? '✓ ' : ''}${race.name}`;
+        raceJumpSelect.append(option);
+      }
+      raceJump.hidden = otherRaces.length === 0;
+    }
+
+    function render() {
+      const choices = loadChoices();
+      const selectedIds = new Set(choices.map((choice) => choice.candidateId));
+
+      for (const button of buttons) {
+        const selected = selectedIds.has(button.dataset.candidateId || '');
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        button.textContent = selected ? '✓ My choice' : 'My choice';
+      }
+
+      if (countRoot) {
+        countRoot.textContent = `${choices.length} ${choices.length === 1 ? 'choice' : 'choices'}`;
+      }
+      if (actions) actions.hidden = choices.length === 0;
+
+      if (emailLink) {
+        const subject = encodeURIComponent('My Wyoming 2026 candidate choices');
+        const body = encodeURIComponent(formatChoices(choices));
+        emailLink.href = `mailto:?subject=${subject}&body=${body}`;
+      }
+
+      renderRaceProgress(choices);
+
+      if (!itemsRoot) return;
+      if (choices.length === 0) {
+        itemsRoot.innerHTML = '<p class="choice-list__empty">Select “My choice” on any candidate card to start your list.</p>';
+        return;
+      }
+
+      const list = document.createElement('ul');
+      list.className = 'choice-list__items';
+      for (const choice of choices) {
+        const item = document.createElement('li');
+        item.className = 'choice-list__item';
+
+        const details = document.createElement('div');
+        const office = document.createElement('span');
+        office.className = 'choice-list__office';
+        office.textContent = choice.officeName;
+        const candidate = document.createElement('span');
+        candidate.className = 'choice-list__candidate';
+        candidate.textContent = choice.candidateName;
+        const party = document.createElement('span');
+        party.className = 'choice-list__party';
+        party.textContent = choice.candidateParty;
+        details.append(office, candidate, party);
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'choice-list__remove';
+        remove.dataset.removeChoice = choice.candidateId;
+        remove.setAttribute('aria-label', `Remove ${choice.candidateName} from my list`);
+        remove.textContent = 'Remove';
+        item.append(details, remove);
+        list.append(item);
+      }
+      itemsRoot.replaceChildren(list);
+    }
+
+    for (const button of buttons) {
+      button.addEventListener('click', () => {
+        const clicked = choiceFromButton(button);
+        let choices = loadChoices();
+        const isSelected = choices.some((choice) => choice.candidateId === clicked.candidateId);
+
+        if (isSelected) {
+          choices = choices.filter((choice) => choice.candidateId !== clicked.candidateId);
+          setStatus(`${clicked.candidateName} removed from your list.`);
+        } else {
+          const officeChoices = choices.filter((choice) => choice.officeId === clicked.officeId);
+          if (seatsAvailable === 1) {
+            choices = choices.filter((choice) => choice.officeId !== clicked.officeId);
+          } else if (officeChoices.length >= seatsAvailable) {
+            setStatus(`You can select up to ${seatsAvailable} candidates for this office.`);
+            return;
+          }
+          choices.push(clicked);
+          setStatus(`${clicked.candidateName} added to your list.`);
+        }
+
+        saveChoices(choices);
+        render();
+      });
+    }
+
+    itemsRoot?.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      const remove = target.closest<HTMLButtonElement>('[data-remove-choice]');
+      if (!remove) return;
+      const choices = loadChoices().filter((choice) => choice.candidateId !== remove.dataset.removeChoice);
+      saveChoices(choices);
+      setStatus('Choice removed from your list.');
+      render();
+    });
+
+    copyButton?.addEventListener('click', async () => {
+      const text = formatChoices(loadChoices());
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus('Candidate list copied.');
+      } catch {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.append(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        setStatus(copied ? 'Candidate list copied.' : 'Copy failed. Please try again.');
+      }
+    });
+
+    clearButton?.addEventListener('click', () => {
+      saveChoices([]);
+      setStatus('Candidate list cleared.');
+      render();
+    });
+
+    raceJumpButton?.addEventListener('click', () => {
+      const raceId = raceJumpSelect?.value;
+      if (raceId) window.location.href = `/race/${encodeURIComponent(raceId)}`;
+    });
+
+    render();
+  }
+</script>

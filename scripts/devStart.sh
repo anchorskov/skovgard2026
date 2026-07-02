@@ -6,8 +6,10 @@ set -euo pipefail
 SESSION_NAME="skovgard-dev"
 REPO_ROOT="/home/anchor/projects/skovgard2026"
 WORKER_DIR="${REPO_ROOT}/worker"
+CANDIDATES_DIR="${REPO_ROOT}/Candidates"
 WRANGLER_DB="ballot_sources"
 ASTRO_PORT="4321"
+CANDIDATES_PORT="4322"
 WRANGLER_PORT="8787"
 
 if ! command -v tmux >/dev/null 2>&1; then
@@ -18,6 +20,7 @@ fi
 # Load nvm so npm is available inside tmux
 NVM_INIT='source /home/anchor/.nvm/nvm.sh && nvm use 22'
 ASTRO_CMD="bash -c '${NVM_INIT} && npm run dev'"
+CANDIDATES_CMD="bash -c '${NVM_INIT} && npm run dev -- --port ${CANDIDATES_PORT}'"
 WRANGLER_CMD="bash -c '${NVM_INIT} && npx wrangler d1 migrations apply ${WRANGLER_DB} --local && npx wrangler dev'"
 
 port_listening() {
@@ -74,13 +77,14 @@ ensure_window() {
 
 if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
   echo "tmux session ${SESSION_NAME} already exists."
-  echo "Ensuring Astro and Wrangler are both running..."
+  echo "Ensuring the campaign site, Candidates app, and Wrangler are running..."
 else
   tmux new-session -d -s "${SESSION_NAME}" -x 220 -y 50 -c "${REPO_ROOT}" "${ASTRO_CMD}"
 fi
 
 ensure_window 0 "astro" "${REPO_ROOT}" "${ASTRO_CMD}"
 ensure_window 1 "wrangler" "${WORKER_DIR}" "${WRANGLER_CMD}"
+ensure_window 2 "candidates" "${CANDIDATES_DIR}" "${CANDIDATES_CMD}"
 
 tmux select-window -t "${SESSION_NAME}:0"
 
@@ -115,18 +119,31 @@ else
   WRANGLER_OK=0
 fi
 
+CANDIDATES_OUTPUT=$(tmux capture-pane -t "${SESSION_NAME}:2" -p | tail -20)
+if wait_for_port "${CANDIDATES_PORT}" 15; then
+  echo "Candidates app   -> http://localhost:${CANDIDATES_PORT}"
+  CANDIDATES_OK=1
+elif echo "$CANDIDATES_OUTPUT" | grep -qi "error\|failed"; then
+  echo "Candidates startup may have failed — check window 2."
+  CANDIDATES_OK=0
+else
+  echo "Candidates is still starting (check window 2)."
+  CANDIDATES_OK=0
+fi
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "Started tmux session '${SESSION_NAME}' with 2 windows:"
+echo "Started tmux session '${SESSION_NAME}' with 3 windows:"
 echo "   Window 0 (astro):    http://localhost:${ASTRO_PORT}"
 echo "   Window 1 (wrangler): http://localhost:${WRANGLER_PORT}"
+echo "   Window 2 (candidates): http://localhost:${CANDIDATES_PORT}"
 echo ""
 echo "Commands:"
 echo "   Attach:  tmux attach -t ${SESSION_NAME}"
 echo "   Stop:    bash scripts/stop.sh"
 echo ""
 
-if [ "${ASTRO_OK}" -eq 0 ] || [ "${WRANGLER_OK}" -eq 0 ]; then
+if [ "${ASTRO_OK}" -eq 0 ] || [ "${WRANGLER_OK}" -eq 0 ] || [ "${CANDIDATES_OK}" -eq 0 ]; then
   echo "One or more local services failed to start cleanly. Run: tmux attach -t ${SESSION_NAME}"
   exit 1
 fi

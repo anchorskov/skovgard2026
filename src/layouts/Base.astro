@@ -53,5 +53,21 @@ const ogImageURL = ogImage.startsWith('http')
 </head>
 <body class="bg-wy-stone text-wy-navy font-sans antialiased">
   <slot />
+  <script is:inline>
+    (function resolveCandidatesLinks() {
+      const hostname = window.location.hostname.toLowerCase();
+      let candidatesOrigin = 'https://candidates.skovgard2026.org';
+
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') {
+        candidatesOrigin = 'http://localhost:4322';
+      } else if (hostname === 'this-is-us.org' || hostname.endsWith('.this-is-us.org')) {
+        candidatesOrigin = 'https://candidates.this-is-us.org';
+      }
+
+      document.querySelectorAll('a[data-candidates-link]').forEach(function (link) {
+        link.href = candidatesOrigin;
+      });
+    })();
+  </script>
 </body>
 </html>

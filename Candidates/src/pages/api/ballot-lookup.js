@@ -1084,6 +1084,8 @@ function resolvePollingPlace(gis, polygon, d1Rows) {
 }
 
 async function verifyTurnstile(token) {
+  if (import.meta.env.DEV) return true;
+
   const secret = env.TURNSTILE_SECRET_KEY;
   if (!secret) return true; // not configured — skip in local dev
 

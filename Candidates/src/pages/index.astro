@@ -3,9 +3,12 @@
 import '../styles/global.css';
 import { env } from 'cloudflare:workers';
 
+const siteOrigin = Astro.url.origin;
 const electionDate = 'August 18, 2026';
 const googleGeocodeKey = (env as any)?.GOOGLE_CIVIC_API_KEY || '';
 const turnstileSiteKey = (env as any)?.TURNSTILE_SITE_KEY || '';
+const isLocalReview = import.meta.env.DEV;
+const turnstileEnabled = Boolean(turnstileSiteKey && !isLocalReview);
 
 let guideStats = [
   { value: '1016', label: 'races tracked' },
@@ -87,24 +90,27 @@ const addressFields = [
     <meta name="generator" content={Astro.generator} />
     <title>Wyoming 2026 Primary Ballot Guide — Find Candidates by County &amp; District</title>
 
+    <!-- Canonical URL always points at the primary domain, regardless of which mirror served this page -->
+    <link rel="canonical" href="https://candidates.skovgard2026.org/" />
+
     <!-- Open Graph -->
     <meta property="og:type"        content="website" />
-    <meta property="og:url"         content="https://candidates.skovgard2026.org/" />
+    <meta property="og:url"         content={`${siteOrigin}/`} />
     <meta property="og:title"       content="Wyoming 2026 Primary Ballot Guide — Find Candidates by County &amp; District" />
     <meta property="og:description" content="Find your Wyoming 2026 primary ballot, compare candidates, browse races, and learn who is running in your county, district, and precinct." />
-    <meta property="og:image"       content="https://candidates.skovgard2026.org/og-image.png" />
+    <meta property="og:image"       content={`${siteOrigin}/og-image.png`} />
     <meta property="og:image:width"  content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name"   content="Wyoming 2026 Voter Guide" />
 
-    <!-- Cloudflare Turnstile (invisible bot protection for ballot lookup) -->
-    {turnstileSiteKey && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
+    <!-- Cloudflare Turnstile (production bot protection for ballot lookup) -->
+    {turnstileEnabled && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
 
     <!-- Twitter / X card -->
     <meta name="twitter:card"        content="summary_large_image" />
     <meta name="twitter:title"       content="Wyoming 2026 Primary Ballot Guide — Find Candidates by County &amp; District" />
     <meta name="twitter:description" content="Find your Wyoming 2026 primary ballot, compare candidates, browse races, and learn who is running in your county, district, and precinct." />
-    <meta name="twitter:image"       content="https://candidates.skovgard2026.org/og-image.png" />
+    <meta name="twitter:image"       content={`${siteOrigin}/og-image.png`} />
   </head>
   <body>
     <main class="page-shell">
@@ -122,6 +128,13 @@ const addressFields = [
           <a href="/races">Browse races</a>
         </nav>
       </header>
+
+      {isLocalReview && (
+        <aside class="local-review-banner" role="status">
+          <strong>Local review mode</strong>
+          <span>Turnstile is disabled. Ballot lookups use the local development bindings.</span>
+        </aside>
+      )}
 
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero__copy">
@@ -205,12 +218,14 @@ const addressFields = [
           <div id="local-results" class="lookup-results lookup-results--local" hidden></div>
           <div id="polling-section" class="polling-section" hidden></div>
           <div id="fallback-panel" class="fallback-panel" hidden></div>
-          {turnstileSiteKey && (
+          {turnstileEnabled && (
             <div
               id="ts-widget"
               class="cf-turnstile"
               data-sitekey={turnstileSiteKey}
-              data-size="invisible"
+              data-size="normal"
+              data-execution="execute"
+              data-appearance="interaction-only"
               data-callback="onTurnstileSuccess"
               data-error-callback="onTurnstileError"
               data-expired-callback="onTurnstileExpired"
@@ -225,9 +240,9 @@ const addressFields = [
       <span class="site-footer__rule"></span>
       <p>Paid for by Skovgard for Senate &nbsp;&middot;&nbsp; <a href="/privacy">Privacy Policy</a></p>
     </footer>
-    <script define:vars={{ googleGeocodeKey, turnstileSiteKey }}>
+    <script define:vars={{ googleGeocodeKey, turnstileEnabled, turnstileSiteKey }}>
       window.__GOOGLE_GEOCODE_KEY__ = googleGeocodeKey || '';
-      window.__TURNSTILE_SITE_KEY__ = turnstileSiteKey || '';
+      window.__TURNSTILE_SITE_KEY__ = turnstileEnabled ? turnstileSiteKey : '';
     </script>
     <script>
       const lookupForm = document.querySelector('.address-form');
@@ -237,6 +252,7 @@ const addressFields = [
       const lookupResults = document.querySelector('#results');
       const localResults = document.querySelector('#local-results');
       const pollingSection = document.querySelector('#polling-section');
+      const availableRacesStorageKey = 'wyoming-2026-my-available-races-v1';
       let gpsTriggeredLookup = false;
       let storedGpsLat = null;
       let storedGpsLon = null;
@@ -244,6 +260,7 @@ const addressFields = [
       // ── Turnstile (invisible) ───────────────────────────────────────────
       let _tsToken = null;
       let _tsResolve = null;
+      let _tsExecuted = false;
 
       window.onTurnstileSuccess = function (token) {
         _tsToken = token;
@@ -254,6 +271,7 @@ const addressFields = [
       };
       window.onTurnstileExpired = function () {
         _tsToken = null;
+        _tsExecuted = false;
         if (window.turnstile) window.turnstile.reset('#ts-widget');
       };
 
@@ -265,7 +283,11 @@ const addressFields = [
           return tok;
         }
         return new Promise((resolve) => {
+          if (_tsExecuted) {
+            window.turnstile.reset('#ts-widget');
+          }
           _tsResolve = resolve;
+          _tsExecuted = true;
           window.turnstile.execute('#ts-widget');
           setTimeout(() => {
             if (_tsResolve) { _tsResolve(null); _tsResolve = null; }
@@ -466,6 +488,29 @@ const addressFields = [
         }
       }
 
+      function saveAvailableRaces(...raceGroups) {
+        const racesById = new Map();
+        for (const group of raceGroups) {
+          if (!Array.isArray(group)) continue;
+          for (const race of group) {
+            if (race?.id == null || !race?.name) continue;
+            const id = String(race.id);
+            if (!racesById.has(id)) {
+              racesById.set(id, {
+                id,
+                name: String(race.name),
+                level: race.level ? String(race.level) : '',
+              });
+            }
+          }
+        }
+        try {
+          localStorage.setItem(availableRacesStorageKey, JSON.stringify([...racesById.values()]));
+        } catch {
+          // Ballot results still render when browser storage is unavailable.
+        }
+      }
+
       function renderRaces(races) {
         if (!lookupResults) return;
         if (!Array.isArray(races) || races.length === 0) {
@@ -494,10 +539,7 @@ const addressFields = [
             }).join('')}
           </ul>
           <div class="guide-ballot-cta">
-            <p class="guide-ballot-cta__text">Ready to record your choices?</p>
-            <a class="guide-ballot-cta__link" href="https://grassrootsmvt.org/ballot/" target="_blank" rel="noopener">
-              Go to My Ballot &rarr;
-            </a>
+            <p class="guide-ballot-cta__text">Open any race to begin building your private candidate list.</p>
           </div>
         `;
         setHidden(lookupResults, false);
@@ -846,6 +888,7 @@ const addressFields = [
             'success'
           );
           renderDistricts(data.districts, data.resolvedPollingPlace);
+          saveAvailableRaces(data.races, data.localRaces);
           renderRaces(data.races);
           renderLocalRaces(data.localRaces, data.localMeta);
           renderPollingDetails(data.pollingDetails, data.resolvedPollingPlace);
@@ -1090,6 +1133,23 @@ const addressFields = [
     justify-content: space-between;
     gap: 24px;
     min-height: 64px;
+  }
+
+  .local-review-banner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin: 14px 0 0;
+    padding: 10px 14px;
+    border: 1px solid var(--sage);
+    border-left: 5px solid var(--sage);
+    background: var(--bone);
+    color: var(--charcoal);
+    font-size: 0.9rem;
+  }
+
+  .local-review-banner strong {
+    color: var(--rust);
   }
 
   .brand-mark {

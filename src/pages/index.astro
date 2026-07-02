@@ -3,7 +3,7 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import { MEDIA_BASE_URL } from '../constants';
+import { CANDIDATES_BASE_URL, MEDIA_BASE_URL } from '../constants';
 ---
 <Base
   title="Jimmy Skovgard — U.S. Senate 2026"
@@ -40,7 +40,7 @@ import { MEDIA_BASE_URL } from '../constants';
         <a href="/volunteer" class="border-2 border-wy-bone bg-wy-bone/10 text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-bone/20 transition-colors">
           Volunteer
         </a>
-        <a href="https://candidates.skovgard2026.org" target="_blank" rel="noopener" class="border-2 border-wy-sandstone bg-wy-sandstone/10 text-wy-sandstone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-sandstone/20 transition-colors">
+        <a href={CANDIDATES_BASE_URL} data-candidates-link target="_blank" rel="noopener" class="border-2 border-wy-sandstone bg-wy-sandstone/10 text-wy-sandstone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-sandstone/20 transition-colors">
           My Ballot
         </a>
       </div>
