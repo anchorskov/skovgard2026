@@ -8,29 +8,29 @@ Below is our monthly summary for the campaign. We update this page at the start 
 
 ## Current Month Summary
 
-- **Reporting month:** April 2026  
-- **Balance forward (as of Apr 1):** $2,618.60  
-- **Contributions received in April:** $1,511.85  
-- **Expenditures in April:** $1,621.04  
-- **Cash on hand at Apr 30:** $2,412.61  
-- **Debts and obligations:** $0.00  
+- **Reporting month:** June 2026  
+- **Balance forward (as of Jun 1):** $2,637.22  
+- **Contributions received in June:** $2,100.00  
+- **Expenditures in June:** $1,053.69  
+- **Cash on hand at Jun 30:** $3,697.63  
+- **Debts and obligations:** $2,000.00  
 
-*Notes:* April contributions include $1,000.00 from Eric and Pamela Hutchins, $250.00 from Wendy Henderson, $100.00 from Beverly Dye, $100.00 from William Plumer, $15.00 from C. Jolley, an additional $46.85 in WinRed contributions, and processor-held Stripe funds of about $96.80 at month-end. Expenditures include $342.50 to The Hangar for event space, $157.50 to The Hangar for venue rental, $625.00 to the Wyoming Republican Party for state GOP table rental, $400.00 to KOSA for a candidate announcement, $50.00 to the Natrona County Republican Party, and $46.04 in processor fees and fee adjustments. Check 1007 ($200.00) was an internal transfer to the Hilltop account and is not counted as an expenditure. Cash on hand reflects confirmed bank balances: primary Wells Fargo ($2,212.61 after Check 1008 cleared May 1) plus Hilltop ($200.00). The Plumer Stripe payout is expected in May and is not included in the April cash figure.
+*Notes:* June contributions include a $2,000.00 loan from candidate Jimmy Skovgard and $100.00 from Jill Dauster via Stripe. The loan remains outstanding and is reported as a debt/obligation owed by the committee to the candidate (FEC Schedule C) until repaid. WinRed recorded no June donations. The June Wells Fargo deposits also include a $14.10 net Anedot payout tied to a contribution already counted in the May contribution total, which is reflected in cash on hand but not in the June contributions figure. Expenditures include $200.00 to ACRP for a fundraiser fee, $161.00 to State Farm for insurance, $150.00 combined to the Natrona County Republican Party (contribution and rally fee), $100.00 combined to BHC and NCRW for rally/entry fees, $141.50 in campaign supplies at Sam's Club, travel fuel and meal costs across several stops, and a $3.20 Stripe processing fee on the Dauster contribution. Check 1058 ($1,000.00) was an internal transfer to the Hilltop account and is not counted as an expenditure. Cash on hand reflects the balance forward plus net contributions, expenditures, and the Anedot timing deposit described above.
 
 ### Campaign totals
-- **Total contributions through Apr 30, 2026:** $8,758.06  
-- **Total expenditures since launch 04/24/2025:** $6,248.65  
-- **Cash on hand (as of Apr 30):** $2,412.61  
+- **Total contributions through Jun 30, 2026:** $11,873.06  
+- **Total expenditures since launch 04/24/2025:** $8,189.53  
+- **Cash on hand (as of Jun 30):** $3,697.63  
 
 For detailed line-item contributions and expenses, please see the PDFs posted below.
 
 ---
 
 ## Expense PDFs
-Latest: [April 2026 Expenses](/finance/2026-04-Expenses.pdf)
+Latest: [June 2026 Expenses](/finance/2026-06-Expenses.pdf)
 
 ## Contribution PDFs
-Latest: [April 2026 Contributions](/finance/contributions/2026-04-Contributions.pdf)
+Latest: [June 2026 Contributions](/finance/contributions/2026-06-Contributions.pdf)
 
 ---
 
