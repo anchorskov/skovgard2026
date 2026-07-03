@@ -19,6 +19,12 @@ import {
 import { sendPulseOptInEmails } from "./pulse-email.js";
 import { sendResendEmail } from "./resend.js";
 import { buildShareEmailHtml, buildShareEmailText, SHARE_MESSAGES, escHtml } from "./email-template.js";
+import {
+  DEFAULT_SMS_RATES,
+  estimateSmsCost,
+  estimatePersonalizedSmsCost,
+  calcBlastCost,
+} from "./sms-cost.js";
 
 function pulseWelcomeConfig(env) {
   return {
@@ -841,30 +847,9 @@ function personalizeSmsFirstName(text, firstName) {
   return String(text || "").replace(/\{first_name\}/gi, titleCase(firstName || "there"));
 }
 
-// Returns number of SMS segments for a given message string.
-// GSM-7: 160 chars single / 153 per part multipart.
-// Unicode: 70 chars single / 67 per part multipart.
-function smsSegmentCount(text) {
-  const gsm7Re = /^[@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-.\/0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà\^{}\\\[\]~|€]*$/;
-  const isGsm  = gsm7Re.test(text);
-  const single  = isGsm ? 160 : 70;
-  const multi   = isGsm ? 153 : 67;
-  const len = text.length;
-  return len <= single ? 1 : Math.ceil(len / multi);
-}
-
-// Returns { segments, baseCost, estimatedMaxCost } given message text and recipient count.
-// Base rate: $0.004/segment (Telnyx 10DLC).
-// Carrier surcharge estimate: +$0.0035/segment (AT&T rate; others vary).
-const SMS_BASE_RATE      = 0.004;
-const SMS_CARRIER_SURCHARGE = 0.0035;
-const SMS_STOP_FOOTER    = "\n\nReply STOP to opt out.";
-function calcBlastCost(messageText, total) {
-  const segments      = smsSegmentCount(messageText + SMS_STOP_FOOTER);
-  const baseCost      = +(segments * SMS_BASE_RATE * total).toFixed(2);
-  const maxCost       = +(segments * (SMS_BASE_RATE + SMS_CARRIER_SURCHARGE) * total).toFixed(2);
-  return { segments, baseCost, maxCost };
-}
+// SMS segment counting and cost estimation now live in ./sms-cost.js
+// (imported above), shared by this route and /api/admin/texting/send and
+// /api/admin/texting/send-batch.
 
 function buildVoterBlastPreviewSeed({ county, city, party, districtType, district, text }) {
   return ["voter_blast", county || "", city || "", party || "", districtType || "", district || "", text].join("|");
@@ -3901,6 +3886,7 @@ export default {
               from: String(env.TELNYX_FROM_NUMBER || "").trim(),
               text,
             },
+            cost: estimateSmsCost(text, 1, DEFAULT_SMS_RATES),
             approval: {
               issuedAt,
               token: approvalToken,
@@ -4146,6 +4132,10 @@ export default {
             skippedCount,
             previewRecipients,
             previewMessages: personalizedMessages.slice(0, 8),
+            cost: estimatePersonalizedSmsCost(
+              personalizedMessages.map((item) => item.text),
+              DEFAULT_SMS_RATES
+            ),
             approval: {
               issuedAt,
               token: approvalToken,

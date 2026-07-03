@@ -276,7 +276,7 @@
       costEl.innerHTML =
         `<strong>Estimated cost:</strong> $${baseCost.toFixed(2)}–$${maxCost.toFixed(2)} ` +
         `<span class="vb-cost-detail">(${segments} SMS segment${segments > 1 ? 's' : ''} \xd7 ${data.total.toLocaleString()} recipients \xb7 ` +
-        `$0.004/seg base + carrier surcharges up to ~$0.0035/seg)</span>`;
+        `$0.0040/seg base + carrier surcharges up to ~$0.0042/seg)</span>`;
     }
 
     if (listEl) {

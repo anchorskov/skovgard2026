@@ -338,6 +338,46 @@ main .preview-box {
   background: #f8fafc;
 }
 
+main .sms-cost-line {
+  font-size: .85rem;
+  color: #374151;
+  margin-top: .25rem;
+}
+
+main .sms-cost-line.warn {
+  color: #92400e;
+  font-weight: 600;
+}
+
+main .cost-breakdown {
+  margin-top: .6rem;
+  padding-top: .6rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: .85rem;
+  color: #374151;
+}
+
+main .cost-breakdown strong {
+  color: #0f2742;
+}
+
+main .cost-breakdown .cost-detail {
+  display: block;
+  color: #6b7280;
+  margin-top: .15rem;
+}
+
+main .cost-warning {
+  display: block;
+  margin-top: .4rem;
+  padding: .5rem .65rem;
+  border-radius: .6rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-weight: 600;
+}
+
 main .preview-list-item {
   padding: .55rem .75rem;
   border: 1px solid #e5e7eb;

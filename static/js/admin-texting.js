@@ -1,5 +1,6 @@
 // static/js/admin-texting.js
 import { API_URL } from "/js/env.js";
+import { estimateSmsCost } from "/js/sms-cost-estimator.mjs";
 
 const authForm = document.getElementById("admin-texting-auth");
 const shellEl = document.getElementById("admin-texting-shell");
@@ -25,6 +26,8 @@ const sendStatusEl = document.getElementById("admin-texting-send-status");
 const previewBtn = document.getElementById("text-preview");
 const previewBox = document.getElementById("text-preview-box");
 const previewSummary = document.getElementById("text-preview-summary");
+const textCostLiveEl = document.getElementById("text-cost-live");
+const textPreviewCostEl = document.getElementById("text-preview-cost");
 const statusEl = document.getElementById("admin-texting-status");
 const messagesEl = document.getElementById("admin-texting-messages");
 const messagesClearVisibleBtn = document.getElementById("messages_clear_visible");
@@ -52,7 +55,9 @@ const broadcastPreviewBtn = document.getElementById("broadcast-preview");
 const broadcastSendBtn = document.getElementById("broadcast-send-confirm");
 const broadcastPreviewBox = document.getElementById("broadcast-preview-box");
 const broadcastPreviewSummary = document.getElementById("broadcast-preview-summary");
+const broadcastPreviewCostEl = document.getElementById("broadcast-preview-cost");
 const broadcastPreviewList = document.getElementById("broadcast-preview-list");
+const broadcastCostLiveEl = document.getElementById("broadcast-cost-live");
 const sendToInput = document.getElementById("send_to");
 const sendTextInput = document.getElementById("send_text");
 const broadcastFilterSelect = document.getElementById("broadcast_filter");
@@ -485,6 +490,9 @@ function renderRecipientTray() {
       ? `${items.length} recipient${items.length === 1 ? "" : "s"} in tray. Preview/send uses opted-in contacts only.`
       : "No recipients selected.";
   }
+  renderLiveCost(broadcastCostLiveEl, broadcastTextInput?.value, items.length, {
+    recipientCountKnown: items.length > 0,
+  });
   if (!recipientTrayList) return;
   recipientTrayList.innerHTML = items.length
     ? items.map((item) => `
@@ -503,6 +511,65 @@ function renderRecipientTray() {
         </article>
       `).join("")
     : `<p class="empty">Add contacts from the list below to build a recipient tray.</p>`;
+}
+
+// Renders the small always-visible "as you type" cost line under a
+// textarea, using the client-side estimator (no API round-trip). This is a
+// best-effort estimate: {first_name} personalization and STOP-footer text
+// (where applicable) are only known for certain once the server-side
+// Preview runs — see renderPreviewCost() for the authoritative figure.
+function renderLiveCost(el, text, recipientCount, { recipientCountKnown = true } = {}) {
+  if (!el) return;
+  const trimmed = String(text || "");
+  if (!trimmed) {
+    el.textContent = "";
+    el.classList.remove("warn");
+    return;
+  }
+  const count = recipientCountKnown ? Math.max(1, recipientCount || 0) : 1;
+  const cost = estimateSmsCost(trimmed, count);
+  const segLabel = `${cost.segmentsPerRecipient} segment${cost.segmentsPerRecipient === 1 ? "" : "s"}`;
+  const recipLabel = recipientCountKnown
+    ? ` · ${cost.recipientCount} recipient${cost.recipientCount === 1 ? "" : "s"} · ~$${cost.estimatedTotalCost.toFixed(2)} estimated`
+    : " · recipient count known after Preview";
+  el.textContent = `${cost.characterCount} chars · ${cost.encoding} · ${segLabel}${recipLabel} (estimate)`;
+  el.classList.toggle("warn", cost.segmentsPerRecipient >= 2 || cost.encoding === "UCS-2");
+}
+
+// Renders the authoritative cost breakdown (server-computed, using real
+// personalization/recipient data) inside an existing preview box.
+function renderPreviewCost(el, cost) {
+  if (!el) return;
+  if (!cost) {
+    el.innerHTML = "";
+    return;
+  }
+  const warnBits = [];
+  if (cost.segmentsPerRecipient >= 2) {
+    warnBits.push("This message needs more than 1 segment per recipient.");
+  }
+  if (cost.encoding === "UCS-2") {
+    const why = cost.encodingReasons?.length ? cost.encodingReasons.join("; ") : "non-GSM-7 characters";
+    warnBits.push(`Unicode encoding detected (${why}) — segments hold fewer characters (70/67) than GSM-7 (160/153).`);
+  }
+  if (cost.exceedsWarningThreshold) {
+    warnBits.push("Estimated total cost exceeds the configured warning threshold.");
+  }
+
+  const detail =
+    `${cost.characterCount} character${cost.characterCount === 1 ? "" : "s"} · ${cost.encoding} · ` +
+    `${cost.charsPerSegment} chars/segment · ${cost.segmentsPerRecipient} segment${cost.segmentsPerRecipient === 1 ? "" : "s"}/recipient · ` +
+    `${cost.recipientCount} recipient${cost.recipientCount === 1 ? "" : "s"} · ${cost.totalBillableSegments} billable segment${cost.totalBillableSegments === 1 ? "" : "s"} · ` +
+    `$${cost.costPerSegment.toFixed(4)}/segment`;
+
+  const warningHtml = warnBits.length
+    ? `<span class="cost-warning">${warnBits.map(escapeHtml).join(" ")}</span>`
+    : "";
+
+  el.innerHTML =
+    `<strong>Estimated cost: ~$${cost.estimatedTotalCost.toFixed(2)}</strong>` +
+    `<span class="cost-detail">${escapeHtml(detail)} — estimated, not exact; carrier fees vary by carrier and routing.</span>` +
+    warningHtml;
 }
 
 function renderEmptyMessage(el, message) {
@@ -537,6 +604,7 @@ function clearSinglePreview() {
   singlePreviewState = null;
   previewBox.hidden = true;
   previewSummary.textContent = "";
+  renderPreviewCost(textPreviewCostEl, null);
 }
 
 function clearBroadcastPreview() {
@@ -544,6 +612,7 @@ function clearBroadcastPreview() {
   broadcastPreviewBox.hidden = true;
   broadcastPreviewSummary.textContent = "";
   broadcastPreviewList.innerHTML = "";
+  renderPreviewCost(broadcastPreviewCostEl, null);
 }
 
 function renderBroadcastReceipt(sentCount, failedEntries, sentRecipients) {
@@ -1375,12 +1444,14 @@ function renderBroadcastPreview(data) {
   broadcastPreviewState = {
     token: data?.approval?.token || "",
     issuedAt: data?.approval?.issuedAt || "",
+    cost: data?.cost || null,
   };
   broadcastPreviewBox.hidden = false;
   const mode = data?.mode === "explicit" ? "tray" : "audience";
   broadcastPreviewSummary.textContent = mode === "tray"
     ? `Recipient tray: ${data.audienceCount}. Sendable now: ${data.count}. Skipped by safeguards: ${data.skippedCount || 0}. Batch ID: ${data.batchId}. Previewing first ${items.length} sendable recipients.`
     : `Audience size: ${data.audienceCount}. Sendable now: ${data.count}. Skipped by safeguards: ${data.skippedCount || 0}. Batch ID: ${data.batchId}. Previewing first ${items.length} recipients.`;
+  renderPreviewCost(broadcastPreviewCostEl, broadcastPreviewState.cost);
   broadcastPreviewList.innerHTML = items.length
     ? items.map((item) => `
         <div class="preview-list-item">
@@ -1523,9 +1594,11 @@ previewBtn?.addEventListener("click", async () => {
       text: data?.preview?.text || "",
       token: data?.approval?.token || "",
       issuedAt: data?.approval?.issuedAt || "",
+      cost: data?.cost || null,
     };
     previewBox.hidden = false;
     previewSummary.textContent = `Ready to send from ${data.preview.from} to ${data.preview.to}: ${data.preview.text}`;
+    renderPreviewCost(textPreviewCostEl, singlePreviewState.cost);
     setStatus(sendStatusEl, "Preview generated. Review and click Send now to transmit.", false);
   } catch (error) {
     if (shouldReturnToAuth(error)) {
@@ -1540,6 +1613,15 @@ sendForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!singlePreviewState?.token || !singlePreviewState?.issuedAt) {
     setStatus(sendStatusEl, "Run Preview before sending.", true);
+    return;
+  }
+
+  const cost = singlePreviewState.cost;
+  if (cost && !window.confirm(
+    `This message is estimated to cost ~$${cost.estimatedTotalCost.toFixed(2)} across ${cost.recipientCount} ` +
+    `recipient${cost.recipientCount === 1 ? "" : "s"} and ${cost.totalBillableSegments} billable segment${cost.totalBillableSegments === 1 ? "" : "s"}. ` +
+    `Confirm send?`
+  )) {
     return;
   }
 
@@ -1674,6 +1756,15 @@ broadcastForm?.addEventListener("submit", async (event) => {
     return;
   }
 
+  const cost = broadcastPreviewState.cost;
+  if (cost && !window.confirm(
+    `This message is estimated to cost ~$${cost.estimatedTotalCost.toFixed(2)} across ${cost.recipientCount} ` +
+    `recipient${cost.recipientCount === 1 ? "" : "s"} and ${cost.totalBillableSegments} billable segment${cost.totalBillableSegments === 1 ? "" : "s"}. ` +
+    `Confirm send?`
+  )) {
+    return;
+  }
+
   if (broadcastSendBtn) { broadcastSendBtn.disabled = true; broadcastSendBtn.textContent = "Sending…"; }
   try {
     const canResume = broadcastDeliveryState?.token === broadcastPreviewState.token
@@ -1775,6 +1866,9 @@ contactsFilterInput?.addEventListener("change", () => {
 
 [sendToInput, sendTextInput].forEach((el) => {
   el?.addEventListener("input", () => {
+    renderLiveCost(textCostLiveEl, sendTextInput?.value, sendToInput?.value.trim() ? 1 : 0, {
+      recipientCountKnown: true,
+    });
     if (!singlePreviewState) return;
     clearSinglePreview();
     setStatus(sendStatusEl, "Preview cleared because the message changed. Run Preview again.", false);
@@ -1783,6 +1877,10 @@ contactsFilterInput?.addEventListener("change", () => {
 
 [broadcastTextInput, broadcastLimitInput].forEach((el) => {
   el?.addEventListener("input", () => {
+    const trayCount = recipientTray.size;
+    renderLiveCost(broadcastCostLiveEl, broadcastTextInput?.value, trayCount, {
+      recipientCountKnown: trayCount > 0,
+    });
     if (!broadcastPreviewState) return;
     clearBroadcastPreview();
     setStatus(broadcastStatusEl, "Broadcast preview cleared because the audience or message changed.", false);
