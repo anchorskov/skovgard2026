@@ -562,13 +562,48 @@ function getAdminBearerToken(req) {
   return match ? match[1].trim() : "";
 }
 
-function isAdminAuthorized(req, env, url) {
+// Failed-admin-auth lockout: only failed attempts count, so normal admin use is never
+// throttled. Fails open (does not lock out) if the DB is unavailable — a DB hiccup
+// should not block all admin access.
+const ADMIN_AUTH_LOCKOUT_WINDOW_MIN = 15;
+const ADMIN_AUTH_LOCKOUT_MAX_FAILURES = 10;
+
+async function adminAuthLockedOut(env, ipHash) {
+  if (!env.DB) return false;
+  try {
+    const row = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM admin_auth_failures WHERE ip_hash = ?1 AND created_at >= datetime('now', ?2)"
+    )
+      .bind(ipHash, `-${ADMIN_AUTH_LOCKOUT_WINDOW_MIN} minutes`)
+      .first();
+    return (row?.n || 0) >= ADMIN_AUTH_LOCKOUT_MAX_FAILURES;
+  } catch {
+    return false;
+  }
+}
+
+async function recordAdminAuthFailure(env, ipHash) {
+  if (!env.DB) return;
+  try {
+    await env.DB.prepare("INSERT INTO admin_auth_failures (ip_hash) VALUES (?1)").bind(ipHash).run();
+  } catch {
+    /* best effort */
+  }
+}
+
+async function isAdminAuthorized(req, env, url) {
   const configured = String(env.ADMIN_EXPORT_KEY || "").trim();
   if (!configured) return false;
+
+  const ipHash = await sha256Hex(req.headers.get("cf-connecting-ip") || "");
+  if (await adminAuthLockedOut(env, ipHash)) return false;
+
   const bearer = getAdminBearerToken(req);
   const query = String(url.searchParams.get("key") || "").trim();
   const provided = bearer || query;
-  return timingSafeEqual(provided, configured);
+  const ok = timingSafeEqual(provided, configured);
+  if (!ok) await recordAdminAuthFailure(env, ipHash);
+  return ok;
 }
 
 function getAdminActor(req) {
@@ -1554,11 +1589,11 @@ function buildBatchPreviewRecipients(items) {
   }));
 }
 
-function mustBeAdmin(req, env, url) {
+async function mustBeAdmin(req, env, url) {
   if (!String(env.ADMIN_EXPORT_KEY || "").trim()) {
     return { ok: false, response: json(req, env, { error: "Admin export key not configured" }, 503) };
   }
-  if (!isAdminAuthorized(req, env, url)) {
+  if (!(await isAdminAuthorized(req, env, url))) {
     return { ok: false, response: json(req, env, { error: "Unauthorized" }, 401) };
   }
   return { ok: true };
@@ -1728,7 +1763,7 @@ export default {
       //               ?limit=N (default 200, max 500)
       if (req.method === "GET" && path === "/api/admin/donations/summary") {
         if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const period = url.searchParams.get("period") || getFecElectionPeriod() || "primary";
@@ -1781,7 +1816,7 @@ export default {
       // Returns full contribution history for a single donor across both periods.
       if (req.method === "GET" && path === "/api/admin/donations/donor") {
         if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const email = (url.searchParams.get("email") || "").toLowerCase().trim();
@@ -1825,7 +1860,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/telnyx/status") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const lastWebhookRow = await env.DB.prepare(
@@ -2650,10 +2685,19 @@ export default {
         // IP rate limit — max 50 sends per IP per 60 minutes
         // Admin key bypass: if SHARE_ADMIN_KEY is set and request includes matching admin_key, skip rate limit
         const adminKey = String(env.SHARE_ADMIN_KEY || "").trim();
-        const isAdminSend = adminKey && String(b.admin_key || "").trim() === adminKey;
+        const providedAdminKey = String(b.admin_key || "").trim();
 
         const ip = req.headers.get("cf-connecting-ip") || "";
         const ipHash = await sha256Hex(ip);
+
+        // Only a non-empty admin_key counts as an admin-auth attempt for lockout
+        // purposes — ordinary public shares never send one, so they never trip it.
+        let isAdminSend = false;
+        if (adminKey && providedAdminKey && !(await adminAuthLockedOut(env, ipHash))) {
+          isAdminSend = timingSafeEqual(providedAdminKey, adminKey);
+          if (!isAdminSend) await recordAdminAuthFailure(env, ipHash);
+        }
+
         if (!isAdminSend && env.DB) {
           try {
             const rlRow = await env.DB.prepare(
@@ -2887,7 +2931,7 @@ export default {
       // GET /api/admin/share/audit — share send log with optional filters
       if (req.method === "GET" && path === "/api/admin/share/audit") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const limit = Math.min(parseInt(url.searchParams.get("limit") || "100", 10), 500);
@@ -2929,7 +2973,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/telnyx/can-send") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const phone = String(url.searchParams.get("phone") || "").trim();
@@ -2950,7 +2994,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/texting/status") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const [
@@ -3095,7 +3139,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/texting/messages") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 200);
@@ -3136,7 +3180,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/texting/messages/delete") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const actor = getAdminActor(req);
@@ -3186,7 +3230,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/texting/messages/clear") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const actor = getAdminActor(req);
@@ -3218,7 +3262,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/texting/contacts") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 5000);
@@ -3242,7 +3286,7 @@ export default {
       }
 
       if (req.method === "GET" && path === "/api/admin/texting/voter-lookup") {
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         if (!env.WY_DB) {
@@ -3367,7 +3411,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/texting/optins") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const actor = getAdminActor(req);
@@ -3491,7 +3535,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/texting/volunteers") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const actor = getAdminActor(req);
@@ -3529,7 +3573,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/texting/contacts/volunteer") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const actor = getAdminActor(req);
@@ -3589,7 +3633,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/texting/contacts/update") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const actor = getAdminActor(req);
@@ -3695,7 +3739,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/texting/contacts/delete") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const actor = getAdminActor(req);
@@ -3746,7 +3790,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/texting/suppression") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const limit = positiveInt(url.searchParams.get("limit"), 100, 500);
@@ -3761,7 +3805,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/texting/conversations") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const phone = normalizePhoneNumber(url.searchParams.get("phone") || "");
@@ -3793,7 +3837,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/texting/conversations/clear") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const actor = getAdminActor(req);
@@ -3829,7 +3873,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/texting/send") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
         if (!String(env.TELNYX_API_KEY || "").trim()) {
           return json(req, env, { error: "TELNYX_API_KEY not configured" }, 503);
@@ -3984,7 +4028,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/texting/failed-recipients") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const since = String(url.searchParams.get("since") || "").trim();
@@ -4014,7 +4058,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/texting/send-batch") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
         if (!String(env.TELNYX_API_KEY || "").trim()) {
           return json(req, env, { error: "TELNYX_API_KEY not configured" }, 503);
@@ -4277,7 +4321,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/texting/contacts.csv") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const results = await queryAudienceContacts(env.DB, {
@@ -4304,7 +4348,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/texting/suppressed.csv") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const results = await queryAudienceContacts(env.DB, {
@@ -4332,7 +4376,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/voter-blast/cities") {
         if (!env.WY_DB) return json(req, env, { error: "WY_DB not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const county = normalizeText(url.searchParams.get("county") || "").toUpperCase() || null;
@@ -4354,7 +4398,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/voter-blast/preview") {
         if (!env.DB || !env.WY_DB) return json(req, env, { error: "DB or WY_DB not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const county       = normalizeText(url.searchParams.get("county")        || "").toUpperCase() || null;
@@ -4401,7 +4445,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/voter-blast/job") {
         if (!env.DB || !env.WY_DB) return json(req, env, { error: "DB or WY_DB not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const actor        = getAdminActor(req);
@@ -4451,7 +4495,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/voter-blast/send-chunk") {
         if (!env.DB || !env.WY_DB) return json(req, env, { error: "DB or WY_DB not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
         const actor   = getAdminActor(req);
         const body    = await req.json().catch(() => ({}));
@@ -4592,7 +4636,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/voter-blast/jobs") {
         if (!env.DB) return json(req, env, { error: "DB not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const rows = await env.DB.prepare(
@@ -4625,7 +4669,7 @@ export default {
 
       if (req.method === "PATCH" && path === "/api/admin/voter-blast/pause") {
         if (!env.DB) return json(req, env, { error: "DB not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const body    = await req.json().catch(() => ({}));
@@ -4642,7 +4686,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/emails/status") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const [counts, latestSubscriberRow] = await Promise.all([
@@ -4708,7 +4752,7 @@ export default {
 
       if (req.method === "GET" && path === "/api/admin/emails/contacts") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 5000);
@@ -4733,7 +4777,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/emails/preview") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
         const actor = getAdminActor(req);
 
@@ -4869,7 +4913,7 @@ export default {
 
       if (req.method === "POST" && path === "/api/admin/emails/send") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
         const auditTableReady = await tableExists(env.DB, "admin_email_audit_log");
         const emailConfig = getAdminEmailConfig(env);
@@ -5291,7 +5335,7 @@ export default {
         if (!String(env.ADMIN_EXPORT_KEY || "").trim()) {
           return json(req, env, { error: "Admin export key not configured" }, 503);
         }
-        if (!isAdminAuthorized(req, env, url)) {
+        if (!(await isAdminAuthorized(req, env, url))) {
           return json(req, env, { error: "Unauthorized" }, 401);
         }
 
@@ -5326,7 +5370,7 @@ export default {
         if (!String(env.ADMIN_EXPORT_KEY || "").trim()) {
           return json(req, env, { error: "Admin export key not configured" }, 503);
         }
-        if (!isAdminAuthorized(req, env, url)) {
+        if (!(await isAdminAuthorized(req, env, url))) {
           return json(req, env, { error: "Unauthorized" }, 401);
         }
 
@@ -5376,7 +5420,7 @@ export default {
         (path === "/api/admin/exports/donations.csv" || path === "/api/admin/donations.csv")
       ) {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
-        const auth = mustBeAdmin(req, env, url);
+        const auth = await mustBeAdmin(req, env, url);
         if (!auth.ok) return auth.response;
 
         const columns = [
