@@ -11,6 +11,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "generate-types": "wrangler types",
+    "rubric:build": "node scripts/build-rubric.mjs",
+    "rubric:check": "node scripts/build-rubric.mjs --check",
     "deploy": "npm run build && wrangler pages deploy ./dist --project-name=skovgard-candidates",
     "db:migrate:local": "wrangler d1 execute wy --file=db/migrations/0001_candidates_schema.sql",
     "db:migrate:prod": "wrangler d1 execute wy --remote --file=db/migrations/0001_candidates_schema.sql"

@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "rubricKey": "wy-primary-2026-v1",
+  "title": "Wyoming 2026 Primary Candidate Rubric",
+  "electionCycle": "2026-primary",
+  "status": "active",
+  "scoring": {
+    "min": 0,
+    "max": 5,
+    "unknownPolicy": "excluded",
+    "labels": {
+      "0": "Serious documented concern",
+      "1": "Weak documented record",
+      "2": "Below-standard documented record",
+      "3": "Acceptable or neutral documented record",
+      "4": "Strong documented record",
+      "5": "Exceptional documented record"
+    }
+  },
+  "evidenceWeights": {
+    "1": "Social posts, mailers, and other low-context campaign communications",
+    "2": "Credible local reporting with identifiable sourcing",
+    "3": "Candidate questionnaires, public forums, and direct interviews",
+    "4": "Candidate's own published statements or campaign materials",
+    "5": "Official records, filings, statutes, court records, and recorded votes"
+  },
+  "categories": [
+    {
+      "number": 1,
+      "key": "constitutional_oath",
+      "label": "Constitutional oath and rule of law",
+      "weight": 15,
+      "displayOrder": 10,
+      "standard": "Evaluate respect for constitutional limits, the oath of office, due process, and the lawful roles of the legislative, executive, and judicial branches. Distinguish disagreement with a ruling from documented attempts to evade controlling law or the constitutional amendment process.",
+      "evidenceGuidance": "Prefer constitutional text, court records, enacted legislation, recorded votes, official statements, and direct candidate explanations. Do not infer intent from party membership or association alone."
+    },
+    {
+      "number": 2,
+      "key": "character",
+      "label": "Character, honesty, and courage",
+      "weight": 15,
+      "displayOrder": 20,
+      "standard": "Evaluate documented truthfulness, consistency between statements and conduct, willingness to correct errors, treatment of others, and willingness to take accountable public positions under pressure.",
+      "evidenceGuidance": "Use attributable public conduct, corrections, official findings, direct statements, and corroborated reporting. Do not score rumor, anonymous accusation, or disagreement over policy as a character defect."
+    },
+    {
+      "number": 3,
+      "key": "competence",
+      "label": "Competence and readiness",
+      "weight": 10,
+      "displayOrder": 30,
+      "standard": "Evaluate demonstrated understanding of the office, relevant responsibilities, preparation, judgment, and the ability to explain how proposed actions could be lawfully and practically carried out.",
+      "evidenceGuidance": "Consider relevant work, public service, legislative or administrative performance, debates, detailed proposals, and direct answers. Do not require prior elected office."
+    },
+    {
+      "number": 4,
+      "key": "accountability",
+      "label": "Accountability and transparency",
+      "weight": 10,
+      "displayOrder": 40,
+      "standard": "Evaluate disclosure, responsiveness, explanation of decisions, compliance with reporting duties, correction of material errors, and willingness to provide voters with verifiable information.",
+      "evidenceGuidance": "Prefer required filings, public records, correction history, direct responses, meeting records, and documented patterns of disclosure or nondisclosure."
+    },
+    {
+      "number": 5,
+      "key": "fiscal",
+      "label": "Fiscal responsibility",
+      "weight": 10,
+      "displayOrder": 50,
+      "standard": "Evaluate whether the candidate's record and proposals identify costs, funding sources, tradeoffs, long-term obligations, and responsible stewardship of public money.",
+      "evidenceGuidance": "Use budgets, fiscal notes, recorded votes, campaign finance filings, audits, detailed proposals, and direct explanations. Do not treat wealth, poverty, or a disclosed contribution as proof of fiscal character."
+    },
+    {
+      "number": 6,
+      "key": "local_impact",
+      "label": "Local impact and Wyoming fit",
+      "weight": 10,
+      "displayOrder": 60,
+      "standard": "Evaluate understanding of Wyoming communities, constitutional and jurisdictional boundaries, and the likely local effects of the candidate's record or proposals on land, water, energy, agriculture, families, and local government.",
+      "evidenceGuidance": "Prefer Wyoming-specific proposals, local records, public meetings, constituent work, impact analysis, and direct explanations rather than national talking points alone."
+    },
+    {
+      "number": 7,
+      "key": "public_service",
+      "label": "Public service over self-interest",
+      "weight": 10,
+      "displayOrder": 70,
+      "standard": "Evaluate documented service, stewardship, conflicts management, use of public responsibility, and whether conduct demonstrates attention to constituents and public obligations rather than personal benefit alone.",
+      "evidenceGuidance": "Use service records, ethics disclosures, conflict documentation, constituent work, official findings, and corroborated conduct. A disclosed interest is not misconduct by itself."
+    },
+    {
+      "number": 8,
+      "key": "issue_alignment",
+      "label": "Issue alignment with Skovgard 2026",
+      "weight": 10,
+      "displayOrder": 80,
+      "standard": "Compare the candidate's documented positions and record with Jimmy Skovgard's published platform priorities. This category is explicitly perspective-specific and must not be presented as a neutral measure of candidate quality.",
+      "evidenceGuidance": "Use current published platforms, direct statements, recorded votes, and detailed proposals. Mark changed or unclear positions and do not infer alignment where no evidence exists."
+    },
+    {
+      "number": 9,
+      "key": "coalition",
+      "label": "Coalition-building and temperament",
+      "weight": 5,
+      "displayOrder": 90,
+      "standard": "Evaluate demonstrated ability to work through disagreement, communicate responsibly, build effective support, and maintain principled but functional relationships required by the office.",
+      "evidenceGuidance": "Use legislative or organizational outcomes, public forums, direct working relationships, attributable conduct, and corroborated reporting. Style alone is not evidence of effectiveness or failure."
+    },
+    {
+      "number": 10,
+      "key": "evidence_quality",
+      "label": "Evidence quality",
+      "weight": 5,
+      "displayOrder": 100,
+      "standard": "Evaluate the authority, freshness, completeness, independence, and corroboration of the evidence available for the candidate. This category describes the research record, not the candidate's ideology.",
+      "evidenceGuidance": "Higher scores require multiple fresh, direct, authoritative sources. Sparse, stale, indirect, or internally conflicting evidence lowers this score and must also be disclosed through evidence coverage."
+    }
+  ],
+  "generatedFrom": "Candidates/data/rubrics/wy-primary-2026-v1.md",
+  "sourceSha256": "cbf458344636d5e8df23805ca2b802a5376ff324695f32e3131fa121859f5994"
+}

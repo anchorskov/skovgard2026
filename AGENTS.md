@@ -95,8 +95,9 @@ When deciding what is valid for `skovgard2026`, check local files first:
 
 - `ballot_sources` D1 (`DB` binding, production) — campaign app tables: `consent_status`, `contacts`, `newsletter_subscribers`, texting/email audit logs, district lookup mirrors.
 - `ballot_sources_preview` D1 (`DB` binding, `[env.preview]` only) — isolated copy of `ballot_sources` for migration testing. Always migrate and verify here before applying to production.
-- `wy` D1 (`WY_DB` binding) — Wyoming voter data (voter matching, `voter_phones`, `v_best_phone`) plus the voter guide tables (`offices`, `candidates`). Production: `--remote`. Local dev: no flag (local SQLite in `.wrangler/state/`).
+- `wy` D1 (`WY_DB` binding) — Wyoming voter data (voter matching, `voter_phones`, `v_best_phone`, `voter_emails`, `v_best_email`) plus the voter guide tables (`offices`, `candidates`). Production: `--remote`. Local dev: no flag (local SQLite in `.wrangler/state/`).
 - Voter guide detail: `Candidates/candidate_data.md` — field-by-field reference for `offices` and `candidates`.
+- Voter email pipeline detail: `docs/email_guide.md` — `voter_emails`/`v_best_email` schema, why it spans `voterdata/wyoming` + `grassrootsmvt` + this repo, and the full match/tier/import/production-sync process. Read this before adding a new email source or touching `voter_emails`.
 
 These D1 databases support multiple projects and workflows beyond the current task. Renaming, moving, rebinding, replacing, or bulk-rebuilding them can have far-reaching unintended effects outside this repo area. Before any database read, write, migration, import, export, or local mirror change, agents must verify the exact project, `wrangler.toml`, binding name, database name, database id, `--local` vs `--remote` target, and backing local SQLite file when applicable. Do not assume similarly named databases such as `wy`, `wy_preview`, or local mirror files are interchangeable.
 

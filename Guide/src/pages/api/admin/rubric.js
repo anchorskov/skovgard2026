@@ -1,6 +1,7 @@
 export const prerender = false;
 
 import { env } from 'cloudflare:workers';
+import { loadActiveRubric } from '../../../lib/rubric.js';
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -52,10 +53,37 @@ export async function POST(context) {
 
   const { candidate_id, categories = [], sources = [], overall_confidence = 'Low' } = body;
   if (!candidate_id) return json({ error: 'candidate_id required' }, 400);
+  if (!Array.isArray(categories) || !Array.isArray(sources)) return json({ error: 'categories and sources must be arrays' }, 400);
+  if (!['Low', 'Medium', 'High'].includes(overall_confidence)) return json({ error: 'Invalid overall confidence' }, 400);
 
   const db = env.WY_DB;
+  const rubric = await loadActiveRubric(db);
+  const submitted = new Map(categories.map(category => [category?.key, category]));
+  if (submitted.size !== rubric.categories.length || rubric.categories.some(category => !submitted.has(category.key))) {
+    return json({ error: `Submit exactly the ${rubric.categories.length} categories in rubric ${rubric.rubricKey}` }, 400);
+  }
 
-  const categoryStmts = categories.map(cat =>
+  for (const definition of rubric.categories) {
+    const category = submitted.get(definition.key);
+    const score = category.score;
+    if (score !== null && score !== undefined && (!Number.isInteger(Number(score)) || Number(score) < rubric.scoring.min || Number(score) > rubric.scoring.max)) {
+      return json({ error: `Invalid score for ${definition.key}` }, 400);
+    }
+    if (score !== null && score !== undefined && !category.evidence_notes?.trim()) {
+      return json({ error: `Evidence notes are required to score ${definition.key}` }, 400);
+    }
+    if (!['Low', 'Medium', 'High'].includes(category.confidence || 'Low')) {
+      return json({ error: `Invalid confidence for ${definition.key}` }, 400);
+    }
+  }
+  const evidenceWeights = new Set(Object.keys(rubric.evidenceWeights).map(Number));
+  if (sources.some(source => source?.name?.trim() && !evidenceWeights.has(Number(source.weight ?? 3)))) {
+    return json({ error: 'Invalid source evidence weight' }, 400);
+  }
+
+  const categoryStmts = rubric.categories.map(definition => {
+    const cat = submitted.get(definition.key);
+    return (
     db.prepare(`
       INSERT INTO guide_rubric_scores
         (candidate_id, category_key, category_label, weight,
@@ -69,15 +97,16 @@ export async function POST(context) {
         updated_at          = datetime('now')
     `).bind(
       candidate_id,
-      cat.key,
-      cat.label,
-      cat.weight,
+      definition.key,
+      definition.label,
+      definition.weight,
       cat.score ?? null,
       cat.evidence_notes || null,
       cat.follow_up_question || null,
       cat.confidence || 'Low',
     )
-  );
+    );
+  });
 
   const deleteSources = db.prepare('DELETE FROM guide_sources WHERE candidate_id = ?').bind(candidate_id);
 
@@ -98,9 +127,11 @@ export async function POST(context) {
       )
     );
 
-  const scored = categories.filter(c => c.score !== null && c.score !== undefined);
-  const finalScore = scored.reduce((sum, c) => sum + (Number(c.score) * c.weight), 0);
-  const maxPossible = scored.reduce((sum, c) => sum + (5 * c.weight), 0);
+  const scored = rubric.categories
+    .map(definition => ({ definition, submitted: submitted.get(definition.key) }))
+    .filter(({ submitted }) => submitted.score !== null && submitted.score !== undefined);
+  const finalScore = scored.reduce((sum, { definition, submitted }) => sum + (Number(submitted.score) * definition.weight), 0);
+  const maxPossible = scored.reduce((sum, { definition }) => sum + (rubric.scoring.max * definition.weight), 0);
 
   const endorsementStmt = db.prepare(`
     INSERT INTO guide_endorsements (candidate_id, status, evidence_confidence, final_score, max_possible)
@@ -110,7 +141,7 @@ export async function POST(context) {
       final_score         = excluded.final_score,
       max_possible        = excluded.max_possible,
       updated_at          = datetime('now')
-  `).bind(candidate_id, overall_confidence, finalScore || null, maxPossible || null);
+  `).bind(candidate_id, overall_confidence, scored.length ? finalScore : null, scored.length ? maxPossible : null);
 
   try {
     await db.batch([deleteSources, ...categoryStmts, ...sourceStmts, endorsementStmt]);

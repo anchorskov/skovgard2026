@@ -572,6 +572,13 @@ matching, 200/203 candidates linked) — this is separate from the empty
 `user_address_verification` live in a separate `ballot_sources` D1 is stale — confirmed
 via direct query that all of these, plus `user`/`session`, live in `wy` in production.
 
+**Rubric consolidation (2026-07-02):** The category list and scoring policy used by
+the Guide admin and Candidates public pages now come from the versioned rubric workflow
+in `Candidates/docs/rubrics/README.md`. The only manually edited definition is
+`Candidates/data/rubrics/wy-primary-2026-v1.md`; generated JSON is the build fallback,
+and the active D1 definition is the runtime source after migration `0022` is applied.
+Missing evidence is Unknown and excluded, never assigned a neutral score of 3.
+
 ### Phase 2 — Comparison + My Ballot (target: July 22)
 
 **Built and tested locally 2026-07-01. Adapted from the original plan after discovering

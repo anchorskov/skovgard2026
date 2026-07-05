@@ -1572,6 +1572,53 @@ const TOWN_HALL_INTRODUCTION_BODY_HTML = `
   </table>
 `;
 
+const BOULDER_AND_THE_WEEDS_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Something is deeply off with our political system. It has become a machine running on money
+    and outrage &#8212; one that keeps regular citizens reacting, divided, and distracted while our
+    freedom, our voice, and our local power keep moving farther away from our communities.
+  </p>
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    While families pay more at the grocery store, the gas pump, and on utility bills, the machine
+    manufactures a nonstop cycle of outrage that keeps neighbors staring sideways at each other
+    instead of looking clearly at what is happening to our country. When neighbors are kept angry
+    at neighbors, accountability disappears and the same old machine keeps rolling along.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #b22234;background:#fbf8f1;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 10px;font-size:16px;line-height:1.65;color:#111827;">
+          Truth is the boulder &#8212; stoic, existing, and enduring. Misinformation, fear, and
+          outrage are like invasive weeds finding a hairline crack to grow in.
+        </p>
+        <p style="margin:0;font-size:16px;line-height:1.65;color:#111827;">
+          Truth needs no advertising budget or corporate PAC to exist. It can sit quietly, it can
+          wait, and it always rises &#8212; especially when a community has the courage to share.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Real change does not come from the top down, and it will not come from another round of
+    screaming. It starts quietly, when neighbors choose to share the truth, when citizens stop
+    taking the bait, and when we remember that our communities were never built to be turned
+    against one another.
+  </p>
+  <p style="margin:0 0 8px;font-size:16px;line-height:1.65;color:#111827;font-weight:700;">
+    Wyoming knows something about grit, patience, and building for the long haul. August 18 is
+    coming. We may not reach everyone tomorrow, but we can reach a friend today.
+  </p>
+
+  <p style="margin:18px 0 0;font-size:15px;line-height:1.65;color:#374151;">
+    <a href="https://skovgard2026.org/files/truth-and-weeds-essay.pdf"
+        style="color:#b22234;font-weight:700;">Read the full essay, "The Boulder and the Weeds"</a>
+    at skovgard2026.org/files/truth-and-weeds-essay.pdf
+  </p>
+`;
+
 export const SHARE_MESSAGES = {
   "wyoming-not-for-sale": {
     title:        "Wyoming Is Not for Sale",
@@ -1911,6 +1958,21 @@ export const SHARE_MESSAGES = {
     intro(n) {
       return n
         ? `${n} wanted to share this Wyoming town hall moment with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "boulder-and-the-weeds": {
+    title:        "The Boulder and the Weeds",
+    body_html:    BOULDER_AND_THE_WEEDS_BODY_HTML,
+    preview_text: "Truth is the boulder — stoic and enduring. Fear and outrage are the weeds looking for a crack to grow in.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — The Boulder and the Weeds`
+        : "The Boulder and the Weeds";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this reflection with you.`
         : "A Wyoming neighbor wanted to share this with you.";
     },
   },
@@ -2745,6 +2807,36 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "Citizens are the fourth branch of government.",
           "Our representatives work for us.",
           "Freedom works only when citizens use it.",
+        ]
+    : slug === "boulder-and-the-weeds"
+      ? [
+          "Something is deeply off with our political system. It has become a machine running",
+          "on money and outrage — one that keeps regular citizens reacting, divided, and",
+          "distracted while our freedom, our voice, and our local power keep moving farther",
+          "away from our communities.",
+          "",
+          "While families pay more at the grocery store, the gas pump, and on utility bills,",
+          "the machine manufactures a nonstop cycle of outrage that keeps neighbors staring",
+          "sideways at each other instead of looking clearly at what is happening to our",
+          "country. When neighbors are kept angry at neighbors, accountability disappears",
+          "and the same old machine keeps rolling along.",
+          "",
+          "Truth is the boulder — stoic, existing, and enduring. Misinformation, fear, and",
+          "outrage are like invasive weeds finding a hairline crack to grow in. Truth needs",
+          "no advertising budget or corporate PAC to exist. It can sit quietly, it can wait,",
+          "and it always rises — especially when a community has the courage to share.",
+          "",
+          "Real change does not come from the top down, and it will not come from another",
+          "round of screaming. It starts quietly, when neighbors choose to share the truth,",
+          "when citizens stop taking the bait, and when we remember that our communities",
+          "were never built to be turned against one another.",
+          "",
+          "Wyoming knows something about grit, patience, and building for the long haul.",
+          "August 18 is coming. We may not reach everyone tomorrow, but we can reach a",
+          "friend today.",
+          "",
+          "Read the full essay, \"The Boulder and the Weeds\":",
+          "https://skovgard2026.org/files/truth-and-weeds-essay.pdf",
         ]
       : [
           "This campaign is built around two simple beliefs.",

@@ -54,6 +54,17 @@ skovgard2026Tree.txt
 # Local runtime data (keep out of Git)
 backups/
 data/
+!Candidates/data/
+Candidates/data/*
+!Candidates/data/rubrics/
+Candidates/data/rubrics/*
+!Candidates/data/rubrics/wy-primary-2026-v1.md
+!Candidates/data/rubrics/generated/
+Candidates/data/rubrics/generated/*
+!Candidates/data/rubrics/generated/wy-primary-2026-v1.json
+!Guide/src/data/
+Guide/src/data/*
+!Guide/src/data/wy-primary-2026-v1.generated.json
 docs/db/data/
 exports/
 brand/exports/

@@ -2,6 +2,7 @@
 // Candidates/src/pages/candidate/[slug].astro
 import Base from '../../layouts/Base.astro';
 import { env } from 'cloudflare:workers';
+import { loadActiveRubric } from '../../lib/rubric';
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/guide');
@@ -9,6 +10,7 @@ if (!slug) return Astro.redirect('/guide');
 type D1Env = { WY_DB: D1Database };
 const db = (env as unknown as D1Env)?.WY_DB;
 if (!db) return Astro.redirect('/guide');
+const rubric = await loadActiveRubric(db);
 
 // Load candidate + office
 const candRow = await db.prepare(`
@@ -55,24 +57,8 @@ const isPublished = endorsement?.published_at != null;
 const isEndorsed  = endorsement?.status === 'endorsed';
 const isResearch  = !endorsement || endorsement.status === 'research';
 
-const categoryOrder = [
-  'constitutional_oath','character','competence','accountability',
-  'fiscal','local_impact','public_service','issue_alignment',
-  'coalition','evidence_quality',
-];
-
-const categoryLabels: Record<string, string> = {
-  constitutional_oath: 'Constitutional oath & rule of law',
-  character:           'Character, honesty & courage',
-  competence:          'Competence & readiness',
-  accountability:      'Accountability & transparency',
-  fiscal:              'Fiscal responsibility',
-  local_impact:        'Local impact & Wyoming fit',
-  public_service:      'Public service over self-interest',
-  issue_alignment:     'Issue alignment',
-  coalition:           'Coalition-building & temperament',
-  evidence_quality:    'Evidence quality',
-};
+const categoryOrder = rubric.categories.map((category) => category.key);
+const categoryLabels = Object.fromEntries(rubric.categories.map((category) => [category.key, category.label]));
 
 const scoreMap = new Map((scores as any[]).map((s) => [s.category_key, s]));
 
@@ -86,6 +72,8 @@ function weightedScore(score: any): number | null {
 
 const totalScore = endorsement?.final_score ?? null;
 const maxPossible = endorsement?.max_possible ?? null;
+const fullMaximum = rubric.scoring.max * rubric.categories.reduce((sum, category) => sum + category.weight, 0);
+const evidenceCoverage = maxPossible != null ? Math.round((maxPossible / fullMaximum) * 100) : null;
 
 const questionLabels: Record<string, string> = {
   constitutional_position: 'What is your understanding of the constitutional limits of this office?',
@@ -127,7 +115,10 @@ const questionLabels: Record<string, string> = {
         <div class="score-card" aria-label="Rubric score">
           <p class="score-card__label">Rubric score</p>
           <strong class="score-card__score">{totalScore}</strong>
-          <span class="score-card__max">/ {maxPossible ?? 500}</span>
+          <span class="score-card__max">/ {maxPossible ?? fullMaximum}</span>
+          {evidenceCoverage != null && (
+            <p class="score-card__confidence">Evidence coverage: {evidenceCoverage}%</p>
+          )}
           {endorsement?.evidence_confidence && (
             <p class="score-card__confidence">Evidence confidence: {endorsement.evidence_confidence}</p>
           )}

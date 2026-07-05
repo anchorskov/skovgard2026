@@ -2,6 +2,11 @@
 // Candidates/src/pages/guide/index.astro
 import Base from '../../layouts/Base.astro';
 import { env } from 'cloudflare:workers';
+import { loadActiveRubric } from '../../lib/rubric';
+
+const db = env?.WY_DB as D1Database | undefined;
+const rubric = await loadActiveRubric(db);
+const rubricMaximum = rubric.scoring.max * rubric.categories.reduce((sum, category) => sum + category.weight, 0);
 
 const today = new Date();
 const researchDeadline  = new Date('2026-07-07');
@@ -34,9 +39,9 @@ const phases: { key: Phase; date: string; label: string; desc: string }[] = [
 ];
 
 let guideStats = { total: 0, researched: 0, endorsed: 0 };
-if (env?.WY_DB) {
+if (db) {
   try {
-    const { results } = await (env.WY_DB as D1Database).prepare(`
+    const { results } = await db.prepare(`
       SELECT
         COUNT(DISTINCT c.id)                                                      AS total_candidates,
         COUNT(DISTINCT CASE WHEN ge.status != 'research' THEN ge.candidate_id END) AS researched,
@@ -122,20 +127,9 @@ if (env?.WY_DB) {
 
   <section class="guide-rubric-intro" aria-labelledby="rubric-title">
     <h2 id="rubric-title">How candidates are scored.</h2>
-    <p>Each candidate is evaluated on ten categories using a 0–5 scale multiplied by category weight. Maximum score is 500 points. A category marked <strong>Unknown</strong> means we could not find sufficient evidence — it is not scored, not penalized.</p>
+    <p>Each candidate is evaluated on {rubric.categories.length} categories using a {rubric.scoring.min}–{rubric.scoring.max} scale multiplied by category weight. A fully evidenced rubric has a maximum of {rubricMaximum} points. A category marked <strong>Unknown</strong> means we could not find sufficient evidence — it is excluded from both the earned score and maximum possible score.</p>
     <div class="rubric-grid">
-      {[
-        { label: 'Constitutional oath & rule of law', weight: 15 },
-        { label: 'Character, honesty & courage',      weight: 15 },
-        { label: 'Competence & readiness',            weight: 10 },
-        { label: 'Accountability & transparency',     weight: 10 },
-        { label: 'Fiscal responsibility',             weight: 10 },
-        { label: 'Local impact & Wyoming fit',        weight: 10 },
-        { label: 'Public service over self-interest', weight: 10 },
-        { label: 'Issue alignment',                   weight: 10 },
-        { label: 'Coalition-building & temperament',  weight:  5 },
-        { label: 'Evidence quality',                  weight:  5 },
-      ].map((cat) => (
+      {rubric.categories.map((cat) => (
         <div class="rubric-row">
           <span class="rubric-row__label">{cat.label}</span>
           <span class="rubric-row__weight">{cat.weight} pts</span>
@@ -143,8 +137,9 @@ if (env?.WY_DB) {
       ))}
     </div>
     <p class="rubric-note">
-      Score 0 = no evidence or serious concern.
-      Score 5 = excellent evidence of strong performance.
+      Score 0 = a serious documented concern; missing evidence is Unknown, not 0 or 3.
+      Score 5 = an exceptional documented record.
+      Published totals show evidence coverage so a score based on limited evidence is not mistaken for a complete review.
       Issue alignment is scored against Jimmy Skovgard's published platform priorities for that office.
     </p>
   </section>

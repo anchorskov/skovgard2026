@@ -2,8 +2,10 @@
 // Candidates/src/pages/race/[id].astro
 import Base from '../../layouts/Base.astro';
 import { env } from 'cloudflare:workers';
+import { isGuideEnabled } from '../../lib/guide-host';
 
 const { id } = Astro.params;
+const guideEnabled = isGuideEnabled(Astro.url.hostname);
 
 const office = await env.WY_DB.prepare(
   'SELECT id, title, level, district, seats_available FROM offices WHERE id = ?1'
@@ -14,7 +16,7 @@ if (!office) {
 }
 
 const { results: candidates } = await env.WY_DB.prepare(`
-  SELECT id, full_name, party, summary,
+  SELECT id, slug, full_name, party, summary,
          website_url, photo_url, email, phone,
          facebook_url, instagram_url, twitter_url, campaign_finance_url, ballotpedia_url,
          incumbency_status, data_confidence
@@ -105,6 +107,9 @@ function isAbsoluteUrl(url: string | null): boolean {
           </button>
 
           <div class="candidate-card__links">
+            {guideEnabled && c.slug ? (
+              <a href={`/candidate/${String(c.slug)}`} class="cand-link cand-link--profile">Research profile</a>
+            ) : null}
             {isAbsoluteUrl(String(c.website_url)) ? (
               <a href={String(c.website_url)} target="_blank" rel="noopener noreferrer" class="cand-link">Website</a>
             ) : null}

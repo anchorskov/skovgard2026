@@ -1,6 +1,7 @@
 ---
 // Candidates/src/layouts/Base.astro
 import '../styles/global.css';
+import { isGuideEnabled } from '../lib/guide-host';
 
 interface Props {
   title?: string;
@@ -24,6 +25,7 @@ const ogUrl = `${Astro.url.origin}${path}`;
 const resolvedOgImage = ogImage || `${Astro.url.origin}/og-image.png`;
 // rel=canonical always points at the primary domain, regardless of mirror, to keep SEO consolidated.
 const canonicalUrl = `https://candidates.skovgard2026.org${path}`;
+const guideEnabled = isGuideEnabled(Astro.url.hostname);
 ---
 
 <html lang="en">
@@ -67,6 +69,9 @@ const canonicalUrl = `https://candidates.skovgard2026.org${path}`;
         <nav class="top-nav" aria-label="Guide sections">
           <a href="/" class:list={[{ active: currentPath === '/' }]}>Find ballot</a>
           <a href="/races" class:list={[{ active: currentPath.startsWith('/races') || currentPath.startsWith('/race/') }]}>Browse races</a>
+          {guideEnabled && (
+            <a href="/guide" class:list={[{ active: currentPath.startsWith('/guide') || currentPath.startsWith('/candidate/') || currentPath.startsWith('/endorsements') }]}>Candidate guide</a>
+          )}
         </nav>
       </header>
       <main>

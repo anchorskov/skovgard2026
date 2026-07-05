@@ -126,6 +126,10 @@ These objects are not managed by this repo's `worker/migrations/` files. The Wor
 | `v_voter_targeting` | View used to attempt a unique Wyoming voter match from submitted name/address/city/zip data. |
 | `voter_phones` | Mirror table of observed phone numbers keyed by voter and normalized phone. |
 | `v_best_phone` | Current preferred/best phone per voter. |
+| `voter_emails` | Raw voter email storage, pre-match. `voter_id` nullable until a matching step runs. Not yet read by this repo's Worker — see `docs/email_guide.md`. |
+| `v_best_email` | Current preferred/best email per matched voter (real SQL view, not a materialized table like `v_best_phone`). |
+
+Schema for `voter_emails`/`v_best_email` is authored in `~/projects/voterdata/wyoming/bin/wv.sh` and tracked as a migration in `~/projects/grassrootsmvt/worker/db/migrations/034_add_voter_emails.sql` — neither lives in this repo. Full process detail: `docs/email_guide.md`.
 
 ## `WY_DB` objects managed by the Candidates voter guide
 

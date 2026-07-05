@@ -23,6 +23,7 @@ specific to `Candidates/`. For campaign-wide rules see the root `AGENTS.md`.
 
 - **`Candidates/candidate_data.md`** — full D1 schema for `offices` and `candidates`, field definitions, enrichment batch workflow, migration history. Read this before any database work.
 - **`Candidates/docs/county_seed.md`** — step-by-step guide for adding a new county's candidates. Read this before writing any county seed SQL.
+- **`Candidates/docs/rubrics/README.md`** — canonical rubric authoring, generated artifacts, D1 runtime loading, and versioning workflow.
 
 ---
 
@@ -43,6 +44,9 @@ Critical reminders:
 Migrations live in `Candidates/db/migrations/`. The tracker (`migrations_dir`) is set in `wrangler.toml` but was NOT bootstrapped — migrations 0001–0010 were applied manually before the tracker existed. Only apply 0011+ through the tracker or via direct `execute`.
 
 Never run old migrations (0001–0010) again — they contain non-idempotent `ALTER TABLE ADD COLUMN` statements.
+
+The rubric's only manually edited definition is `data/rubrics/wy-primary-2026-v1.md`.
+Run `npm run rubric:build` after editing it; never edit its generated JSON, PDF, or SQL.
 
 ---
 

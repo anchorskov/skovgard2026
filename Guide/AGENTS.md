@@ -64,6 +64,8 @@ Do NOT use `'state_senate'`, `'state_house'`, `'municipal'`, or `'state'` — in
 | Table | Purpose |
 |---|---|
 | `guide_rubric_scores` | Per-candidate scores across 10 categories (UNIQUE on candidate_id + category_key) |
+| `guide_rubric_versions` | Versioned rubric metadata and scoring policy; one active version per election cycle |
+| `guide_rubric_categories` | Ordered labels, weights, standards, and evidence guidance for each rubric version |
 | `guide_sources` | Per-candidate numbered citation list — mutable, DELETE+reinsert on each save |
 | `guide_endorsements` | Aggregate endorsement status, final_score, evidence_confidence per candidate |
 | `guide_public_corrections` | Factual corrections to published guide pages |
@@ -164,6 +166,7 @@ Both target the same `wy` D1 — run either set, not both.
 | *(not in Guide/)* | `0016_candidate_docs.sql` | docs_json column on candidates |
 | *(not in Guide/)* | `0017_guide_reference_evidence.sql` | guide_reference_sources, guide_legislation_items, guide_reference_sets, guide_reference_set_items, guide_candidate_reference_links, guide_rubric_evidence_links |
 | *(not in Guide/)* | `0018_guide_candidate_reference_identity.sql` | Identity columns on guide_candidate_reference_links |
+| *(not in Guide/)* | `0022_guide_rubric_definitions.sql` | Versioned rubric definitions loaded by Guide and Candidates |
 
 Future migrations: add to `Candidates/db/migrations/` only. Apply with:
 
@@ -209,8 +212,13 @@ All endpoints require `x-admin-key: <CANDIDATES_ADMIN_KEY_GUIDE>`.
 | GET | `/api/admin/candidates` | `src/pages/api/admin/candidates.js` | List all candidates ordered by office level + title |
 | GET | `/api/admin/rubric?candidate_id=X` | `src/pages/api/admin/rubric.js` | Load rubric scores + sources + endorsement for one candidate |
 | POST | `/api/admin/rubric` | `src/pages/api/admin/rubric.js` | Save rubric scores, sources, and endorsement |
+| GET | `/api/admin/rubric-definition` | `src/pages/api/admin/rubric-definition.js` | Load the active D1 rubric definition, with generated fallback |
 
 Admin UI: `Guide/public/admin/rubric/index.html` — standalone HTML, not an Astro page.
+
+Rubric authoring source: `Candidates/data/rubrics/wy-primary-2026-v1.md`.
+Workflow: `Candidates/docs/rubrics/README.md`. Guide must not maintain a separate
+hard-coded category list or scoring policy.
 
 ---
 

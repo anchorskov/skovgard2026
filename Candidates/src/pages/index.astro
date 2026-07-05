@@ -2,6 +2,7 @@
 // Candidates/src/pages/index.astro
 import '../styles/global.css';
 import { env } from 'cloudflare:workers';
+import { isGuideEnabled } from '../lib/guide-host';
 
 const siteOrigin = Astro.url.origin;
 const electionDate = 'August 18, 2026';
@@ -9,6 +10,7 @@ const googleGeocodeKey = (env as any)?.GOOGLE_CIVIC_API_KEY || '';
 const turnstileSiteKey = (env as any)?.TURNSTILE_SITE_KEY || '';
 const isLocalReview = import.meta.env.DEV;
 const turnstileEnabled = Boolean(turnstileSiteKey && !isLocalReview);
+const guideEnabled = isGuideEnabled(Astro.url.hostname);
 
 let guideStats = [
   { value: '1016', label: 'races tracked' },
@@ -126,6 +128,7 @@ const addressFields = [
         <nav class="top-nav" aria-label="Guide sections">
           <a href="#address-form-section">Find ballot</a>
           <a href="/races">Browse races</a>
+          {guideEnabled && <a href="/guide">Candidate guide</a>}
         </nav>
       </header>
 

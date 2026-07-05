@@ -360,14 +360,9 @@ textarea.f-input { resize: vertical; }
 
       <!-- ③ Rubric Scores -->
       <div class="card">
-        <div class="card-head">③ RUBRIC SCORES — 10 categories, 500 points max</div>
+        <div class="card-head" id="rubric-card-head">③ RUBRIC SCORES</div>
         <div class="card-body">
-          <div class="scale-ref">
-            <strong>Score:</strong>
-            <span>5 = Excellent</span><span>4 = Strong</span><span>3 = Acceptable</span>
-            <span>2 = Below avg</span><span>1 = Weak</span><span>0 = Serious concern</span>
-            <span>? = Unknown (not zero — no evidence, no score)</span>
-          </div>
+          <div class="scale-ref" id="rubric-scale"></div>
           <div id="running-total">
             <div class="big"><span id="sc-now">0</span> / <span id="sc-max">500</span></div>
             <div class="lbl">running score (scored categories only)</div>
@@ -421,18 +416,8 @@ textarea.f-input { resize: vertical; }
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-const CATS = [
-  { key:'constitutional_oath', label:'Constitutional oath and rule of law', weight:15 },
-  { key:'character',           label:'Character, honesty, and courage',     weight:15 },
-  { key:'competence',          label:'Competence and readiness',             weight:10 },
-  { key:'accountability',      label:'Accountability and transparency',      weight:10 },
-  { key:'fiscal',              label:'Fiscal responsibility',                weight:10 },
-  { key:'local_impact',        label:'Local impact and Wyoming fit',         weight:10 },
-  { key:'public_service',      label:'Public service over self-interest',    weight:10 },
-  { key:'issue_alignment',     label:'Issue alignment (vs. Skovgard2026)',   weight:10 },
-  { key:'coalition',           label:'Coalition-building and temperament',   weight: 5 },
-  { key:'evidence_quality',    label:'Evidence quality',                     weight: 5 },
-];
+let RUBRIC = null;
+let CATS = [];
 
 let adminKey = sessionStorage.getItem('guideAdminKey') || '';
 let allCandidates = [];
@@ -461,6 +446,7 @@ async function doAuth() {
     adminKey = k;
     sessionStorage.setItem('guideAdminKey', k);
     allCandidates = await r.json();
+    await loadRubricDefinition();
     showMain();
   } catch (e) {
     errEl.textContent = 'Network error: ' + e.message;
@@ -473,8 +459,20 @@ async function bootstrap() {
     const r = await fetch('/api/admin/candidates', { headers: { 'x-admin-key': adminKey } });
     if (!r.ok) { adminKey = ''; sessionStorage.removeItem('guideAdminKey'); return; }
     allCandidates = await r.json();
+    await loadRubricDefinition();
     showMain();
   } catch { /* stay on auth screen */ }
+}
+
+async function loadRubricDefinition() {
+  const r = await fetch('/api/admin/rubric-definition', { headers: { 'x-admin-key': adminKey } });
+  if (!r.ok) throw new Error(`Unable to load rubric definition (${r.status})`);
+  RUBRIC = await r.json();
+  CATS = RUBRIC.categories;
+  const fullMaximum = RUBRIC.scoring.max * CATS.reduce((sum, category) => sum + category.weight, 0);
+  document.getElementById('rubric-card-head').textContent = `③ RUBRIC SCORES — ${CATS.length} categories, ${fullMaximum} points max`;
+  document.getElementById('sc-max').textContent = fullMaximum;
+  document.getElementById('rubric-scale').innerHTML = `<strong>Score:</strong>${Object.entries(RUBRIC.scoring.labels).sort((a,b)=>Number(b[0])-Number(a[0])).map(([score,label])=>`<span>${score} = ${label}</span>`).join('')}<span>? = Unknown (excluded from scoring)</span>`;
 }
 
 function showMain() {
@@ -559,6 +557,14 @@ function staleThresholdStr() {
   const d = new Date();
   d.setFullYear(d.getFullYear() - 1);
   return d.toISOString().slice(0, 10);
+}
+
+function rubricPromptLines() {
+  return CATS.map(cat => `${cat.number}. ${cat.label} (weight ${cat.weight}): [?] — ${cat.standard} | Evidence: ${cat.evidenceGuidance} | Source date: [YYYY-MM-DD]`).join('\n');
+}
+
+function evidenceWeightSummary() {
+  return Object.entries(RUBRIC.evidenceWeights).sort((a,b)=>Number(b[0])-Number(a[0])).map(([weight,label])=>`${weight}=${label}`).join('; ');
 }
 
 function buildPrompts(c) {
@@ -673,8 +679,7 @@ DATE RESEARCHED: ${today}
 
 SOURCE LOG:
 1. [source name] | [URL] | [publication or access date — required] | Weight: [1–5] | [STALE if before ${stale}]
-   Weight scale: 5=official records, 4=candidate statements, 3=forum/questionnaire,
-   2=credible local reporting, 1=social/mailers, 0=rumor (never use)
+   Weight scale: ${evidenceWeightSummary()}. Rumor and unattributed claims are never scored.
    IMPORTANT: Every source must include a date. If no date is visible, note "undated" and
    treat it as potentially stale.
 
@@ -693,24 +698,7 @@ interest is a fact, not misconduct.
 For each score, note the most recent source date supporting it; if that source
 is before ${stale} append [STALE].
 
-Note: Evaluate Criterion 1 strictly through the framework of the constitutional oath
-and co-equal branches of government.
-
-1. Constitutional oath and rule of law: [?] — Evaluate the candidate's respect for our
-   co-equal, three-tier system of governance (legislative, judicial, executive branches).
-   Consider whether their record honors definitive rulings from the state's highest court,
-   or whether they abandoned their oath by bypassing the established path of a constitutional
-   amendment in favor of passing statutory restrictions that subvert judicial precedent.
-
-2. Character, honesty, and courage: [?] — [reason] | Source date: [YYYY-MM-DD]
-3. Competence and readiness: [?] — [reason] | Source date: [YYYY-MM-DD]
-4. Accountability and transparency: [?] — [reason] | Source date: [YYYY-MM-DD]
-5. Fiscal responsibility: [?] — [reason] | Source date: [YYYY-MM-DD]
-6. Local impact and Wyoming fit: [?] — [reason] | Source date: [YYYY-MM-DD]
-7. Public service over self-interest: [?] — [reason] | Source date: [YYYY-MM-DD]
-8. Issue alignment (fiscal conservatism, local control, public lands, water): [?] — [reason] | Source date: [YYYY-MM-DD]
-9. Coalition-building and temperament: [?] — [reason] | Source date: [YYYY-MM-DD]
-10. Evidence quality (overall strength of this evidence base): [?] — [reason] | Source date: [YYYY-MM-DD]
+${rubricPromptLines()}
 
 OVERALL EVIDENCE CONFIDENCE: [High / Medium / Low]
 (High = multiple weight-4/5 sources dated after ${stale}; Medium = mix; Low = mostly weight-1/2 or majority stale)`;
@@ -723,23 +711,22 @@ function promptClaude(name, office, loc, geminiOutput = '', chatgptOutput = '') 
   const financeBlock = chatgptOutput || '[No ChatGPT finance analysis pasted — complete Step 2, or mark N/A if not applicable]';
   return `I am building an independent Wyoming voter guide (guide.skovgard2026.org). I have gathered research on ${name}, 2026 candidate for ${office} (${loc}) using two AI research tools.
 
-GOAL: Produce a suggested rubric score (0–5) for ALL 10 categories below. You must always infer a score from the available evidence — do not leave a category blank. Use the confidence level to communicate how certain you are, not whether to score. The only exception is a category where truly zero relevant information exists, in which case score it 3 (neutral) with confidence: none and explain why no inference was possible.
+GOAL: Evaluate every category in rubric ${RUBRIC.rubricKey}. Suggest a ${RUBRIC.scoring.min}–${RUBRIC.scoring.max} score only when evidence supports it. Use ? (Unknown) when evidence is insufficient; Unknown is excluded from both earned and maximum possible points.
 
 TODAY'S DATE: ${today}
 STALE DATA THRESHOLD: ${stale}
 Any source or claim whose underlying data or publication date is before ${stale} should be flagged [STALE] in your output. Stale evidence can still support a score — reduce confidence to low rather than skipping the score.
 
 RUBRIC RULES:
-- 0–5 scale per category. You must suggest a score for every category.
-- 0 = serious documented concern. 3 = neutral / no signal. 5 = exceptional positive record.
+- ${RUBRIC.scoring.min}–${RUBRIC.scoring.max} scale per category, or ? when evidence is insufficient.
+- 0 = serious documented concern. 3 = acceptable or neutral documented record. 5 = exceptional documented record. Missing evidence is never scored as 0 or 3.
 - Do NOT penalize challengers for lacking a voting record — infer from stated positions and public conduct.
 - A disclosed financial interest is a fact. Note it; don't penalize it alone.
-- Evidence weight: 5=official records, 4=candidate's own statements,
-  3=forum/questionnaire, 2=credible local reporting, 1=social/mailers
+- Evidence weight: ${evidenceWeightSummary()}
 - Data currency: if the only supporting source is before ${stale} and no fresher corroboration exists, keep the score but set confidence to low.
 
 CONFIDENCE LEVELS (per category):
-  none  — no relevant evidence found; score is a neutral placeholder (3)
+  none  — no relevant evidence found; mark the category ? (Unknown)
   low   — indirect, thin, or stale-only evidence; score is an inference
   medium — reasonable corroboration from weight-2/3 sources or inferred from related evidence
   high  — weight-4/5 direct sources, fresh (after ${stale})
@@ -764,21 +751,12 @@ PLEASE PROVIDE:
    - Flag any source or figure whose data predates ${stale} as [STALE — verify before publishing].
    - Note the most recent date for which reliable data exists for this candidate.
 
-2. SUGGESTED RUBRIC SCORES — all 10 required:
-   Format each as: [score] | Confidence: [none/low/medium/high] — [one-line reason] | Data as of: [YYYY-MM-DD or stale]
-   1. Constitutional oath and rule of law (weight 15)
-   2. Character, honesty, and courage (weight 15)
-   3. Competence and readiness (weight 10)
-   4. Accountability and transparency (weight 10)
-   5. Fiscal responsibility (weight 10)
-   6. Local impact and Wyoming fit (weight 10)
-   7. Public service over self-interest (weight 10)
-   8. Issue alignment vs. Skovgard2026 (weight 10)
-   9. Coalition-building and temperament (weight 5)
-   10. Evidence quality — overall strength of this evidence base (weight 5)
+2. SUGGESTED RUBRIC SCORES — address all ${CATS.length} categories:
+   Format each as: [score or ?] | Confidence: [none/low/medium/high] — [one-line reason] | Data as of: [YYYY-MM-DD or stale]
+${rubricPromptLines()}
 
 3. OVERALL PICTURE
-   - Weighted score estimate (if you can compute it from the 10 scores above)
+   - Weighted score estimate for scored categories and evidence coverage percentage
    - Summary confidence: none / low / medium / high across the full rubric
    - Count of categories at each confidence level
 
@@ -846,9 +824,10 @@ function buildScoreForm() {
         <span class="cat-total" id="ct-${cat.key}">—</span>
       </div>
       <div class="cat-body">
+        <p style="margin:0 0 .65rem;color:var(--gray-600);font-size:.82rem">${cat.standard}</p>
         <div class="score-btns">
           <button class="sbtn q-btn" data-k="${cat.key}" onclick="setScore('${cat.key}',null,this)">?</button>
-          ${[0,1,2,3,4,5].map(n=>`<button class="sbtn" data-k="${cat.key}" onclick="setScore('${cat.key}',${n},this)">${n}</button>`).join('')}
+          ${Array.from({length:RUBRIC.scoring.max-RUBRIC.scoring.min+1},(_,i)=>i+RUBRIC.scoring.min).map(n=>`<button class="sbtn" data-k="${cat.key}" onclick="setScore('${cat.key}',${n},this)">${n}</button>`).join('')}
         </div>
         <div class="form-row">
           <div style="flex:1">
@@ -891,10 +870,11 @@ function updateTotal() {
   let now = 0, max = 0;
   CATS.forEach(cat => {
     const s = scores[cat.key];
-    if (s !== null && s !== undefined) { now += Number(s) * cat.weight; max += 5 * cat.weight; }
+    if (s !== null && s !== undefined) { now += Number(s) * cat.weight; max += RUBRIC.scoring.max * cat.weight; }
   });
   document.getElementById('sc-now').textContent = now;
-  document.getElementById('sc-max').textContent = max || 500;
+  const fullMaximum = RUBRIC.scoring.max * CATS.reduce((sum, category) => sum + category.weight, 0);
+  document.getElementById('sc-max').textContent = max || fullMaximum;
 }
 
 // ── Sources ────────────────────────────────────────────────────────────────
@@ -910,7 +890,7 @@ function addSrc(data = {}) {
     <td><input type="text" placeholder="https://…" value="${data.source_url||''}"></td>
     <td><input type="date" value="${data.source_date||''}"></td>
     <td>
-      <select>${[5,4,3,2,1].map(w=>`<option value="${w}" ${data.evidence_weight==w?'selected':''}>${w}</option>`).join('')}</select>
+      <select>${Object.keys(RUBRIC.evidenceWeights).map(Number).sort((a,b)=>b-a).map(w=>`<option value="${w}" ${data.evidence_weight==w?'selected':''}>${w}</option>`).join('')}</select>
     </td>
     <td><input type="text" placeholder="Notes" value="${data.notes||''}"></td>
     <td><button class="rm-src" onclick="rmSrc('${tr.id}')">×</button></td>`;
