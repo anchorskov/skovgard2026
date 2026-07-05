@@ -12,8 +12,12 @@ dist/
 
 # Cloudflare Workers (local state only)
 .dev.vars
+.dev.vars.local
 worker/.dev.vars
 worker/.env
+secrets/
+docs/conf.md
+scripts/sync-dev-vars.sh
 .wrangler/
 **/.wrangler/state/
 **/.wrangler/tmp/

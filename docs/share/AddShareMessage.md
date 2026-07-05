@@ -153,6 +153,16 @@ search-and-replace needed. Verify it is present before publishing:
 
 Do not add a `buildMailtoBody()` function, a mailto button, or any `window.location.href = 'mailto:...'` handler. The detail page send flow is server-side Resend only.
 
+**If the new message has a video:** after uploading it to R2 and registering it in
+`podcast_uploads` (see `docs/media/AddCampaignVideo.md`), **ask the user whether the new
+video should replace the current one in the homepage "Featured Message Video" hero**
+(`src/pages/index.astro`, the `<!-- FEATURED MESSAGE VIDEO -->` section). That block is
+hardcoded HTML, not pulled from D1 — registering the video does not update it automatically.
+The client-side "On the Record" grid script assumes `campaignVids[0]` is already shown in the
+hero and skips it, so if the hero is left pointing at an older video, the newest upload will
+never appear anywhere on the homepage. Do not change the hero without asking first — it is a
+campaign-visible editorial choice, not a mechanical step.
+
 ---
 
 ## 5. Add the card to `/share` index
@@ -311,6 +321,8 @@ npx wrangler d1 execute ballot_sources --command "SELECT * FROM share_sends ORDE
      --command "SELECT * FROM share_sends WHERE message_slug='new-topic' ORDER BY created_at DESC LIMIT 5;"
    ```
 6. Deploy with `./scripts/deploy_cf.sh` (Astro Pages) and `./scripts/deploy_worker.sh` (Worker) — both must run
+7. If the message has a video, confirm with the user whether it should replace the homepage
+   "Featured Message Video" hero in `src/pages/index.astro` (see §4) — do not change it silently
 
 ---
 

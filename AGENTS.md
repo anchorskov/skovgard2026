@@ -137,6 +137,13 @@ WORM protocol is in effect for this project. Treat operational records as write-
 - If the user is about to run a production command and the real remote Worker name has not been verified yet, tell them to verify it first rather than guessing or inventing a name.
 - Do not recommend creating a new production Worker just because Wrangler prompts for one unless the user explicitly wants a new Worker created.
 
+## Local Dev Secrets (.dev.vars)
+
+See `docs/conf.md` (gitignored, local only) for how local `.dev.vars` files are managed
+across `worker/`, `Candidates/`, and `Guide/`. No secrets discussion belongs in any
+committed file — if you need to explain or change that workflow, edit `docs/conf.md`,
+not this file.
+
 ## Deploy Notes
 
 - `scripts/deploy_cf.sh` is a site deploy helper for Cloudflare Pages. For the Astro frontend it should deploy `dist/`, not `public/`.
