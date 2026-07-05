@@ -54,7 +54,7 @@
   <div class="card">
     <p class="kicker">Configuration</p>
 
-    <label for="cfg-key">Admin key</label>
+    <label for="cfg-key">Share Admin Key</label>
     <input id="cfg-key" type="password" placeholder="SHARE_ADMIN_KEY value" autocomplete="off" />
 
     <label for="cfg-slug">Email type or share message</label>
@@ -135,7 +135,7 @@
 
   const SOURCE_META = {
     candidates: {
-      label: 'Candidates admin key',
+      label: 'Candidates Admin Key',
       hint: 'Uses <code>CANDIDATES_ADMIN_KEY</code> — the secret on the <code>skovgard-candidates</code> Worker.',
       fetch: async (key) => {
         const url = new URL('https://candidates.skovgard2026.org/api/admin/candidate-emails');
@@ -147,7 +147,7 @@
       },
     },
     optins: {
-      label: 'Campaign admin key',
+      label: 'Admin Export Key',
       hint: 'Uses <code>ADMIN_EXPORT_KEY</code> — the secret on the <code>skovgard2026-api</code> Worker.',
       fetch: async (key) => {
         const url = new URL('/api/admin/emails/contacts', location.origin);

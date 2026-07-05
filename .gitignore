@@ -12,7 +12,6 @@ dist/
 
 # Cloudflare Workers (local state only)
 .dev.vars
-.dev.vars.local
 worker/.dev.vars
 worker/.env
 secrets/
