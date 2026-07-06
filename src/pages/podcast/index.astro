@@ -144,6 +144,18 @@ const externalEpisodes = [
     });
 
   // Hosted episodes (R2 / D1)
+  // `summary` is stored as JSON: {"title": "...", "slug": "...", "duration": "..."}
+  // (see docs/PODCAST_WORKFLOW.md) — parse it rather than rendering the raw string.
+  function parseEpisodeMeta(raw) {
+    if (!raw) return { title: null, slug: null, duration: null };
+    try {
+      const obj = JSON.parse(raw);
+      return { title: obj.title || null, slug: obj.slug || null, duration: obj.duration || null };
+    } catch (_) {
+      return { title: raw, slug: null, duration: null };
+    }
+  }
+
   const hostedEl = document.getElementById('hosted-episodes');
   if (hostedEl) {
     fetch('/api/podcasts')
@@ -167,16 +179,26 @@ const externalEpisodes = [
           const guestLabel = first.guest_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
           const dateLabel = new Date(first.episode_date + 'T12:00:00Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
+          const firstMeta = parseEpisodeMeta(first.summary);
+
           const partsHtml = parts.map(p => {
+            const meta = parseEpisodeMeta(p.summary);
+            // Only label each part with its own title when there's more than one —
+            // for a single-part episode the shared h3 above already shows it.
+            const partLabel = isMultiPart ? meta.title : null;
+            const durationLabel = meta.duration ? `<span class="text-gray-400 font-normal">(${meta.duration})</span>` : '';
+            const captionHtml = (partLabel || durationLabel)
+              ? `<p class="text-sm font-semibold text-wy-navy mb-2">${partLabel || ''}${partLabel && durationLabel ? ' ' : ''}${durationLabel}</p>`
+              : '';
             const audioUrl = p.url.replace(/\.mp4$/, '.mp3');
             return isAudio
               ? `<div class="mb-3">
-                  ${p.summary ? `<p class="text-sm font-semibold text-wy-navy mb-2">${p.summary}</p>` : ''}
+                  ${captionHtml}
                   <audio controls class="w-full rounded" preload="none"><source src="${p.url}" type="audio/mpeg"/></audio>
                   <a href="${p.url}" target="_blank" rel="noopener" class="mt-2 inline-block text-sm font-semibold text-wy-gold hover:underline">Open audio →</a>
                 </div>`
               : `<div class="mb-4">
-                  ${p.summary ? `<p class="text-sm font-semibold text-wy-navy mb-2">${p.summary}</p>` : ''}
+                  ${captionHtml}
                   <video controls class="w-full rounded-lg bg-black" preload="none" style="max-height:360px">
                     <source src="${p.url}" type="video/mp4"/>
                     <source src="${audioUrl}" type="audio/mpeg"/>
@@ -190,7 +212,7 @@ const externalEpisodes = [
 
           return `<article class="bg-white rounded-xl shadow-md p-6 border border-gray-100 mb-6">
             <p class="text-sm text-gray-400 mb-1">${dateLabel} · ${guestLabel}</p>
-            <h3 class="text-xl font-serif font-bold text-wy-navy mb-4">${isMultiPart ? guestLabel + ' — Multi-part Series' : (first.summary || guestLabel)}</h3>
+            <h3 class="text-xl font-serif font-bold text-wy-navy mb-4">${isMultiPart ? guestLabel + ' — Multi-part Series' : (firstMeta.title || guestLabel)}</h3>
             ${partsHtml}
           </article>`;
         }).join('');
