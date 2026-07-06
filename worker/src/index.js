@@ -18,6 +18,10 @@ import {
 } from "./admin-email.js";
 import { sendPulseOptInEmails } from "./pulse-email.js";
 import { sendResendEmail } from "./resend.js";
+import {
+  processResendWebhookEvent,
+  verifyResendWebhookSignature,
+} from "./resend-webhooks.js";
 import { buildShareEmailHtml, buildShareEmailText, SHARE_MESSAGES, escHtml } from "./email-template.js";
 import {
   DEFAULT_SMS_RATES,
@@ -1085,6 +1089,11 @@ function emailContactStatusWhereClause(filter, sinceHours = 24) {
         clause: "email_status = 'no_consent'",
         bind: [],
       };
+    case "suppressed":
+      return {
+        clause: "email_status = 'suppressed'",
+        bind: [],
+      };
     case "new_opt_ins":
       return {
         clause: "email_status = 'emailable' AND datetime(COALESCE(updated_at, created_at)) >= datetime('now', ?1)",
@@ -1134,6 +1143,7 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                            COALESCE(ns.consent_version, cs.consent_version, '') AS consent_version,
                                            COALESCE(ns.created_at, cs.consented_at, cs.created_at) AS created_at,
                                            COALESCE(ns.updated_at, cs.updated_at, cs.created_at) AS updated_at,
+                                           es.reason AS suppression_reason,
                                            COALESCE((
                                              SELECT so.is_volunteer
                                                FROM sms_optins so
@@ -1154,6 +1164,8 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                       FROM consent_status cs
                                       LEFT JOIN newsletter_subscribers ns
                                         ON ns.email_norm = LOWER(TRIM(cs.email))
+                                      LEFT JOIN email_suppressions es
+                                        ON es.email_norm = LOWER(TRIM(cs.email))
                                      WHERE TRIM(COALESCE(cs.email, '')) <> ''
 
                                     UNION ALL
@@ -1172,9 +1184,12 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                            COALESCE(ns.consent_version, '') AS consent_version,
                                            ns.created_at AS created_at,
                                            COALESCE(ns.updated_at, ns.created_at) AS updated_at,
+                                           es.reason AS suppression_reason,
                                            0 AS is_volunteer,
                                            0 AS has_profile
                                       FROM newsletter_subscribers ns
+                                      LEFT JOIN email_suppressions es
+                                        ON es.email_norm = ns.email_norm
                                      WHERE NOT EXISTS (
                                        SELECT 1
                                          FROM consent_status cs
@@ -1198,6 +1213,7 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                            updated_at,
                                            is_volunteer,
                                            CASE
+                                             WHEN TRIM(COALESCE(suppression_reason, '')) <> '' THEN 'suppressed'
                                              WHEN COALESCE(consent_email, 0) != 1 THEN 'no_consent'
                                              WHEN COALESCE(active, 0) != 1 THEN 'inactive'
                                              ELSE 'emailable'
@@ -1213,18 +1229,14 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                        AND TRIM(COALESCE(email, '')) <> ''
                                   )`;
 
-async function queryAdminEmailContacts(
-  db,
-  {
-    filter = "emailable",
-    q = "",
-    city = "",
-    hd = "",
-    sd = "",
-    limit = 250,
-    sinceHours = 24,
-  } = {}
-) {
+function buildAdminEmailContactsWhere({
+  filter = "emailable",
+  q = "",
+  city = "",
+  hd = "",
+  sd = "",
+  sinceHours = 24,
+} = {}) {
   const normalizedFilter = String(filter || "emailable").trim();
   const statusFilter = emailContactStatusWhereClause(normalizedFilter, sinceHours);
   const search = String(q || "").trim();
@@ -1265,8 +1277,36 @@ async function queryAdminEmailContacts(
     where += ` AND LOWER(TRIM(COALESCE(state_senate_district, ''))) = LOWER(TRIM(?${idx}))`;
   }
 
+  return { where, binds };
+}
+
+async function queryAdminEmailContacts(
+  db,
+  {
+    filter = "emailable",
+    q = "",
+    city = "",
+    hd = "",
+    sd = "",
+    limit = 250,
+    offset = 0,
+    sinceHours = 24,
+    // Blast pagination needs an order that can't shift between chunk fetches
+    // (recency order can reshuffle rows across OFFSET pages as updated_at
+    // changes mid-blast, causing skipped or duplicated recipients).
+    stableOrder = false,
+  } = {}
+) {
+  const { where, binds } = buildAdminEmailContactsWhere({ filter, q, city, hd, sd, sinceHours });
+
   binds.push(limit);
   const limitIdx = binds.length;
+  binds.push(Math.max(0, Number(offset) || 0));
+  const offsetIdx = binds.length;
+
+  const orderBy = stableOrder
+    ? "email_norm ASC"
+    : "datetime(COALESCE(updated_at, created_at)) DESC, email_norm ASC";
 
   const sql = `${ADMIN_EMAIL_CONTACTS_CTE}
                 SELECT email_norm,
@@ -1287,9 +1327,19 @@ async function queryAdminEmailContacts(
                        email_status
                   FROM ranked_email_contacts
                  WHERE ${where}
-                 ORDER BY datetime(COALESCE(updated_at, created_at)) DESC, email_norm ASC
-                 LIMIT ?${limitIdx}`;
+                 ORDER BY ${orderBy}
+                 LIMIT ?${limitIdx} OFFSET ?${offsetIdx}`;
   return ((await db.prepare(sql).bind(...binds).all())?.results || []);
+}
+
+async function countAdminEmailContacts(db, { filter = "emailable", q = "", city = "", hd = "", sd = "", sinceHours = 24 } = {}) {
+  const { where, binds } = buildAdminEmailContactsWhere({ filter, q, city, hd, sd, sinceHours });
+  const sql = `${ADMIN_EMAIL_CONTACTS_CTE}
+                SELECT COUNT(*) AS n
+                  FROM ranked_email_contacts
+                 WHERE ${where}`;
+  const row = await db.prepare(sql).bind(...binds).first();
+  return Number(row?.n || 0);
 }
 
 async function queryAdminEmailContactsByAddress(db, emailList = []) {
@@ -1329,6 +1379,7 @@ async function queryAdminEmailContactCounts(db) {
              SUM(CASE WHEN email_status = 'emailable' THEN 1 ELSE 0 END) AS emailable_count,
              SUM(CASE WHEN email_status = 'inactive' THEN 1 ELSE 0 END) AS inactive_count,
              SUM(CASE WHEN email_status = 'no_consent' THEN 1 ELSE 0 END) AS no_consent_count,
+             SUM(CASE WHEN email_status = 'suppressed' THEN 1 ELSE 0 END) AS suppressed_count,
              SUM(
                CASE
                  WHEN email_status = 'emailable'
@@ -1638,6 +1689,162 @@ const ADMIN_EMAIL_SEND_BATCH_SIZE = 1;
 const ADMIN_EMAIL_SEND_BATCH_DELAY_MS = 340;
 const ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT = 2;
 const ADMIN_EMAIL_RATE_LIMIT_FALLBACK_MS = 1500;
+
+// Shared by /api/admin/emails/send and the email blast chunk endpoint so both
+// paths retry/audit-log/idempotency-key identically -- only the caller's
+// batchId/idempotencySeed and audit bookkeeping differ.
+async function sendOneAdminEmail(env, {
+  actor,
+  batchId,
+  idempotencySeed,
+  recipient,
+  subject,
+  emailMode,
+  shareSlug,
+  shareIntroText,
+  messageBody,
+  emailConfig,
+}) {
+  const idempotencyKey = await sha256Hex([
+    "admin_email_send",
+    idempotencySeed,
+    recipient.email_norm,
+  ].join("|"));
+
+  let attempt = 0;
+  while (attempt <= ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT) {
+    attempt += 1;
+    try {
+      let result;
+      if (emailMode !== "custom") {
+        const shareMsg = SHARE_MESSAGES[shareSlug];
+        const introHtml = shareIntroText
+          ? `<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">${escHtml(shareIntroText).replace(/\n/g, "<br>")}</p>\n              <hr style="margin:0 0 22px;border:0;border-top:1px solid #e5e7eb;">\n              `
+          : "";
+        const htmlBody = buildShareEmailHtml({
+          sender_name: "Skovgard for Wyoming",
+          sender_intro: shareMsg.intro(),
+          body_html: introHtml + shareMsg.body_html,
+          preview_text: shareMsg.preview_text,
+          title: shareMsg.title,
+        });
+        const textBody = buildShareEmailText({
+          sender_name: "Skovgard for Wyoming",
+          sender_intro: shareMsg.intro(),
+          slug: shareSlug,
+        });
+        const shareMessage = {
+          from: emailConfig.from,
+          to: [normalizeText(recipient?.email || recipient)],
+          reply_to: emailConfig.from,
+          subject,
+          text: shareIntroText ? `${shareIntroText}\n\n---\n\n${textBody}` : textBody,
+          html: htmlBody,
+          tags: [
+            { name: "source", value: "admin_emails" },
+            { name: "kind", value: "share_blast" },
+            { name: "share_slug", value: shareSlug.slice(0, 200) },
+            { name: "batch_id", value: batchId.slice(0, 200) },
+          ],
+        };
+        const resendResult = await sendResendEmail(emailConfig.apiKey, shareMessage, idempotencyKey);
+        result = { sent: true, id: resendResult?.id || null, to: normalizeText(recipient?.email || recipient) };
+      } else {
+        result = await sendAdminOutreachEmail(
+          env,
+          recipient,
+          subject,
+          messageBody,
+          {
+            batchId,
+            idempotencyKey,
+            replyTo: emailConfig.from,
+          }
+        );
+      }
+      await insertAdminEmailAuditLog(env.DB, {
+        actorUserId: actor.actorUserId,
+        actorEmail: actor.actorEmail,
+        action: "send_email",
+        targetEmail: recipient.email,
+        subject,
+        messageId: result.id,
+        detailsJson: JSON.stringify({
+          batchId,
+          email: recipient.email,
+          emailNorm: recipient.email_norm,
+          source: recipient.source || "",
+          attempt,
+        }),
+      });
+      return {
+        ok: true,
+        email: recipient.email,
+        messageId: result.id,
+        attempt,
+      };
+    } catch (error) {
+      const rateLimited = Number(error?.status || 0) === 429;
+      const shouldRetry = rateLimited && attempt <= ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT;
+      const retryDelayMs = shouldRetry
+        ? resolveResendRetryDelayMs(error)
+        : 0;
+
+      if (shouldRetry) {
+        await insertAdminEmailAuditLog(env.DB, {
+          actorUserId: actor.actorUserId,
+          actorEmail: actor.actorEmail,
+          action: "send_email_rate_limited",
+          targetEmail: recipient.email,
+          subject,
+          detailsJson: JSON.stringify({
+            batchId,
+            email: recipient.email,
+            emailNorm: recipient.email_norm,
+            attempt,
+            retryDelayMs,
+            error: String(error?.message || error || "Unknown email error"),
+            status: error?.status || null,
+          }),
+        });
+        await sleep(retryDelayMs);
+        continue;
+      }
+
+      await insertAdminEmailAuditLog(env.DB, {
+        actorUserId: actor.actorUserId,
+        actorEmail: actor.actorEmail,
+        action: "send_email_failed",
+        targetEmail: recipient.email,
+        subject,
+        detailsJson: JSON.stringify({
+          batchId,
+          email: recipient.email,
+          emailNorm: recipient.email_norm,
+          attempt,
+          error: String(error?.message || error || "Unknown email error"),
+          status: error?.status || null,
+          body: error?.body || null,
+        }),
+      });
+      return {
+        ok: false,
+        email: recipient.email,
+        error: String(error?.message || error || "Unknown email error"),
+        status: error?.status || null,
+        attempt,
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    email: recipient.email,
+    error: "Email send exhausted retries.",
+    status: 429,
+    attempt: ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT + 1,
+  };
+}
 
 function normalizePreviewIssuedAt(value) {
   const date = new Date(value || "");
@@ -1984,6 +2191,39 @@ export default {
 
         ctx.waitUntil(processTelnyxWebhookEvent(env.DB, rawBody, event, env));
         return json(req, env, { ok: true, accepted: true });
+      }
+
+      if (req.method === "POST" && path === "/api/resend/webhook") {
+        if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
+        if (!String(env.RESEND_WEBHOOK_SECRET || "").trim()) {
+          return json(req, env, { error: "Resend webhook secret not configured." }, 503);
+        }
+
+        const rawBody = await req.text();
+        const validSignature = await verifyResendWebhookSignature(
+          rawBody,
+          req.headers,
+          env.RESEND_WEBHOOK_SECRET,
+          { toleranceSeconds: Number(env.RESEND_WEBHOOK_TOLERANCE_SECONDS || 300) }
+        );
+        if (!validSignature) {
+          return json(req, env, { error: "Invalid signature." }, 401);
+        }
+
+        let event = {};
+        try {
+          event = JSON.parse(rawBody);
+        } catch {
+          return json(req, env, { error: "Invalid payload." }, 400);
+        }
+
+        try {
+          const result = await processResendWebhookEvent(env.DB, rawBody, event, req.headers);
+          return json(req, env, result);
+        } catch (error) {
+          console.error("[resend-webhook] processing failed:", error?.message || error);
+          return json(req, env, { error: "Webhook processing failed." }, 500);
+        }
       }
 
       if (req.method === "POST" && path === "/api/donate/create-intent") {
@@ -4702,6 +4942,7 @@ export default {
         const envPresent = {
           adminExportKey: Boolean(String(env.ADMIN_EXPORT_KEY || "").trim()),
           resendApiKey: Boolean(String(env.RESEND_API_KEY || "").trim()),
+          resendWebhookSecret: Boolean(String(env.RESEND_WEBHOOK_SECRET || "").trim()),
           adminEmailFrom: Boolean(String(env.ADMIN_EMAIL_FROM || "").trim()),
           adminEmailEnabled: String(env.ADMIN_EMAIL_ENABLED || "0") === "1",
           d1: Boolean(env.DB),
@@ -4710,6 +4951,8 @@ export default {
           newsletter_subscribers: await tableExists(env.DB, "newsletter_subscribers"),
           consent_status: await tableExists(env.DB, "consent_status"),
           admin_email_audit_log: await tableExists(env.DB, "admin_email_audit_log"),
+          resend_webhook_events: await tableExists(env.DB, "resend_webhook_events"),
+          email_suppressions: await tableExists(env.DB, "email_suppressions"),
         };
 
         const previewPathIssues = [];
@@ -4723,6 +4966,7 @@ export default {
         if (!envPresent.adminEmailFrom) sendPathIssues.push("Admin email sender missing");
         if (!envPresent.adminEmailEnabled) sendPathIssues.push("Admin email sending disabled");
         if (tables.admin_email_audit_log === false) sendPathIssues.push("Admin email audit log table missing");
+        if (tables.email_suppressions === false) sendPathIssues.push("Email suppressions table missing");
 
         return json(req, env, {
           ok: true,
@@ -4734,6 +4978,7 @@ export default {
           emailableCount: Number(counts?.emailable_count || 0),
           inactiveCount: Number(counts?.inactive_count || 0),
           noConsentCount: Number(counts?.no_consent_count || 0),
+          suppressedCount: Number(counts?.suppressed_count || 0),
           newOptIns24h: Number(counts?.new_opt_ins_24h || 0),
           lastAudienceUpdateAt: counts?.last_updated_at || null,
           latestSubscriber: latestSubscriberRow
@@ -5054,147 +5299,18 @@ export default {
           recipients,
           ADMIN_EMAIL_SEND_BATCH_SIZE,
           ADMIN_EMAIL_SEND_BATCH_DELAY_MS,
-          async (recipient) => {
-            const idempotencyKey = await sha256Hex([
-              "admin_email_send",
-              previewToken,
-              recipient.email_norm,
-            ].join("|"));
-
-            let attempt = 0;
-            while (attempt <= ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT) {
-              attempt += 1;
-              try {
-                let result;
-                if (emailMode !== "custom") {
-                  const shareMsg = SHARE_MESSAGES[shareSlug];
-                  const introHtml = shareIntroText
-                    ? `<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">${escHtml(shareIntroText).replace(/\n/g, "<br>")}</p>\n              <hr style="margin:0 0 22px;border:0;border-top:1px solid #e5e7eb;">\n              `
-                    : "";
-                  const htmlBody = buildShareEmailHtml({
-                    sender_name: "Skovgard for Wyoming",
-                    sender_intro: shareMsg.intro(),
-                    body_html: introHtml + shareMsg.body_html,
-                    preview_text: shareMsg.preview_text,
-                    title: shareMsg.title,
-                  });
-                  const textBody = buildShareEmailText({
-                    sender_name: "Skovgard for Wyoming",
-                    sender_intro: shareMsg.intro(),
-                    slug: shareSlug,
-                  });
-                  const shareMessage = {
-                    from: emailConfig.from,
-                    to: [normalizeText(recipient?.email || recipient)],
-                    reply_to: emailConfig.from,
-                    subject,
-                    text: shareIntroText ? `${shareIntroText}\n\n---\n\n${textBody}` : textBody,
-                    html: htmlBody,
-                    tags: [
-                      { name: "source", value: "admin_emails" },
-                      { name: "kind", value: "share_blast" },
-                      { name: "share_slug", value: shareSlug.slice(0, 200) },
-                      { name: "batch_id", value: batchId.slice(0, 200) },
-                    ],
-                  };
-                  const resendResult = await sendResendEmail(emailConfig.apiKey, shareMessage, idempotencyKey);
-                  result = { sent: true, id: resendResult?.id || null, to: normalizeText(recipient?.email || recipient) };
-                } else {
-                  result = await sendAdminOutreachEmail(
-                    env,
-                    recipient,
-                    subject,
-                    messageBody,
-                    {
-                      batchId,
-                      idempotencyKey,
-                      replyTo: emailConfig.from,
-                    }
-                  );
-                }
-                await insertAdminEmailAuditLog(env.DB, {
-                  actorUserId: actor.actorUserId,
-                  actorEmail: actor.actorEmail,
-                  action: "send_email",
-                  targetEmail: recipient.email,
-                  subject,
-                  messageId: result.id,
-                  detailsJson: JSON.stringify({
-                    batchId,
-                    email: recipient.email,
-                    emailNorm: recipient.email_norm,
-                    source: recipient.source || "",
-                    attempt,
-                  }),
-                });
-                return {
-                  ok: true,
-                  email: recipient.email,
-                  messageId: result.id,
-                  attempt,
-                };
-              } catch (error) {
-                const rateLimited = Number(error?.status || 0) === 429;
-                const shouldRetry = rateLimited && attempt <= ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT;
-                const retryDelayMs = shouldRetry
-                  ? resolveResendRetryDelayMs(error)
-                  : 0;
-
-                if (shouldRetry) {
-                  await insertAdminEmailAuditLog(env.DB, {
-                    actorUserId: actor.actorUserId,
-                    actorEmail: actor.actorEmail,
-                    action: "send_email_rate_limited",
-                    targetEmail: recipient.email,
-                    subject,
-                    detailsJson: JSON.stringify({
-                      batchId,
-                      email: recipient.email,
-                      emailNorm: recipient.email_norm,
-                      attempt,
-                      retryDelayMs,
-                      error: String(error?.message || error || "Unknown email error"),
-                      status: error?.status || null,
-                    }),
-                  });
-                  await sleep(retryDelayMs);
-                  continue;
-                }
-
-                await insertAdminEmailAuditLog(env.DB, {
-                  actorUserId: actor.actorUserId,
-                  actorEmail: actor.actorEmail,
-                  action: "send_email_failed",
-                  targetEmail: recipient.email,
-                  subject,
-                  detailsJson: JSON.stringify({
-                    batchId,
-                    email: recipient.email,
-                    emailNorm: recipient.email_norm,
-                    attempt,
-                    error: String(error?.message || error || "Unknown email error"),
-                    status: error?.status || null,
-                    body: error?.body || null,
-                  }),
-                });
-                return {
-                  ok: false,
-                  email: recipient.email,
-                  error: String(error?.message || error || "Unknown email error"),
-                  status: error?.status || null,
-                  attempt,
-                };
-              }
-            }
-
-            return {
-              ok: false,
-              email: recipient.email,
-              error: "Email send exhausted retries.",
-              status: 429,
-              attempt: ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT + 1,
-            };
-          }
+          (recipient) => sendOneAdminEmail(env, {
+            actor,
+            batchId,
+            idempotencySeed: previewToken,
+            recipient,
+            subject,
+            emailMode,
+            shareSlug,
+            shareIntroText,
+            messageBody,
+            emailConfig,
+          })
         );
 
         const sent = settled.filter((item) => item?.ok);
@@ -5235,6 +5351,258 @@ export default {
           failed,
         });
       }
+
+      // ── Email Blast (paginated, for filter audiences beyond the 250/call send cap) ──
+
+      const EMAIL_BLAST_DEFAULT_CHUNK_SIZE = 200;
+
+      if (req.method === "GET" && path === "/api/admin/emails/blast/audience-count") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const filter = String(url.searchParams.get("filter") || "emailable").trim();
+        const city = normalizeContactFilterValue(url.searchParams.get("city") || "");
+        const hd = normalizeContactFilterValue(url.searchParams.get("hd") || "");
+        const sd = normalizeContactFilterValue(url.searchParams.get("sd") || "");
+        const sinceHours = positiveInt(url.searchParams.get("since_hours"), 24, 24 * 30);
+
+        const total = await countAdminEmailContacts(env.DB, { filter, city, hd, sd, sinceHours });
+        return json(req, env, { ok: true, filter, city, hd, sd, sinceHours, total });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/emails/blast/job") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        const emailConfig = getAdminEmailConfig(env);
+        if (!emailConfig.apiKey) return json(req, env, { error: "RESEND_API_KEY not configured" }, 503);
+        if (!emailConfig.from) return json(req, env, { error: "ADMIN_EMAIL_FROM not configured" }, 503);
+        if (!emailConfig.enabled) return json(req, env, { error: "ADMIN_EMAIL_ENABLED is not enabled" }, 503);
+        if ((await tableExists(env.DB, "email_blast_jobs")) === false) {
+          return json(req, env, { error: "email_blast_jobs table missing -- apply migrations/025_email_blast_jobs.sql first" }, 503);
+        }
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const filter = String(body.filter || "emailable").trim();
+        const city = normalizeContactFilterValue(body.city || "");
+        const hd = normalizeContactFilterValue(body.hd || "");
+        const sd = normalizeContactFilterValue(body.sd || "");
+        const sinceHours = positiveInt(body.since_hours, 24, 24 * 30);
+        const subject = normalizeAdminEmailSubject(body.subject);
+        const messageBody = normalizeAdminEmailBody(body.body);
+        const emailMode = ["share", "share_with_intro"].includes(String(body.email_mode || ""))
+          ? String(body.email_mode)
+          : "custom";
+        const shareSlug = normalizeText(body.share_slug || "");
+        const shareIntroText = normalizeAdminEmailBody(body.share_intro_text || "");
+        const chunkSize = positiveInt(body.chunk_size, EMAIL_BLAST_DEFAULT_CHUNK_SIZE, 250);
+        const confirmed = body.confirmed === true;
+
+        if (!subject) return json(req, env, { error: "Email subject is required" }, 400);
+        if (subject.length > 180) return json(req, env, { error: "Email subject too long" }, 400);
+        if (emailMode === "custom") {
+          if (!messageBody) return json(req, env, { error: "Email body is required" }, 400);
+          if (messageBody.length > 20000) return json(req, env, { error: "Email body too long" }, 400);
+        } else {
+          if (!shareSlug || !SHARE_MESSAGES[shareSlug]) {
+            return json(req, env, { error: "Invalid or missing share message slug." }, 400);
+          }
+          if (shareIntroText.length > 5000) return json(req, env, { error: "Custom intro text too long" }, 400);
+        }
+        if (!confirmed) {
+          return json(req, env, { error: "Blast creation requires confirmed=true -- check the audience count first." }, 400);
+        }
+
+        const totalAudience = await countAdminEmailContacts(env.DB, { filter, city, hd, sd, sinceHours });
+        if (totalAudience === 0) {
+          return json(req, env, { error: "No recipients match this filter." }, 409);
+        }
+
+        const blastId = crypto.randomUUID();
+        await env.DB.prepare(
+          `INSERT INTO email_blast_jobs
+             (blast_id, filter, city, hd, sd, since_hours, subject, email_mode, share_slug,
+              share_intro_text, message_body, chunk_size, total_audience, status, actor_email,
+              created_at, updated_at)
+           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,'created',?14,datetime('now'),datetime('now'))`
+        ).bind(
+          blastId, filter, city || null, hd || null, sd || null, sinceHours, subject, emailMode,
+          shareSlug || null, shareIntroText || null, messageBody || null, chunkSize, totalAudience,
+          actor.actorEmail
+        ).run();
+
+        await insertAdminEmailAuditLog(env.DB, {
+          actorUserId: actor.actorUserId,
+          actorEmail: actor.actorEmail,
+          action: "email_blast_created",
+          subject,
+          detailsJson: JSON.stringify({ blastId, filter, city, hd, sd, sinceHours, emailMode, chunkSize, totalAudience }),
+        });
+
+        return json(req, env, { ok: true, blast_id: blastId, total_audience: totalAudience, chunk_size: chunkSize });
+      }
+
+      if (req.method === "POST" && path === "/api/admin/emails/blast/send-chunk") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        const emailConfig = getAdminEmailConfig(env);
+        if (!emailConfig.apiKey) return json(req, env, { error: "RESEND_API_KEY not configured" }, 503);
+        if (!emailConfig.from) return json(req, env, { error: "ADMIN_EMAIL_FROM not configured" }, 503);
+        if (!emailConfig.enabled) return json(req, env, { error: "ADMIN_EMAIL_ENABLED is not enabled" }, 503);
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const blastId = normalizeText(body.blast_id || "");
+        if (!blastId) return json(req, env, { error: "blast_id required" }, 400);
+
+        const job = await env.DB.prepare(`SELECT * FROM email_blast_jobs WHERE blast_id=?1`).bind(blastId).first();
+        if (!job) return json(req, env, { error: "Blast job not found" }, 404);
+        if (job.status === "complete" || job.status === "cancelled") {
+          return json(req, env, {
+            ok: true, done: true, sent: 0, failed: 0, skipped: 0,
+            total_sent: Number(job.sent_count), total_failed: Number(job.failed_count),
+            total_skipped: Number(job.skipped_count), total_audience: Number(job.total_audience),
+            status: job.status,
+          });
+        }
+
+        const offset = Number(job.current_offset || 0);
+        const chunkSize = Number(job.chunk_size || EMAIL_BLAST_DEFAULT_CHUNK_SIZE);
+        const chunk = await queryAdminEmailContacts(env.DB, {
+          filter: job.filter,
+          city: job.city || "",
+          hd: job.hd || "",
+          sd: job.sd || "",
+          sinceHours: Number(job.since_hours || 24),
+          limit: chunkSize,
+          offset,
+          stableOrder: true,
+        });
+
+        if (chunk.length === 0) {
+          await env.DB.prepare(
+            `UPDATE email_blast_jobs SET status='complete', updated_at=datetime('now') WHERE blast_id=?1`
+          ).bind(blastId).run();
+          return json(req, env, {
+            ok: true, done: true, sent: 0, failed: 0, skipped: 0,
+            total_sent: Number(job.sent_count), total_audience: Number(job.total_audience), status: "complete",
+          });
+        }
+
+        let chunkSent = 0, chunkFailed = 0, chunkSkipped = 0;
+        const toSend = [];
+        for (const recipient of chunk) {
+          if (String(recipient.email_status || "").trim() !== "emailable") {
+            await env.DB.prepare(
+              `INSERT INTO email_blast_log (blast_id, email, email_norm, status) VALUES (?1,?2,?3,'skipped_suppressed')`
+            ).bind(blastId, recipient.email || recipient.email_norm, recipient.email_norm).run();
+            chunkSkipped++;
+            continue;
+          }
+          toSend.push(recipient);
+        }
+
+        const emailNormByEmail = new Map(toSend.map((r) => [r.email, r.email_norm]));
+
+        const settled = await mapInBatches(
+          toSend,
+          ADMIN_EMAIL_SEND_BATCH_SIZE,
+          ADMIN_EMAIL_SEND_BATCH_DELAY_MS,
+          (recipient) => sendOneAdminEmail(env, {
+            actor,
+            batchId: blastId,
+            idempotencySeed: blastId,
+            recipient,
+            subject: job.subject,
+            emailMode: job.email_mode,
+            shareSlug: job.share_slug || "",
+            shareIntroText: job.share_intro_text || "",
+            messageBody: job.message_body || "",
+            emailConfig,
+          })
+        );
+
+        for (const result of settled) {
+          const emailNorm = emailNormByEmail.get(result?.email) || "";
+          if (result?.ok) {
+            await env.DB.prepare(
+              `INSERT INTO email_blast_log (blast_id, email, email_norm, status, resend_message_id) VALUES (?1,?2,?3,'sent',?4)`
+            ).bind(blastId, result.email, emailNorm, result.messageId || null).run();
+            chunkSent++;
+          } else {
+            await env.DB.prepare(
+              `INSERT INTO email_blast_log (blast_id, email, email_norm, status, error_message) VALUES (?1,?2,?3,'failed',?4)`
+            ).bind(blastId, result?.email || "", emailNorm, result?.error || "Unknown error").run();
+            chunkFailed++;
+          }
+        }
+
+        const newOffset = offset + chunk.length;
+        const done = chunk.length < chunkSize;
+        const newStatus = done ? "complete" : "running";
+
+        await env.DB.prepare(
+          `UPDATE email_blast_jobs
+           SET current_offset=?2, sent_count=sent_count+?3, failed_count=failed_count+?4,
+               skipped_count=skipped_count+?5, status=?6, updated_at=datetime('now')
+           WHERE blast_id=?1`
+        ).bind(blastId, newOffset, chunkSent, chunkFailed, chunkSkipped, newStatus).run();
+
+        await insertAdminEmailAuditLog(env.DB, {
+          actorUserId: actor.actorUserId,
+          actorEmail: actor.actorEmail,
+          action: "email_blast_chunk",
+          subject: job.subject,
+          detailsJson: JSON.stringify({ blastId, offset, chunkSent, chunkFailed, chunkSkipped, done }),
+        });
+
+        return json(req, env, {
+          ok: true, done,
+          sent: chunkSent, failed: chunkFailed, skipped: chunkSkipped,
+          total_sent: Number(job.sent_count) + chunkSent,
+          total_failed: Number(job.failed_count) + chunkFailed,
+          total_skipped: Number(job.skipped_count) + chunkSkipped,
+          total_audience: Number(job.total_audience),
+          current_offset: newOffset,
+          status: newStatus,
+        });
+      }
+
+      if (req.method === "GET" && path === "/api/admin/emails/blast/jobs") {
+        if (!env.DB) return json(req, env, { error: "DB not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const rows = await env.DB.prepare(
+          `SELECT blast_id, filter, city, hd, sd, subject, email_mode, chunk_size,
+                  total_audience, current_offset, sent_count, failed_count, skipped_count,
+                  status, actor_email, created_at, updated_at
+             FROM email_blast_jobs
+            ORDER BY datetime(created_at) DESC
+            LIMIT 20`
+        ).all();
+        return json(req, env, { ok: true, jobs: rows.results || [] });
+      }
+
+      if (req.method === "PATCH" && path === "/api/admin/emails/blast/pause") {
+        if (!env.DB) return json(req, env, { error: "DB not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const body = await req.json().catch(() => ({}));
+        const blastId = normalizeText(body.blast_id || "");
+        if (!blastId) return json(req, env, { error: "blast_id required" }, 400);
+
+        await env.DB.prepare(
+          `UPDATE email_blast_jobs SET status='paused', updated_at=datetime('now') WHERE blast_id=?1 AND status='running'`
+        ).bind(blastId).run();
+        return json(req, env, { ok: true });
+      }
+
+      // ── End Email Blast ──────────────────────────────────────────────────────────
 
       // ------------- NEWSLETTER EMAIL SIGNUP -------------
       if (req.method === "POST" && path === "/api/newsletter/subscribe") {

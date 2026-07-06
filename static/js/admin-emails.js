@@ -519,6 +519,7 @@ function renderStatus(data) {
         ${statusChip(model.sendPathReady ? "Ready" : "Scaffold only", model.sendPathReady ? "accepted" : "disabled")}
       </div>
       <div class="meta">Resend key: ${envPresent.resendApiKey ? "Present" : "Missing"}</div>
+      <div class="meta">Resend webhook secret: ${envPresent.resendWebhookSecret ? "Present" : "Missing"}</div>
       <div class="meta">Admin email enabled: ${envPresent.adminEmailEnabled ? "Yes" : "No"}</div>
       <div class="meta">${escapeHtml(sendPathIssues[0] || "Send route is available.")}</div>
     </article>
@@ -528,6 +529,7 @@ function renderStatus(data) {
         ${statusChip("Live data", "delivered")}
       </div>
       <div class="meta">Emailable: ${escapeHtml(formatCount(model.emailableCount))}</div>
+      <div class="meta">Suppressed: ${escapeHtml(formatCount(model.suppressedCount))}</div>
       <div class="meta">Inactive: ${escapeHtml(formatCount(model.inactiveCount))}</div>
       <div class="meta">No consent: ${escapeHtml(formatCount(model.noConsentCount))}</div>
       <div class="meta">New opt-ins (24h): ${escapeHtml(formatCount(model.newOptIns24h))}</div>
@@ -541,6 +543,8 @@ function renderStatus(data) {
       <div class="meta">newsletter_subscribers: ${tables.newsletter_subscribers ? "present" : "missing"}</div>
       <div class="meta">consent_status: ${tables.consent_status ? "present" : "missing"}</div>
       <div class="meta">admin_email_audit_log: ${tables.admin_email_audit_log ? "present" : "missing"}</div>
+      <div class="meta">resend_webhook_events: ${tables.resend_webhook_events ? "present" : "missing"}</div>
+      <div class="meta">email_suppressions: ${tables.email_suppressions ? "present" : "missing"}</div>
       <div class="meta">Admin key: ${envPresent.adminExportKey ? "Present" : "Missing"}</div>
       <div class="meta">D1 binding: ${envPresent.d1 ? "Present" : "Missing"}</div>
     </article>

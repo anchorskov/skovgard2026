@@ -98,8 +98,19 @@ When deciding what is valid for `skovgard2026`, check local files first:
 - `wy` D1 (`WY_DB` binding) — Wyoming voter data (voter matching, `voter_phones`, `v_best_phone`, `voter_emails`, `v_best_email`) plus the voter guide tables (`offices`, `candidates`). Production: `--remote`. Local dev: no flag (local SQLite in `.wrangler/state/`).
 - Voter guide detail: `Candidates/candidate_data.md` — field-by-field reference for `offices` and `candidates`.
 - Voter email pipeline detail: `docs/email_guide.md` — `voter_emails`/`v_best_email` schema, why it spans `voterdata/wyoming` + `grassrootsmvt` + this repo, and the full match/tier/import/production-sync process. Read this before adding a new email source or touching `voter_emails`.
+- Email/demographics linkage pipeline (`voter_demographics`, `voter_registry_detail`, `people`, `deliverable_stage_norm`, and the `v_unique_name_email_*` / `v_demographics_email` views) — the only `wy` objects whose schema is tracked in this repo (`worker/wy_migrations/024_wy_email_demographics_pipeline.sql` — note the separate folder, see below). See `docs/db/README.md` → "Email/demographics linkage pipeline" for the full table and the sync script.
+
+`worker/wy_migrations/` vs. `worker/migrations/`: the latter is `ballot_sources`'s tracked-migration folder, scanned wholesale by `wrangler d1 migrations apply ballot_sources` (by filename, not by which database the SQL targets). Any migration touching the shared `wy` database must go in `worker/wy_migrations/` instead and be applied by hand (`wrangler d1 execute wy --file=...`), never through `migrations apply` — a `wy`-targeted file left in `worker/migrations/` will get run against `ballot_sources` and fail.
 
 These D1 databases support multiple projects and workflows beyond the current task. Renaming, moving, rebinding, replacing, or bulk-rebuilding them can have far-reaching unintended effects outside this repo area. Before any database read, write, migration, import, export, or local mirror change, agents must verify the exact project, `wrangler.toml`, binding name, database name, database id, `--local` vs `--remote` target, and backing local SQLite file when applicable. Do not assume similarly named databases such as `wy`, `wy_preview`, or local mirror files are interchangeable.
+
+## Cross-Project Consent Source of Truth
+
+`~/projects/voterdata/wyoming/wy.sqlite` (`comms_consent` / `comms_events`) is the canonical, cross-project record of communication consent (opt-in/opt-out per channel), maintained by a separate project. This repo does not read or write those tables directly.
+
+- This repo's own consent tables — `consent_status`, `newsletter_subscribers`, `sms_optins` (all in `ballot_sources`) — are collection points only. Do not treat them as authoritative for cross-project suppression or outreach decisions; they only reflect what happened through this campaign's own forms/imports.
+- No automated sync from this repo's consent tables into `comms_events` exists. Do not assume one does, and do not build sync/export code for it without checking with the user first — it requires matching local phone/email to a canonical `person_id`, which is an open problem, not a solved one.
+- If a task ever requires cross-referencing against the canonical consent record, treat `voterdata/wyoming`'s own docs (`docs/OptinOptout.md`, `docs/CommsEventMapping.md`) as authoritative for that lookup — don't duplicate their keyword vocabulary (STOP/START/UNSUBSCRIBE mapping) here from memory.
 
 ## D1 Migration Workflow
 
@@ -113,7 +124,7 @@ Required steps for any `ballot_sources` schema change:
 4. **Production**: `npx wrangler d1 migrations apply ballot_sources --remote --env production`
 5. **Redeploy Worker** if the migration affects a table the Worker reads or writes: `./scripts/deploy_worker.sh`
 
-Migration numbering resumes at `022_` (as of 2026-06-22). Never ALTER or CREATE TABLE in production directly without going through this workflow.
+Use the next available number after the highest `NNN_` file already in `worker/migrations/` — do not hardcode a specific resume point here, it will go stale. Check `ls worker/migrations/` before naming a new file; two agents/sessions working in parallel can otherwise pick the same number. Never ALTER or CREATE TABLE in production directly without going through this workflow.
 
 Do not reference `config/_default/config.toml`, `layouts/`, or Hugo-era paths — those directories no longer exist.
 

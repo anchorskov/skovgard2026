@@ -131,6 +131,20 @@ These objects are not managed by this repo's `worker/migrations/` files. The Wor
 
 Schema for `voter_emails`/`v_best_email` is authored in `~/projects/voterdata/wyoming/bin/wv.sh` and tracked as a migration in `~/projects/grassrootsmvt/worker/db/migrations/034_add_voter_emails.sql` — neither lives in this repo. Full process detail: `docs/email_guide.md`.
 
+### Email/demographics linkage pipeline (added 2026-07-06)
+
+| Object | Purpose |
+|---|---|
+| `voter_demographics` | Age/birth-date attributes per voter with stale flags (`is_stale`, `stale_reason`, `stale_as_of`). |
+| `voter_registry_detail` | Full name/county/precinct/party/district voter registry detail — **not** the same schema as this repo's own `voters`/`voters_raw` tables (those back `call_activity`/`v_eligible_call`/`v_voter_targeting` and use different columns). Named to avoid colliding with them. |
+| `people` | Minimal person record (name/email/phone) used as a fallback name source for emails with no registry match. |
+| `deliverable_stage_norm` | Staged/normalized name+email rows from the deliverable vendor feed, used to backfill names for demographics-linked rows. |
+| `v_demographics_email` | One-row-per-voter enrichment joining `voter_demographics` + `voter_emails`; exposes `has_email`, `email_count`, `best_email_norm`, `is_contactable_email`. |
+| `v_unique_name_email_all` | Unique name+email combinations across the whole pipeline, including stale rows. Audit/QA use. |
+| `v_unique_name_email_not_stale` | Same as above, filtered to `is_stale = 0`. **Use this view for outreach send lists.** |
+
+Unlike the objects above, this pipeline's schema **is** tracked in this repo: `worker/wy_migrations/024_wy_email_demographics_pipeline.sql` — deliberately **not** in `worker/migrations/`, since that folder is scanned wholesale by `wrangler d1 migrations apply ballot_sources` (by filename, regardless of which database the SQL targets) and a `wy`-targeted file there gets run against `ballot_sources` and fails. Apply `worker/wy_migrations/` files by hand with `wrangler d1 execute wy --file=...` (add `--remote --env production` for prod), never via `migrations apply`. Data is synced from the standalone `~/projects/voterdata/wyoming/wy.sqlite` via `scripts/wy_email_pipeline/sync_to_d1.mjs` (writes batched SQL to a file first, only applies with `--apply`). Full linkage/stale-rule detail: `~/projects/voterdata/wyoming/docs/email_view.md`.
+
 ## `WY_DB` objects managed by the Candidates voter guide
 
 The `wy` database also hosts the Wyoming 2026 primary voter guide tables, written by migrations in `Candidates/db/migrations/` and deployed by the `skovgard-candidates` Worker. These tables coexist alongside the voter/phone objects above.
