@@ -1413,6 +1413,79 @@ async function countAdminEmailContacts(db, { filter = "emailable", q = "", city 
   return Number(row?.n || 0);
 }
 
+// ---------------------------------------------------------------------------
+// Voter-file email audience ("everyone except explicit opt-outs") -- sourced
+// from the wy database's v_unique_name_email_not_stale (the full deliverable
+// voter-file email pipeline, ~61k addresses), cross-referenced against the
+// small opt-out set in ballot_sources (env.DB). Unlike ADMIN_EMAIL_CONTACTS_CTE
+// this is NOT opt-in gated -- it's the SMS voter_blast_jobs model applied to
+// email: send to everyone on file who hasn't explicitly said no.
+// ---------------------------------------------------------------------------
+
+// D1/SQLite bind-parameter limit is ~999. The opt-out list is currently tiny
+// (ballot_sources has a few dozen contacts) but this will need chunking if
+// opt-outs ever approach that count.
+async function fetchEmailOptoutList(db) {
+  const rows = await db.prepare(`
+    SELECT LOWER(TRIM(email)) AS email_norm FROM consent_status
+     WHERE consent_email = 0 AND TRIM(COALESCE(email, '')) != ''
+    UNION
+    SELECT email_norm FROM newsletter_subscribers WHERE consent_email = 0 OR active = 0
+    UNION
+    SELECT email_norm FROM email_suppressions
+  `).all();
+  return [...new Set((rows.results || []).map((r) => r.email_norm).filter(Boolean))];
+}
+
+function buildVoterFileWhere({ county = "", hd = "", sd = "", optoutList = [] } = {}) {
+  const binds = [];
+  const clauses = ["1=1"];
+  if (county) {
+    binds.push(county);
+    clauses.push(`UPPER(TRIM(county)) = UPPER(TRIM(?${binds.length}))`);
+  }
+  if (hd) {
+    binds.push(hd);
+    clauses.push(`TRIM(house_district) = TRIM(?${binds.length})`);
+  }
+  if (sd) {
+    binds.push(sd);
+    clauses.push(`TRIM(senate_district) = TRIM(?${binds.length})`);
+  }
+  if (optoutList.length) {
+    const startIdx = binds.length + 1;
+    optoutList.forEach((email) => binds.push(email));
+    const placeholders = optoutList.map((_, i) => `?${startIdx + i}`).join(", ");
+    clauses.push(`email_norm NOT IN (${placeholders})`);
+  }
+  return { where: clauses.join(" AND "), binds };
+}
+
+async function countVoterFileAudience(env, { county = "", hd = "", sd = "" } = {}) {
+  const optoutList = await fetchEmailOptoutList(env.DB);
+  const { where, binds } = buildVoterFileWhere({ county, hd, sd, optoutList });
+  const row = await env.WY_DB.prepare(
+    `SELECT COUNT(*) AS n FROM v_unique_name_email_not_stale WHERE ${where}`
+  ).bind(...binds).first();
+  return Number(row?.n || 0);
+}
+
+async function queryVoterFileAudience(env, { county = "", hd = "", sd = "", limit = 250, offset = 0 } = {}) {
+  const optoutList = await fetchEmailOptoutList(env.DB);
+  const { where, binds } = buildVoterFileWhere({ county, hd, sd, optoutList });
+  binds.push(limit);
+  const limitIdx = binds.length;
+  binds.push(Math.max(0, Number(offset) || 0));
+  const offsetIdx = binds.length;
+  const sql = `SELECT first_name, last_name, full_name, email_norm, county, house_district, senate_district
+                 FROM v_unique_name_email_not_stale
+                WHERE ${where}
+                ORDER BY email_norm ASC
+                LIMIT ?${limitIdx} OFFSET ?${offsetIdx}`;
+  const rows = await env.WY_DB.prepare(sql).bind(...binds).all();
+  return rows.results || [];
+}
+
 async function queryAdminEmailContactsByAddress(db, emailList = []) {
   const emails = normalizeRecipientEmails(emailList);
   if (!emails.length) return [];
@@ -5623,7 +5696,9 @@ export default {
         const sd = normalizeContactFilterValue(url.searchParams.get("sd") || "");
         const sinceHours = positiveInt(url.searchParams.get("since_hours"), 24, 24 * 30);
 
-        const total = await countAdminEmailContacts(env.DB, { filter, city, hd, sd, sinceHours });
+        const total = filter === "voter_file"
+          ? (env.WY_DB ? await countVoterFileAudience(env, { county: city, hd, sd }) : 0)
+          : await countAdminEmailContacts(env.DB, { filter, city, hd, sd, sinceHours });
         return json(req, env, { ok: true, filter, city, hd, sd, sinceHours, total });
       }
 
@@ -5671,7 +5746,12 @@ export default {
           return json(req, env, { error: "Blast creation requires confirmed=true -- check the audience count first." }, 400);
         }
 
-        const totalAudience = await countAdminEmailContacts(env.DB, { filter, city, hd, sd, sinceHours });
+        if (filter === "voter_file" && !env.WY_DB) {
+          return json(req, env, { error: "WY_DB not configured" }, 500);
+        }
+        const totalAudience = filter === "voter_file"
+          ? await countVoterFileAudience(env, { county: city, hd, sd })
+          : await countAdminEmailContacts(env.DB, { filter, city, hd, sd, sinceHours });
         if (totalAudience === 0) {
           return json(req, env, { error: "No recipients match this filter." }, 409);
         }
@@ -5727,16 +5807,31 @@ export default {
 
         const offset = Number(job.current_offset || 0);
         const chunkSize = Number(job.chunk_size || EMAIL_BLAST_DEFAULT_CHUNK_SIZE);
-        const chunk = await queryAdminEmailContacts(env.DB, {
-          filter: job.filter,
-          city: job.city || "",
-          hd: job.hd || "",
-          sd: job.sd || "",
-          sinceHours: Number(job.since_hours || 24),
-          limit: chunkSize,
-          offset,
-          stableOrder: true,
-        });
+        const isVoterFile = job.filter === "voter_file";
+        if (isVoterFile && !env.WY_DB) return json(req, env, { error: "WY_DB not configured" }, 500);
+        const chunk = isVoterFile
+          ? (await queryVoterFileAudience(env, {
+              county: job.city || "",
+              hd: job.hd || "",
+              sd: job.sd || "",
+              limit: chunkSize,
+              offset,
+            })).map((r) => ({
+              email: r.email_norm,
+              email_norm: r.email_norm,
+              first_name: r.first_name,
+              email_status: "emailable", // opt-outs already excluded in the SQL query itself
+            }))
+          : await queryAdminEmailContacts(env.DB, {
+              filter: job.filter,
+              city: job.city || "",
+              hd: job.hd || "",
+              sd: job.sd || "",
+              sinceHours: Number(job.since_hours || 24),
+              limit: chunkSize,
+              offset,
+              stableOrder: true,
+            });
 
         if (chunk.length === 0) {
           await env.DB.prepare(

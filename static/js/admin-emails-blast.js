@@ -88,6 +88,22 @@
     $('eb-share-slug')?.addEventListener('change', () => {});
     $('eb-count-btn')?.addEventListener('click', runAudienceCount);
     $('eb-send-test-btn')?.addEventListener('click', runSendTest);
+    $('eb-filter')?.addEventListener('change', handleFilterChange);
+    handleFilterChange();
+  }
+
+  function handleFilterChange() {
+    const isVoterFile = ($('eb-filter')?.value || '') === 'voter_file';
+    const cityLabel = $('eb-city-label');
+    const cityInput = $('eb-city');
+    const note = $('eb-voter-file-note');
+    if (note) note.hidden = !isVoterFile;
+    if (cityLabel) {
+      cityLabel.innerHTML = isVoterFile
+        ? 'County <span style="font-weight:400;color:#9ca3af">(optional)</span>'
+        : 'City <span style="font-weight:400;color:#9ca3af">(optional)</span>';
+    }
+    if (cityInput) cityInput.placeholder = isVoterFile ? 'e.g. Natrona' : 'e.g. Casper';
   }
 
   async function runSendTest() {

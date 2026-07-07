@@ -78,10 +78,11 @@
                 <option value="suppressed">Suppressed by webhook</option>
                 <option value="inactive">Inactive / unsubscribed</option>
                 <option value="no_consent">No email consent</option>
+                <option value="voter_file">Voter file (opt-outs excluded)</option>
               </select>
             </div>
             <div class="vb-field">
-              <label class="vb-label" for="eb-city">City <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
+              <label class="vb-label" for="eb-city" id="eb-city-label">City <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
               <input id="eb-city" type="text" class="vb-input" placeholder="e.g. Casper" />
             </div>
             <div class="vb-field">
@@ -93,6 +94,12 @@
               <input id="eb-sd" type="text" class="vb-input" placeholder="e.g. 19" />
             </div>
           </div>
+
+          <p id="eb-voter-file-note" class="vb-help" hidden style="margin:-8px 0 16px;color:#8a3d23;">
+            This audience is <strong>not</strong> opt-in gated &#8212; it reaches the full voter-file email
+            list, excluding only addresses with an explicit opt-out on record. The City field above
+            filters by <strong>county</strong> for this audience.
+          </p>
 
           <div class="vb-field">
             <label class="vb-label" for="eb-mode">Email type</label>
@@ -229,6 +236,6 @@
     </div><!-- /admin-eb-shell -->
   </main>
 
-  <script src="/js/admin-emails-blast.js?v=3"></script>
+  <script src="/js/admin-emails-blast.js?v=4"></script>
 </body>
 </html>
