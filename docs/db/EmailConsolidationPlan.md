@@ -199,13 +199,32 @@ Still open:
 - **Phase 2 (done, 2026-07-07)**: backfilled from all four sources without
   touching/deleting originals. See Decisions Log for final counts. No
   dual-write yet — new signups still only land in the legacy tables.
-- **Phase 3 (not started)**: migrate `ADMIN_EMAIL_CONTACTS_CTE` and the
-  Blast/Emails Portal audience filters to read from `email_contacts`; wire up
-  dual-write on ingestion paths (Pulse, donate, admin texting, CSV import).
+- **Phase 3 (done, 2026-07-07)**: Blast/Emails Portal audience filters
+  (`opted_in` [was `emailable`], `volunteers`, `voter_file`) migrated to read
+  from `email_contacts`, additive alongside the untouched legacy CTE (used for
+  unmigrated filters and for any filter combined with city/HD/SD narrowing,
+  since `email_contacts` stores no district data by design). Added two
+  audience options with no prior equivalent: `candidate` and `every_email`.
+  `purged_voter` intentionally excluded from the sendable dropdown. Dual-write
+  added at 2 hook points (`upsertNewsletterSubscriber`, `applyOptinResponse`)
+  — narrowed from an originally-approved 4 after tracing the actual call
+  sites showed the other 2 would never fire independently or would conflate
+  SMS/bounce signals with explicit email consent (see plan file history via
+  `git log -p` on this doc, or the design-decisions section preserved in the
+  implementation commit message, for the full reasoning).
+  All new-path counts verified directly against production D1 before deploy:
+  `opted_in`=62 (exact match to legacy `emailable`), `volunteers`=46,
+  `candidate`=1,716, `voter_file`=61,220, `every_email`=62,803. Deployed to
+  production (`skovgard2026-api` Worker + Astro Pages), commit `d26e277`.
+  **Not yet done**: an authenticated live test-send/blast-job against the new
+  `candidate` filter (couldn't authenticate as admin from this environment —
+  needs a manual check).
 - **Phase 4 (not started)**: once verified in production for a full send cycle,
   retire the superseded tables (`sms_optins`, and any others fully subsumed)
   per this repo's existing "Notes for future cleanup" precedent in
-  `docs/db/README.md`.
+  `docs/db/README.md`. Also revisit the deferred dual-write paths (admin
+  contact editor, Telnyx START/HELP, sms_optins volunteer toggle, CSV import)
+  and the open questions in §5 (staleness dedup, re-sync cadence).
 
 ## Decisions Log
 
@@ -263,3 +282,13 @@ Still open:
   Final production state: **109,368 contacts**, 110,155 purpose tags
   (61,220 voter_file, 47,111 purged_voter, 1,717 candidate, 61 subscriber,
   46 volunteer).
+- **2026-07-07**: Phase 3 (Blast cutover) shipped to production. Plan
+  reviewed before implementation (`/home/anchor/.claude/plans/glittery-wobbling-parnas.md`)
+  and caught two real issues before they shipped: a `purged_voter` leak into
+  the new `every_email` filter, and city/HD/SD geo-narrowing silently
+  disappearing for migrated filters (fixed by routing any filter+geo
+  combination through the existing legacy/WY_DB path, since only those
+  sources carry district columns). Scope was narrowed from 4 approved
+  dual-write hooks to 2 after tracing real call sites. All new-path SQL
+  verified directly against production D1 (exact match to legacy counts)
+  before the Worker was deployed. Commit `d26e277`.
