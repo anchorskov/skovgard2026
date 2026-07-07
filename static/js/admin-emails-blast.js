@@ -94,14 +94,20 @@
 
   function handleFilterChange() {
     const filterValue = ($('eb-filter')?.value || '').trim();
-    const hasAudience = filterValue !== '';
+    const isTestOnly = filterValue === 'test';
+    const hasSelection = filterValue !== '';
     const isVoterFile = filterValue === 'voter_file';
 
-    // Compose fields (message, subject, test-send, count) stay hidden until
-    // an actual audience is chosen -- the blank placeholder option means
-    // nothing is pre-selected on page load, unlike a real filter default.
+    // Compose fields (message, subject, test-send) stay hidden until
+    // something is chosen -- the blank placeholder option means nothing is
+    // pre-selected on page load, unlike a real filter default. "Send a test
+    // email only" reveals the same compose fields (a test send still needs a
+    // subject/body) but hides the audience-count/job-creation controls,
+    // since a test send doesn't touch an audience at all.
     const composeSection = $('eb-compose-section');
-    if (composeSection) composeSection.hidden = !hasAudience;
+    if (composeSection) composeSection.hidden = !hasSelection;
+    const audienceCountSection = $('eb-audience-count-section');
+    if (audienceCountSection) audienceCountSection.hidden = isTestOnly;
 
     const cityLabel = $('eb-city-label');
     const cityInput = $('eb-city');
@@ -200,7 +206,7 @@
 
   async function runAudienceCount() {
     const f = currentComposeFields();
-    if (!f.filter) { setStatus('eb-stage1-status', 'Select an audience first.', 'error'); return; }
+    if (!f.filter || f.filter === 'test') { setStatus('eb-stage1-status', 'Select a real audience first.', 'error'); return; }
     if (!f.subject) { setStatus('eb-stage1-status', 'Subject line is required.', 'error'); return; }
     if (f.email_mode === 'custom' && !f.body) {
       setStatus('eb-stage1-status', 'Email body is required.', 'error'); return;

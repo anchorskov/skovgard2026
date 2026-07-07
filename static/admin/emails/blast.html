@@ -72,6 +72,7 @@
               <label class="vb-label" for="eb-filter">Audience filter</label>
               <select id="eb-filter" class="vb-select">
                 <option value="" selected>— Select an audience —</option>
+                <option value="test">Send a test email only (no audience)</option>
                 <option value="opted_in">Opted-in email addresses</option>
                 <option value="every_email">Every email address in system</option>
                 <option value="volunteers">Volunteers only</option>
@@ -142,15 +143,17 @@
             </div>
             <div id="eb-test-status" class="vb-status"></div>
 
-            <div class="vb-btn-row">
-              <button id="eb-count-btn" class="vb-btn vb-btn-primary">Check Audience Count</button>
-            </div>
-            <div id="eb-stage1-status" class="vb-status"></div>
+            <div id="eb-audience-count-section">
+              <div class="vb-btn-row">
+                <button id="eb-count-btn" class="vb-btn vb-btn-primary">Check Audience Count</button>
+              </div>
+              <div id="eb-stage1-status" class="vb-status"></div>
 
-            <div id="eb-count-card" class="vb-preview-card" hidden style="margin-top:16px;">
-              <div class="vb-preview-label">Matching emailable contacts</div>
-              <div class="vb-preview-stat">—</div>
-              <div class="vb-preview-sub"></div>
+              <div id="eb-count-card" class="vb-preview-card" hidden style="margin-top:16px;">
+                <div class="vb-preview-label">Matching emailable contacts</div>
+                <div class="vb-preview-stat">—</div>
+                <div class="vb-preview-sub"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -240,6 +243,6 @@
     </div><!-- /admin-eb-shell -->
   </main>
 
-  <script src="/js/admin-emails-blast.js?v=5"></script>
+  <script src="/js/admin-emails-blast.js?v=6"></script>
 </body>
 </html>
