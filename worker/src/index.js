@@ -1538,13 +1538,19 @@ function buildAdminEmailContactsWhere({
   if (hdFilter) {
     binds.push(hdFilter);
     const idx = binds.length;
-    where += ` AND LOWER(TRIM(COALESCE(state_house_district, ''))) = LOWER(TRIM(?${idx}))`;
+    // Numeric compare, not string compare: consent_status stores unpadded
+    // district numbers ("6"), while the Blast dropdown sends zero-padded
+    // values ("06") to match WY_DB's voter-file format. CAST(...AS INTEGER)
+    // makes both representations match; a blank/non-numeric value like the
+    // stray "WY" seen in production data casts to 0, which never collides
+    // with a real 1-62/1-31 selection.
+    where += ` AND CAST(state_house_district AS INTEGER) = CAST(?${idx} AS INTEGER)`;
   }
 
   if (sdFilter) {
     binds.push(sdFilter);
     const idx = binds.length;
-    where += ` AND LOWER(TRIM(COALESCE(state_senate_district, ''))) = LOWER(TRIM(?${idx}))`;
+    where += ` AND CAST(state_senate_district AS INTEGER) = CAST(?${idx} AS INTEGER)`;
   }
 
   return { where, binds };
@@ -1645,11 +1651,14 @@ function buildVoterFileWhere({ county = "", hd = "", sd = "", optoutList = [] } 
   }
   if (hd) {
     binds.push(hd);
-    clauses.push(`TRIM(house_district) = TRIM(?${binds.length})`);
+    // Numeric compare for consistency with buildAdminEmailContactsWhere --
+    // this view already stores zero-padded values so a string compare would
+    // also work today, but CAST keeps both paths robust the same way.
+    clauses.push(`CAST(house_district AS INTEGER) = CAST(?${binds.length} AS INTEGER)`);
   }
   if (sd) {
     binds.push(sd);
-    clauses.push(`TRIM(senate_district) = TRIM(?${binds.length})`);
+    clauses.push(`CAST(senate_district AS INTEGER) = CAST(?${binds.length} AS INTEGER)`);
   }
   if (optoutList.length) {
     const startIdx = binds.length + 1;

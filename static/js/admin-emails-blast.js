@@ -111,16 +111,11 @@
     const testSendSection = $('eb-test-send-section');
     if (testSendSection) testSendSection.hidden = !isTestOnly;
 
-    const cityLabel = $('eb-city-label');
-    const cityInput = $('eb-city');
+    // City is hidden for now (see docs/db/EmailConsolidationPlan.md discussion) --
+    // #eb-city-field stays hidden and #eb-city stays empty; HD/SD alone still
+    // narrow every audience, including voter_file, through the same data.
     const note = $('eb-voter-file-note');
     if (note) note.hidden = !isVoterFile;
-    if (cityLabel) {
-      cityLabel.innerHTML = isVoterFile
-        ? 'County <span style="font-weight:400;color:#9ca3af">(optional)</span>'
-        : 'City <span style="font-weight:400;color:#9ca3af">(optional)</span>';
-    }
-    if (cityInput) cityInput.placeholder = isVoterFile ? 'e.g. Natrona' : 'e.g. Casper';
   }
 
   async function runSendTest() {
