@@ -104,6 +104,16 @@
           <label for="email_body">Email body</label>
           <textarea id="email_body" name="email_body" rows="10" placeholder="Write the email body" required></textarea>
         </div>
+        <div class="field-inline">
+          <div class="field">
+            <label for="email_test_to">Send a test email <span class="help">(any address, skips the consent lookup)</span></label>
+            <input id="email_test_to" name="email_test_to" type="email" autocomplete="off" placeholder="you@example.com" />
+          </div>
+          <div class="button-row" style="align-self:flex-end;">
+            <button type="button" id="email-send-test" class="secondary">Send test</button>
+          </div>
+        </div>
+        <p id="email-send-test-status" class="help" role="status" aria-live="polite"></p>
         <div class="recipient-tray">
           <div class="row">
             <div>
@@ -125,7 +135,7 @@
           <button type="button" id="email-preview">Preview audience</button>
           <button type="button" id="email-send" class="secondary" disabled>Send email</button>
         </div>
-        <p class="help">Run Preview first. Bulk sends are staged in small waves to stay under the provider rate limit, while still using the preview token, current audience safeguards, and the configured `support@grassrootsmvt.org` sender.</p>
+        <p class="help">Run Preview first. Bulk sends are staged in small waves to stay under the provider rate limit, while still using the preview token, current audience safeguards, and the configured sender address.</p>
         <p id="admin-emails-compose-status" class="help" role="status" aria-live="polite"></p>
         <div id="email-send-receipt" class="send-receipt" hidden>
           <div class="send-receipt-header">
@@ -186,6 +196,6 @@
   </section>
 </section>
   </main>
-  <script type="module" src="/js/admin-emails.js?v=6"></script>
+  <script type="module" src="/js/admin-emails.js?v=7"></script>
 </body>
 </html>

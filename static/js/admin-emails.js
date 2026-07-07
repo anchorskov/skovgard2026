@@ -19,6 +19,7 @@ const SHARE_MESSAGE_OPTIONS = [
   { slug: "nothing-burger",                      title: "Taxpayer-Funded Nothing Burger",               defaultSubject: "Wyoming public lands: why did Montana get protection Wyoming didn't?" },
   { slug: "changing-health-care",                title: "Changing Health Care",                         defaultSubject: "Wyoming health care: the honest constitutional path" },
   { slug: "candidate-hub",                       title: "Wyoming Candidate Hub",                        defaultSubject: "Wyoming Candidate Hub: every candidate, one place" },
+  { slug: "primary-candidates",                  title: "One Place to See Every Wyoming Candidate",     defaultSubject: "One place to see every Wyoming candidate" },
 ];
 
 const authForm = document.getElementById("admin-emails-auth");
@@ -37,6 +38,9 @@ const subjectInput = document.getElementById("email_subject");
 const bodyInput = document.getElementById("email_body");
 const previewBtn = document.getElementById("email-preview");
 const sendBtn = document.getElementById("email-send");
+const testToInput = document.getElementById("email_test_to");
+const sendTestBtn = document.getElementById("email-send-test");
+const sendTestStatusEl = document.getElementById("email-send-test-status");
 const previewBox = document.getElementById("email-preview-box");
 const previewSummary = document.getElementById("email-preview-summary");
 const previewList = document.getElementById("email-preview-list");
@@ -911,6 +915,49 @@ async function runPreview() {
   }
 }
 
+async function runSendTest() {
+  const to = String(testToInput?.value || "").trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) {
+    setStatus(sendTestStatusEl, "Enter a valid test email address.", true);
+    return;
+  }
+  const payload = currentPreviewPayload();
+  if (!payload.subject) {
+    setStatus(sendTestStatusEl, "Enter a subject line first.", true);
+    return;
+  }
+  if (isShareMode()) {
+    if (!payload.share_slug) {
+      setStatus(sendTestStatusEl, "Select a share message first.", true);
+      return;
+    }
+  } else if (!String(payload.body || "").trim()) {
+    setStatus(sendTestStatusEl, "Enter an email body first.", true);
+    return;
+  }
+
+  if (sendTestBtn) sendTestBtn.disabled = true;
+  setStatus(sendTestStatusEl, "Sending test…");
+  try {
+    const data = await api("/api/admin/emails/send-test", {
+      method: "POST",
+      body: JSON.stringify({
+        to,
+        subject: payload.subject,
+        body: payload.body,
+        email_mode: payload.email_mode,
+        share_slug: payload.share_slug,
+        share_intro_text: payload.share_intro_text,
+      }),
+    });
+    setStatus(sendTestStatusEl, `Test sent to ${data.to}.`);
+  } catch (error) {
+    setStatus(sendTestStatusEl, error.message, true);
+  } finally {
+    if (sendTestBtn) sendTestBtn.disabled = false;
+  }
+}
+
 async function runSend() {
   if (!sendPathReady) {
     setStatus(composeStatusEl, "Sending is not enabled yet. Check the system status card.", true);
@@ -1026,6 +1073,10 @@ previewBtn?.addEventListener("click", () => {
 
 sendBtn?.addEventListener("click", () => {
   runSend();
+});
+
+sendTestBtn?.addEventListener("click", () => {
+  runSendTest();
 });
 
 contactsSearchInput?.addEventListener("change", () => {

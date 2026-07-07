@@ -24,6 +24,7 @@
     { slug: "nothing-burger",                      title: "Taxpayer-Funded Nothing Burger" },
     { slug: "changing-health-care",                title: "Changing Health Care" },
     { slug: "candidate-hub",                       title: "Wyoming Candidate Hub" },
+    { slug: "primary-candidates",                  title: "One Place to See Every Wyoming Candidate" },
   ];
 
   // ── State ────────────────────────────────────────────────────────────────

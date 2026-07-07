@@ -1211,6 +1211,40 @@ const CANDIDATE_HUB_BODY_HTML = `
 </table>
 `;
 
+const PRIMARY_CANDIDATES_BODY_HTML = `
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  I built a tool to help Wyoming voters find candidates in one place &#8212; all the way
+  down to the precinct level where available.
+</p>
+
+<table cellpadding="0" cellspacing="0" style="margin:4px 0 24px;">
+  <tr>
+    <td style="background:#b22234;border-radius:8px;padding:13px 26px;">
+      <a href="https://candidates.skovgard2026.org/"
+         style="color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;">
+        View the Wyoming Candidate Hub &#8594;
+      </a>
+    </td>
+  </tr>
+</table>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+  <tr>
+    <td style="background:#f9f6f0;border-left:4px solid #7a8a6b;padding:16px 20px;border-radius:0 8px 8px 0;">
+      <p style="margin:0;font-size:15px;line-height:1.65;color:#374151;">
+        My campaign is a digital neighbor-to-neighbor effort focused on truth,
+        accountability, Wyoming voices, and a future we build together.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0;font-size:16px;line-height:1.65;color:#111827;">
+  Thank you,<br>
+  <strong>Jimmy Skovgard</strong>
+</p>
+`;
+
 const HIGHER_PRICES_WASHINGTON_DEBT_BODY_HTML = `
 <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
   The economy may look good on paper, but printed money and runaway spending show up where it
@@ -1914,6 +1948,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted to share this Wyoming voter resource with you.`
         : "A Wyoming neighbor wanted to share this voter resource with you.";
+    },
+  },
+  "primary-candidates": {
+    title:        "One Place to See Every Wyoming Candidate",
+    body_html:    PRIMARY_CANDIDATES_BODY_HTML,
+    preview_text: "I built a tool to help Wyoming voters find candidates in one place, down to the precinct level.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this`
+        : "One place to see every Wyoming candidate";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this with you.`
+        : "A message from Jimmy Skovgard for Wyoming.";
     },
   },
   "higher-prices-washington-debt": {
@@ -2638,6 +2687,19 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "Download the Candidate Card Update Instructions (PDF):",
           "https://skovgard2026.org/documents/candidate-card-update-instructions.pdf",
+        ]
+    : slug === "primary-candidates"
+      ? [
+          "I built a tool to help Wyoming voters find candidates in one place — all the way",
+          "down to the precinct level where available.",
+          "",
+          "View the Wyoming Candidate Hub: https://candidates.skovgard2026.org/",
+          "",
+          "My campaign is a digital neighbor-to-neighbor effort focused on truth, accountability,",
+          "Wyoming voices, and a future we build together.",
+          "",
+          "Thank you,",
+          "Jimmy Skovgard",
         ]
     : slug === "wyoming-family-economy"
       ? [

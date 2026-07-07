@@ -5020,6 +5020,102 @@ export default {
         return json(req, env, { ok: true, items: results });
       }
 
+      // Sends to any address, bypassing the consent-database lookup entirely --
+      // for previewing rendering/deliverability before running a real audience
+      // send. Not logged as audience activity; tagged kind=admin_test in Resend.
+      if (req.method === "POST" && path === "/api/admin/emails/send-test") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        const emailConfig = getAdminEmailConfig(env);
+        if (!emailConfig.apiKey) return json(req, env, { error: "RESEND_API_KEY not configured" }, 503);
+        if (!emailConfig.from) return json(req, env, { error: "ADMIN_EMAIL_FROM not configured" }, 503);
+        if (!emailConfig.enabled) return json(req, env, { error: "ADMIN_EMAIL_ENABLED is not enabled" }, 503);
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const to = normalizeText(body.to || "").toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) {
+          return json(req, env, { error: "A valid test recipient address is required." }, 400);
+        }
+
+        const subject = normalizeAdminEmailSubject(body.subject);
+        const messageBody = normalizeAdminEmailBody(body.body);
+        const emailMode = ["share", "share_with_intro"].includes(String(body.email_mode || ""))
+          ? String(body.email_mode)
+          : "custom";
+        const shareSlug = normalizeText(body.share_slug || "");
+        const shareIntroText = normalizeAdminEmailBody(body.share_intro_text || "");
+
+        if (!subject) return json(req, env, { error: "Email subject is required" }, 400);
+        if (subject.length > 180) return json(req, env, { error: "Email subject too long" }, 400);
+        if (emailMode === "custom") {
+          if (!messageBody) return json(req, env, { error: "Email body is required" }, 400);
+          if (messageBody.length > 20000) return json(req, env, { error: "Email body too long" }, 400);
+        } else {
+          if (!shareSlug || !SHARE_MESSAGES[shareSlug]) {
+            return json(req, env, { error: "Invalid or missing share message slug." }, 400);
+          }
+          if (shareIntroText.length > 5000) return json(req, env, { error: "Custom intro text too long" }, 400);
+        }
+
+        const testSubject = `[TEST] ${subject}`;
+
+        try {
+          let result;
+          if (emailMode !== "custom") {
+            const shareMsg = SHARE_MESSAGES[shareSlug];
+            const introHtml = shareIntroText
+              ? `<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">${escHtml(shareIntroText).replace(/\n/g, "<br>")}</p>\n              <hr style="margin:0 0 22px;border:0;border-top:1px solid #e5e7eb;">\n              `
+              : "";
+            const htmlBody = buildShareEmailHtml({
+              sender_name: "Skovgard for Wyoming",
+              sender_intro: shareMsg.intro(),
+              body_html: introHtml + shareMsg.body_html,
+              preview_text: shareMsg.preview_text,
+              title: shareMsg.title,
+            });
+            const textBody = buildShareEmailText({
+              sender_name: "Skovgard for Wyoming",
+              sender_intro: shareMsg.intro(),
+              slug: shareSlug,
+            });
+            const resendResult = await sendResendEmail(emailConfig.apiKey, {
+              from: emailConfig.from,
+              to: [to],
+              reply_to: emailConfig.from,
+              subject: testSubject,
+              text: textBody,
+              html: htmlBody,
+              tags: [{ name: "source", value: "admin_emails" }, { name: "kind", value: "admin_test" }],
+            });
+            result = { id: resendResult?.id || null };
+          } else {
+            result = await sendAdminOutreachEmail(
+              env,
+              { email: to },
+              testSubject,
+              messageBody,
+              { batchId: "test", replyTo: emailConfig.from }
+            );
+          }
+
+          await insertAdminEmailAuditLog(env.DB, {
+            actorUserId: actor.actorUserId,
+            actorEmail: actor.actorEmail,
+            action: "send_test_email",
+            targetEmail: to,
+            subject: testSubject,
+            messageId: result?.id || null,
+            detailsJson: JSON.stringify({ emailMode, shareSlug: shareSlug || null }),
+          });
+
+          return json(req, env, { ok: true, to, messageId: result?.id || null });
+        } catch (error) {
+          return json(req, env, { error: String(error?.message || error || "Test send failed") }, 500);
+        }
+      }
+
       if (req.method === "POST" && path === "/api/admin/emails/preview") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
         const auth = await mustBeAdmin(req, env, url);
