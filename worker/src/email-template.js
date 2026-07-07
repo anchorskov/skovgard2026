@@ -1217,8 +1217,8 @@ const PRIMARY_CANDIDATES_BODY_HTML = `
 </p>
 
 <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
-  I built a tool to help Wyoming voters find candidates in one place &#8212; all the way
-  down to the precinct level where available.
+  I built a tool to help Wyoming voters build their primary ballot &#8212; every candidate
+  in one place, all the way down to the precinct level where available.
 </p>
 
 <table cellpadding="0" cellspacing="0" style="margin:4px 0 24px;">
@@ -1984,7 +1984,7 @@ export const SHARE_MESSAGES = {
   "primary-candidates": {
     title:        "One Place to See Every Wyoming Candidate",
     body_html:    PRIMARY_CANDIDATES_BODY_HTML,
-    preview_text: "I built a tool to help Wyoming voters find candidates in one place, down to the precinct level.",
+    preview_text: "I built a tool to help Wyoming voters build their primary ballot — every candidate in one place, down to the precinct level.",
     subject(n) {
       return n
         ? `${n} wanted you to see this`
@@ -2723,8 +2723,8 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
       ? [
           "Hello, {first_name},",
           "",
-          "I built a tool to help Wyoming voters find candidates in one place — all the way",
-          "down to the precinct level where available.",
+          "I built a tool to help Wyoming voters build their primary ballot — every candidate",
+          "in one place, all the way down to the precinct level where available.",
           "",
           "View the Wyoming Candidate Hub: https://candidates.skovgard2026.org/",
           "",
