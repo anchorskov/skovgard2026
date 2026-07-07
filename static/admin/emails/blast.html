@@ -71,6 +71,7 @@
             <div class="vb-field">
               <label class="vb-label" for="eb-filter">Audience filter</label>
               <select id="eb-filter" class="vb-select">
+                <option value="" selected>— Select an audience —</option>
                 <option value="opted_in">Opted-in email addresses</option>
                 <option value="every_email">Every email address in system</option>
                 <option value="volunteers">Volunteers only</option>
@@ -96,59 +97,61 @@
             </div>
           </div>
 
-          <p id="eb-voter-file-note" class="vb-help" hidden style="margin:-8px 0 16px;color:#8a3d23;">
-            This audience is <strong>not</strong> opt-in gated &#8212; it reaches the full voter-file email
-            list, excluding only addresses with an explicit opt-out on record. The City field above
-            filters by <strong>county</strong> for this audience.
-          </p>
+          <div id="eb-compose-section" hidden>
+            <p id="eb-voter-file-note" class="vb-help" hidden style="margin:-8px 0 16px;color:#8a3d23;">
+              This audience is <strong>not</strong> opt-in gated &#8212; it reaches the full voter-file email
+              list, excluding only addresses with an explicit opt-out on record. The City field above
+              filters by <strong>county</strong> for this audience.
+            </p>
 
-          <div class="vb-field">
-            <label class="vb-label" for="eb-mode">Email type</label>
-            <select id="eb-mode" class="vb-select">
-              <option value="custom">Custom email</option>
-              <option value="share">Share message as email</option>
-              <option value="share_with_intro">Share message + custom intro</option>
-            </select>
-          </div>
-          <div class="vb-field" id="eb-share-picker-field" hidden>
-            <label class="vb-label" for="eb-share-slug">Share message</label>
-            <select id="eb-share-slug" class="vb-select">
-              <option value="">— Select a message —</option>
-            </select>
-          </div>
-          <div class="vb-field" id="eb-share-intro-field" hidden>
-            <label class="vb-label" for="eb-share-intro">Custom intro <span style="font-weight:400;color:#9ca3af">(appears above the share message body)</span></label>
-            <textarea id="eb-share-intro" class="vb-textarea" rows="4"></textarea>
-          </div>
-          <div class="vb-field">
-            <label class="vb-label" for="eb-subject">Subject line</label>
-            <input id="eb-subject" type="text" class="vb-input" maxlength="180" placeholder="Write the subject line" />
-          </div>
-          <div class="vb-field" id="eb-body-field">
-            <label class="vb-label" for="eb-body">Email body</label>
-            <textarea id="eb-body" class="vb-textarea" rows="10" placeholder="Write the email body"></textarea>
-          </div>
-
-          <div class="vb-field-row">
             <div class="vb-field">
-              <label class="vb-label" for="eb-test-to">Send a test email <span style="font-weight:400;color:#9ca3af">(any address, skips the consent lookup)</span></label>
-              <input id="eb-test-to" type="email" class="vb-input" placeholder="you@example.com" />
+              <label class="vb-label" for="eb-mode">Email type</label>
+              <select id="eb-mode" class="vb-select">
+                <option value="custom">Custom email</option>
+                <option value="share">Share message as email</option>
+                <option value="share_with_intro">Share message + custom intro</option>
+              </select>
             </div>
-            <div class="vb-btn-row" style="align-self:flex-end;">
-              <button id="eb-send-test-btn" class="vb-btn vb-btn-secondary">Send test</button>
+            <div class="vb-field" id="eb-share-picker-field" hidden>
+              <label class="vb-label" for="eb-share-slug">Share message</label>
+              <select id="eb-share-slug" class="vb-select">
+                <option value="">— Select a message —</option>
+              </select>
             </div>
-          </div>
-          <div id="eb-test-status" class="vb-status"></div>
+            <div class="vb-field" id="eb-share-intro-field" hidden>
+              <label class="vb-label" for="eb-share-intro">Custom intro <span style="font-weight:400;color:#9ca3af">(appears above the share message body)</span></label>
+              <textarea id="eb-share-intro" class="vb-textarea" rows="4"></textarea>
+            </div>
+            <div class="vb-field">
+              <label class="vb-label" for="eb-subject">Subject line</label>
+              <input id="eb-subject" type="text" class="vb-input" maxlength="180" placeholder="Write the subject line" />
+            </div>
+            <div class="vb-field" id="eb-body-field">
+              <label class="vb-label" for="eb-body">Email body</label>
+              <textarea id="eb-body" class="vb-textarea" rows="10" placeholder="Write the email body"></textarea>
+            </div>
 
-          <div class="vb-btn-row">
-            <button id="eb-count-btn" class="vb-btn vb-btn-primary">Check Audience Count</button>
-          </div>
-          <div id="eb-stage1-status" class="vb-status"></div>
+            <div class="vb-field-row">
+              <div class="vb-field">
+                <label class="vb-label" for="eb-test-to">Send a test email <span style="font-weight:400;color:#9ca3af">(any address, skips the consent lookup)</span></label>
+                <input id="eb-test-to" type="email" class="vb-input" placeholder="you@example.com" />
+              </div>
+              <div class="vb-btn-row" style="align-self:flex-end;">
+                <button id="eb-send-test-btn" class="vb-btn vb-btn-secondary">Send test</button>
+              </div>
+            </div>
+            <div id="eb-test-status" class="vb-status"></div>
 
-          <div id="eb-count-card" class="vb-preview-card" hidden style="margin-top:16px;">
-            <div class="vb-preview-label">Matching emailable contacts</div>
-            <div class="vb-preview-stat">—</div>
-            <div class="vb-preview-sub"></div>
+            <div class="vb-btn-row">
+              <button id="eb-count-btn" class="vb-btn vb-btn-primary">Check Audience Count</button>
+            </div>
+            <div id="eb-stage1-status" class="vb-status"></div>
+
+            <div id="eb-count-card" class="vb-preview-card" hidden style="margin-top:16px;">
+              <div class="vb-preview-label">Matching emailable contacts</div>
+              <div class="vb-preview-stat">—</div>
+              <div class="vb-preview-sub"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -237,6 +240,6 @@
     </div><!-- /admin-eb-shell -->
   </main>
 
-  <script src="/js/admin-emails-blast.js?v=4"></script>
+  <script src="/js/admin-emails-blast.js?v=5"></script>
 </body>
 </html>

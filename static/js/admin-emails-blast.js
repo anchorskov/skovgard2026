@@ -93,7 +93,16 @@
   }
 
   function handleFilterChange() {
-    const isVoterFile = ($('eb-filter')?.value || '') === 'voter_file';
+    const filterValue = ($('eb-filter')?.value || '').trim();
+    const hasAudience = filterValue !== '';
+    const isVoterFile = filterValue === 'voter_file';
+
+    // Compose fields (message, subject, test-send, count) stay hidden until
+    // an actual audience is chosen -- the blank placeholder option means
+    // nothing is pre-selected on page load, unlike a real filter default.
+    const composeSection = $('eb-compose-section');
+    if (composeSection) composeSection.hidden = !hasAudience;
+
     const cityLabel = $('eb-city-label');
     const cityInput = $('eb-city');
     const note = $('eb-voter-file-note');
@@ -177,7 +186,7 @@
   function currentComposeFields() {
     const mode = ($('eb-mode')?.value || 'custom');
     return {
-      filter:      ($('eb-filter')?.value || 'emailable').trim(),
+      filter:      ($('eb-filter')?.value || '').trim(),
       city:        ($('eb-city')?.value || '').trim(),
       hd:          ($('eb-hd')?.value   || '').trim(),
       sd:          ($('eb-sd')?.value   || '').trim(),
@@ -191,6 +200,7 @@
 
   async function runAudienceCount() {
     const f = currentComposeFields();
+    if (!f.filter) { setStatus('eb-stage1-status', 'Select an audience first.', 'error'); return; }
     if (!f.subject) { setStatus('eb-stage1-status', 'Subject line is required.', 'error'); return; }
     if (f.email_mode === 'custom' && !f.body) {
       setStatus('eb-stage1-status', 'Email body is required.', 'error'); return;
