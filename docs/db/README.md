@@ -266,6 +266,7 @@ The `wy` database also hosts the Wyoming 2026 primary voter guide tables, writte
 - `sms_optins` should remain available until volunteer-tag compatibility and rollback confidence are no longer needed.
 - After that, migrate `is_volunteer` off `sms_optins` and remove the remaining compatibility queries/writes.
 - `contacts` still exists separately because the texting portal and send-path logic already rely on it; this refactor moved canonical consent/profile data into `consent_status` without rewriting the whole texting model.
+- The email side of this sprawl (opt-ins, volunteers, candidates, hunters, voter-file import) has grown into ~10 tables across two databases. See [`docs/db/EmailConsolidationPlan.md`](EmailConsolidationPlan.md) for the full inventory and the phased plan toward one canonical contact table — a living document, not yet implemented.
 
 ## Migration Workflow
 

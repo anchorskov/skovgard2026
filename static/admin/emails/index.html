@@ -63,10 +63,11 @@
           <div class="field">
             <label for="email_filter">Audience</label>
             <select id="email_filter" name="email_filter">
-              <option value="emailable">Emailable</option>
-              <option value="new_opt_ins">New email opt-ins (24h)</option>
-              <option value="all">All with email</option>
+              <option value="opted_in">Opted-in email addresses</option>
+              <option value="every_email">Every email address in system</option>
               <option value="volunteers">Volunteers only</option>
+              <option value="candidate">Candidates list</option>
+              <option value="new_opt_ins">New email opt-ins (24h)</option>
               <option value="suppressed">Suppressed by webhook</option>
               <option value="inactive">Inactive / unsubscribed</option>
               <option value="no_consent">No email consent</option>
@@ -161,10 +162,11 @@
       </div>
       <div class="card-controls">
         <select id="email_contacts_filter">
-          <option value="emailable">Emailable</option>
-          <option value="new_opt_ins">New email opt-ins</option>
-          <option value="all">All with email</option>
+          <option value="opted_in">Opted-in email addresses</option>
+          <option value="every_email">Every email address in system</option>
           <option value="volunteers">Volunteers only</option>
+          <option value="candidate">Candidates list</option>
+          <option value="new_opt_ins">New email opt-ins</option>
           <option value="suppressed">Suppressed by webhook</option>
           <option value="inactive">Inactive / unsubscribed</option>
           <option value="no_consent">No email consent</option>

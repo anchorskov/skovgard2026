@@ -71,14 +71,15 @@
             <div class="vb-field">
               <label class="vb-label" for="eb-filter">Audience filter</label>
               <select id="eb-filter" class="vb-select">
-                <option value="emailable">Emailable</option>
-                <option value="new_opt_ins">New email opt-ins (24h)</option>
-                <option value="all">All with email</option>
+                <option value="opted_in">Opted-in email addresses</option>
+                <option value="every_email">Every email address in system</option>
                 <option value="volunteers">Volunteers only</option>
+                <option value="candidate">Candidates list</option>
+                <option value="voter_file">Voter file (opt-outs excluded)</option>
+                <option value="new_opt_ins">New email opt-ins (24h)</option>
                 <option value="suppressed">Suppressed by webhook</option>
                 <option value="inactive">Inactive / unsubscribed</option>
                 <option value="no_consent">No email consent</option>
-                <option value="voter_file">Voter file (opt-outs excluded)</option>
               </select>
             </div>
             <div class="vb-field">

@@ -306,6 +306,44 @@ async function createEmailOptinToken(db, { email, emailNorm, messageSlug, batchI
   };
 }
 
+// Phase 3 dual-write (docs/db/EmailConsolidationPlan.md): keeps the
+// canonical email_contacts/email_contact_purposes table fresh from the two
+// places an email's consent state genuinely, unambiguously changes --
+// upsertNewsletterSubscriber (below) and applyOptinResponse. Both call this
+// at 'subscriber' purpose, priority 4 (the system max), so this always wins
+// conflicts against lower-priority backfilled data (candidate/voter_file/
+// purged_voter) -- except a sticky opted_out, matching the backfill scripts'
+// rule that an explicit opt-out is never silently overwritten. Errors are
+// swallowed (logged only) so a failure writing to the new table can never
+// break the primary, already-working subscribe/unsubscribe flow.
+async function upsertEmailContactSubscriber(db, { email, emailNorm, consentStatus, source }) {
+  const SUBSCRIBER_PRIORITY = 4;
+  try {
+    await db.prepare(
+      `INSERT INTO email_contacts (email, email_norm, consent_status, source, source_detail, source_priority, first_seen_at, updated_at)
+       VALUES (?1, ?2, ?3, 'email_contacts_dual_write', ?4, ${SUBSCRIBER_PRIORITY}, datetime('now'), datetime('now'))
+       ON CONFLICT(email_norm) DO UPDATE SET
+         consent_status = CASE
+           WHEN email_contacts.consent_status = 'opted_out' THEN 'opted_out'
+           WHEN excluded.consent_status = 'opted_out' THEN 'opted_out'
+           WHEN excluded.source_priority >= email_contacts.source_priority THEN excluded.consent_status
+           ELSE email_contacts.consent_status
+         END,
+         source = CASE WHEN excluded.source_priority >= email_contacts.source_priority THEN excluded.source ELSE email_contacts.source END,
+         source_detail = CASE WHEN excluded.source_priority >= email_contacts.source_priority THEN excluded.source_detail ELSE email_contacts.source_detail END,
+         source_priority = MAX(email_contacts.source_priority, excluded.source_priority),
+         updated_at = datetime('now')`
+    ).bind(email, emailNorm, consentStatus, source).run();
+
+    await db.prepare(
+      `INSERT OR IGNORE INTO email_contact_purposes (email_contact_id, purpose, source)
+       SELECT id, 'subscriber', ?2 FROM email_contacts WHERE email_norm = ?1`
+    ).bind(emailNorm, source).run();
+  } catch (error) {
+    console.error("upsertEmailContactSubscriber dual-write failed", { emailNorm, error: String(error?.message || error) });
+  }
+}
+
 async function applyOptinResponse(db, { email, emailNorm, choice }) {
   const consentEmail = choice === "yes" ? 1 : 0;
   const active = choice === "yes" ? 1 : 0;
@@ -321,6 +359,13 @@ async function applyOptinResponse(db, { email, emailNorm, choice }) {
        confirmed_at = excluded.confirmed_at,
        updated_at = excluded.updated_at`
   ).bind(email, emailNorm, consentEmail, active, confirmedAt).run();
+
+  await upsertEmailContactSubscriber(db, {
+    email,
+    emailNorm,
+    consentStatus: choice === "yes" ? "opted_in" : "opted_out",
+    source: "email_contacts_dual_write:email_optin_response",
+  });
 }
 
 function optinResponsePage({ title, message, tone }) {
@@ -437,6 +482,15 @@ async function upsertNewsletterSubscriber(db, input) {
   )
     .bind(emailRaw, email, consentEmail ? 1 : 0, consentVersion, source, userAgent, ipHash)
     .run();
+
+  // This function throws above if !consentEmail, so reaching here always
+  // means consent was just granted -- always 'opted_in', never 'opted_out'.
+  await upsertEmailContactSubscriber(db, {
+    email: emailRaw,
+    emailNorm: email,
+    consentStatus: "opted_in",
+    source: `email_contacts_dual_write:${source}`,
+  });
 }
 
 function normalizeLookupText(value) {
@@ -1299,6 +1353,151 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
                                      WHERE TRIM(COALESCE(email_norm, '')) <> ''
                                        AND TRIM(COALESCE(email, '')) <> ''
                                   )`;
+
+// New canonical query layer over email_contacts/email_contact_purposes
+// (docs/db/EmailConsolidationPlan.md Phase 3). Lives alongside
+// ADMIN_EMAIL_CONTACTS_CTE rather than replacing it -- additive rollout,
+// filters migrate one at a time. purged_voter intentionally has no entry
+// here: not a sendable Blast audience yet (data-quality caveat, see plan
+// doc). 'emailable' is kept as an alias of 'opted_in' so the server-side
+// default (filter || "emailable") and the renamed frontend option both
+// route through the new path identically.
+const EMAIL_CONTACTS_FILTERS = {
+  opted_in: { purpose: null, consentStatus: "opted_in" },
+  emailable: { purpose: null, consentStatus: "opted_in" },
+  volunteers: { purpose: "volunteer", consentStatus: null },
+  candidate: { purpose: "candidate", consentStatus: null },
+  voter_file: { purpose: "voter_file", consentStatus: null },
+  every_email: { purpose: null, consentStatus: null },
+};
+
+function buildEmailContactsWhere({ filter, q = "" } = {}) {
+  const def = EMAIL_CONTACTS_FILTERS[String(filter || "").trim()];
+  if (!def) return null;
+  const binds = [];
+  let where = "ec.consent_status != 'opted_out' AND es.email_norm IS NULL";
+  if (def.consentStatus) {
+    binds.push(def.consentStatus);
+    where += ` AND ec.consent_status = ?${binds.length}`;
+  }
+  if (def.purpose) {
+    binds.push(def.purpose);
+    where += ` AND p.purpose = ?${binds.length}`;
+  } else {
+    // Exclude a contact only if its ENTIRE purpose set is purged_voter --
+    // not "has no non-purged purpose", which would wrongly exclude a
+    // contact with zero purpose rows. purged_voter contacts carry
+    // consent_status='no_signal', so without this they'd leak into
+    // every_email/opted_in-style purpose-agnostic filters.
+    where += ` AND NOT (
+      EXISTS (SELECT 1 FROM email_contact_purposes pv WHERE pv.email_contact_id = ec.id AND pv.purpose = 'purged_voter')
+      AND NOT EXISTS (SELECT 1 FROM email_contact_purposes pv2 WHERE pv2.email_contact_id = ec.id AND pv2.purpose != 'purged_voter')
+    )`;
+  }
+  const search = String(q || "").trim();
+  if (search) {
+    binds.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    const idx = binds.length - 3;
+    where += ` AND (
+      ec.email LIKE ?${idx}
+      OR ec.email_norm LIKE ?${idx + 1}
+      OR ec.first_name LIKE ?${idx + 2}
+      OR ec.last_name LIKE ?${idx + 3}
+    )`;
+  }
+  return { where, binds };
+}
+
+// LEFT JOIN is correct for every filter, not just convenient: purpose-scoped
+// filters neutralize it via `p.purpose = ?` in the WHERE clause (UNIQUE
+// (email_contact_id, purpose) means at most one matching row anyway);
+// purpose-agnostic filters need the DISTINCT below specifically because a
+// contact can hold more than one purpose (e.g. subscriber + volunteer).
+const EMAIL_CONTACTS_BASE_SQL = `
+  FROM email_contacts ec
+  LEFT JOIN email_contact_purposes p ON p.email_contact_id = ec.id
+  LEFT JOIN email_suppressions es ON es.email_norm = ec.email_norm
+`;
+
+async function countEmailContacts(db, opts) {
+  const built = buildEmailContactsWhere(opts);
+  if (!built) return null;
+  const row = await db
+    .prepare(`SELECT COUNT(DISTINCT ec.id) AS n ${EMAIL_CONTACTS_BASE_SQL} WHERE ${built.where}`)
+    .bind(...built.binds)
+    .first();
+  return Number(row?.n || 0);
+}
+
+async function queryEmailContacts(db, { limit = 250, offset = 0, ...opts } = {}) {
+  const built = buildEmailContactsWhere(opts);
+  if (!built) return null;
+  const binds = [...built.binds, limit, Math.max(0, Number(offset) || 0)];
+  // ORDER BY email_norm is required, not arbitrary -- same reason as the
+  // legacy path's stableOrder flag below: offset pagination across blast
+  // chunks needs a sort key that can't reshuffle mid-blast. email_status is
+  // synthesized 'emailable' because the WHERE above has already filtered to
+  // sendable rows, same pattern queryVoterFileAudience uses below -- any
+  // future filter added to EMAIL_CONTACTS_FILTERS must keep its WHERE-side
+  // exclusions in sync with this assumption.
+  const sql = `SELECT DISTINCT ec.email, ec.email_norm, ec.first_name, ec.last_name, 'emailable' AS email_status
+               ${EMAIL_CONTACTS_BASE_SQL} WHERE ${built.where}
+               ORDER BY ec.email_norm ASC LIMIT ?${binds.length - 1} OFFSET ?${binds.length}`;
+  const rows = await db.prepare(sql).bind(...binds).all();
+  return rows.results || [];
+}
+
+// Shared 3-way routing for the Blast handlers (audience-count, blast/job,
+// blast/send-chunk): new email_contacts path when the filter has migrated
+// AND no geo-narrowing is requested; WY_DB voter_file path when voter_file +
+// geo is requested (email_contacts stores no district data, by design); the
+// legacy CTE path for everything else (unmigrated filters, or migrated
+// filters + geo, e.g. "opted_in" narrowed by HD -- consent_status still
+// carries district columns, email_contacts doesn't).
+// countVoterFileAudience/queryVoterFileAudience/countAdminEmailContacts/
+// queryAdminEmailContacts are `function` declarations defined later in this
+// file; hoisting makes them safe to reference here.
+async function countBlastAudienceTotal(env, { filter, city = "", hd = "", sd = "", sinceHours = 24, q = "" } = {}) {
+  const noGeo = !city && !hd && !sd;
+  if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
+    return await countEmailContacts(env.DB, { filter, q });
+  }
+  if (filter === "voter_file") {
+    return env.WY_DB ? await countVoterFileAudience(env, { county: city, hd, sd }) : 0;
+  }
+  return await countAdminEmailContacts(env.DB, { filter, city, hd, sd, sinceHours });
+}
+
+async function queryBlastAudienceChunk(env, { filter, city = "", hd = "", sd = "", sinceHours = 24, limit, offset } = {}) {
+  const noGeo = !city && !hd && !sd;
+  if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
+    return await queryEmailContacts(env.DB, { filter, limit, offset });
+  }
+  if (filter === "voter_file") {
+    return (await queryVoterFileAudience(env, { county: city, hd, sd, limit, offset })).map((r) => ({
+      email: r.email_norm,
+      email_norm: r.email_norm,
+      first_name: r.first_name,
+      email_status: "emailable", // opt-outs already excluded in the SQL query itself
+    }));
+  }
+  return await queryAdminEmailContacts(env.DB, {
+    filter, city, hd, sd, sinceHours, limit, offset, stableOrder: true,
+  });
+}
+
+// Same new-path/legacy-path routing as queryBlastAudienceChunk, but for the
+// single-shot (<=250 recipient, no pagination, no voter_file) admin-emails
+// endpoints: the contacts table, preview, and send. voter_file was never
+// selectable from these endpoints' dropdowns, so no WY_DB branch is needed
+// here.
+async function queryAdminEmailContactsRouted(db, { filter, q = "", city = "", hd = "", sd = "", limit, sinceHours = 24 } = {}) {
+  const noGeo = !city && !hd && !sd;
+  if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
+    return await queryEmailContacts(db, { filter, q, limit, offset: 0 });
+  }
+  return await queryAdminEmailContacts(db, { filter, q, city, hd, sd, limit, sinceHours });
+}
 
 function buildAdminEmailContactsWhere({
   filter = "emailable",
@@ -5240,15 +5439,7 @@ export default {
         const hd = normalizeContactFilterValue(url.searchParams.get("hd") || "");
         const sd = normalizeContactFilterValue(url.searchParams.get("sd") || "");
         const sinceHours = positiveInt(url.searchParams.get("since_hours"), 24, 24 * 30);
-        const results = await queryAdminEmailContacts(env.DB, {
-          filter,
-          q,
-          city,
-          hd,
-          sd,
-          limit,
-          sinceHours,
-        });
+        const results = await queryAdminEmailContactsRouted(env.DB, { filter, q, city, hd, sd, limit, sinceHours });
 
         return json(req, env, { ok: true, items: results });
       }
@@ -5394,15 +5585,7 @@ export default {
 
         const audience = useExplicitRecipients
           ? await queryAdminEmailContactsByAddress(env.DB, requestedRecipients)
-          : await queryAdminEmailContacts(env.DB, {
-              filter,
-              q: "",
-              city,
-              hd,
-              sd,
-              limit,
-              sinceHours,
-            });
+          : await queryAdminEmailContactsRouted(env.DB, { filter, city, hd, sd, limit, sinceHours });
         const recipients = audience.filter((item) => String(item.email_status || "").trim() === "emailable");
         const audienceSeedEmails = useExplicitRecipients
           ? requestedRecipients
@@ -5556,15 +5739,7 @@ export default {
 
         const audience = useExplicitRecipients
           ? await queryAdminEmailContactsByAddress(env.DB, requestedRecipients)
-          : await queryAdminEmailContacts(env.DB, {
-              filter,
-              q: "",
-              city,
-              hd,
-              sd,
-              limit,
-              sinceHours,
-            });
+          : await queryAdminEmailContactsRouted(env.DB, { filter, city, hd, sd, limit, sinceHours });
         const recipients = audience.filter((item) => String(item.email_status || "").trim() === "emailable");
         const audienceSeedEmails = useExplicitRecipients
           ? requestedRecipients
@@ -5696,9 +5871,7 @@ export default {
         const sd = normalizeContactFilterValue(url.searchParams.get("sd") || "");
         const sinceHours = positiveInt(url.searchParams.get("since_hours"), 24, 24 * 30);
 
-        const total = filter === "voter_file"
-          ? (env.WY_DB ? await countVoterFileAudience(env, { county: city, hd, sd }) : 0)
-          : await countAdminEmailContacts(env.DB, { filter, city, hd, sd, sinceHours });
+        const total = await countBlastAudienceTotal(env, { filter, city, hd, sd, sinceHours });
         return json(req, env, { ok: true, filter, city, hd, sd, sinceHours, total });
       }
 
@@ -5746,12 +5919,11 @@ export default {
           return json(req, env, { error: "Blast creation requires confirmed=true -- check the audience count first." }, 400);
         }
 
-        if (filter === "voter_file" && !env.WY_DB) {
+        const jobNoGeo = !city && !hd && !sd;
+        if (filter === "voter_file" && !jobNoGeo && !env.WY_DB) {
           return json(req, env, { error: "WY_DB not configured" }, 500);
         }
-        const totalAudience = filter === "voter_file"
-          ? await countVoterFileAudience(env, { county: city, hd, sd })
-          : await countAdminEmailContacts(env.DB, { filter, city, hd, sd, sinceHours });
+        const totalAudience = await countBlastAudienceTotal(env, { filter, city, hd, sd, sinceHours });
         if (totalAudience === 0) {
           return json(req, env, { error: "No recipients match this filter." }, 409);
         }
@@ -5807,31 +5979,19 @@ export default {
 
         const offset = Number(job.current_offset || 0);
         const chunkSize = Number(job.chunk_size || EMAIL_BLAST_DEFAULT_CHUNK_SIZE);
-        const isVoterFile = job.filter === "voter_file";
-        if (isVoterFile && !env.WY_DB) return json(req, env, { error: "WY_DB not configured" }, 500);
-        const chunk = isVoterFile
-          ? (await queryVoterFileAudience(env, {
-              county: job.city || "",
-              hd: job.hd || "",
-              sd: job.sd || "",
-              limit: chunkSize,
-              offset,
-            })).map((r) => ({
-              email: r.email_norm,
-              email_norm: r.email_norm,
-              first_name: r.first_name,
-              email_status: "emailable", // opt-outs already excluded in the SQL query itself
-            }))
-          : await queryAdminEmailContacts(env.DB, {
-              filter: job.filter,
-              city: job.city || "",
-              hd: job.hd || "",
-              sd: job.sd || "",
-              sinceHours: Number(job.since_hours || 24),
-              limit: chunkSize,
-              offset,
-              stableOrder: true,
-            });
+        const chunkNoGeo = !job.city && !job.hd && !job.sd;
+        if (job.filter === "voter_file" && !chunkNoGeo && !env.WY_DB) {
+          return json(req, env, { error: "WY_DB not configured" }, 500);
+        }
+        const chunk = await queryBlastAudienceChunk(env, {
+          filter: job.filter,
+          city: job.city || "",
+          hd: job.hd || "",
+          sd: job.sd || "",
+          sinceHours: Number(job.since_hours || 24),
+          limit: chunkSize,
+          offset,
+        });
 
         if (chunk.length === 0) {
           await env.DB.prepare(
