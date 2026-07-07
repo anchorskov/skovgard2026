@@ -1213,6 +1213,10 @@ const CANDIDATE_HUB_BODY_HTML = `
 
 const PRIMARY_CANDIDATES_BODY_HTML = `
 <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Hello, {first_name},
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
   I built a tool to help Wyoming voters find candidates in one place &#8212; all the way
   down to the precinct level where available.
 </p>
@@ -1238,6 +1242,33 @@ const PRIMARY_CANDIDATES_BODY_HTML = `
     </td>
   </tr>
 </table>
+
+<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#111827;font-weight:600;">
+  May I send you occasional campaign updates, candidate information, and ways to take part?
+</p>
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 10px;">
+  <tr>
+    <td style="padding-right:10px;">
+      <a href="{optin_yes_url}" style="display:inline-block;background:#b22234;color:#f1ece1;
+          font-weight:700;font-size:14px;text-decoration:none;padding:11px 18px;
+          border-radius:8px;font-family:Arial,Helvetica,sans-serif;">
+        Yes, keep me updated
+      </a>
+    </td>
+    <td>
+      <a href="{optin_no_url}" style="display:inline-block;background:#ffffff;color:#2b2b2b;
+          font-weight:700;font-size:14px;text-decoration:none;padding:11px 18px;
+          border-radius:8px;border:1px solid #b7a88a;font-family:Arial,Helvetica,sans-serif;">
+        No, unsubscribe me
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 24px;font-size:13px;line-height:1.5;color:#6b7280;">
+  You can opt out at any time.
+</p>
 
 <p style="margin:0;font-size:16px;line-height:1.65;color:#111827;">
   Thank you,<br>
@@ -2690,6 +2721,8 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
         ]
     : slug === "primary-candidates"
       ? [
+          "Hello, {first_name},",
+          "",
           "I built a tool to help Wyoming voters find candidates in one place — all the way",
           "down to the precinct level where available.",
           "",
@@ -2697,6 +2730,13 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "",
           "My campaign is a digital neighbor-to-neighbor effort focused on truth, accountability,",
           "Wyoming voices, and a future we build together.",
+          "",
+          "May I send you occasional campaign updates, candidate information, and ways to take part?",
+          "",
+          "Yes, keep me updated: {optin_yes_url}",
+          "No, unsubscribe me: {optin_no_url}",
+          "",
+          "You can opt out at any time.",
           "",
           "Thank you,",
           "Jimmy Skovgard",

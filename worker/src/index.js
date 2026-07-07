@@ -276,6 +276,77 @@ function normalizeEmailForStorage(email) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Email opt-in/opt-out confirmation links (Yes/No buttons in admin-sent emails)
+// ---------------------------------------------------------------------------
+const OPTIN_PLACEHOLDER_RE = /\{optin_yes_url\}|\{optin_no_url\}/;
+
+function bodyNeedsOptinPlaceholders(bodyHtml) {
+  return OPTIN_PLACEHOLDER_RE.test(String(bodyHtml || ""));
+}
+
+function substitutePersonalization(text, { firstName = "", optinYesUrl = "", optinNoUrl = "" } = {}) {
+  return String(text || "")
+    .replace(/\{first_name\}/gi, firstName || "there")
+    .replace(/\{optin_yes_url\}/g, optinYesUrl)
+    .replace(/\{optin_no_url\}/g, optinNoUrl);
+}
+
+async function createEmailOptinToken(db, { email, emailNorm, messageSlug, batchId }) {
+  const token = crypto.randomUUID();
+  await db.prepare(
+    `INSERT INTO email_optin_tokens (token, email, email_norm, message_slug, batch_id)
+     VALUES (?1, ?2, ?3, ?4, ?5)`
+  ).bind(token, email, emailNorm, messageSlug, batchId || null).run();
+  const base = "https://skovgard2026.org";
+  return {
+    token,
+    yesUrl: `${base}/api/email/optin-response?token=${token}&choice=yes`,
+    noUrl: `${base}/api/email/optin-response?token=${token}&choice=no`,
+  };
+}
+
+async function applyOptinResponse(db, { email, emailNorm, choice }) {
+  const consentEmail = choice === "yes" ? 1 : 0;
+  const active = choice === "yes" ? 1 : 0;
+  const confirmedAt = choice === "yes" ? new Date().toISOString() : null;
+  await db.prepare(
+    `INSERT INTO newsletter_subscribers
+       (email, email_norm, consent_email, consent_version, source, active, confirmed_at, created_at, updated_at)
+     VALUES (?1, ?2, ?3, 'email-optin-response-v1', 'email_optin_response', ?4, ?5, datetime('now'), datetime('now'))
+     ON CONFLICT(email_norm) DO UPDATE SET
+       email = excluded.email,
+       consent_email = excluded.consent_email,
+       active = excluded.active,
+       confirmed_at = excluded.confirmed_at,
+       updated_at = excluded.updated_at`
+  ).bind(email, emailNorm, consentEmail, active, confirmedAt).run();
+}
+
+function optinResponsePage({ title, message, tone }) {
+  const accent = tone === "error" ? "#8b1a26" : "#b22234";
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escHtml(title)} — Skovgard 2026</title>
+</head>
+<body style="margin:0;background:#f1ece1;font-family:Arial,Helvetica,sans-serif;color:#2b2b2b;">
+  <div style="max-width:480px;margin:64px auto;padding:0 20px;text-align:center;">
+    <p style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${accent};font-weight:700;margin:0 0 12px;">
+      Skovgard for Wyoming
+    </p>
+    <h1 style="font-size:24px;margin:0 0 16px;color:#2b2b2b;">${escHtml(title)}</h1>
+    <p style="font-size:15px;line-height:1.6;color:#4b5563;margin:0 0 24px;">${escHtml(message)}</p>
+    <a href="https://skovgard2026.org/" style="color:${accent};font-weight:700;font-size:14px;text-decoration:none;">
+      Return to skovgard2026.org &#8594;
+    </a>
+  </div>
+</body>
+</html>`;
+}
+
 
 // ---------------------------------------------------------------------------
 // FEC election-period helpers
@@ -1728,18 +1799,37 @@ async function sendOneAdminEmail(env, {
           preview_text: shareMsg.preview_text,
           title: shareMsg.title,
         });
-        const textBody = buildShareEmailText({
+        let textBody = buildShareEmailText({
           sender_name: "Skovgard for Wyoming",
           sender_intro: shareMsg.intro(),
           slug: shareSlug,
         });
+        let finalHtmlBody = htmlBody;
+
+        const recipientEmail = normalizeText(recipient?.email || recipient);
+        if (bodyNeedsOptinPlaceholders(shareMsg.body_html)) {
+          const { yesUrl, noUrl } = await createEmailOptinToken(env.DB, {
+            email: recipientEmail,
+            emailNorm: recipient?.email_norm || recipientEmail.toLowerCase(),
+            messageSlug: shareSlug,
+            batchId,
+          });
+          const personalize = (text) => substitutePersonalization(text, {
+            firstName: recipient?.first_name || "",
+            optinYesUrl: yesUrl,
+            optinNoUrl: noUrl,
+          });
+          finalHtmlBody = personalize(finalHtmlBody);
+          textBody = personalize(textBody);
+        }
+
         const shareMessage = {
           from: emailConfig.from,
-          to: [normalizeText(recipient?.email || recipient)],
+          to: [recipientEmail],
           reply_to: emailConfig.from,
           subject,
           text: shareIntroText ? `${shareIntroText}\n\n---\n\n${textBody}` : textBody,
-          html: htmlBody,
+          html: finalHtmlBody,
           tags: [
             { name: "source", value: "admin_emails" },
             { name: "kind", value: "share_blast" },
@@ -1748,7 +1838,7 @@ async function sendOneAdminEmail(env, {
           ],
         };
         const resendResult = await sendResendEmail(emailConfig.apiKey, shareMessage, idempotencyKey);
-        result = { sent: true, id: resendResult?.id || null, to: normalizeText(recipient?.email || recipient) };
+        result = { sent: true, id: resendResult?.id || null, to: recipientEmail };
       } else {
         result = await sendAdminOutreachEmail(
           env,
@@ -3019,9 +3109,11 @@ export default {
           ? fromAddr
           : `The Integrity Project <${fromAddr}>`;
 
-        // Pre-fetch first names for {first_name} substitution in custom emails
+        // Pre-fetch first names for {first_name} substitution (custom emails, or a
+        // share message like primary-candidates whose body_html itself has the tag)
         const firstNameByEmail = {};
-        if (isCustomAdminEmail && env.DB && /\{first_name\}/i.test(subject + textBody)) {
+        const needsFirstName = /\{first_name\}/i.test(subject + textBody);
+        if (env.DB && needsFirstName) {
           const emailNorms = recipients.map(e => e.toLowerCase().trim());
           const ph = emailNorms.map((_, i) => `?${i + 1}`).join(", ");
           try {
@@ -3034,19 +3126,30 @@ export default {
           } catch (_) {}
         }
 
+        const needsOptinTokens = !isCustomAdminEmail && env.DB && bodyNeedsOptinPlaceholders(msg.body_html);
+
         // Send sequentially with 200ms gap to avoid Resend rate-limit bursts
         const results = [];
         for (const [idx, to] of recipients.entries()) {
           if (idx > 0) await new Promise(r => setTimeout(r, 200));
-          // Apply {first_name} substitution per recipient for custom emails
           let sendSubject = subject;
           let sendText = textBody;
           let sendHtml = htmlBody;
-          if (isCustomAdminEmail && /\{first_name\}/i.test(subject + textBody)) {
-            const fn = titleCase(firstNameByEmail[to.toLowerCase().trim()] || "all");
+          const fn = titleCase(firstNameByEmail[to.toLowerCase().trim()] || "all");
+          if (needsFirstName) {
             sendSubject = subject.replace(/\{first_name\}/gi, fn);
             sendText    = textBody.replace(/\{first_name\}/gi, fn);
-            sendHtml    = htmlBody.replace(/\{first_name\}/gi, escHtml(fn));
+            sendHtml    = htmlBody.replace(/\{first_name\}/gi, isCustomAdminEmail ? fn : escHtml(fn));
+          }
+          if (needsOptinTokens) {
+            const { yesUrl, noUrl } = await createEmailOptinToken(env.DB, {
+              email: to,
+              emailNorm: to.toLowerCase().trim(),
+              messageSlug,
+              batchId: null,
+            });
+            sendText = substitutePersonalization(sendText, { optinYesUrl: yesUrl, optinNoUrl: noUrl });
+            sendHtml = substitutePersonalization(sendHtml, { optinYesUrl: yesUrl, optinNoUrl: noUrl });
           }
           const res = await sendResendEmail(apiKey, {
             from: fromFormatted,
@@ -3105,6 +3208,63 @@ export default {
 
         const failedEmails = results.filter(r => !r.ok).map(r => r.email);
         return json(req, env, { ok: true, sent, failed, failed_emails: failedEmails });
+      }
+
+      // GET /api/email/optin-response — public link a recipient clicks from an admin-sent
+      // email's Yes/No buttons. No admin auth: the unguessable token IS the authorization,
+      // and a click can only ever affect that one token's own email address.
+      if (req.method === "GET" && path === "/api/email/optin-response") {
+        const htmlHeaders = { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" };
+        if (!env.DB) {
+          return new Response(optinResponsePage({
+            title: "Not available",
+            message: "This service isn't configured right now. Please try again later.",
+            tone: "error",
+          }), { status: 503, headers: htmlHeaders });
+        }
+
+        const token = normalizeText(url.searchParams.get("token") || "");
+        const choice = normalizeText(url.searchParams.get("choice") || "").toLowerCase();
+        if (!token || !["yes", "no"].includes(choice)) {
+          return new Response(optinResponsePage({
+            title: "Invalid link",
+            message: "This link is missing required information. Please use the link from your email exactly as sent.",
+            tone: "error",
+          }), { status: 400, headers: htmlHeaders });
+        }
+
+        const row = await env.DB.prepare(
+          `SELECT token, email, email_norm FROM email_optin_tokens WHERE token = ?1`
+        ).bind(token).first();
+
+        if (!row) {
+          return new Response(optinResponsePage({
+            title: "Link no longer valid",
+            message: "We couldn't find this confirmation link. It may have already been used or expired.",
+            tone: "error",
+          }), { status: 404, headers: htmlHeaders });
+        }
+
+        await env.DB.prepare(
+          `UPDATE email_optin_tokens SET response = ?2, responded_at = datetime('now') WHERE token = ?1`
+        ).bind(token, choice).run();
+
+        await applyOptinResponse(env.DB, { email: row.email, emailNorm: row.email_norm, choice });
+
+        return new Response(
+          choice === "yes"
+            ? optinResponsePage({
+                title: "You're all set!",
+                message: "Thank you — you'll continue to hear occasional campaign updates, candidate information, and ways to take part.",
+                tone: "success",
+              })
+            : optinResponsePage({
+                title: "You've been unsubscribed",
+                message: "You will no longer receive campaign emails. If this was a mistake, you can opt back in anytime from a future email or by contacting the campaign.",
+                tone: "success",
+              }),
+          { headers: htmlHeaders }
+        );
       }
 
       // GET /api/share/preview — returns the full rendered HTML email for iframe preview
