@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Email Blast — Skovgard 2026</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/admin-voter-blast.css?v=6">
+</head>
+<body>
+  <header style="background:#1B2A4A;padding:12px 24px;display:flex;align-items:center;gap:12px;">
+    <a href="/" style="color:#C8973A;font-weight:700;font-family:serif;font-size:1.1rem;text-decoration:none;">
+      Skovgard 2026
+    </a>
+    <span style="color:rgba(255,255,255,.4);font-size:.75rem;">Admin</span>
+    <span style="color:rgba(255,255,255,.25);font-size:.75rem;">·</span>
+    <a href="/admin/emails/index.html" style="color:rgba(255,255,255,.6);font-size:.75rem;text-decoration:none;">
+      Emails Portal
+    </a>
+  </header>
+
+  <main style="max-width:860px;margin:2rem auto;padding:0 1.25rem 4rem;">
+    <div class="vb-kicker">Admin · Emails</div>
+    <h1 style="font-family:'Bitter',serif;font-size:1.75rem;color:#0f2742;margin:0 0 4px;">Email Blast</h1>
+    <p class="vb-help" style="margin-bottom:24px;">
+      Send a large filter-based email campaign in resumable server-side chunks — for
+      audiences beyond the 250-recipient cap on the single-shot send in the Emails Portal.
+      Addresses with a bounce/complaint/suppression event are automatically excluded.
+    </p>
+
+    <!-- ── Auth ──────────────────────────────────────────────────────────── -->
+    <div id="eb-auth-form" style="background:#fff;border:1px solid #e5ddd0;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+      <div class="vb-field-row">
+        <div class="vb-field">
+          <label class="vb-label" for="eb-admin-key">Admin key</label>
+          <input id="eb-admin-key" type="password" class="vb-input" autocomplete="off" placeholder="••••••••" />
+        </div>
+        <div class="vb-field">
+          <label class="vb-label" for="eb-actor-email">Operator email</label>
+          <input id="eb-actor-email" type="email" class="vb-input" autocomplete="off" placeholder="you@skovgard2026.org" />
+        </div>
+      </div>
+      <div class="vb-btn-row">
+        <button id="eb-connect" class="vb-btn vb-btn-primary">Connect</button>
+        <button id="eb-clear"   class="vb-btn vb-btn-outline">Clear</button>
+      </div>
+      <div id="eb-auth-status" class="vb-status"></div>
+    </div>
+
+    <!-- ── Resume notice (shown if session storage has a blast_id) ────────── -->
+    <div id="eb-resume-notice" hidden style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+      <span style="font-size:0.875rem;color:#78350f;">
+        You have an in-progress blast: <strong class="eb-resume-id"></strong>
+      </span>
+      <button class="vb-btn vb-btn-primary eb-resume-load" style="font-size:.8rem;padding:6px 14px;">Resume</button>
+      <button class="vb-btn vb-btn-outline eb-resume-dismiss" style="font-size:.8rem;padding:6px 14px;">Dismiss</button>
+    </div>
+
+    <!-- ── Main shell (shown after auth) ─────────────────────────────────── -->
+    <div id="admin-eb-shell" hidden>
+
+      <!-- Stage 1: Target & Compose ───────────────────────────────────────── -->
+      <section class="vb-stage" id="eb-stage1">
+        <div class="vb-stage-header">
+          <div class="vb-stage-num active">1</div>
+          <h2 class="vb-stage-title">Audience &amp; Message</h2>
+        </div>
+        <div class="vb-stage-body">
+          <div class="vb-field-row">
+            <div class="vb-field">
+              <label class="vb-label" for="eb-filter">Audience filter</label>
+              <select id="eb-filter" class="vb-select">
+                <option value="emailable">Emailable</option>
+                <option value="new_opt_ins">New email opt-ins (24h)</option>
+                <option value="all">All with email</option>
+                <option value="volunteers">Volunteers only</option>
+                <option value="suppressed">Suppressed by webhook</option>
+                <option value="inactive">Inactive / unsubscribed</option>
+                <option value="no_consent">No email consent</option>
+              </select>
+            </div>
+            <div class="vb-field">
+              <label class="vb-label" for="eb-city">City <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
+              <input id="eb-city" type="text" class="vb-input" placeholder="e.g. Casper" />
+            </div>
+            <div class="vb-field">
+              <label class="vb-label" for="eb-hd">House district <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
+              <input id="eb-hd" type="text" class="vb-input" placeholder="e.g. 37" />
+            </div>
+            <div class="vb-field">
+              <label class="vb-label" for="eb-sd">Senate district <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
+              <input id="eb-sd" type="text" class="vb-input" placeholder="e.g. 19" />
+            </div>
+          </div>
+
+          <div class="vb-field">
+            <label class="vb-label" for="eb-mode">Email type</label>
+            <select id="eb-mode" class="vb-select">
+              <option value="custom">Custom email</option>
+              <option value="share">Share message as email</option>
+              <option value="share_with_intro">Share message + custom intro</option>
+            </select>
+          </div>
+          <div class="vb-field" id="eb-share-picker-field" hidden>
+            <label class="vb-label" for="eb-share-slug">Share message</label>
+            <select id="eb-share-slug" class="vb-select">
+              <option value="">— Select a message —</option>
+            </select>
+          </div>
+          <div class="vb-field" id="eb-share-intro-field" hidden>
+            <label class="vb-label" for="eb-share-intro">Custom intro <span style="font-weight:400;color:#9ca3af">(appears above the share message body)</span></label>
+            <textarea id="eb-share-intro" class="vb-textarea" rows="4"></textarea>
+          </div>
+          <div class="vb-field">
+            <label class="vb-label" for="eb-subject">Subject line</label>
+            <input id="eb-subject" type="text" class="vb-input" maxlength="180" placeholder="Write the subject line" />
+          </div>
+          <div class="vb-field" id="eb-body-field">
+            <label class="vb-label" for="eb-body">Email body</label>
+            <textarea id="eb-body" class="vb-textarea" rows="10" placeholder="Write the email body"></textarea>
+          </div>
+
+          <div class="vb-btn-row">
+            <button id="eb-count-btn" class="vb-btn vb-btn-primary">Check Audience Count</button>
+          </div>
+          <div id="eb-stage1-status" class="vb-status"></div>
+
+          <div id="eb-count-card" class="vb-preview-card" hidden style="margin-top:16px;">
+            <div class="vb-preview-label">Matching emailable contacts</div>
+            <div class="vb-preview-stat">—</div>
+            <div class="vb-preview-sub"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stage 2: Approve ─────────────────────────────────────────────────── -->
+      <section class="vb-stage" id="eb-stage2" hidden>
+        <div class="vb-stage-header">
+          <div class="vb-stage-num">2</div>
+          <h2 class="vb-stage-title">Approve &amp; Create Job</h2>
+        </div>
+        <div class="vb-stage-body">
+          <div class="vb-warning-box">
+            <strong>Before you continue:</strong> This blast will reach real subscribers. Emails
+            are logged and cannot be unsent. Confirm you have reviewed the message and audience above.
+          </div>
+          <div class="vb-field" style="max-width:220px;">
+            <label class="vb-label" for="eb-chunk-size">Chunk size</label>
+            <input id="eb-chunk-size" type="number" class="vb-input" min="1" max="250" value="200" />
+          </div>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:16px;">
+            <input id="eb-confirm-check" type="checkbox" style="margin-top:2px;flex-shrink:0;" />
+            <span style="font-size:0.875rem;color:#374151;">
+              I have reviewed the message and target audience. I authorize this blast on behalf of Skovgard 2026.
+            </span>
+          </label>
+          <div class="vb-btn-row">
+            <button id="eb-create-job-btn" class="vb-btn vb-btn-primary">Create Blast Job</button>
+          </div>
+          <div id="eb-stage2-status" class="vb-status"></div>
+        </div>
+      </section>
+
+      <!-- Stage 3: Send ────────────────────────────────────────────────────── -->
+      <section class="vb-stage" id="eb-stage3" hidden>
+        <div class="vb-stage-header">
+          <div class="vb-stage-num">3</div>
+          <h2 class="vb-stage-title">Send</h2>
+        </div>
+        <div class="vb-stage-body">
+          <p class="vb-help" style="margin-bottom:12px;">
+            Job ID: <strong id="eb-blast-id-display">—</strong> &nbsp;·&nbsp;
+            Audience: <strong id="eb-blast-total-display">—</strong>
+          </p>
+
+          <div class="vb-progress-wrap">
+            <div id="eb-progress-bar" class="vb-progress-bar" style="width:0%"></div>
+          </div>
+
+          <div class="vb-stats-row">
+            <div class="vb-stat-item">
+              <div id="eb-stat-sent" class="vb-stat-val green">0</div>
+              <div class="vb-stat-lbl">Sent</div>
+            </div>
+            <div class="vb-stat-item">
+              <div id="eb-stat-failed" class="vb-stat-val red">0</div>
+              <div class="vb-stat-lbl">Failed</div>
+            </div>
+            <div class="vb-stat-item">
+              <div id="eb-stat-skipped" class="vb-stat-val gray">0</div>
+              <div class="vb-stat-lbl">Skipped</div>
+            </div>
+            <div class="vb-stat-item">
+              <div id="eb-stat-pct" class="vb-stat-val">0%</div>
+              <div class="vb-stat-lbl">Complete</div>
+            </div>
+          </div>
+
+          <div class="vb-btn-row">
+            <button id="eb-start-btn" class="vb-btn vb-btn-primary">Start Blast</button>
+            <button id="eb-pause-btn" class="vb-btn vb-btn-secondary" disabled>Pause</button>
+          </div>
+          <div id="eb-stage3-status" class="vb-status"></div>
+        </div>
+      </section>
+
+      <!-- Recent jobs ─────────────────────────────────────────────────────── -->
+      <section class="vb-stage" style="margin-top:32px;">
+        <div class="vb-stage-header">
+          <h2 class="vb-stage-title" style="margin:0;">Recent Blasts</h2>
+        </div>
+        <div class="vb-stage-body">
+          <div id="eb-jobs-wrap"><p class="vb-help">Loading…</p></div>
+        </div>
+      </section>
+
+    </div><!-- /admin-eb-shell -->
+  </main>
+
+  <script src="/js/admin-emails-blast.js?v=1"></script>
+</body>
+</html>
