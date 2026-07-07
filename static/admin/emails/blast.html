@@ -132,16 +132,18 @@
               <textarea id="eb-body" class="vb-textarea" rows="10" placeholder="Write the email body"></textarea>
             </div>
 
-            <div class="vb-field-row">
-              <div class="vb-field">
-                <label class="vb-label" for="eb-test-to">Send a test email <span style="font-weight:400;color:#9ca3af">(any address, skips the consent lookup)</span></label>
-                <input id="eb-test-to" type="email" class="vb-input" placeholder="you@example.com" />
+            <div id="eb-test-send-section" hidden>
+              <div class="vb-field-row">
+                <div class="vb-field">
+                  <label class="vb-label" for="eb-test-to">Send a test email <span style="font-weight:400;color:#9ca3af">(any address, skips the consent lookup)</span></label>
+                  <input id="eb-test-to" type="email" class="vb-input" placeholder="you@example.com" />
+                </div>
+                <div class="vb-btn-row" style="align-self:flex-end;">
+                  <button id="eb-send-test-btn" class="vb-btn vb-btn-secondary">Send test</button>
+                </div>
               </div>
-              <div class="vb-btn-row" style="align-self:flex-end;">
-                <button id="eb-send-test-btn" class="vb-btn vb-btn-secondary">Send test</button>
-              </div>
+              <div id="eb-test-status" class="vb-status"></div>
             </div>
-            <div id="eb-test-status" class="vb-status"></div>
 
             <div id="eb-audience-count-section">
               <div class="vb-btn-row">
@@ -243,6 +245,6 @@
     </div><!-- /admin-eb-shell -->
   </main>
 
-  <script src="/js/admin-emails-blast.js?v=6"></script>
+  <script src="/js/admin-emails-blast.js?v=7"></script>
 </body>
 </html>

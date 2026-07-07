@@ -108,6 +108,8 @@
     if (composeSection) composeSection.hidden = !hasSelection;
     const audienceCountSection = $('eb-audience-count-section');
     if (audienceCountSection) audienceCountSection.hidden = isTestOnly;
+    const testSendSection = $('eb-test-send-section');
+    if (testSendSection) testSendSection.hidden = !isTestOnly;
 
     const cityLabel = $('eb-city-label');
     const cityInput = $('eb-city');
