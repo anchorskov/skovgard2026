@@ -43,6 +43,7 @@ export function buildAdminOutreachEmail(config, recipient, subject, body, option
         ${renderPlainTextHtml(normalizedBody)}
       </div>
     `,
+    ...(options.headers && Object.keys(options.headers).length ? { headers: options.headers } : {}),
     tags: [
       { name: "source", value: "admin_emails" },
       { name: "kind", value: "outreach" },

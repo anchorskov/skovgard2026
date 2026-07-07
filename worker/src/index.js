@@ -2054,6 +2054,28 @@ async function sendOneAdminEmail(env, {
     recipient.email_norm,
   ].join("|"));
 
+  // RFC 8058 one-click unsubscribe: every admin/blast send carries a
+  // List-Unsubscribe header pointing at this recipient's own token, whatever
+  // the email_mode -- Gmail/Yahoo/Outlook show a native "Unsubscribe" link
+  // next to the sender and POST here silently (see the POST handler on
+  // /api/email/optin-response) with no page render or further clicks. The
+  // same token is reused below for the Yes/No body placeholders when the
+  // share message body needs them, so one send mints one token, not two.
+  // Created once, outside the retry loop, so a rate-limit retry doesn't mint
+  // a fresh token (and thus a fresh unsubscribe link) on every attempt.
+  const recipientEmail = normalizeText(recipient?.email || recipient);
+  const recipientEmailNorm = recipient?.email_norm || recipientEmail.toLowerCase();
+  const optinToken = await createEmailOptinToken(env.DB, {
+    email: recipientEmail,
+    emailNorm: recipientEmailNorm,
+    messageSlug: emailMode !== "custom" ? shareSlug : "admin_email",
+    batchId,
+  });
+  const listUnsubscribeHeaders = {
+    "List-Unsubscribe": `<${optinToken.noUrl}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
+
   let attempt = 0;
   while (attempt <= ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT) {
     attempt += 1;
@@ -2078,18 +2100,11 @@ async function sendOneAdminEmail(env, {
         });
         let finalHtmlBody = htmlBody;
 
-        const recipientEmail = normalizeText(recipient?.email || recipient);
         if (bodyNeedsOptinPlaceholders(shareMsg.body_html)) {
-          const { yesUrl, noUrl } = await createEmailOptinToken(env.DB, {
-            email: recipientEmail,
-            emailNorm: recipient?.email_norm || recipientEmail.toLowerCase(),
-            messageSlug: shareSlug,
-            batchId,
-          });
           const personalize = (text) => substitutePersonalization(text, {
             firstName: recipient?.first_name || "",
-            optinYesUrl: yesUrl,
-            optinNoUrl: noUrl,
+            optinYesUrl: optinToken.yesUrl,
+            optinNoUrl: optinToken.noUrl,
           });
           finalHtmlBody = personalize(finalHtmlBody);
           textBody = personalize(textBody);
@@ -2102,6 +2117,7 @@ async function sendOneAdminEmail(env, {
           subject,
           text: shareIntroText ? `${shareIntroText}\n\n---\n\n${textBody}` : textBody,
           html: finalHtmlBody,
+          headers: listUnsubscribeHeaders,
           tags: [
             { name: "source", value: "admin_emails" },
             { name: "kind", value: "share_blast" },
@@ -2121,6 +2137,7 @@ async function sendOneAdminEmail(env, {
             batchId,
             idempotencyKey,
             replyTo: emailConfig.from,
+            headers: listUnsubscribeHeaders,
           }
         );
       }
@@ -3537,6 +3554,33 @@ export default {
               }),
           { headers: htmlHeaders }
         );
+      }
+
+      // POST /api/email/optin-response — RFC 8058 one-click unsubscribe target for
+      // the List-Unsubscribe/List-Unsubscribe-Post headers set on admin/blast sends.
+      // Mail clients that support one-click (Gmail, Yahoo, Outlook) POST here
+      // automatically when the recipient clicks the native "Unsubscribe" link next
+      // to the sender name -- no page render, no further clicks, always means
+      // unsubscribe (there's no "yes" equivalent for a header-triggered POST).
+      // Same unguessable-token-is-the-authorization model as the GET handler above.
+      if (req.method === "POST" && path === "/api/email/optin-response") {
+        if (!env.DB) return new Response(null, { status: 503 });
+
+        const token = normalizeText(url.searchParams.get("token") || "");
+        if (!token) return new Response(null, { status: 400 });
+
+        const row = await env.DB.prepare(
+          `SELECT token, email, email_norm FROM email_optin_tokens WHERE token = ?1`
+        ).bind(token).first();
+        if (!row) return new Response(null, { status: 404 });
+
+        await env.DB.prepare(
+          `UPDATE email_optin_tokens SET response = 'no', responded_at = datetime('now') WHERE token = ?1`
+        ).bind(token).run();
+
+        await applyOptinResponse(env.DB, { email: row.email, emailNorm: row.email_norm, choice: "no" });
+
+        return new Response(null, { status: 200 });
       }
 
       // GET /api/share/preview — returns the full rendered HTML email for iframe preview
@@ -5485,6 +5529,21 @@ export default {
 
         const testSubject = `[TEST] ${subject}`;
 
+        // Test sends carry the same List-Unsubscribe headers as a real blast so
+        // this endpoint doubles as a safe way to verify the header actually
+        // appears (most mail clients expose it via "Show original"/"View
+        // headers") before trusting it on a real audience.
+        const testOptinToken = await createEmailOptinToken(env.DB, {
+          email: to,
+          emailNorm: to,
+          messageSlug: emailMode !== "custom" ? shareSlug : "admin_email_test",
+          batchId: "test",
+        });
+        const testListUnsubscribeHeaders = {
+          "List-Unsubscribe": `<${testOptinToken.noUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        };
+
         try {
           let result;
           if (emailMode !== "custom") {
@@ -5511,6 +5570,7 @@ export default {
               subject: testSubject,
               text: textBody,
               html: htmlBody,
+              headers: testListUnsubscribeHeaders,
               tags: [{ name: "source", value: "admin_emails" }, { name: "kind", value: "admin_test" }],
             });
             result = { id: resendResult?.id || null };
@@ -5520,7 +5580,7 @@ export default {
               { email: to },
               testSubject,
               messageBody,
-              { batchId: "test", replyTo: emailConfig.from }
+              { batchId: "test", replyTo: emailConfig.from, headers: testListUnsubscribeHeaders }
             );
           }
 
