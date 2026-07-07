@@ -87,6 +87,44 @@
     $('eb-mode')?.addEventListener('change', handleModeChange);
     $('eb-share-slug')?.addEventListener('change', () => {});
     $('eb-count-btn')?.addEventListener('click', runAudienceCount);
+    $('eb-send-test-btn')?.addEventListener('click', runSendTest);
+  }
+
+  async function runSendTest() {
+    const to = ($('eb-test-to')?.value || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) {
+      setStatus('eb-test-status', 'Enter a valid test email address.', 'error');
+      return;
+    }
+    const f = currentComposeFields();
+    if (!f.subject) { setStatus('eb-test-status', 'Subject line is required.', 'error'); return; }
+    if (f.email_mode === 'custom' && !f.body) {
+      setStatus('eb-test-status', 'Email body is required.', 'error'); return;
+    }
+    if (f.email_mode !== 'custom' && !f.share_slug) {
+      setStatus('eb-test-status', 'Select a share message.', 'error'); return;
+    }
+
+    const btn = $('eb-send-test-btn');
+    if (btn) btn.disabled = true;
+    setStatus('eb-test-status', 'Sending test…', 'info');
+    try {
+      const res = await apiFetch('/api/admin/emails/send-test', 'POST', {
+        to,
+        subject: f.subject,
+        body: f.body,
+        email_mode: f.email_mode,
+        share_slug: f.share_slug,
+        share_intro_text: f.share_intro_text,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setStatus('eb-test-status', `Test sent to ${data.to}.`, 'success');
+    } catch (e) {
+      setStatus('eb-test-status', e.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   function handleModeChange() {
