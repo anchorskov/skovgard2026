@@ -305,6 +305,15 @@
     const estMinutes = Math.ceil((total * 0.34) / 60);
     if (statEl) statEl.textContent = total.toLocaleString();
     if (subEl)  subEl.textContent  = `Estimated send time at ~3/sec: ~${estMinutes} min`;
+
+    // Chunking exists for resumability on large audiences -- a small
+    // audience gets zero benefit from a 200-cap chunk and instead just means
+    // one long silent wait with no progress update until the whole thing is
+    // done. Default to whichever is smaller so small jobs update visibly
+    // more than once. Admins can still type a different value before
+    // creating the job.
+    const chunkSizeInput = $('eb-chunk-size');
+    if (chunkSizeInput) chunkSizeInput.value = Math.max(1, Math.min(200, total));
   }
 
   // ── Stage 2: Approve & Create ─────────────────────────────────────────────
@@ -347,6 +356,7 @@
       setStageActive(2, false);
       setStageActive(3, true);
       updateProgress();
+      refreshBlastLists();
     } catch (e) {
       setStatus('eb-stage2-status', e.message, 'error');
     } finally {
@@ -366,8 +376,19 @@
     blasting = true;
     $('eb-start-btn').disabled = true;
     $('eb-pause-btn').disabled = false;
-    setStatus('eb-stage3-status', 'Blast running — do not close this tab.', 'warn');
+    // A chunk sends sequentially (one email every ~340ms, not parallel), so
+    // it can take tens of seconds before the first response comes back and
+    // the real percentage moves at all. Without this, clicking Start looks
+    // like nothing happened. setPending() below shows a moving-stripes
+    // animation on the bar for the duration of that wait.
+    setPending(true);
+    setStatus('eb-stage3-status', 'Sending first batch — this can take a while for a large chunk size…', 'warn');
     sendNextChunk();
+  }
+
+  function setPending(isPending) {
+    const bar = $('eb-progress-bar');
+    if (bar) bar.classList.toggle('pending', isPending);
   }
 
   function pauseBlast() {
@@ -383,16 +404,20 @@
   async function sendNextChunk() {
     if (paused || !blasting || !currentBlast) return;
 
+    setPending(true);
+
     try {
       const res  = await apiFetch('/api/admin/emails/blast/send-chunk', 'POST', { blast_id: currentBlast.blast_id });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
+      setPending(false);
       currentBlast.sent    = data.total_sent    || 0;
       currentBlast.failed  = data.total_failed  || 0;
       currentBlast.skipped = data.total_skipped || 0;
 
       updateProgress();
+      refreshBlastLists();
 
       // Auto-paused by the deliverability circuit breaker (worker/src/index.js
       // DELIVERABILITY_BOUNCE_PAUSE_RATE/DELIVERABILITY_COMPLAINT_PAUSE_RATE)
@@ -439,6 +464,7 @@
 
       setTimeout(sendNextChunk, INTER_CHUNK_MS);
     } catch (e) {
+      setPending(false);
       blasting = false;
       $('eb-start-btn').disabled = false;
       $('eb-pause-btn').disabled = true;
@@ -461,6 +487,21 @@
     setText('eb-stat-failed',  failed.toLocaleString());
     setText('eb-stat-skipped', skipped.toLocaleString());
     setText('eb-stat-pct',     pct + '%');
+  }
+
+  // Both the Recent Blasts table and the Deliverability panel were previously
+  // only ever loaded once, at connect time -- creating a job or watching one
+  // send left them stale (a just-completed blast still showed "No blasts
+  // yet"). Called after job creation and after every chunk response so both
+  // panels track a running/just-finished blast instead of only reflecting
+  // whatever existed on page load.
+  async function refreshBlastLists() {
+    try {
+      const res  = await apiFetch('/api/admin/emails/blast/jobs', 'GET');
+      const data = await res.json();
+      if (res.ok) renderJobsTable(data.jobs || []);
+    } catch (_) { /* keep whatever was already showing */ }
+    loadDeliverability();
   }
 
   // ── Jobs table ────────────────────────────────────────────────────────────

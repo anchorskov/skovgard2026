@@ -205,6 +205,18 @@
   transition: width 0.4s ease;
   min-width: 4px;
 }
+/* Shown while a chunk request is in-flight -- a chunk can take tens of
+   seconds (sends are paced sequentially, not parallel), during which the
+   real percentage doesn't move at all. Without this, the UI looks frozen. */
+.vb-progress-bar.pending {
+  background-image: repeating-linear-gradient(45deg, #b22234, #b22234 10px, #8b1a26 10px, #8b1a26 20px);
+  background-size: 28px 28px;
+  animation: vb-progress-stripes 0.9s linear infinite;
+}
+@keyframes vb-progress-stripes {
+  from { background-position: 0 0; }
+  to   { background-position: 28px 0; }
+}
 
 .vb-stats-row {
   display: flex;
