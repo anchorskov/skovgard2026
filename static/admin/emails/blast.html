@@ -274,9 +274,14 @@
             <strong>Before you continue:</strong> This blast will reach real subscribers. Emails
             are logged and cannot be unsent. Confirm you have reviewed the message and audience above.
           </div>
-          <div class="vb-field" style="max-width:220px;">
+          <div class="vb-field" style="max-width:280px;">
             <label class="vb-label" for="eb-chunk-size">Chunk size</label>
-            <input id="eb-chunk-size" type="number" class="vb-input" min="1" max="250" value="200" />
+            <input id="eb-chunk-size" type="number" class="vb-input" min="1" max="20" value="20" />
+            <p class="vb-help" style="margin:4px 0 0;">
+              Capped at 20 — each recipient costs the Worker ~3 Cloudflare subrequests
+              (opt-in token, Resend call, log write), and a larger chunk risks hitting Cloudflare's
+              per-invocation subrequest limit partway through, silently skipping the rest.
+            </p>
           </div>
           <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:16px;">
             <input id="eb-confirm-check" type="checkbox" style="margin-top:2px;flex-shrink:0;" />

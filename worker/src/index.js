@@ -2172,6 +2172,20 @@ const DELIVERABILITY_BOUNCE_PAUSE_RATE = 0.05;
 const DELIVERABILITY_COMPLAINT_WARN_RATE = 0.001;
 const DELIVERABILITY_COMPLAINT_PAUSE_RATE = 0.003;
 
+// Hard ceiling on how many recipients a single send-chunk invocation will
+// actually attempt, independent of whatever chunk_size a job was created
+// with. Each recipient costs ~3 Cloudflare subrequests (email_optin_tokens
+// insert, the Resend API fetch, the email_blast_log insert), and Cloudflare
+// caps subrequests per Worker invocation. A chunk_size of 200 (the old
+// default/max) blows past that mid-chunk -- discovered 2026-07-08 when a
+// real 1,135-recipient blast hit "Too many subrequests by single Worker
+// invocation" on 300 real recipients, all clustered after the same point in
+// each chunk. Critically, the offset still advanced past them, so they were
+// never retried -- this cap prevents that recurrence for any job, including
+// ones already created with a larger chunk_size, since it's applied here at
+// send time, not at job-creation time.
+const MAX_SEND_CHUNK_SIZE = 20;
+
 // Shared by /api/admin/emails/send and the email blast chunk endpoint so both
 // paths retry/audit-log/idempotency-key identically -- only the caller's
 // batchId/idempotencySeed and audit bookkeeping differ.
@@ -6088,7 +6102,7 @@ export default {
 
       // ── Email Blast (paginated, for filter audiences beyond the 250/call send cap) ──
 
-      const EMAIL_BLAST_DEFAULT_CHUNK_SIZE = 200;
+      const EMAIL_BLAST_DEFAULT_CHUNK_SIZE = MAX_SEND_CHUNK_SIZE;
 
       if (req.method === "GET" && path === "/api/admin/emails/blast/audience-count") {
         if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
@@ -6131,7 +6145,7 @@ export default {
           : "custom";
         const shareSlug = normalizeText(body.share_slug || "");
         const shareIntroText = normalizeAdminEmailBody(body.share_intro_text || "");
-        const chunkSize = positiveInt(body.chunk_size, EMAIL_BLAST_DEFAULT_CHUNK_SIZE, 250);
+        const chunkSize = positiveInt(body.chunk_size, EMAIL_BLAST_DEFAULT_CHUNK_SIZE, MAX_SEND_CHUNK_SIZE);
         const confirmed = body.confirmed === true;
 
         if (!subject) return json(req, env, { error: "Email subject is required" }, 400);
@@ -6208,7 +6222,7 @@ export default {
         }
 
         const offset = Number(job.current_offset || 0);
-        const chunkSize = Number(job.chunk_size || EMAIL_BLAST_DEFAULT_CHUNK_SIZE);
+        const chunkSize = Math.min(Number(job.chunk_size || EMAIL_BLAST_DEFAULT_CHUNK_SIZE), MAX_SEND_CHUNK_SIZE);
         const chunkNoGeo = !job.city && !job.hd && !job.sd;
         if (job.filter === "voter_file" && !chunkNoGeo && !env.WY_DB) {
           return json(req, env, { error: "WY_DB not configured" }, 500);

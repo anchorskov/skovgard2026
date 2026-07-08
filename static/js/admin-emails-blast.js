@@ -307,13 +307,15 @@
     if (subEl)  subEl.textContent  = `Estimated send time at ~3/sec: ~${estMinutes} min`;
 
     // Chunking exists for resumability on large audiences -- a small
-    // audience gets zero benefit from a 200-cap chunk and instead just means
-    // one long silent wait with no progress update until the whole thing is
-    // done. Default to whichever is smaller so small jobs update visibly
-    // more than once. Admins can still type a different value before
-    // creating the job.
+    // audience gets zero benefit from a maxed-out chunk and instead just
+    // means one long silent wait with no progress update until the whole
+    // thing is done. Default to whichever is smaller so small jobs update
+    // visibly more than once. Capped at 20 to match the server-side
+    // MAX_SEND_CHUNK_SIZE (worker/src/index.js) -- going higher gets
+    // silently clamped there anyway, so don't suggest a number that isn't
+    // real.
     const chunkSizeInput = $('eb-chunk-size');
-    if (chunkSizeInput) chunkSizeInput.value = Math.max(1, Math.min(200, total));
+    if (chunkSizeInput) chunkSizeInput.value = Math.max(1, Math.min(20, total));
   }
 
   // ── Stage 2: Approve & Create ─────────────────────────────────────────────
@@ -325,7 +327,7 @@
     if (!audienceInfo) { setStatus('eb-stage2-status', 'Check the audience count first.', 'error'); return; }
     const confirmed = $('eb-confirm-check')?.checked;
     if (!confirmed) { setStatus('eb-stage2-status', 'Check the confirmation box first.', 'error'); return; }
-    const chunkSize = Number($('eb-chunk-size')?.value || 200) || 200;
+    const chunkSize = Number($('eb-chunk-size')?.value || 20) || 20;
 
     setStatus('eb-stage2-status', 'Creating blast job…', 'info');
     setNum('eb-create-job-btn', true, 'Creating…');
