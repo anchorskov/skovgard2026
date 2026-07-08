@@ -16,6 +16,24 @@ const SUPPRESSION_EVENTS = new Set([
   "email.suppressed",
 ]);
 
+// A bounced event only earns a permanent suppression when Resend classifies
+// it "Permanent" (data.bounce.type, inherited from the underlying SES
+// classification -- confirmed against a real Resend webhook payload).
+// Anything else (Temporary/Transient/Undetermined, or missing entirely) is a
+// soft signal -- mailbox full, greylisting on a first-contact send, etc. --
+// that shouldn't permanently kill an address with no way back in. It's still
+// recorded in resend_webhook_events either way, so repeat soft bounces or
+// rate calculations can still see it; it just doesn't write to
+// email_suppressions. complained/suppressed always suppress -- there's no
+// "soft" version of a spam complaint or an explicit suppression.
+export function shouldPermanentlySuppress(eventType, data) {
+  if (eventType === "email.complained" || eventType === "email.suppressed") return true;
+  if (eventType === "email.bounced") {
+    return normalizeText(data?.bounce?.type).toLowerCase() === "permanent";
+  }
+  return false;
+}
+
 const DEFAULT_TOLERANCE_SECONDS = 5 * 60;
 
 function normalizeText(value) {
@@ -128,6 +146,8 @@ export function summarizeResendWebhookEvent(event) {
     source: normalizeText(tags.source) || null,
     kind: normalizeText(tags.kind) || null,
     batchId: normalizeText(tags.batch_id) || null,
+    bounceType: normalizeText(data?.bounce?.type) || null,
+    bounceSubType: normalizeText(data?.bounce?.subType) || null,
   };
 }
 
@@ -165,8 +185,12 @@ export async function processResendWebhookEvent(db, rawBody, event, headers) {
     return { ok: true, duplicate: true, eventType: summary.type };
   }
 
-  if (SUPPRESSION_EVENTS.has(summary.type) && summary.recipientEmailNorm) {
-    const data = event?.data || {};
+  const data = event?.data || {};
+  const permanentlySuppress = SUPPRESSION_EVENTS.has(summary.type)
+    && Boolean(summary.recipientEmailNorm)
+    && shouldPermanentlySuppress(summary.type, data);
+
+  if (permanentlySuppress) {
     const reason =
       normalizeText(data?.bounce?.message)
       || normalizeText(data?.complaint?.message)
@@ -199,6 +223,8 @@ export async function processResendWebhookEvent(db, rawBody, event, headers) {
           source: summary.source,
           kind: summary.kind,
           batchId: summary.batchId,
+          bounceType: summary.bounceType,
+          bounceSubType: summary.bounceSubType,
         })
       )
       .run();
@@ -208,6 +234,82 @@ export async function processResendWebhookEvent(db, rawBody, event, headers) {
     ok: true,
     accepted: true,
     eventType: summary.type,
-    suppressed: SUPPRESSION_EVENTS.has(summary.type) && Boolean(summary.recipientEmailNorm),
+    suppressed: permanentlySuppress,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Deliverability rate monitoring -- reads resend_webhook_events, which every
+// send through Resend populates regardless of code path (Blast, test-send,
+// /api/share), since it's driven by the webhook rather than our own send
+// logs. That makes it the right source for an account-wide "are we healthy"
+// view, and (via the batch_id tag every send path sets) for a per-blast-job
+// view too.
+// ---------------------------------------------------------------------------
+
+function safeRate(numerator, denominator) {
+  return denominator > 0 ? numerator / denominator : 0;
+}
+
+// Account-wide rates over a rolling window (e.g. 24, 168, 720 hours). "sent"
+// here is Resend's own email.sent event count, not our send logs -- it's the
+// one denominator that's consistent no matter which code path did the
+// sending.
+export async function computeAccountDeliverabilityRates(db, windowHours) {
+  const hours = Number(windowHours) || 24;
+  const row = await db
+    .prepare(
+      `SELECT
+         SUM(CASE WHEN event_type = 'email.sent' THEN 1 ELSE 0 END) AS sent,
+         SUM(CASE WHEN event_type = 'email.bounced' THEN 1 ELSE 0 END) AS bounced,
+         SUM(CASE WHEN event_type = 'email.complained' THEN 1 ELSE 0 END) AS complained,
+         SUM(CASE WHEN event_type = 'email.suppressed' THEN 1 ELSE 0 END) AS suppressed
+       FROM resend_webhook_events
+      WHERE event_created_at IS NOT NULL
+        AND datetime(event_created_at) >= datetime('now', ?1)`
+    )
+    .bind(`-${hours} hours`)
+    .first();
+
+  const sent = Number(row?.sent || 0);
+  const bounced = Number(row?.bounced || 0);
+  const complained = Number(row?.complained || 0);
+  const suppressed = Number(row?.suppressed || 0);
+  return {
+    windowHours: hours,
+    sent,
+    bounced,
+    complained,
+    suppressed,
+    bounceRate: safeRate(bounced, sent),
+    complaintRate: safeRate(complained, sent),
+  };
+}
+
+// Per-blast-job rates, keyed by the batch_id tag (== blast_id) every Blast
+// send carries. sentSoFar is passed in rather than queried here -- callers
+// (the send-chunk handler, the recent-jobs list) already have
+// email_blast_jobs.sent_count in hand.
+export async function computeBlastJobDeliverabilityRates(db, blastId, sentSoFar) {
+  const row = await db
+    .prepare(
+      `SELECT
+         SUM(CASE WHEN event_type = 'email.bounced' THEN 1 ELSE 0 END) AS bounced,
+         SUM(CASE WHEN event_type = 'email.complained' THEN 1 ELSE 0 END) AS complained
+       FROM resend_webhook_events
+      WHERE batch_id = ?1`
+    )
+    .bind(blastId)
+    .first();
+
+  const bounced = Number(row?.bounced || 0);
+  const complained = Number(row?.complained || 0);
+  const sent = Number(sentSoFar || 0);
+  return {
+    bounced,
+    complained,
+    sent,
+    bounceRate: safeRate(bounced, sent),
+    complaintRate: safeRate(complained, sent),
   };
 }

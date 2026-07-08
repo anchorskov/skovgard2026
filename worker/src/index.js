@@ -21,6 +21,8 @@ import { sendResendEmail } from "./resend.js";
 import {
   processResendWebhookEvent,
   verifyResendWebhookSignature,
+  computeAccountDeliverabilityRates,
+  computeBlastJobDeliverabilityRates,
 } from "./resend-webhooks.js";
 import { buildShareEmailHtml, buildShareEmailText, SHARE_MESSAGES, escHtml } from "./email-template.js";
 import {
@@ -2159,6 +2161,17 @@ const ADMIN_EMAIL_SEND_BATCH_DELAY_MS = 340;
 const ADMIN_EMAIL_RATE_LIMIT_RETRY_LIMIT = 2;
 const ADMIN_EMAIL_RATE_LIMIT_FALLBACK_MS = 1500;
 
+// Deliverability circuit breaker (send-chunk) -- thresholds roughly follow
+// Gmail Postmaster Tools' own framing (it flags accounts around 0.3%
+// complaints) and general ESP guidance on bounce rate. Don't judge a job's
+// rate off a handful of sends -- a 1-in-10 bounce in the first chunk is
+// noise, not signal.
+const DELIVERABILITY_MIN_SAMPLE = 50;
+const DELIVERABILITY_BOUNCE_WARN_RATE = 0.02;
+const DELIVERABILITY_BOUNCE_PAUSE_RATE = 0.05;
+const DELIVERABILITY_COMPLAINT_WARN_RATE = 0.001;
+const DELIVERABILITY_COMPLAINT_PAUSE_RATE = 0.003;
+
 // Shared by /api/admin/emails/send and the email blast chunk endpoint so both
 // paths retry/audit-log/idempotency-key identically -- only the caller's
 // batchId/idempotencySeed and audit bookkeeping differ.
@@ -3541,7 +3554,15 @@ export default {
           } catch (_) {}
         }
 
-        const needsOptinTokens = !isCustomAdminEmail && env.DB && bodyNeedsOptinPlaceholders(msg.body_html);
+        const needsOptinPlaceholders = !isCustomAdminEmail && bodyNeedsOptinPlaceholders(msg.body_html);
+        // Every send through this endpoint gets a List-Unsubscribe header now,
+        // not just messages with visible Yes/No buttons in the body -- this
+        // path previously sent zero unsubscribe headers at all, unlike the
+        // admin Blast/test-send paths (sendOneAdminEmail). One token per
+        // recipient serves both purposes: its noUrl backs the header always,
+        // and its yesUrl/noUrl back the {optin_yes_url}/{optin_no_url}
+        // placeholders when the body needs them.
+        const shareBatchId = env.DB ? `share:${crypto.randomUUID()}` : null;
 
         // Send sequentially with 200ms gap to avoid Resend rate-limit bursts
         const results = [];
@@ -3556,15 +3577,22 @@ export default {
             sendText    = textBody.replace(/\{first_name\}/gi, fn);
             sendHtml    = htmlBody.replace(/\{first_name\}/gi, isCustomAdminEmail ? fn : escHtml(fn));
           }
-          if (needsOptinTokens) {
+          let shareUnsubscribeHeaders = {};
+          if (env.DB) {
             const { yesUrl, noUrl } = await createEmailOptinToken(env.DB, {
               email: to,
               emailNorm: to.toLowerCase().trim(),
               messageSlug,
-              batchId: null,
+              batchId: shareBatchId,
             });
-            sendText = substitutePersonalization(sendText, { optinYesUrl: yesUrl, optinNoUrl: noUrl });
-            sendHtml = substitutePersonalization(sendHtml, { optinYesUrl: yesUrl, optinNoUrl: noUrl });
+            shareUnsubscribeHeaders = {
+              "List-Unsubscribe": `<${noUrl}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            };
+            if (needsOptinPlaceholders) {
+              sendText = substitutePersonalization(sendText, { optinYesUrl: yesUrl, optinNoUrl: noUrl });
+              sendHtml = substitutePersonalization(sendHtml, { optinYesUrl: yesUrl, optinNoUrl: noUrl });
+            }
           }
           const res = await sendResendEmail(apiKey, {
             from: fromFormatted,
@@ -3573,9 +3601,11 @@ export default {
             text: sendText,
             html: sendHtml,
             reply_to: fromAddr,
+            ...(Object.keys(shareUnsubscribeHeaders).length ? { headers: shareUnsubscribeHeaders } : {}),
             tags: [
               { name: "source", value: isAdminSend ? "admin_share" : "share" },
               { name: "kind", value: isCustomAdminEmail ? "regular_email" : "friend_share" },
+              ...(shareBatchId ? [{ name: "batch_id", value: shareBatchId.slice(0, 200) }] : []),
             ],
           })
             .then((r) => ({ ok: true,  email: to, resendId: r?.id || null }))
@@ -6252,8 +6282,36 @@ export default {
         }
 
         const newOffset = offset + chunk.length;
-        const done = chunk.length < chunkSize;
-        const newStatus = done ? "complete" : "running";
+        const chunkComplete = chunk.length < chunkSize;
+        const totalSentSoFar = Number(job.sent_count) + chunkSent;
+
+        // Circuit breaker: only worth checking a job that would otherwise
+        // keep running, and only once enough sends exist that a rate is
+        // meaningful (a bounce in the first handful of sends is noise, not
+        // signal). Rates lag real-time by however long Resend's webhook
+        // delivery takes -- this chunk's own bounces/complaints usually
+        // haven't arrived yet -- so this catches a job that's been
+        // accumulating bad signal over several chunks, not necessarily this
+        // exact one. That's an inherent property of a webhook-fed guard, not
+        // a bug: the alternative is no guard at all.
+        let circuitBreaker = null;
+        if (!chunkComplete && totalSentSoFar >= DELIVERABILITY_MIN_SAMPLE) {
+          const rates = await computeBlastJobDeliverabilityRates(env.DB, blastId, totalSentSoFar);
+          if (rates.complaintRate >= DELIVERABILITY_COMPLAINT_PAUSE_RATE) {
+            circuitBreaker = { tripped: true, reason: "complaint_rate", ...rates };
+          } else if (rates.bounceRate >= DELIVERABILITY_BOUNCE_PAUSE_RATE) {
+            circuitBreaker = { tripped: true, reason: "bounce_rate", ...rates };
+          } else if (
+            rates.complaintRate >= DELIVERABILITY_COMPLAINT_WARN_RATE
+            || rates.bounceRate >= DELIVERABILITY_BOUNCE_WARN_RATE
+          ) {
+            circuitBreaker = { tripped: false, warning: true, ...rates };
+          }
+        }
+
+        const autoPaused = Boolean(circuitBreaker?.tripped);
+        const done = chunkComplete || autoPaused;
+        const newStatus = chunkComplete ? "complete" : (autoPaused ? "paused" : "running");
 
         await env.DB.prepare(
           `UPDATE email_blast_jobs
@@ -6265,20 +6323,21 @@ export default {
         await insertAdminEmailAuditLog(env.DB, {
           actorUserId: actor.actorUserId,
           actorEmail: actor.actorEmail,
-          action: "email_blast_chunk",
+          action: autoPaused ? "email_blast_auto_paused" : "email_blast_chunk",
           subject: job.subject,
-          detailsJson: JSON.stringify({ blastId, offset, chunkSent, chunkFailed, chunkSkipped, done }),
+          detailsJson: JSON.stringify({ blastId, offset, chunkSent, chunkFailed, chunkSkipped, done, circuitBreaker }),
         });
 
         return json(req, env, {
-          ok: true, done,
+          ok: true, done, autoPaused,
           sent: chunkSent, failed: chunkFailed, skipped: chunkSkipped,
-          total_sent: Number(job.sent_count) + chunkSent,
+          total_sent: totalSentSoFar,
           total_failed: Number(job.failed_count) + chunkFailed,
           total_skipped: Number(job.skipped_count) + chunkSkipped,
           total_audience: Number(job.total_audience),
           current_offset: newOffset,
           status: newStatus,
+          ...(circuitBreaker ? { circuitBreaker } : {}),
         });
       }
 
@@ -6311,6 +6370,61 @@ export default {
           `UPDATE email_blast_jobs SET status='paused', updated_at=datetime('now') WHERE blast_id=?1 AND status='running'`
         ).bind(blastId).run();
         return json(req, env, { ok: true });
+      }
+
+      // GET /api/admin/emails/deliverability — account-wide bounce/complaint
+      // rates over rolling windows, plus a per-job breakdown for the most
+      // recent blasts. Reads resend_webhook_events, which every send path
+      // populates via the webhook regardless of how the email was sent, so
+      // this reflects real Resend-side outcomes, not just our own send logs.
+      if (req.method === "GET" && path === "/api/admin/emails/deliverability") {
+        if (!env.DB) return json(req, env, { error: "DB not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const [window24h, window7d, window30d, recentJobs] = await Promise.all([
+          computeAccountDeliverabilityRates(env.DB, 24),
+          computeAccountDeliverabilityRates(env.DB, 24 * 7),
+          computeAccountDeliverabilityRates(env.DB, 24 * 30),
+          env.DB.prepare(
+            `SELECT blast_id, filter, subject, sent_count, status, created_at
+               FROM email_blast_jobs
+              ORDER BY datetime(created_at) DESC
+              LIMIT 10`
+          ).all(),
+        ]);
+
+        const jobs = await Promise.all(
+          (recentJobs.results || []).map(async (job) => {
+            const rates = await computeBlastJobDeliverabilityRates(env.DB, job.blast_id, job.sent_count);
+            return {
+              blastId: job.blast_id,
+              filter: job.filter,
+              subject: job.subject,
+              status: job.status,
+              createdAt: job.created_at,
+              sent: rates.sent,
+              bounced: rates.bounced,
+              complained: rates.complained,
+              bounceRate: rates.bounceRate,
+              complaintRate: rates.complaintRate,
+              belowMinSample: rates.sent < DELIVERABILITY_MIN_SAMPLE,
+            };
+          })
+        );
+
+        return json(req, env, {
+          ok: true,
+          thresholds: {
+            minSample: DELIVERABILITY_MIN_SAMPLE,
+            bounceWarn: DELIVERABILITY_BOUNCE_WARN_RATE,
+            bouncePause: DELIVERABILITY_BOUNCE_PAUSE_RATE,
+            complaintWarn: DELIVERABILITY_COMPLAINT_WARN_RATE,
+            complaintPause: DELIVERABILITY_COMPLAINT_PAUSE_RATE,
+          },
+          account: { window24h, window7d, window30d },
+          jobs,
+        });
       }
 
       // ── End Email Blast ──────────────────────────────────────────────────────────

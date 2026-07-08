@@ -68,6 +68,7 @@
         $('admin-eb-shell').hidden = false;
         setStatus('eb-auth-status', '', '');
         renderJobsTable(data.jobs || []);
+        loadDeliverability();
       } catch (e) {
         setStatus('eb-auth-status', e.message, 'error');
       }
@@ -393,6 +394,28 @@
 
       updateProgress();
 
+      // Auto-paused by the deliverability circuit breaker (worker/src/index.js
+      // DELIVERABILITY_BOUNCE_PAUSE_RATE/DELIVERABILITY_COMPLAINT_PAUSE_RATE)
+      // is NOT the same as a genuinely finished job -- don't show "complete,"
+      // don't disable Start (it's resumable, same as a manual pause), and
+      // don't clear the resume prompt, so a reload still surfaces it.
+      if (data.autoPaused) {
+        blasting = false;
+        $('eb-start-btn').disabled = false;
+        $('eb-start-btn').textContent = 'Resume';
+        $('eb-pause-btn').disabled = true;
+        const cb = data.circuitBreaker || {};
+        const rate = cb.reason === 'complaint_rate' ? cb.complaintRate : cb.bounceRate;
+        const label = cb.reason === 'complaint_rate' ? 'complaint' : 'bounce';
+        setStatus(
+          'eb-stage3-status',
+          `Paused automatically — ${label} rate hit ${(rate * 100).toFixed(2)}%. `
+            + `Sent ${currentBlast.sent.toLocaleString()} so far. Review before resuming.`,
+          'error'
+        );
+        return;
+      }
+
       if (data.done) {
         blasting = false;
         $('eb-start-btn').disabled = true;
@@ -400,6 +423,18 @@
         sessionStorage.removeItem('eb_blast_id');
         setStatus('eb-stage3-status', `Blast complete! Sent ${currentBlast.sent.toLocaleString()} emails.`, 'success');
         return;
+      }
+
+      if (data.circuitBreaker?.warning) {
+        const cb = data.circuitBreaker;
+        setStatus(
+          'eb-stage3-status',
+          `Blast running — deliverability rate is elevated (bounce ${(cb.bounceRate * 100).toFixed(2)}%, `
+            + `complaint ${(cb.complaintRate * 100).toFixed(2)}%). Watching closely.`,
+          'warn'
+        );
+      } else {
+        setStatus('eb-stage3-status', 'Blast running — do not close this tab.', 'warn');
       }
 
       setTimeout(sendNextChunk, INTER_CHUNK_MS);
@@ -507,6 +542,94 @@
         });
       }
     }
+  }
+
+  // ── Deliverability ───────────────────────────────────────────────────────
+  // Separate panel/table rather than folding into renderJobsTable above --
+  // keeps the existing jobs table untouched and lets this degrade
+  // independently (e.g. before resend_webhook_events has any data yet)
+  // without breaking the table admins already rely on for Resume.
+  async function loadDeliverability() {
+    const wrap = $('eb-deliv-wrap');
+    try {
+      const res  = await apiFetch('/api/admin/emails/deliverability', 'GET');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      renderDeliverability(data);
+    } catch (e) {
+      if (wrap) wrap.innerHTML = `<p class="vb-help">Couldn't load deliverability stats: ${escapeHtml(e.message)}</p>`;
+    }
+  }
+
+  function pct(rate) {
+    return `${(rate * 100).toFixed(2)}%`;
+  }
+
+  // green/amber/red against the same warn/pause thresholds the send-chunk
+  // circuit breaker itself uses (worker/src/index.js DELIVERABILITY_*), so
+  // the color on screen always matches what would actually trip a pause.
+  function rateColor(rate, warnRate, pauseRate) {
+    if (rate >= pauseRate) return '#b91c1c';
+    if (rate >= warnRate) return '#8a3d23';
+    return '#166534';
+  }
+
+  function renderDeliverability(data) {
+    const t = data.thresholds || {};
+    const thresholdsLabel = $('eb-deliv-pause-thresholds');
+    if (thresholdsLabel) {
+      thresholdsLabel.textContent = `${pct(t.bouncePause || 0)} bounce or ${pct(t.complaintPause || 0)} complaint`;
+    }
+
+    const wrap = $('eb-deliv-wrap');
+    if (!wrap) return;
+
+    const windows = [
+      ['24h', data.account?.window24h],
+      ['7d',  data.account?.window7d],
+      ['30d', data.account?.window30d],
+    ];
+    const summaryRow = windows.map(([label, w]) => {
+      if (!w) return '';
+      return `
+        <div style="flex:1;min-width:140px;background:#fff;border:1px solid #e5ddd0;border-radius:8px;padding:12px 16px;">
+          <div style="font-size:.75rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Last ${label} &middot; ${Number(w.sent).toLocaleString()} sent</div>
+          <div style="font-size:.9rem;color:${rateColor(w.bounceRate, t.bounceWarn, t.bouncePause)};">Bounce: <strong>${pct(w.bounceRate)}</strong> (${w.bounced})</div>
+          <div style="font-size:.9rem;color:${rateColor(w.complaintRate, t.complaintWarn, t.complaintPause)};">Complaint: <strong>${pct(w.complaintRate)}</strong> (${w.complained})</div>
+        </div>
+      `;
+    }).join('');
+
+    const jobs = data.jobs || [];
+    const jobRows = jobs.length
+      ? jobs.map((job) => `
+        <tr>
+          <td>${escapeHtml(job.subject || '')}</td>
+          <td>${escapeHtml(job.filter || '')}</td>
+          <td>${Number(job.sent).toLocaleString()}</td>
+          <td style="color:${job.belowMinSample ? '#9ca3af' : rateColor(job.bounceRate, t.bounceWarn, t.bouncePause)};">
+            ${job.belowMinSample ? '—' : pct(job.bounceRate)}
+          </td>
+          <td style="color:${job.belowMinSample ? '#9ca3af' : rateColor(job.complaintRate, t.complaintWarn, t.complaintPause)};">
+            ${job.belowMinSample ? '—' : pct(job.complaintRate)}
+          </td>
+          <td><span class="vb-status-pill ${job.status}">${job.status}</span></td>
+        </tr>
+      `).join('')
+      : '<tr><td colspan="6" class="vb-help">No blasts yet.</td></tr>';
+
+    wrap.innerHTML = `
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">${summaryRow}</div>
+      <table class="vb-jobs-table">
+        <thead><tr>
+          <th>Subject</th><th>Filter</th><th>Sent</th><th>Bounce</th><th>Complaint</th><th>Status</th>
+        </tr></thead>
+        <tbody>${jobRows}</tbody>
+      </table>
+      <p class="vb-help" style="margin:8px 0 0;">
+        Rates below ${Number(t.minSample || 0).toLocaleString()} sends show as &mdash; (too small a sample to be meaningful).
+      </p>
+    `;
   }
 
   // ── Utilities ─────────────────────────────────────────────────────────────
