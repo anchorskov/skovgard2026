@@ -131,6 +131,14 @@
     // option, which is retired from the UI but still resumable server-side
     // for any blast job created before this change.
     const isEveryEmail = filterValue === 'every_email';
+    // "Unlinked" (purged_voter) has no district data anywhere -- most of it
+    // never matched a voter record to derive one from, and email_contacts
+    // stores no district column by design (see EMAIL_CONTACTS_FILTERS /
+    // countBlastAudienceTotal's geo guard in worker/src/index.js, which
+    // returns 0 rather than silently pulling from an unrelated table if HD/SD
+    // ever reach the server for this filter). Hiding HD/SD here is the
+    // primary guard; the backend zeroing out that combination is the backstop.
+    const isPurgedVoter = filterValue === 'purged_voter';
 
     // Compose fields (message, subject, test-send) stay hidden until
     // something is chosen -- the blank placeholder option means nothing is
@@ -147,9 +155,23 @@
 
     // City is hidden for now (see docs/db/EmailConsolidationPlan.md discussion) --
     // #eb-city-field stays hidden and #eb-city stays empty; HD/SD alone still
-    // narrow every audience, including every_email, through the same data.
+    // narrow every audience except purged_voter, through the same data.
     const note = $('eb-voter-file-note');
     if (note) note.hidden = !isEveryEmail;
+    const purgedVoterNote = $('eb-purged-voter-note');
+    if (purgedVoterNote) purgedVoterNote.hidden = !isPurgedVoter;
+
+    const hdField = $('eb-hd-field');
+    const sdField = $('eb-sd-field');
+    if (hdField) hdField.hidden = isPurgedVoter;
+    if (sdField) sdField.hidden = isPurgedVoter;
+    if (isPurgedVoter) {
+      // Clear rather than just hide -- currentComposeFields() reads .value
+      // directly, so a stale selection from before switching to this filter
+      // would otherwise still ride along into the (blocked) geo query.
+      if ($('eb-hd')) $('eb-hd').value = '';
+      if ($('eb-sd')) $('eb-sd').value = '';
+    }
   }
 
   async function runSendTest() {

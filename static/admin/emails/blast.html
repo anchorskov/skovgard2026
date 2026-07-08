@@ -78,16 +78,14 @@
                 <option value="volunteers">Volunteers only</option>
                 <option value="candidate">Candidates list</option>
                 <option value="new_opt_ins">New email opt-ins (24h)</option>
-                <option value="suppressed">Suppressed by webhook</option>
-                <option value="inactive">Inactive / unsubscribed</option>
-                <option value="no_consent">No email consent</option>
+                <option value="purged_voter">Unlinked (no voter match) — ~47k</option>
               </select>
             </div>
             <div class="vb-field" id="eb-city-field" hidden>
               <label class="vb-label" for="eb-city" id="eb-city-label">City <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
               <input id="eb-city" type="text" class="vb-input" placeholder="e.g. Casper" />
             </div>
-            <div class="vb-field">
+            <div class="vb-field" id="eb-hd-field">
               <label class="vb-label" for="eb-hd">House district <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
               <select id="eb-hd" class="vb-select">
                 <option value="">All house districts</option>
@@ -155,7 +153,7 @@
                 <option value="62">62</option>
               </select>
             </div>
-            <div class="vb-field">
+            <div class="vb-field" id="eb-sd-field">
               <label class="vb-label" for="eb-sd">Senate district <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
               <select id="eb-sd" class="vb-select">
                 <option value="">All senate districts</option>
@@ -199,6 +197,14 @@
               This audience is <strong>not</strong> opt-in gated &#8212; it reaches the full voter-file email
               list (~61.6k addresses) plus the local subscriber/volunteer list, excluding only addresses
               with an explicit opt-out on record.
+            </p>
+            <p id="eb-purged-voter-note" class="vb-help" hidden style="margin:-8px 0 16px;color:#8a3d23;">
+              This is a <strong>cold audience</strong> &#8212; almost none of these addresses have ever been
+              contacted by or interacted with the campaign. They come from an email/voter-file match pass
+              that could not confirm an active Wyoming voter registration (unregistered, moved, a name/email
+              mismatch, or a registration that's since gone inactive). Not opt-in gated; only confirmed
+              opt-outs are excluded. District filtering isn't available for this audience &#8212; there's no
+              reliable address to derive one from.
             </p>
 
             <div class="vb-field">
@@ -341,6 +347,6 @@
     </div><!-- /admin-eb-shell -->
   </main>
 
-  <script src="/js/admin-emails-blast.js?v=9"></script>
+  <script src="/js/admin-emails-blast.js?v=10"></script>
 </body>
 </html>

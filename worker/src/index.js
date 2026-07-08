@@ -280,14 +280,32 @@ function normalizeEmailForStorage(email) {
 // Email opt-in/opt-out confirmation links (Yes/No buttons in admin-sent emails)
 // ---------------------------------------------------------------------------
 const OPTIN_PLACEHOLDER_RE = /\{optin_yes_url\}|\{optin_no_url\}/;
+const FIRST_NAME_PLACEHOLDER_RE = /\{first_name\}/i;
 
 function bodyNeedsOptinPlaceholders(bodyHtml) {
   return OPTIN_PLACEHOLDER_RE.test(String(bodyHtml || ""));
 }
 
+// Used by the admin Blast/send-test paths only (sendOneAdminEmail and
+// /api/admin/emails/send-test below) -- NOT bodyNeedsOptinPlaceholders, which
+// /api/share also calls and which must keep gating strictly on the optin
+// Yes/No buttons for that unrelated flow. This one additionally covers a
+// body that only needs {first_name} substitution, with no optin ask.
+function bodyNeedsPersonalization(bodyHtml) {
+  const html = String(bodyHtml || "");
+  return OPTIN_PLACEHOLDER_RE.test(html) || FIRST_NAME_PLACEHOLDER_RE.test(html);
+}
+
+// Voter-file-sourced first names arrive ALL CAPS ("TYLER"); title-case them
+// the same way the SMS path already does (personalizeSmsFirstName below).
+// No "there"/generic fallback when a contact has no name on file -- the
+// template's ", {first_name}" is dropped entirely (via the first .replace
+// below) so a blank name reads as "Hi," instead of "Hi, ," or "Hi, there,".
 function substitutePersonalization(text, { firstName = "", optinYesUrl = "", optinNoUrl = "" } = {}) {
+  const name = titleCase(String(firstName || "").trim());
   return String(text || "")
-    .replace(/\{first_name\}/gi, firstName || "there")
+    .replace(/,(\s*)\{first_name\}/gi, name ? `,$1${name}` : "")
+    .replace(/\{first_name\}/gi, name)
     .replace(/\{optin_yes_url\}/g, optinYesUrl)
     .replace(/\{optin_no_url\}/g, optinNoUrl);
 }
@@ -1357,11 +1375,12 @@ const ADMIN_EMAIL_CONTACTS_CTE = `WITH email_candidates AS (
 // New canonical query layer over email_contacts/email_contact_purposes
 // (docs/db/EmailConsolidationPlan.md Phase 3). Lives alongside
 // ADMIN_EMAIL_CONTACTS_CTE rather than replacing it -- additive rollout,
-// filters migrate one at a time. purged_voter intentionally has no entry
-// here: not a sendable Blast audience yet (data-quality caveat, see plan
-// doc). 'emailable' is kept as an alias of 'opted_in' so the server-side
-// default (filter || "emailable") and the renamed frontend option both
-// route through the new path identically.
+// filters migrate one at a time. purged_voter became a sendable Blast
+// audience ("Unlinked") on 2026-07-08 -- see the entry and its comment
+// below for the data-quality caveats that still apply. 'emailable' is kept
+// as an alias of 'opted_in' so the server-side default (filter ||
+// "emailable") and the renamed frontend option both route through the new
+// path identically.
 const EMAIL_CONTACTS_FILTERS = {
   opted_in: { purpose: null, consentStatus: "opted_in" },
   emailable: { purpose: null, consentStatus: "opted_in" },
@@ -1369,6 +1388,13 @@ const EMAIL_CONTACTS_FILTERS = {
   candidate: { purpose: "candidate", consentStatus: null },
   voter_file: { purpose: "voter_file", consentStatus: null },
   every_email: { purpose: null, consentStatus: null },
+  // "Unlinked" -- emails that never resolved to any voter registration match
+  // (or matched an ID no longer active in the Aug 2025 snapshot) during the
+  // 2026-07-07 purged_voter backfill (docs/db/EmailConsolidationPlan.md
+  // §3a). 47,111 total, no district data (never had an address to derive one
+  // from for most of this bucket) -- see the geo guard in
+  // countBlastAudienceTotal/queryBlastAudienceChunk below.
+  purged_voter: { purpose: "purged_voter", consentStatus: null },
 };
 
 function buildEmailContactsWhere({ filter, q = "" } = {}) {
@@ -1467,6 +1493,16 @@ async function countBlastAudienceTotal(env, { filter, city = "", hd = "", sd = "
   if (filter === "every_email" && !noGeo) {
     return await countEveryEmailAudienceGeo(env, { city, hd, sd });
   }
+  // purged_voter has no district data anywhere -- most of it never matched a
+  // voter record to derive one from, and email_contacts stores no district
+  // column by design. Without this guard, filter+geo would silently fall
+  // through to countAdminEmailContacts below and return an unrelated count
+  // from the small legacy table (the exact bug class fixed for every_email
+  // above). The UI hides HD/SD for this filter; this is the server-side
+  // backstop for any direct API call that bypasses it.
+  if (filter === "purged_voter" && !noGeo) {
+    return 0;
+  }
   if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
     return await countEmailContacts(env.DB, { filter, q });
   }
@@ -1480,6 +1516,9 @@ async function queryBlastAudienceChunk(env, { filter, city = "", hd = "", sd = "
   const noGeo = !city && !hd && !sd;
   if (filter === "every_email" && !noGeo) {
     return await queryEveryEmailAudienceGeoChunk(env, { city, hd, sd, limit, offset });
+  }
+  if (filter === "purged_voter" && !noGeo) {
+    return [];
   }
   if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
     return await queryEmailContacts(env.DB, { filter, limit, offset });
@@ -1504,6 +1543,13 @@ async function queryBlastAudienceChunk(env, { filter, city = "", hd = "", sd = "
 // here.
 async function queryAdminEmailContactsRouted(db, { filter, q = "", city = "", hd = "", sd = "", limit, sinceHours = 24 } = {}) {
   const noGeo = !city && !hd && !sd;
+  // Same purged_voter-has-no-district guard as queryBlastAudienceChunk --
+  // not reachable from either admin UI's dropdown today, but a direct API
+  // call with city/hd/sd would otherwise silently fall through to the
+  // unrelated legacy-table result below.
+  if (filter === "purged_voter" && !noGeo) {
+    return [];
+  }
   if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
     return await queryEmailContacts(db, { filter, q, limit, offset: 0 });
   }
@@ -2180,7 +2226,7 @@ async function sendOneAdminEmail(env, {
         });
         let finalHtmlBody = htmlBody;
 
-        if (bodyNeedsOptinPlaceholders(shareMsg.body_html)) {
+        if (bodyNeedsPersonalization(shareMsg.body_html)) {
           const personalize = (text) => substitutePersonalization(text, {
             firstName: recipient?.first_name || "",
             optinYesUrl: optinToken.yesUrl,
@@ -5631,18 +5677,32 @@ export default {
             const introHtml = shareIntroText
               ? `<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">${escHtml(shareIntroText).replace(/\n/g, "<br>")}</p>\n              <hr style="margin:0 0 22px;border:0;border-top:1px solid #e5e7eb;">\n              `
               : "";
-            const htmlBody = buildShareEmailHtml({
+            let htmlBody = buildShareEmailHtml({
               sender_name: "Skovgard for Wyoming",
               sender_intro: shareMsg.intro(),
               body_html: introHtml + shareMsg.body_html,
               preview_text: shareMsg.preview_text,
               title: shareMsg.title,
             });
-            const textBody = buildShareEmailText({
+            let textBody = buildShareEmailText({
               sender_name: "Skovgard for Wyoming",
               sender_intro: shareMsg.intro(),
               slug: shareSlug,
             });
+            // Test sends have no real contact behind `to`, so this mirrors what
+            // an actual recipient with no name on file would see -- a blank
+            // {first_name} (see substitutePersonalization), not a fake preview
+            // name that wouldn't match production. bodyNeedsPersonalization
+            // covers messages that only use {first_name} with no optin ask too.
+            if (bodyNeedsPersonalization(shareMsg.body_html)) {
+              const personalize = (text) => substitutePersonalization(text, {
+                firstName: "",
+                optinYesUrl: testOptinToken.yesUrl,
+                optinNoUrl: testOptinToken.noUrl,
+              });
+              htmlBody = personalize(htmlBody);
+              textBody = personalize(textBody);
+            }
             const resendResult = await sendResendEmail(emailConfig.apiKey, {
               from: emailConfig.from,
               to: [to],

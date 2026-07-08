@@ -1213,7 +1213,7 @@ const CANDIDATE_HUB_BODY_HTML = `
 
 const PRIMARY_CANDIDATES_BODY_HTML = `
 <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
-  Hello, {first_name},
+  Hi, {first_name},
 </p>
 
 <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
@@ -2721,7 +2721,7 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
         ]
     : slug === "primary-candidates"
       ? [
-          "Hello, {first_name},",
+          "Hi, {first_name},",
           "",
           "I built a tool to help Wyoming voters build their primary ballot — every candidate",
           "in one place, all the way down to the precinct level where available.",
