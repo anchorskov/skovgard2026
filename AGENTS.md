@@ -401,6 +401,22 @@ Key files involved: `worker/src/email-template.js` (SHARE_MESSAGES registry), `s
 
 - If a share email makes verifiable public claims, create `src/pages/share/<slug>/sources.astro` and point the email CTA (`body_html` link in `SHARE_MESSAGES`) to `https://skovgard2026.org/share/<slug>/sources/` — not back to the share page itself.
 
+## Blast Flow (email) — active debugging
+
+The email Blast flow (`static/admin/emails/blast.html` +
+`static/js/admin-emails-blast.js`, `/api/admin/emails/blast/*` +
+`/api/resend/webhook` in `worker/src/index.js`/`worker/src/resend-webhooks.js`)
+is under active debugging as of 2026-07-08. Before touching this flow, read:
+
+- `docs/blast_tracking.md` (gitignored, local working notes — not in git,
+  won't be there after a fresh clone; check with whoever has been working
+  this flow if the file's missing)
+
+It has real incident history worth knowing before you change chunk sizing,
+webhook config, or audience routing — including a Cloudflare subrequest
+limit that silently dropped 300 real recipients, and a Resend webhook that
+pointed at the wrong domain for an unknown period before 2026-07-08.
+
 ## Social Media Sharing
 
 Full requirements for Open Graph tags, Twitter/X cards, meme images, and per-domain
