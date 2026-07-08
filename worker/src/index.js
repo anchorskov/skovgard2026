@@ -1447,18 +1447,26 @@ async function queryEmailContacts(db, { limit = 250, offset = 0, ...opts } = {})
   return rows.results || [];
 }
 
-// Shared 3-way routing for the Blast handlers (audience-count, blast/job,
-// blast/send-chunk): new email_contacts path when the filter has migrated
-// AND no geo-narrowing is requested; WY_DB voter_file path when voter_file +
-// geo is requested (email_contacts stores no district data, by design); the
-// legacy CTE path for everything else (unmigrated filters, or migrated
-// filters + geo, e.g. "opted_in" narrowed by HD -- consent_status still
-// carries district columns, email_contacts doesn't).
+// Shared 4-way routing for the Blast handlers (audience-count, blast/job,
+// blast/send-chunk): every_email + geo goes through fetchEveryEmailGeoUnion
+// (the WY_DB voter file ∪ the local subscriber table -- email_contacts can't
+// serve this because it stores no district data, by design); new
+// email_contacts path when the filter has migrated AND no geo-narrowing is
+// requested (every_email with no geo already gets this union's effect via
+// the Phase 2 backfill baked into email_contacts); WY_DB voter_file path
+// retained for any already-created jobs still referencing the retired
+// standalone voter_file option; the legacy CTE path for everything else
+// (unmigrated filters, or migrated filters + geo, e.g. "opted_in" narrowed
+// by HD -- consent_status still carries district columns, email_contacts
+// doesn't).
 // countVoterFileAudience/queryVoterFileAudience/countAdminEmailContacts/
-// queryAdminEmailContacts are `function` declarations defined later in this
-// file; hoisting makes them safe to reference here.
+// queryAdminEmailContacts/fetchEveryEmailGeoUnion are `function` declarations
+// defined later in this file; hoisting makes them safe to reference here.
 async function countBlastAudienceTotal(env, { filter, city = "", hd = "", sd = "", sinceHours = 24, q = "" } = {}) {
   const noGeo = !city && !hd && !sd;
+  if (filter === "every_email" && !noGeo) {
+    return await countEveryEmailAudienceGeo(env, { city, hd, sd });
+  }
   if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
     return await countEmailContacts(env.DB, { filter, q });
   }
@@ -1470,6 +1478,9 @@ async function countBlastAudienceTotal(env, { filter, city = "", hd = "", sd = "
 
 async function queryBlastAudienceChunk(env, { filter, city = "", hd = "", sd = "", sinceHours = 24, limit, offset } = {}) {
   const noGeo = !city && !hd && !sd;
+  if (filter === "every_email" && !noGeo) {
+    return await queryEveryEmailAudienceGeoChunk(env, { city, hd, sd, limit, offset });
+  }
   if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
     return await queryEmailContacts(env.DB, { filter, limit, offset });
   }
@@ -1692,6 +1703,66 @@ async function queryVoterFileAudience(env, { county = "", hd = "", sd = "", limi
                 LIMIT ?${limitIdx} OFFSET ?${offsetIdx}`;
   const rows = await env.WY_DB.prepare(sql).bind(...binds).all();
   return rows.results || [];
+}
+
+// "every_email" narrowed by city/HD/SD -- union of the WY_DB voter file
+// (v_unique_name_email_not_stale, ~61.6k rows, the "large file") and the local
+// ballot_sources subscriber/volunteer table, minus confirmed opt-outs. Same
+// "opt-outs excluded, not opt-in gated" philosophy already documented for
+// voter_file -- per 2026-07-08 decision, every_email now IS that union and
+// supersedes voter_file as a standalone audience option. A district-scoped
+// result set is bounded (at most a few hundred rows even for the largest
+// district), so both sources are fetched in full and merged/deduped here in
+// application code rather than paginated at the SQL layer -- OFFSET/LIMIT
+// across two separate D1 databases isn't expressible in one query. Doesn't
+// include the `candidate` purpose (WY_DB `candidates` carries no district
+// column in this shape) -- same gap voter_file already had.
+const EVERY_EMAIL_GEO_FETCH_LIMIT = 100000;
+
+async function fetchEveryEmailGeoUnion(env, { city = "", hd = "", sd = "" } = {}) {
+  const optoutList = await fetchEmailOptoutList(env.DB);
+  const optoutSet = new Set(optoutList);
+
+  const voterRows = env.WY_DB
+    ? await queryVoterFileAudience(env, { county: city, hd, sd, limit: EVERY_EMAIL_GEO_FETCH_LIMIT, offset: 0 })
+    : [];
+
+  const { where, binds } = buildAdminEmailContactsWhere({ filter: "every_email", city, hd, sd });
+  const legacySql = `${ADMIN_EMAIL_CONTACTS_CTE}
+                SELECT email_norm, email, first_name, last_name
+                  FROM ranked_email_contacts
+                 WHERE ${where}`;
+  const legacyRows = ((await env.DB.prepare(legacySql).bind(...binds).all())?.results || []);
+
+  const merged = new Map();
+  for (const r of voterRows) {
+    if (optoutSet.has(r.email_norm)) continue;
+    merged.set(r.email_norm, {
+      email: r.email_norm,
+      email_norm: r.email_norm,
+      first_name: r.first_name || "",
+      email_status: "emailable",
+    });
+  }
+  for (const r of legacyRows) {
+    if (optoutSet.has(r.email_norm) || merged.has(r.email_norm)) continue;
+    merged.set(r.email_norm, {
+      email: r.email,
+      email_norm: r.email_norm,
+      first_name: r.first_name || "",
+      email_status: "emailable",
+    });
+  }
+  return [...merged.values()].sort((a, b) => a.email_norm.localeCompare(b.email_norm));
+}
+
+async function countEveryEmailAudienceGeo(env, { city = "", hd = "", sd = "" } = {}) {
+  return (await fetchEveryEmailGeoUnion(env, { city, hd, sd })).length;
+}
+
+async function queryEveryEmailAudienceGeoChunk(env, { city = "", hd = "", sd = "", limit = 250, offset = 0 } = {}) {
+  const all = await fetchEveryEmailGeoUnion(env, { city, hd, sd });
+  return all.slice(offset, offset + limit);
 }
 
 async function queryAdminEmailContactsByAddress(db, emailList = []) {

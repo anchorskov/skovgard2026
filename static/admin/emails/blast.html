@@ -77,7 +77,6 @@
                 <option value="every_email">Every email address in system</option>
                 <option value="volunteers">Volunteers only</option>
                 <option value="candidate">Candidates list</option>
-                <option value="voter_file">Voter file (opt-outs excluded)</option>
                 <option value="new_opt_ins">New email opt-ins (24h)</option>
                 <option value="suppressed">Suppressed by webhook</option>
                 <option value="inactive">Inactive / unsubscribed</option>
@@ -198,7 +197,8 @@
           <div id="eb-compose-section" hidden>
             <p id="eb-voter-file-note" class="vb-help" hidden style="margin:-8px 0 16px;color:#8a3d23;">
               This audience is <strong>not</strong> opt-in gated &#8212; it reaches the full voter-file email
-              list, excluding only addresses with an explicit opt-out on record.
+              list (~61.6k addresses) plus the local subscriber/volunteer list, excluding only addresses
+              with an explicit opt-out on record.
             </p>
 
             <div class="vb-field">
@@ -341,6 +341,6 @@
     </div><!-- /admin-eb-shell -->
   </main>
 
-  <script src="/js/admin-emails-blast.js?v=8"></script>
+  <script src="/js/admin-emails-blast.js?v=9"></script>
 </body>
 </html>

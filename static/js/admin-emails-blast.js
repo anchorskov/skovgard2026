@@ -89,14 +89,48 @@
     $('eb-count-btn')?.addEventListener('click', runAudienceCount);
     $('eb-send-test-btn')?.addEventListener('click', runSendTest);
     $('eb-filter')?.addEventListener('change', handleFilterChange);
+    // HD/SD/city are part of the audience definition too (see currentComposeFields
+    // and audienceInfo below) -- changing any of them after a count was already
+    // fetched must invalidate that count the same way changing the top-level
+    // filter does, or createJob() could submit a district that no longer matches
+    // what's on screen.
+    $('eb-hd')?.addEventListener('change', invalidateAudienceCheck);
+    $('eb-sd')?.addEventListener('change', invalidateAudienceCheck);
+    $('eb-city')?.addEventListener('change', invalidateAudienceCheck);
     handleFilterChange();
   }
 
+  // Clears a previously-fetched audience count and folds the wizard back to
+  // Stage 1 whenever an audience-defining input changes underneath it. Without
+  // this, changing the dropdown after clicking "Check Audience Count" leaves
+  // Stage 2 showing (and createJob() would submit) the *previous* selection's
+  // filter/city/hd/sd -- audienceInfo is only ever written inside
+  // runAudienceCount(), so the DOM and in-memory state can silently diverge.
+  // No-ops if a count hasn't been fetched yet, so the initial page-load call
+  // and a first-time filter pick don't show a spurious "changed" message.
+  function invalidateAudienceCheck() {
+    if (!audienceInfo) return;
+    audienceInfo = null;
+    const card = $('eb-count-card');
+    if (card) card.hidden = true;
+    if ($('eb-stage2')) $('eb-stage2').hidden = true;
+    if ($('eb-confirm-check')) $('eb-confirm-check').checked = false;
+    setStageActive(1, true);
+    setStageActive(2, false);
+    setStatus('eb-stage1-status', 'Audience changed — check the audience count again before continuing.', 'info');
+  }
+
   function handleFilterChange() {
+    invalidateAudienceCheck();
     const filterValue = ($('eb-filter')?.value || '').trim();
     const isTestOnly = filterValue === 'test';
     const hasSelection = filterValue !== '';
-    const isVoterFile = filterValue === 'voter_file';
+    // "every_email" is the not-opt-in-gated audience (voter file ∪ local
+    // subscriber list, opt-outs excluded) -- see fetchEveryEmailGeoUnion in
+    // worker/src/index.js. It replaced the standalone "voter_file" dropdown
+    // option, which is retired from the UI but still resumable server-side
+    // for any blast job created before this change.
+    const isEveryEmail = filterValue === 'every_email';
 
     // Compose fields (message, subject, test-send) stay hidden until
     // something is chosen -- the blank placeholder option means nothing is
@@ -113,9 +147,9 @@
 
     // City is hidden for now (see docs/db/EmailConsolidationPlan.md discussion) --
     // #eb-city-field stays hidden and #eb-city stays empty; HD/SD alone still
-    // narrow every audience, including voter_file, through the same data.
+    // narrow every audience, including every_email, through the same data.
     const note = $('eb-voter-file-note');
-    if (note) note.hidden = !isVoterFile;
+    if (note) note.hidden = !isEveryEmail;
   }
 
   async function runSendTest() {
