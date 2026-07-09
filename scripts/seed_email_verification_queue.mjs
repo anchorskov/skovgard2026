@@ -6,13 +6,18 @@
 // worker/src/index.js (runEmailVerificationBatch) works through, 25 at a
 // time, every 2 minutes. See docs/blast_tracking.md.
 //
-// Computes the same statewide audience as verify_district_emails.mjs but
-// with no district filter (WY_DB v_unique_name_email_not_stale, all house
-// districts, union'd with the legacy ballot_sources every_email CTE),
-// minus opt-outs, minus yahoo.com/aol.com/rtconnect.net/rangeweb.net
+// Three sources, unioned: (1) WY_DB v_unique_name_email_not_stale, all
+// house districts -- same as verify_district_emails.mjs but with no
+// district filter; (2) the legacy ballot_sources every_email CTE; (3)
+// "purged_voter" email_contacts -- addresses that exist in the local
+// contact system but never matched to a registered WY voter record (no
+// district data anywhere, hence a separate source from (1)). Minus
+// opt-outs, minus yahoo.com/aol.com/rtconnect.net/rangeweb.net
 // (unverifiable/content-filtered -- no reason to spend a credit), minus
 // anything already checked by a local verify_district_emails.mjs run
-// (its .state.json files, if present).
+// (its .state.json files, if present). Safe to re-run any time a new
+// source of addresses needs folding in -- INSERT OR IGNORE means it only
+// ever adds rows, never touches ones already seeded/checked.
 //
 // Usage: ADMIN_KEY=<ADMIN_EXPORT_KEY> node scripts/seed_email_verification_queue.mjs
 
@@ -79,6 +84,24 @@ async function main() {
   );
   console.log(`  ${legacyRows.length} rows.`);
 
+  // "purged_voter" ("Unlinked" in the admin dropdown) -- email_contacts
+  // whose ENTIRE purpose set is 'purged_voter': addresses that exist in the
+  // local contact system but never matched to a registered WY voter record
+  // (see EMAIL_CONTACTS_FILTERS / worker/src/index.js:1399). Completely
+  // separate pool from WY_DB/legacy above -- these people have no district
+  // data anywhere, which is exactly why countBlastAudienceTotal/
+  // queryBlastAudienceChunk special-case this filter to return empty on any
+  // geo combination rather than silently reading the wrong table.
+  console.log("Fetching purged_voter (unmatched-to-voter-file) email_contacts...");
+  const purgedVoterRows = d1(
+    "ballot_sources",
+    `SELECT DISTINCT ec.email_norm
+       FROM email_contacts ec
+      WHERE EXISTS (SELECT 1 FROM email_contact_purposes pv WHERE pv.email_contact_id = ec.id AND pv.purpose = 'purged_voter')
+        AND NOT EXISTS (SELECT 1 FROM email_contact_purposes pv2 WHERE pv2.email_contact_id = ec.id AND pv2.purpose != 'purged_voter')`
+  );
+  console.log(`  ${purgedVoterRows.length} rows.`);
+
   console.log("Fetching opt-out list...");
   const optoutRows = d1(
     "ballot_sources",
@@ -95,6 +118,7 @@ async function main() {
   const merged = new Set();
   for (const r of wyRows) if (!optoutSet.has(r.email_norm)) merged.add(r.email_norm);
   for (const r of legacyRows) if (!optoutSet.has(r.email_norm)) merged.add(r.email_norm);
+  for (const r of purgedVoterRows) if (!optoutSet.has(r.email_norm)) merged.add(r.email_norm);
 
   const toSeed = [...merged].filter(
     (e) => !SKIP_VERIFICATION_DOMAINS.has(e.split("@")[1]) && !alreadyChecked.has(e)
