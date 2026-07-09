@@ -2608,6 +2608,106 @@ async function createStripePaymentIntent(env, data, metadata = {}) {
   return stripeResult;
 }
 
+// ---------------------------------------------------------------------------
+// Scheduled (Cron Trigger) email verification -- runs unattended on
+// Cloudflare's own infrastructure, not dependent on a local machine/session.
+// Ports the same logic as scripts/verify_district_emails.mjs (status
+// classification, spamtrap handling, suppression-on-bad) but reads its
+// queue from email_verification_queue (migration 029) instead of a local
+// .state.json, so progress survives across cron ticks with no separate
+// file. See docs/blast_tracking.md for the full backstory -- especially why
+// EmailListVerify's response is a bare plain-text status string (not JSON)
+// and why "spamtrap"/"smtp_protocol"/"antispam_system" exist at all (none
+// are in EmailListVerify's own docs; found by manually curling the live
+// endpoint).
+// ---------------------------------------------------------------------------
+const EMAIL_VERIFICATION_BATCH_SIZE = 25;
+const EMAIL_VERIFICATION_REQUEST_PAUSE_MS = 1200;
+const EMAIL_VERIFICATION_ENDPOINT = "https://apps.emaillistverify.com/api/verifyEmail";
+const EMAIL_VERIFICATION_BAD_STATUSES = new Set(["invalid", "invalid_mx", "dead_server", "email_disabled", "spamtrap"]);
+const EMAIL_VERIFICATION_GOOD_STATUSES = new Set(["ok"]);
+
+function classifyVerificationStatus(status) {
+  if (EMAIL_VERIFICATION_BAD_STATUSES.has(status)) return "bad";
+  if (EMAIL_VERIFICATION_GOOD_STATUSES.has(status)) return "good";
+  return "risky";
+}
+
+async function verifyEmailListVerify(apiKey, email) {
+  const url = `${EMAIL_VERIFICATION_ENDPOINT}?secret=${encodeURIComponent(apiKey)}&email=${encodeURIComponent(email)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`verifyEmail HTTP ${res.status}`);
+  return (await res.text()).trim();
+}
+
+// Claims up to EMAIL_VERIFICATION_BATCH_SIZE unchecked rows and verifies
+// them, pacing at EMAIL_VERIFICATION_REQUEST_PAUSE_MS between requests
+// (EmailListVerify's real rate limit is ~1/sec -- confirmed via response
+// headers, not documented). A request that fails (network error, non-200)
+// is left unchecked (checked_at stays NULL) so it's retried next tick,
+// rather than being marked with a fake result.
+async function runEmailVerificationBatch(env) {
+  if (!env.DB) return { ran: false, reason: "DB not configured" };
+  if (!env.EMAILLISTVERIFY_API_KEY) return { ran: false, reason: "EMAILLISTVERIFY_API_KEY not configured" };
+
+  const rows = await env.DB.prepare(
+    `SELECT email_norm FROM email_verification_queue WHERE checked_at IS NULL ORDER BY email_norm ASC LIMIT ?1`
+  ).bind(EMAIL_VERIFICATION_BATCH_SIZE).all();
+  const batch = rows.results || [];
+  if (!batch.length) return { ran: true, checked: 0, bad: 0, queueEmpty: true };
+
+  let checked = 0;
+  let bad = 0;
+  let creditExhausted = false;
+  for (let i = 0; i < batch.length; i++) {
+    const emailNorm = batch[i].email_norm;
+    let status;
+    try {
+      status = await verifyEmailListVerify(env.EMAILLISTVERIFY_API_KEY, emailNorm);
+    } catch (e) {
+      console.error(`email verification failed for ${emailNorm}: ${e.message}`);
+      if (i + 1 < batch.length) await new Promise((r) => setTimeout(r, EMAIL_VERIFICATION_REQUEST_PAUSE_MS));
+      continue;
+    }
+    // "error_credit" (found 2026-07-09 when the account ran out mid-run) and
+    // presumably other "error_*" values are EmailListVerify-side failures,
+    // not a real verification verdict -- leaving checked_at NULL keeps the
+    // row queued for retry once credits are restored. Treating this as a
+    // normal verdict (an earlier version of this code did) silently
+    // corrupts the queue: rows get marked "checked" with a fake "risky"
+    // result despite never actually being verified. Stop the whole batch
+    // early on the first one -- once credits are gone, every remaining
+    // request in this batch (and every future tick) will hit the same
+    // wall, so there's no reason to keep burning through it.
+    if (status.startsWith("error_")) {
+      console.error(`email verification account error for ${emailNorm}: ${status} -- stopping batch, will retry next tick`);
+      creditExhausted = true;
+      break;
+    }
+    const verdict = classifyVerificationStatus(status);
+    await env.DB.prepare(
+      `UPDATE email_verification_queue SET status=?2, verdict=?3, checked_at=datetime('now') WHERE email_norm=?1`
+    ).bind(emailNorm, status, verdict).run();
+    checked++;
+
+    if (verdict === "bad") {
+      bad++;
+      await env.DB.prepare(
+        `INSERT INTO email_suppressions (email_norm, email, reason, event_type, suppressed_at, details_json)
+         VALUES (?1, ?1, ?2, 'third_party_verification', datetime('now'), ?3)
+         ON CONFLICT(email_norm) DO NOTHING`
+      ).bind(
+        emailNorm,
+        `EmailListVerify: ${status}`,
+        JSON.stringify({ vendor: "EmailListVerify", status, source: "scheduled_queue" })
+      ).run();
+    }
+
+    if (i + 1 < batch.length) await new Promise((r) => setTimeout(r, EMAIL_VERIFICATION_REQUEST_PAUSE_MS));
+  }
+  return { ran: true, checked, bad, queueEmpty: false, creditExhausted };
+}
+
 // --- Worker ------------------------------------------------------------------
 export default {
   async fetch(req, env, ctx) {
@@ -6643,6 +6743,45 @@ export default {
         });
       }
 
+      // POST /api/admin/emails/verification/run-batch — manually triggers one
+      // batch of the scheduled email-verification queue (same function the
+      // Cron Trigger calls). Exists for testing a batch on demand without
+      // waiting for the cron, and as a manual-recovery lever if the schedule
+      // ever needs a nudge -- not part of the normal unattended flow.
+      if (req.method === "POST" && path === "/api/admin/emails/verification/run-batch") {
+        if (!env.DB) return json(req, env, { error: "DB not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        const result = await runEmailVerificationBatch(env);
+        return json(req, env, result);
+      }
+
+      // GET /api/admin/emails/verification/status — queue progress + verdict
+      // breakdown for the scheduled email-verification job.
+      if (req.method === "GET" && path === "/api/admin/emails/verification/status") {
+        if (!env.DB) return json(req, env, { error: "DB not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        const row = await env.DB.prepare(
+          `SELECT
+             COUNT(*) AS total,
+             SUM(CASE WHEN checked_at IS NULL THEN 1 ELSE 0 END) AS remaining,
+             SUM(CASE WHEN verdict = 'good' THEN 1 ELSE 0 END) AS good,
+             SUM(CASE WHEN verdict = 'risky' THEN 1 ELSE 0 END) AS risky,
+             SUM(CASE WHEN verdict = 'bad' THEN 1 ELSE 0 END) AS bad
+           FROM email_verification_queue`
+        ).first();
+        return json(req, env, {
+          ok: true,
+          total: Number(row?.total || 0),
+          remaining: Number(row?.remaining || 0),
+          checked: Number(row?.total || 0) - Number(row?.remaining || 0),
+          good: Number(row?.good || 0),
+          risky: Number(row?.risky || 0),
+          bad: Number(row?.bad || 0),
+        });
+      }
+
       // ── End Email Blast ──────────────────────────────────────────────────────────
 
       // ------------- NEWSLETTER EMAIL SIGNUP -------------
@@ -6942,5 +7081,17 @@ export default {
       }
       return json(req, env, { error: "Server error" }, 500);
     }
+  },
+
+  // Cloudflare Cron Trigger (see wrangler.toml [triggers] crons) -- runs one
+  // bounded batch of runEmailVerificationBatch every tick. If a second cron
+  // pattern is ever added to this Worker, branch on controller.cron here;
+  // this is the only one today.
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(
+      runEmailVerificationBatch(env).catch((e) => {
+        console.error("scheduled email verification batch failed:", e);
+      })
+    );
   },
 };

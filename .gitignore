@@ -17,6 +17,7 @@ worker/.env
 secrets/
 docs/conf.md
 scripts/sync-dev-vars.sh
+scripts/*.state.json
 .wrangler/
 **/.wrangler/state/
 **/.wrangler/tmp/

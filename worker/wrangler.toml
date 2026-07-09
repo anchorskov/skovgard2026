@@ -64,6 +64,11 @@ binding             = "WY_DB"
 database_name       = "wy"
 database_id         = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"
 
+# Scheduled EmailListVerify batch job (email_verification_queue, migration
+# 029) -- every 2 minutes, ~25 addresses/tick. See docs/blast_tracking.md.
+[env.production.triggers]
+crons = ["*/2 * * * *"]
+
 # ---------- Preview environment (Pages preview, etc.) ----------
 [env.preview]
 [env.preview.vars]
