@@ -140,6 +140,12 @@
     // ever reach the server for this filter). Hiding HD/SD here is the
     // primary guard; the backend zeroing out that combination is the backstop.
     const isPurgedVoter = filterValue === 'purged_voter';
+    // "Screened — Not Yet Sent" (verified_unsent): email_verification_queue
+    // (migration 029, the scheduled EmailListVerify job) has no district
+    // columns -- same "no geo data" shape as purged_voter above, same
+    // HD/SD-hiding treatment.
+    const isVerifiedUnsent = filterValue === 'verified_unsent';
+    const hidesGeoFields = isPurgedVoter || isVerifiedUnsent;
 
     // Compose fields (message, subject, test-send) stay hidden until
     // something is chosen -- the blank placeholder option means nothing is
@@ -161,12 +167,14 @@
     if (note) note.hidden = !isEveryEmail;
     const purgedVoterNote = $('eb-purged-voter-note');
     if (purgedVoterNote) purgedVoterNote.hidden = !isPurgedVoter;
+    const verifiedUnsentNote = $('eb-verified-unsent-note');
+    if (verifiedUnsentNote) verifiedUnsentNote.hidden = !isVerifiedUnsent;
 
     const hdField = $('eb-hd-field');
     const sdField = $('eb-sd-field');
-    if (hdField) hdField.hidden = isPurgedVoter;
-    if (sdField) sdField.hidden = isPurgedVoter;
-    if (isPurgedVoter) {
+    if (hdField) hdField.hidden = hidesGeoFields;
+    if (sdField) sdField.hidden = hidesGeoFields;
+    if (hidesGeoFields) {
       // Clear rather than just hide -- currentComposeFields() reads .value
       // directly, so a stale selection from before switching to this filter
       // would otherwise still ride along into the (blocked) geo query.

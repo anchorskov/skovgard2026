@@ -79,6 +79,7 @@
                 <option value="candidate">Candidates list</option>
                 <option value="new_opt_ins">New email opt-ins (24h)</option>
                 <option value="purged_voter">Unlinked (no voter match) — ~47k</option>
+                <option value="verified_unsent">Screened — Not Yet Sent</option>
               </select>
             </div>
             <div class="vb-field" id="eb-city-field" hidden>
@@ -205,6 +206,14 @@
               mismatch, or a registration that's since gone inactive). Not opt-in gated; only confirmed
               opt-outs are excluded. District filtering isn't available for this audience &#8212; there's no
               reliable address to derive one from.
+            </p>
+            <p id="eb-verified-unsent-note" class="vb-help" hidden style="margin:-8px 0 16px;color:#7a8a6b;">
+              Addresses the scheduled EmailListVerify job has confirmed deliverable
+              (<code>email_verification_queue</code>, verdict = "good") that no blast has ever attempted to
+              send to. Safe to re-run this filter periodically &#8212; it only ever includes newly-verified,
+              still-unsent addresses, since anyone a blast reaches drops out of this pool automatically.
+              Not opt-in gated; only confirmed opt-outs/suppressions are excluded. District filtering isn't
+              available &#8212; the verification queue carries no district data.
             </p>
 
             <div class="vb-field">
@@ -368,6 +377,6 @@
     </div><!-- /admin-eb-shell -->
   </main>
 
-  <script src="/js/admin-emails-blast.js?v=13"></script>
+  <script src="/js/admin-emails-blast.js?v=14"></script>
 </body>
 </html>

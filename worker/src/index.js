@@ -1505,6 +1505,10 @@ async function countBlastAudienceTotal(env, { filter, city = "", hd = "", sd = "
   if (filter === "purged_voter" && !noGeo) {
     return 0;
   }
+  // Same "no geo data" shape as purged_voter above -- see VERIFIED_UNSENT_WHERE.
+  if (filter === "verified_unsent") {
+    return noGeo ? await countVerifiedUnsentAudience(env.DB) : 0;
+  }
   if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
     return await countEmailContacts(env.DB, { filter, q });
   }
@@ -1521,6 +1525,9 @@ async function queryBlastAudienceChunk(env, { filter, city = "", hd = "", sd = "
   }
   if (filter === "purged_voter" && !noGeo) {
     return [];
+  }
+  if (filter === "verified_unsent") {
+    return noGeo ? await queryVerifiedUnsentAudienceChunk(env.DB, { limit, offset }) : [];
   }
   if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
     return await queryEmailContacts(env.DB, { filter, limit, offset });
@@ -1855,6 +1862,54 @@ async function queryVoterFileAudienceByAddress(env, emailList = []) {
     results.push(...(rows.results || []));
   }
   return results;
+}
+
+// "Screened — Not Yet Sent" (filter=verified_unsent): the email_verification_queue
+// backlog (migration 029, the scheduled EmailListVerify job) filtered to
+// verdict='good', minus anyone email_blast_log already shows as attempted
+// by ANY blast ever (not just one), minus anyone who's opted out or been
+// suppressed since being verified. Self-refreshing by design -- no separate
+// "already sent" tracking needed, since email_blast_log keeps growing with
+// every blast run, so re-running this filter later automatically only
+// picks up newly-verified-and-still-unsent addresses. No geo/district data
+// exists in email_verification_queue (it merges WY_DB + legacy +
+// purged_voter sources into flat email_norm rows), so this filter doesn't
+// support city/hd/sd narrowing -- same "no geo data" shape as purged_voter.
+const VERIFIED_UNSENT_WHERE = `
+  q.verdict = 'good'
+  AND NOT EXISTS (SELECT 1 FROM email_blast_log l WHERE l.email_norm = q.email_norm)
+  AND NOT EXISTS (SELECT 1 FROM email_suppressions es WHERE es.email_norm = q.email_norm)
+  AND NOT EXISTS (
+    SELECT 1 FROM consent_status cs
+     WHERE LOWER(TRIM(COALESCE(cs.email, ''))) = q.email_norm AND cs.consent_email = 0
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM newsletter_subscribers ns
+     WHERE ns.email_norm = q.email_norm AND (ns.consent_email = 0 OR ns.active = 0)
+  )
+`;
+
+async function countVerifiedUnsentAudience(db) {
+  const row = await db.prepare(
+    `SELECT COUNT(*) AS n FROM email_verification_queue q WHERE ${VERIFIED_UNSENT_WHERE}`
+  ).first();
+  return Number(row?.n || 0);
+}
+
+async function queryVerifiedUnsentAudienceChunk(db, { limit = 250, offset = 0 } = {}) {
+  const rows = await db.prepare(
+    `SELECT q.email_norm
+       FROM email_verification_queue q
+      WHERE ${VERIFIED_UNSENT_WHERE}
+      ORDER BY q.email_norm ASC
+      LIMIT ?1 OFFSET ?2`
+  ).bind(limit, Math.max(0, Number(offset) || 0)).all();
+  return (rows.results || []).map((r) => ({
+    email: r.email_norm,
+    email_norm: r.email_norm,
+    first_name: "",
+    email_status: "emailable", // opt-outs/suppressions already excluded in the SQL query itself
+  }));
 }
 
 // Resolves an explicit recipient list against every source a Blast audience
