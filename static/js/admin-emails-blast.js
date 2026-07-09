@@ -377,6 +377,7 @@
     paused   = false;
     blasting = true;
     $('eb-start-btn').disabled = true;
+    $('eb-start-btn').textContent = 'Working…';
     $('eb-pause-btn').disabled = false;
     // A chunk sends sequentially (one email every ~340ms, not parallel), so
     // it can take tens of seconds before the first response comes back and
@@ -446,6 +447,7 @@
       if (data.done) {
         blasting = false;
         $('eb-start-btn').disabled = true;
+        $('eb-start-btn').textContent = 'Complete';
         $('eb-pause-btn').disabled = true;
         sessionStorage.removeItem('eb_blast_id');
         setStatus('eb-stage3-status', `Blast complete! Sent ${currentBlast.sent.toLocaleString()} emails.`, 'success');
@@ -469,6 +471,7 @@
       setPending(false);
       blasting = false;
       $('eb-start-btn').disabled = false;
+      $('eb-start-btn').textContent = 'Resume';
       $('eb-pause-btn').disabled = true;
       setStatus('eb-stage3-status', `Error: ${e.message} — click Resume to retry.`, 'error');
     }

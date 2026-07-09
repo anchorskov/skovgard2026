@@ -1813,7 +1813,34 @@ async function queryEveryEmailAudienceGeoChunk(env, { city = "", hd = "", sd = "
   return all.slice(offset, offset + limit);
 }
 
-async function queryAdminEmailContactsByAddress(db, emailList = []) {
+// WY_DB counterpart to queryVoterFileAudience, but keyed by an explicit
+// address list instead of geo filters -- lets an explicit-recipient send
+// find voter-file-sourced addresses (e.g. from a fetchEveryEmailGeoUnion
+// blast audience) the same way queryVoterFileAudience does for geo queries.
+async function queryVoterFileAudienceByAddress(env, emailList = []) {
+  if (!env.WY_DB || !emailList.length) return [];
+  const placeholders = emailList.map((_value, index) => `?${index + 1}`).join(", ");
+  const sql = `SELECT first_name, last_name, full_name, email_norm, county, house_district, senate_district
+                 FROM v_unique_name_email_not_stale
+                WHERE email_norm IN (${placeholders})`;
+  const rows = await env.WY_DB.prepare(sql).bind(...emailList).all();
+  return rows.results || [];
+}
+
+// Resolves an explicit recipient list against every source a Blast audience
+// can be drawn from -- not just ADMIN_EMAIL_CONTACTS_CTE (ballot_sources'
+// consent_status/newsletter_subscribers). Without the WY_DB fallback below,
+// an explicit-recipient send/preview could never find addresses that only
+// exist in the WY_DB voter file, e.g. a fetchEveryEmailGeoUnion ("every_email"
+// + geo) blast audience -- every one of those addresses would report as
+// "skipped" here even though they're real, reachable, non-suppressed
+// recipients. (Found 2026-07-09 recovering missed recipients from the
+// 2026-07-08 HD01 incident -- see docs/blast_tracking.md.) Legacy-CTE rows
+// win when an address exists in both, since that source carries richer
+// consent/profile data; WY_DB only fills in addresses the legacy CTE has no
+// row for at all.
+async function queryAdminEmailContactsByAddress(env, emailList = []) {
+  const db = env.DB;
   const emails = normalizeRecipientEmails(emailList);
   if (!emails.length) return [];
 
@@ -1838,8 +1865,41 @@ async function queryAdminEmailContactsByAddress(db, emailList = []) {
                   FROM ranked_email_contacts
                  WHERE rn = 1
                    AND email_norm IN (${placeholders})`;
-  const results = ((await db.prepare(sql).bind(...emails).all())?.results || []);
-  const byEmail = new Map(results.map((item) => [item.email_norm, item]));
+  const legacyResults = ((await db.prepare(sql).bind(...emails).all())?.results || []);
+  const byEmail = new Map(legacyResults.map((item) => [item.email_norm, item]));
+
+  const unresolved = emails.filter((email) => !byEmail.has(email));
+  if (unresolved.length) {
+    const [optoutList, voterRows] = await Promise.all([
+      fetchEmailOptoutList(db),
+      queryVoterFileAudienceByAddress(env, unresolved),
+    ]);
+    const optoutSet = new Set(optoutList);
+    for (const r of voterRows) {
+      byEmail.set(r.email_norm, {
+        email_norm: r.email_norm,
+        email: r.email_norm,
+        phone_e164: "",
+        first_name: r.first_name || "",
+        last_name: r.last_name || "",
+        city: r.county || "",
+        state_house_district: r.house_district || "",
+        state_senate_district: r.senate_district || "",
+        consent_email: 1,
+        active: 1,
+        source: "wy_voter_file",
+        consent_version: "",
+        created_at: null,
+        updated_at: null,
+        is_volunteer: 0,
+        // Not opt-in gated, same "everyone except explicit opt-outs" model
+        // fetchEveryEmailGeoUnion/queryVoterFileAudience use -- only real
+        // suppressions/opt-outs mark it unsendable here.
+        email_status: optoutSet.has(r.email_norm) ? "suppressed" : "emailable",
+      });
+    }
+  }
+
   return emails.map((email) => byEmail.get(email)).filter(Boolean);
 }
 
@@ -2185,6 +2245,18 @@ const DELIVERABILITY_COMPLAINT_PAUSE_RATE = 0.003;
 // ones already created with a larger chunk_size, since it's applied here at
 // send time, not at job-creation time.
 const MAX_SEND_CHUNK_SIZE = 20;
+
+// TEMPORARY skip list -- domains whose mail filter has rejected this
+// campaign's content wholesale (identical `554 5.7.1 [VI-101] Message
+// blocked due to spam content` from every recipient behind it, a Vircom-
+// style filter appliance both small WY regional ISPs appear to share), not
+// individual dead mailboxes. Found 2026-07-09 recovering the 2026-07-08 HD01
+// blast -- see docs/blast_tracking.md. Skipping here (not suppressing --
+// these aren't bad addresses) avoids repeating the same rejection on every
+// remaining recipient at these domains until someone reaches out to the
+// ISPs' admins to find out what in the content triggers it. Remove once
+// that's resolved or the affected domains are known-good again.
+const BLAST_CONTENT_FILTER_SKIP_DOMAINS = new Set(["rtconnect.net", "rangeweb.net"]);
 
 // Shared by /api/admin/emails/send and the email blast chunk endpoint so both
 // paths retry/audit-log/idempotency-key identically -- only the caller's
@@ -5828,7 +5900,7 @@ export default {
         }
 
         const audience = useExplicitRecipients
-          ? await queryAdminEmailContactsByAddress(env.DB, requestedRecipients)
+          ? await queryAdminEmailContactsByAddress(env, requestedRecipients)
           : await queryAdminEmailContactsRouted(env.DB, { filter, city, hd, sd, limit, sinceHours });
         const recipients = audience.filter((item) => String(item.email_status || "").trim() === "emailable");
         const audienceSeedEmails = useExplicitRecipients
@@ -5982,7 +6054,7 @@ export default {
         }
 
         const audience = useExplicitRecipients
-          ? await queryAdminEmailContactsByAddress(env.DB, requestedRecipients)
+          ? await queryAdminEmailContactsByAddress(env, requestedRecipients)
           : await queryAdminEmailContactsRouted(env.DB, { filter, city, hd, sd, limit, sinceHours });
         const recipients = audience.filter((item) => String(item.email_status || "").trim() === "emailable");
         const audienceSeedEmails = useExplicitRecipients
@@ -6253,6 +6325,14 @@ export default {
           if (String(recipient.email_status || "").trim() !== "emailable") {
             await env.DB.prepare(
               `INSERT INTO email_blast_log (blast_id, email, email_norm, status) VALUES (?1,?2,?3,'skipped_suppressed')`
+            ).bind(blastId, recipient.email || recipient.email_norm, recipient.email_norm).run();
+            chunkSkipped++;
+            continue;
+          }
+          const domain = String(recipient.email_norm || "").split("@")[1] || "";
+          if (BLAST_CONTENT_FILTER_SKIP_DOMAINS.has(domain)) {
+            await env.DB.prepare(
+              `INSERT INTO email_blast_log (blast_id, email, email_norm, status) VALUES (?1,?2,?3,'skipped_content_filter')`
             ).bind(blastId, recipient.email || recipient.email_norm, recipient.email_norm).run();
             chunkSkipped++;
             continue;
