@@ -1527,7 +1527,8 @@ async function queryBlastAudienceChunk(env, { filter, city = "", hd = "", sd = "
     return [];
   }
   if (filter === "verified_unsent") {
-    return noGeo ? await queryVerifiedUnsentAudienceChunk(env.DB, { limit, offset }) : [];
+    // offset intentionally not passed -- see queryVerifiedUnsentAudienceChunk.
+    return noGeo ? await queryVerifiedUnsentAudienceChunk(env.DB, { limit }) : [];
   }
   if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
     return await queryEmailContacts(env.DB, { filter, limit, offset });
@@ -1896,14 +1897,26 @@ async function countVerifiedUnsentAudience(db) {
   return Number(row?.n || 0);
 }
 
-async function queryVerifiedUnsentAudienceChunk(db, { limit = 250, offset = 0 } = {}) {
+// Deliberately ignores `offset` -- found 2026-07-09 that OFFSET-based
+// paging silently drops roughly half the audience here. VERIFIED_UNSENT_WHERE
+// excludes anyone already in email_blast_log, and every chunk this filter
+// sends gets written to email_blast_log immediately, so the eligible set
+// shrinks by exactly one chunk's worth *between* calls. OFFSET N then means
+// "skip the first N of an already-shrunk list" -- i.e. skip N people who
+// were never actually sent to, not N people who were. Since the exclusion
+// itself already advances the front of the queue as sends happen, always
+// querying from position 0 is correct and sufficient: whoever's still
+// there IS the next batch, full stop -- same pattern as the scheduled
+// email_verification_queue cron handler (WHERE checked_at IS NULL, no
+// OFFSET, for the identical reason).
+async function queryVerifiedUnsentAudienceChunk(db, { limit = 250 } = {}) {
   const rows = await db.prepare(
     `SELECT q.email_norm
        FROM email_verification_queue q
       WHERE ${VERIFIED_UNSENT_WHERE}
       ORDER BY q.email_norm ASC
-      LIMIT ?1 OFFSET ?2`
-  ).bind(limit, Math.max(0, Number(offset) || 0)).all();
+      LIMIT ?1`
+  ).bind(limit).all();
   return (rows.results || []).map((r) => ({
     email: r.email_norm,
     email_norm: r.email_norm,
