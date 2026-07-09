@@ -595,7 +595,10 @@
         <td>${Number(job.failed_count).toLocaleString()}</td>
         <td><span class="vb-status-pill ${job.status}">${job.status}</span></td>
         <td>${job.created_at?.slice(0, 10) || ''}</td>
-        <td>${(job.status === 'paused' || job.status === 'running') ? `<button class="vb-resume-btn" data-id="${job.blast_id}">Resume</button>` : ''}</td>
+        <td>
+          ${(job.status === 'paused' || job.status === 'running') ? `<button class="vb-resume-btn" data-id="${job.blast_id}">Resume</button>` : ''}
+          <button class="vb-load-message-btn" data-id="${job.blast_id}">Load Message</button>
+        </td>
       `;
       tbody.appendChild(tr);
     });
@@ -607,6 +610,35 @@
     wrap.querySelectorAll('.vb-resume-btn').forEach((btn) => {
       btn.addEventListener('click', () => resumeJob(btn.dataset.id));
     });
+    // Reuses the `jobs` already fetched for this table -- no extra request.
+    // Only message content (subject/mode/share slug/intro/body) loads;
+    // audience filter/city/hd/sd are left exactly as the admin has them, so
+    // the same proven message can be paired with a fresh audience (e.g. the
+    // self-refreshing "Screened — Not Yet Sent" filter) without retyping it.
+    wrap.querySelectorAll('.vb-load-message-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const job = jobs.find((j) => j.blast_id === btn.dataset.id);
+        if (job) loadMessageFromJob(job);
+      });
+    });
+  }
+
+  function loadMessageFromJob(job) {
+    // Compose fields stay hidden until an audience filter is chosen (see
+    // bindStage1's hasSelection check) -- Load Message can be clicked before
+    // that happens, so force it visible here rather than leaving loaded
+    // values sitting in a hidden section.
+    const composeSection = $('eb-compose-section');
+    if (composeSection) composeSection.hidden = false;
+
+    if ($('eb-subject')) $('eb-subject').value = job.subject || '';
+    if ($('eb-mode')) $('eb-mode').value = job.email_mode || 'custom';
+    handleModeChange(); // shows/hides share-picker/intro/body fields + populates share slug options
+    if ($('eb-share-slug')) $('eb-share-slug').value = job.share_slug || '';
+    if ($('eb-share-intro')) $('eb-share-intro').value = job.share_intro_text || '';
+    if ($('eb-body')) $('eb-body').value = job.message_body || '';
+    $('eb-subject')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setStatus('eb-stage1-status', 'Message loaded from a previous blast — audience selection left as-is.', 'info');
   }
 
   async function resumeJob(blastId) {

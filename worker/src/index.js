@@ -6673,7 +6673,8 @@ export default {
         if (!auth.ok) return auth.response;
 
         const rows = await env.DB.prepare(
-          `SELECT blast_id, filter, city, hd, sd, subject, email_mode, chunk_size,
+          `SELECT blast_id, filter, city, hd, sd, subject, email_mode,
+                  share_slug, share_intro_text, message_body, chunk_size,
                   total_audience, current_offset, sent_count, failed_count, skipped_count,
                   status, actor_email, created_at, updated_at
              FROM email_blast_jobs
