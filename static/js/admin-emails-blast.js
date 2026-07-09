@@ -370,6 +370,21 @@
   function bindStage3() {
     $('eb-start-btn')?.addEventListener('click', startBlast);
     $('eb-pause-btn')?.addEventListener('click', pauseBlast);
+    $('eb-override-btn')?.addEventListener('click', overrideAndResume);
+  }
+
+  function hideOverrideBtn() {
+    const btn = $('eb-override-btn');
+    if (!btn) return;
+    btn.hidden = true;
+    btn.disabled = true;
+  }
+
+  function showOverrideBtn() {
+    const btn = $('eb-override-btn');
+    if (!btn) return;
+    btn.hidden = false;
+    btn.disabled = false;
   }
 
   function startBlast() {
@@ -379,6 +394,7 @@
     $('eb-start-btn').disabled = true;
     $('eb-start-btn').textContent = 'Working…';
     $('eb-pause-btn').disabled = false;
+    hideOverrideBtn();
     // A chunk sends sequentially (one email every ~340ms, not parallel), so
     // it can take tens of seconds before the first response comes back and
     // the real percentage moves at all. Without this, clicking Start looks
@@ -400,8 +416,34 @@
     $('eb-start-btn').disabled = false;
     $('eb-start-btn').textContent = 'Resume';
     $('eb-pause-btn').disabled = true;
+    // A manual pause isn't a rate signal, but offering the override here too
+    // is harmless -- it only takes effect if explicitly clicked, same as Resume.
+    showOverrideBtn();
     setStatus('eb-stage3-status', 'Paused. Click Resume to continue.', 'info');
     apiFetch('/api/admin/emails/blast/pause', 'PATCH', { blast_id: currentBlast.blast_id }).catch(() => {});
+  }
+
+  // Deliberate, audited, per-job opt-in to a raised bounce-rate ceiling
+  // (worker/src/index.js BLAST_OVERRIDE_BOUNCE_PAUSE_RATE) -- never touches
+  // the complaint-rate threshold or any other job's default. See
+  // docs/blast_tracking.md for why 10% and why per-job, not global.
+  async function overrideAndResume() {
+    if (!currentBlast) return;
+    const ok = confirm(
+      'This raises the bounce-rate safety ceiling to 10% for THIS blast job only '
+        + '(normal default is 5%). It does not change the threshold for any other blast, '
+        + 'and does not affect the separate complaint-rate check. Continue?'
+    );
+    if (!ok) return;
+    try {
+      const res  = await apiFetch('/api/admin/emails/blast/override', 'PATCH', { blast_id: currentBlast.blast_id });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      hideOverrideBtn();
+      startBlast();
+    } catch (e) {
+      setStatus('eb-stage3-status', `Override failed: ${e.message}`, 'error');
+    }
   }
 
   async function sendNextChunk() {
@@ -435,6 +477,13 @@
         const cb = data.circuitBreaker || {};
         const rate = cb.reason === 'complaint_rate' ? cb.complaintRate : cb.bounceRate;
         const label = cb.reason === 'complaint_rate' ? 'complaint' : 'bounce';
+        // Override only ever raises the bounce ceiling -- offering it for a
+        // complaint-rate pause would be misleading, since it can't help there.
+        if (cb.reason === 'bounce_rate') {
+          showOverrideBtn();
+        } else {
+          hideOverrideBtn();
+        }
         setStatus(
           'eb-stage3-status',
           `Paused automatically — ${label} rate hit ${(rate * 100).toFixed(2)}%. `
@@ -449,6 +498,7 @@
         $('eb-start-btn').disabled = true;
         $('eb-start-btn').textContent = 'Complete';
         $('eb-pause-btn').disabled = true;
+        hideOverrideBtn();
         sessionStorage.removeItem('eb_blast_id');
         setStatus('eb-stage3-status', `Blast complete! Sent ${currentBlast.sent.toLocaleString()} emails.`, 'success');
         return;
@@ -473,6 +523,10 @@
       $('eb-start-btn').disabled = false;
       $('eb-start-btn').textContent = 'Resume';
       $('eb-pause-btn').disabled = true;
+      // Not a rate signal (could be a network/API error), so don't offer
+      // the bounce-rate override here -- reload via Recent Blasts if the
+      // job later turns out to need it.
+      hideOverrideBtn();
       setStatus('eb-stage3-status', `Error: ${e.message} — click Resume to retry.`, 'error');
     }
   }
@@ -567,6 +621,11 @@
     $('eb-stage3').hidden = false;
     updateProgress();
     setStageActive(3, true);
+    // Reason for the pause isn't known from this list endpoint alone, so
+    // offer the override whenever a job is sitting paused rather than
+    // trying to infer whether it was rate-related -- clicking it is opt-in
+    // either way.
+    if (job.status === 'paused') showOverrideBtn(); else hideOverrideBtn();
     $('eb-stage3').scrollIntoView({ behavior: 'smooth', block: 'start' });
     setStatus('eb-stage3-status', 'Resumed. Click Start to continue.', 'info');
   }

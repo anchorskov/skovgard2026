@@ -2232,6 +2232,19 @@ const DELIVERABILITY_BOUNCE_PAUSE_RATE = 0.05;
 const DELIVERABILITY_COMPLAINT_WARN_RATE = 0.001;
 const DELIVERABILITY_COMPLAINT_PAUSE_RATE = 0.003;
 
+// Per-job bounce-rate ceiling an admin can explicitly opt into via PATCH
+// /api/admin/emails/blast/override (email_blast_jobs.bounce_pause_rate_override,
+// migration 028) when a specific job's list is known to run hotter than
+// DELIVERABILITY_BOUNCE_PAUSE_RATE -- e.g. a stale voter-file audience --
+// and the admin has decided that's an acceptable, deliberate risk for that
+// one job. Deliberately NOT a change to the default above: every other job,
+// and this job's own complaint-rate check, still uses the normal thresholds.
+// 2026-07-09 decision: 10%, not higher -- stays under the ~10-15% range
+// most mailbox providers treat as a domain-reputation red flag, while still
+// giving real headroom over a single elevated list. See
+// docs/blast_tracking.md.
+const BLAST_OVERRIDE_BOUNCE_PAUSE_RATE = 0.10;
+
 // Hard ceiling on how many recipients a single send-chunk invocation will
 // actually attempt, independent of whatever chunk_size a job was created
 // with. Each recipient costs ~3 Cloudflare subrequests (email_optin_tokens
@@ -6389,12 +6402,18 @@ export default {
         // exact one. That's an inherent property of a webhook-fed guard, not
         // a bug: the alternative is no guard at all.
         let circuitBreaker = null;
+        // Complaint threshold is never overridable (see BLAST_OVERRIDE_BOUNCE_PAUSE_RATE);
+        // bounce threshold uses this job's override if one was explicitly
+        // set via PATCH /api/admin/emails/blast/override, else the normal default.
+        const bouncePauseRate = job.bounce_pause_rate_override != null
+          ? Number(job.bounce_pause_rate_override)
+          : DELIVERABILITY_BOUNCE_PAUSE_RATE;
         if (!chunkComplete && totalSentSoFar >= DELIVERABILITY_MIN_SAMPLE) {
           const rates = await computeBlastJobDeliverabilityRates(env.DB, blastId, totalSentSoFar);
           if (rates.complaintRate >= DELIVERABILITY_COMPLAINT_PAUSE_RATE) {
             circuitBreaker = { tripped: true, reason: "complaint_rate", ...rates };
-          } else if (rates.bounceRate >= DELIVERABILITY_BOUNCE_PAUSE_RATE) {
-            circuitBreaker = { tripped: true, reason: "bounce_rate", ...rates };
+          } else if (rates.bounceRate >= bouncePauseRate) {
+            circuitBreaker = { tripped: true, reason: "bounce_rate", pauseRateUsed: bouncePauseRate, ...rates };
           } else if (
             rates.complaintRate >= DELIVERABILITY_COMPLAINT_WARN_RATE
             || rates.bounceRate >= DELIVERABILITY_BOUNCE_WARN_RATE
@@ -6464,6 +6483,51 @@ export default {
           `UPDATE email_blast_jobs SET status='paused', updated_at=datetime('now') WHERE blast_id=?1 AND status='running'`
         ).bind(blastId).run();
         return json(req, env, { ok: true });
+      }
+
+      // PATCH /api/admin/emails/blast/override — deliberate, audited,
+      // per-job opt-in to a raised bounce-rate ceiling (see
+      // BLAST_OVERRIDE_BOUNCE_PAUSE_RATE above). Only touches this one job's
+      // row; the global DELIVERABILITY_BOUNCE_PAUSE_RATE default, and every
+      // other job's own breaker, are unaffected. Complaint-rate threshold is
+      // never overridden by this endpoint.
+      if (req.method === "PATCH" && path === "/api/admin/emails/blast/override") {
+        if (!env.DB) return json(req, env, { error: "DB not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+        const actor = getAdminActor(req);
+
+        const body = await req.json().catch(() => ({}));
+        const blastId = normalizeText(body.blast_id || "");
+        if (!blastId) return json(req, env, { error: "blast_id required" }, 400);
+
+        const job = await env.DB.prepare(`SELECT * FROM email_blast_jobs WHERE blast_id=?1`).bind(blastId).first();
+        if (!job) return json(req, env, { error: "Blast job not found" }, 404);
+
+        const ratesBefore = await computeBlastJobDeliverabilityRates(env.DB, blastId, Number(job.sent_count || 0));
+
+        await env.DB.prepare(
+          `UPDATE email_blast_jobs SET bounce_pause_rate_override=?2, updated_at=datetime('now') WHERE blast_id=?1`
+        ).bind(blastId, BLAST_OVERRIDE_BOUNCE_PAUSE_RATE).run();
+
+        await insertAdminEmailAuditLog(env.DB, {
+          actorUserId: actor.actorUserId,
+          actorEmail: actor.actorEmail,
+          action: "email_blast_bounce_override",
+          subject: job.subject,
+          detailsJson: JSON.stringify({
+            blastId,
+            previousThreshold: DELIVERABILITY_BOUNCE_PAUSE_RATE,
+            newThreshold: BLAST_OVERRIDE_BOUNCE_PAUSE_RATE,
+            rateAtOverride: ratesBefore,
+          }),
+        });
+
+        return json(req, env, {
+          ok: true,
+          bouncePauseRateOverride: BLAST_OVERRIDE_BOUNCE_PAUSE_RATE,
+          rateAtOverride: ratesBefore,
+        });
       }
 
       // GET /api/admin/emails/deliverability — account-wide bounce/complaint
