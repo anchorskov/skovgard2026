@@ -1701,7 +1701,8 @@ async function fetchEmailOptoutList(db) {
   return [...new Set((rows.results || []).map((r) => r.email_norm).filter(Boolean))];
 }
 
-function buildVoterFileWhere({ county = "", hd = "", sd = "", optoutList = [] } = {}) {
+// Geo-only WHERE -- opt-out exclusion deliberately isn't here (see below).
+function buildVoterFileWhere({ county = "", hd = "", sd = "" } = {}) {
   const binds = [];
   const clauses = ["1=1"];
   if (county) {
@@ -1719,27 +1720,44 @@ function buildVoterFileWhere({ county = "", hd = "", sd = "", optoutList = [] } 
     binds.push(sd);
     clauses.push(`CAST(senate_district AS INTEGER) = CAST(?${binds.length} AS INTEGER)`);
   }
-  if (optoutList.length) {
-    const startIdx = binds.length + 1;
-    optoutList.forEach((email) => binds.push(email));
-    const placeholders = optoutList.map((_, i) => `?${startIdx + i}`).join(", ");
-    clauses.push(`email_norm NOT IN (${placeholders})`);
-  }
   return { where: clauses.join(" AND "), binds };
 }
 
+// Opt-out exclusion moved to JS (not a SQL `NOT IN (?1...?N)`) 2026-07-09.
+// D1 caps bound parameters at 100 PER STATEMENT (not per-clause -- an
+// earlier attempt to split into multiple ANDed NOT IN clauses still hit the
+// same ceiling) -- broke with "variable number must be between ?1 and ?100"
+// resuming the HD01 blast once email_suppressions + opt-outs grew past 100,
+// which the day's own suppression cleanup caused. optoutList has no size
+// limit once filtering happens in JS via a Set.
 async function countVoterFileAudience(env, { county = "", hd = "", sd = "" } = {}) {
-  const optoutList = await fetchEmailOptoutList(env.DB);
-  const { where, binds } = buildVoterFileWhere({ county, hd, sd, optoutList });
-  const row = await env.WY_DB.prepare(
-    `SELECT COUNT(*) AS n FROM v_unique_name_email_not_stale WHERE ${where}`
-  ).bind(...binds).first();
-  return Number(row?.n || 0);
+  const [optoutList, { where, binds }] = [await fetchEmailOptoutList(env.DB), buildVoterFileWhere({ county, hd, sd })];
+  const optoutSet = new Set(optoutList);
+  const rows = await env.WY_DB.prepare(
+    `SELECT email_norm FROM v_unique_name_email_not_stale WHERE ${where}`
+  ).bind(...binds).all();
+  return (rows.results || []).filter((r) => !optoutSet.has(r.email_norm)).length;
 }
 
+// NOTE: because opt-out filtering now happens after the SQL LIMIT/OFFSET
+// slice, a chunk can come back shorter than `limit` even when more real
+// recipients exist further down the list (if several opted-out rows land
+// in that slice) -- callers using `chunk.length < chunkSize` as an
+// end-of-audience signal (queryBlastAudienceChunk's standalone `voter_file`
+// filter) could stop a legacy job slightly early in that edge case. Accepted
+// tradeoff: `voter_file` is documented as a retired/legacy option (superseded
+// by `every_email`+geo, see fetchEveryEmailGeoUnion below) kept only for
+// jobs already created against it, so a rare early-stop there is a minor
+// completeness gap, not a compliance issue -- opted-out people are still
+// never sent to either way. fetchEveryEmailGeoUnion's own caller
+// (queryEveryEmailAudienceGeoChunk) is unaffected: it fetches essentially
+// everything in one shot (EVERY_EMAIL_GEO_FETCH_LIMIT) and paginates in JS
+// against the already-fully-filtered result, so this edge case can't occur
+// there.
 async function queryVoterFileAudience(env, { county = "", hd = "", sd = "", limit = 250, offset = 0 } = {}) {
   const optoutList = await fetchEmailOptoutList(env.DB);
-  const { where, binds } = buildVoterFileWhere({ county, hd, sd, optoutList });
+  const optoutSet = new Set(optoutList);
+  const { where, binds } = buildVoterFileWhere({ county, hd, sd });
   binds.push(limit);
   const limitIdx = binds.length;
   binds.push(Math.max(0, Number(offset) || 0));
@@ -1750,7 +1768,7 @@ async function queryVoterFileAudience(env, { county = "", hd = "", sd = "", limi
                 ORDER BY email_norm ASC
                 LIMIT ?${limitIdx} OFFSET ?${offsetIdx}`;
   const rows = await env.WY_DB.prepare(sql).bind(...binds).all();
-  return rows.results || [];
+  return (rows.results || []).filter((r) => !optoutSet.has(r.email_norm));
 }
 
 // "every_email" narrowed by city/HD/SD -- union of the WY_DB voter file
@@ -1817,14 +1835,26 @@ async function queryEveryEmailAudienceGeoChunk(env, { city = "", hd = "", sd = "
 // address list instead of geo filters -- lets an explicit-recipient send
 // find voter-file-sourced addresses (e.g. from a fetchEveryEmailGeoUnion
 // blast audience) the same way queryVoterFileAudience does for geo queries.
+// Batched into groups of <=90: D1 caps bound parameters at 100 PER
+// STATEMENT, and emailList can be up to 251 (normalizeRecipientEmails' cap)
+// -- found 2026-07-09 alongside the identical ceiling breaking
+// queryVoterFileAudience's opt-out NOT IN. Unlike that one, this is a
+// straightforward IN-lookup with no pagination involved, so separate
+// batched queries (merged below) are the correct fix, not a JS-side filter.
 async function queryVoterFileAudienceByAddress(env, emailList = []) {
   if (!env.WY_DB || !emailList.length) return [];
-  const placeholders = emailList.map((_value, index) => `?${index + 1}`).join(", ");
-  const sql = `SELECT first_name, last_name, full_name, email_norm, county, house_district, senate_district
-                 FROM v_unique_name_email_not_stale
-                WHERE email_norm IN (${placeholders})`;
-  const rows = await env.WY_DB.prepare(sql).bind(...emailList).all();
-  return rows.results || [];
+  const BATCH_SIZE = 90;
+  const results = [];
+  for (let i = 0; i < emailList.length; i += BATCH_SIZE) {
+    const batch = emailList.slice(i, i + BATCH_SIZE);
+    const placeholders = batch.map((_value, index) => `?${index + 1}`).join(", ");
+    const sql = `SELECT first_name, last_name, full_name, email_norm, county, house_district, senate_district
+                   FROM v_unique_name_email_not_stale
+                  WHERE email_norm IN (${placeholders})`;
+    const rows = await env.WY_DB.prepare(sql).bind(...batch).all();
+    results.push(...(rows.results || []));
+  }
+  return results;
 }
 
 // Resolves an explicit recipient list against every source a Blast audience
@@ -1839,33 +1869,42 @@ async function queryVoterFileAudienceByAddress(env, emailList = []) {
 // win when an address exists in both, since that source carries richer
 // consent/profile data; WY_DB only fills in addresses the legacy CTE has no
 // row for at all.
+// Batched into groups of <=90: D1 caps bound parameters at 100 PER
+// STATEMENT, and emailList can be up to 251 (normalizeRecipientEmails' cap)
+// -- same ceiling found 2026-07-09 in queryVoterFileAudience/
+// queryVoterFileAudienceByAddress; fixed here the same way.
 async function queryAdminEmailContactsByAddress(env, emailList = []) {
   const db = env.DB;
   const emails = normalizeRecipientEmails(emailList);
   if (!emails.length) return [];
 
-  const placeholders = emails.map((_value, index) => `?${index + 1}`).join(", ");
-  const sql = `${ADMIN_EMAIL_CONTACTS_CTE}
-                SELECT email_norm,
-                       email,
-                       phone_e164,
-                       first_name,
-                       last_name,
-                       city,
-                       state_house_district,
-                       state_senate_district,
-                       consent_email,
-                       active,
-                       source,
-                       consent_version,
-                       created_at,
-                       updated_at,
-                       is_volunteer,
-                       email_status
-                  FROM ranked_email_contacts
-                 WHERE rn = 1
-                   AND email_norm IN (${placeholders})`;
-  const legacyResults = ((await db.prepare(sql).bind(...emails).all())?.results || []);
+  const BATCH_SIZE = 90;
+  const legacyResults = [];
+  for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+    const batch = emails.slice(i, i + BATCH_SIZE);
+    const placeholders = batch.map((_value, index) => `?${index + 1}`).join(", ");
+    const sql = `${ADMIN_EMAIL_CONTACTS_CTE}
+                  SELECT email_norm,
+                         email,
+                         phone_e164,
+                         first_name,
+                         last_name,
+                         city,
+                         state_house_district,
+                         state_senate_district,
+                         consent_email,
+                         active,
+                         source,
+                         consent_version,
+                         created_at,
+                         updated_at,
+                         is_volunteer,
+                         email_status
+                    FROM ranked_email_contacts
+                   WHERE rn = 1
+                     AND email_norm IN (${placeholders})`;
+    legacyResults.push(...((await db.prepare(sql).bind(...batch).all())?.results || []));
+  }
   const byEmail = new Map(legacyResults.map((item) => [item.email_norm, item]));
 
   const unresolved = emails.filter((email) => !byEmail.has(email));
@@ -2270,6 +2309,18 @@ const MAX_SEND_CHUNK_SIZE = 20;
 // ISPs' admins to find out what in the content triggers it. Remove once
 // that's resolved or the affected domains are known-good again.
 const BLAST_CONTENT_FILTER_SKIP_DOMAINS = new Set(["rtconnect.net", "rangeweb.net"]);
+
+// TEMPORARY skip list -- domains a third-party pre-send verification pass
+// (EmailListVerify, 2026-07-09) could not get a real answer for. Yahoo/AOL
+// actively resist SMTP-probe verification and returned "ok_for_all"
+// (inconclusive) on nearly every address tested, including ones already
+// confirmed dead via a real Resend bounce -- see docs/blast_tracking.md.
+// Not a suppression (most yahoo.com/aol.com addresses are probably fine,
+// this list isn't evidence they're bad) -- just deferring the unverifiable
+// slice of this specific blast rather than repeating the exact bounce
+// pattern already seen. Revisit/remove once there's a way to actually
+// confirm these, or just accept sending to them blind again later.
+const BLAST_UNVERIFIED_SKIP_DOMAINS = new Set(["yahoo.com", "aol.com"]);
 
 // Shared by /api/admin/emails/send and the email blast chunk endpoint so both
 // paths retry/audit-log/idempotency-key identically -- only the caller's
@@ -6346,6 +6397,13 @@ export default {
           if (BLAST_CONTENT_FILTER_SKIP_DOMAINS.has(domain)) {
             await env.DB.prepare(
               `INSERT INTO email_blast_log (blast_id, email, email_norm, status) VALUES (?1,?2,?3,'skipped_content_filter')`
+            ).bind(blastId, recipient.email || recipient.email_norm, recipient.email_norm).run();
+            chunkSkipped++;
+            continue;
+          }
+          if (BLAST_UNVERIFIED_SKIP_DOMAINS.has(domain)) {
+            await env.DB.prepare(
+              `INSERT INTO email_blast_log (blast_id, email, email_norm, status) VALUES (?1,?2,?3,'skipped_unverified')`
             ).bind(blastId, recipient.email || recipient.email_norm, recipient.email_norm).run();
             chunkSkipped++;
             continue;
