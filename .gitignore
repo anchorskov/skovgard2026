@@ -18,6 +18,7 @@ secrets/
 docs/conf.md
 scripts/sync-dev-vars.sh
 scripts/*.state.json
+scripts/verify_hd01_emails_2026-07-09.mjs
 .wrangler/
 **/.wrangler/state/
 **/.wrangler/tmp/
