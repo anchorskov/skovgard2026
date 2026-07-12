@@ -350,7 +350,7 @@ const hasResponses = (qResponses as any[]).length > 0;
 
     const email = qrForm.querySelector('#qr-email')?.value?.trim();
     const cfTurnstileResponse = window.turnstile
-      ? document.querySelector('#qr-ts-widget textarea[name="cf-turnstile-response"]')?.value
+      ? window.turnstile.getResponse('#qr-ts-widget')
       : undefined;
 
     try {
