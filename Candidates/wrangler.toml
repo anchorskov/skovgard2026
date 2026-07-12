@@ -9,6 +9,13 @@ ENVIRONMENT = "production"
 ALLOW_ORIGIN = "https://guide.skovgard2026.org"
 GOOGLE_CIVIC_ELECTION_ID = ""
 TURNSTILE_SITE_KEY = "0x4AAAAAADsXNM0u3sbiGhhl"
+QUESTIONNAIRE_EMAIL_FROM = "profile@grassrootsmvt.org"
+
+# RESEND_API_KEY and TURNSTILE_SECRET_KEY are secrets, not vars — set with:
+#   npx wrangler secret put RESEND_API_KEY
+#   npx wrangler secret put TURNSTILE_SECRET_KEY
+# Without RESEND_API_KEY, /api/questionnaire/request still responds success
+# (to avoid leaking which candidates have an email on file) but sends no mail.
 
 [[d1_databases]]
 binding = "WY_DB"

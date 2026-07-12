@@ -1,0 +1,242 @@
+---
+// Candidates/src/pages/questionnaire/[token].astro
+import Base from '../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+import { QUESTIONNAIRE_QUESTIONS, MAX_ANSWER_LENGTH } from '../../lib/questionnaire';
+
+const { token } = Astro.params;
+if (!token) return Astro.redirect('/guide');
+
+type D1Env = { WY_DB: D1Database };
+const db = (env as unknown as D1Env)?.WY_DB;
+if (!db) return Astro.redirect('/guide');
+
+const tokenRow = await db.prepare(`
+  SELECT t.candidate_id, t.expires_at, c.full_name, c.slug, o.title AS office_title
+  FROM guide_questionnaire_tokens t
+  JOIN candidates c ON c.id = t.candidate_id
+  JOIN offices o ON o.id = c.office_id
+  WHERE t.token = ?1
+`).bind(token).first() as any;
+
+const isExpired = tokenRow?.expires_at && new Date(tokenRow.expires_at).getTime() < Date.now();
+const isValid = Boolean(tokenRow) && !isExpired;
+
+const { results: existing } = isValid
+  ? await db.prepare(`
+      SELECT question_key, response_text FROM guide_questionnaire_responses WHERE candidate_id = ?1
+    `).bind(tokenRow.candidate_id).all()
+  : { results: [] };
+
+const existingMap = new Map((existing as any[]).map((r) => [r.question_key, r.response_text]));
+const maxLabel = MAX_ANSWER_LENGTH.toLocaleString('en-US');
+---
+
+<Base
+  title={isValid ? `Candidate Questionnaire — ${tokenRow.full_name}` : 'Candidate Questionnaire'}
+  description="Wyoming 2026 Primary Voter Guide candidate questionnaire."
+  currentPath={`/questionnaire/${token}`}
+>
+  <div class="q-shell">
+    {!isValid && (
+      <div class="q-error">
+        <h1>This link isn't valid</h1>
+        <p>
+          This questionnaire link is unrecognized or has expired.
+          Email <a href="mailto:jimmy@grassrootsmvt.org" class="guide-link">jimmy@grassrootsmvt.org</a> for a new one.
+        </p>
+      </div>
+    )}
+
+    {isValid && (
+      <>
+        <p class="eyebrow">{tokenRow.office_title}</p>
+        <h1>{tokenRow.full_name}'s questionnaire</h1>
+        <p class="q-intro">
+          Your answers are published verbatim on your
+          <a href={`/candidate/${tokenRow.slug}`} class="guide-link">Wyoming 2026 Voter Guide profile</a>.
+          You can revisit this link any time before the primary to update them.
+        </p>
+
+        <section class="q-notice" aria-label="Section 2 — Wyoming Candidate Questionnaire">
+          <h2>Section 2 — Wyoming Candidate Questionnaire</h2>
+          <p>Please answer each question in {maxLabel} characters or fewer. Spaces, punctuation, and text contained in links count toward the character limit.</p>
+          <p>Responses may be published substantially as submitted. Obvious formatting or typographical errors may be corrected without changing the meaning of an answer.</p>
+        </section>
+
+        <form id="q-form">
+          <input type="hidden" name="token" value={token} />
+          {QUESTIONNAIRE_QUESTIONS.map((q) => {
+            const value = existingMap.get(q.key) ?? '';
+            return (
+              <div class="q-field">
+                <p class="q-number">Question {q.number}</p>
+                {q.intro && <p class="q-field-intro">{q.intro}</p>}
+                <label for={q.key}>{q.label}</label>
+                <textarea
+                  id={q.key}
+                  name={q.key}
+                  rows="5"
+                  maxlength={MAX_ANSWER_LENGTH}
+                  data-counter={`counter-${q.key}`}
+                  set:text={value}
+                ></textarea>
+                <p class="q-counter" id={`counter-${q.key}`} data-max={MAX_ANSWER_LENGTH}>
+                  {value.length.toLocaleString('en-US')} / {maxLabel} characters
+                </p>
+              </div>
+            );
+          })}
+
+          <section class="q-consent" aria-labelledby="consent-title">
+            <h2 id="consent-title">Consent and verification</h2>
+            <label class="q-checkbox">
+              <input type="checkbox" name="consent_authorized" required />
+              I confirm that I am the candidate or am authorized to submit this information for the campaign.
+            </label>
+            <label class="q-checkbox">
+              <input type="checkbox" name="consent_publish" required />
+              I authorize the submitted profile information, questionnaire responses, public contact information, and candidate photograph to be reviewed and, if approved, published on the candidate guide.
+            </label>
+            <p class="q-verify-notice">
+              Corrections and submissions may be verified through an official campaign website, official filing contact, or public campaign email before publication.
+            </p>
+          </section>
+
+          <button type="submit">Submit answers</button>
+          <p id="q-status" role="status"></p>
+        </form>
+      </>
+    )}
+  </div>
+</Base>
+
+<style>
+  .q-shell { padding: 24px 0 64px; max-width: 720px; }
+  .eyebrow { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; color: var(--rust); margin: 0 0 4px; }
+  h1 { margin: 0 0 12px; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+  .q-intro { margin: 0 0 24px; line-height: 1.6; }
+  .guide-link { color: var(--ember); font-weight: 700; }
+
+  .q-error { padding: 24px; border: 1px solid var(--dust); border-left: 4px solid var(--ember); background: var(--bone); }
+
+  .q-notice {
+    padding: 16px 20px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--sandstone);
+    background: var(--bone);
+    margin-bottom: 32px;
+  }
+  .q-notice h2 { margin: 0 0 10px; font-size: 1.1rem; }
+  .q-notice p { margin: 0 0 8px; line-height: 1.55; font-size: 0.92rem; }
+  .q-notice p:last-child { margin-bottom: 0; }
+
+  .q-field { margin-bottom: 30px; }
+  .q-number { margin: 0 0 6px; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; color: var(--rust); }
+  .q-field-intro { margin: 0 0 10px; font-style: italic; line-height: 1.55; }
+  .q-field label {
+    display: block;
+    font-weight: 800;
+    margin-bottom: 8px;
+    white-space: pre-line;
+    line-height: 1.5;
+  }
+  .q-field textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 10px 12px;
+    border: 1px solid var(--dust);
+    background: var(--bone);
+    resize: vertical;
+  }
+  .q-counter { margin: 6px 0 0; font-size: 0.8rem; color: var(--rust); font-weight: 700; }
+  .q-counter.q-counter--limit { color: var(--ember); }
+
+  .q-consent {
+    margin: 8px 0 28px;
+    padding: 18px 20px;
+    border: 1px solid var(--dust);
+    background: var(--bone);
+  }
+  .q-consent h2 { margin: 0 0 14px; font-size: 1.1rem; }
+  .q-checkbox {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+    line-height: 1.5;
+    font-size: 0.92rem;
+  }
+  .q-checkbox input { margin-top: 4px; flex-shrink: 0; }
+  .q-verify-notice { margin: 0; font-size: 0.85rem; color: var(--rust); font-style: italic; }
+
+  #q-form button[type="submit"] {
+    background: var(--ember);
+    color: var(--bone);
+    font-weight: 800;
+    padding: 12px 22px;
+    border: none;
+    cursor: pointer;
+  }
+  #q-form button[type="submit"]:hover { background: #8b1a26; }
+  #q-form button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  #q-status { margin-top: 14px; font-weight: 700; }
+  #q-status.q-status--ok { color: var(--sage); }
+  #q-status.q-status--error { color: var(--ember); }
+</style>
+
+<script define:vars={{ MAX_ANSWER_LENGTH }}>
+  const form = document.querySelector('#q-form');
+  const status = document.querySelector('#q-status');
+
+  form?.querySelectorAll('textarea[data-counter]').forEach((textarea) => {
+    const counterId = textarea.getAttribute('data-counter');
+    const counter = counterId ? document.getElementById(counterId) : null;
+    if (!counter) return;
+    const update = () => {
+      const len = textarea.value.length;
+      counter.textContent = `${len.toLocaleString('en-US')} / ${MAX_ANSWER_LENGTH.toLocaleString('en-US')} characters`;
+      counter.classList.toggle('q-counter--limit', len >= MAX_ANSWER_LENGTH);
+    };
+    textarea.addEventListener('input', update);
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    if (status) { status.textContent = ''; status.className = ''; }
+
+    const tokenInput = form.querySelector('input[name="token"]');
+    const token = tokenInput ? tokenInput.value : '';
+    const consentAuthorized = form.querySelector('input[name="consent_authorized"]')?.checked ?? false;
+    const consentPublish = form.querySelector('input[name="consent_publish"]')?.checked ?? false;
+
+    const responses = {};
+    form.querySelectorAll('textarea[data-counter]').forEach((textarea) => {
+      responses[textarea.name] = textarea.value;
+    });
+
+    try {
+      const res = await fetch('/api/questionnaire/submit', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token, responses, consentAuthorized, consentPublish }),
+      });
+      const data = await res.json();
+      if (status) {
+        status.textContent = data.message || (data.success ? 'Saved.' : 'Something went wrong.');
+        status.className = data.success ? 'q-status--ok' : 'q-status--error';
+      }
+    } catch {
+      if (status) {
+        status.textContent = 'Network error — please try again.';
+        status.className = 'q-status--error';
+      }
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
+  });
+</script>

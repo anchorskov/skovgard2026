@@ -3,6 +3,7 @@
 import Base from '../../layouts/Base.astro';
 import { env } from 'cloudflare:workers';
 import { loadActiveRubric } from '../../lib/rubric';
+import { QUESTIONNAIRE_LABELS } from '../../lib/questionnaire';
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/guide');
@@ -57,6 +58,10 @@ const isPublished = endorsement?.published_at != null;
 const isEndorsed  = endorsement?.status === 'endorsed';
 const isResearch  = !endorsement || endorsement.status === 'research';
 
+const turnstileSiteKey = (env as any)?.TURNSTILE_SITE_KEY || '';
+const isLocalReview = import.meta.env.DEV;
+const turnstileEnabled = Boolean(turnstileSiteKey && !isLocalReview);
+
 const categoryOrder = rubric.categories.map((category) => category.key);
 const categoryLabels = Object.fromEntries(rubric.categories.map((category) => [category.key, category.label]));
 
@@ -75,14 +80,8 @@ const maxPossible = endorsement?.max_possible ?? null;
 const fullMaximum = rubric.scoring.max * rubric.categories.reduce((sum, category) => sum + category.weight, 0);
 const evidenceCoverage = maxPossible != null ? Math.round((maxPossible / fullMaximum) * 100) : null;
 
-const questionLabels: Record<string, string> = {
-  constitutional_position: 'What is your understanding of the constitutional limits of this office?',
-  top_wyoming_issue:       'What is the most important issue facing Wyoming right now?',
-  fiscal_position:         'How do you approach state spending, debt, and long-term obligations?',
-  local_impact:            'Describe a decision you\'ve seen or made that affected local Wyoming families.',
-  public_service_motive:   'Why are you running for this office?',
-  endorsement_response:    'Is there anything in this research profile you would like to clarify or correct?',
-};
+const questionLabels = QUESTIONNAIRE_LABELS;
+const hasResponses = (qResponses as any[]).length > 0;
 ---
 
 <Base
@@ -151,6 +150,34 @@ const questionLabels: Record<string, string> = {
       <div class="research-notice">
         <strong>Research in progress.</strong> This profile will be published July 15, 2026.
       </div>
+    )}
+
+    {!hasResponses && (
+      <section class="questionnaire-request" aria-labelledby="qr-title">
+        <h2 id="qr-title">Are you {candRow.full_name}?</h2>
+        <p>
+          Enter the email address on file with your candidate filing and we'll send a private link
+          to complete the questionnaire yourself. Your answers are published verbatim on this page.
+        </p>
+        <form id="qr-form">
+          <input type="hidden" name="slug" value={slug} />
+          <label for="qr-email" class="sr-only">Email address on file with your filing</label>
+          <div class="qr-row">
+            <input id="qr-email" name="email" type="email" placeholder="you@example.com" required />
+            <button type="submit">Send my link</button>
+          </div>
+          {turnstileEnabled && (
+            <div
+              id="qr-ts-widget"
+              class="cf-turnstile"
+              data-sitekey={turnstileSiteKey}
+              data-size="normal"
+              data-appearance="interaction-only"
+            ></div>
+          )}
+          <p id="qr-status" role="status"></p>
+        </form>
+      </section>
     )}
 
     <!-- Endorsement block -->
@@ -310,6 +337,45 @@ const questionLabels: Record<string, string> = {
   </div>
 </Base>
 
+{turnstileEnabled && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
+
+<script define:vars={{ slug }}>
+  const qrForm = document.querySelector('#qr-form');
+  const qrStatus = document.querySelector('#qr-status');
+  qrForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitButton = qrForm.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    if (qrStatus) { qrStatus.textContent = ''; qrStatus.className = ''; }
+
+    const email = qrForm.querySelector('#qr-email')?.value?.trim();
+    const cfTurnstileResponse = window.turnstile
+      ? document.querySelector('#qr-ts-widget textarea[name="cf-turnstile-response"]')?.value
+      : undefined;
+
+    try {
+      const res = await fetch('/api/questionnaire/request', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slug, email, cf_turnstile_response: cfTurnstileResponse }),
+      });
+      const data = await res.json();
+      if (qrStatus) {
+        qrStatus.textContent = data.message || 'Something went wrong.';
+        qrStatus.className = data.success ? 'qr-status--ok' : 'qr-status--error';
+      }
+    } catch {
+      if (qrStatus) {
+        qrStatus.textContent = 'Network error — please try again.';
+        qrStatus.className = 'qr-status--error';
+      }
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+      if (window.turnstile) window.turnstile.reset('#qr-ts-widget');
+    }
+  });
+</script>
+
 <style>
   .profile-shell {
     padding: 24px 0 64px;
@@ -404,6 +470,47 @@ const questionLabels: Record<string, string> = {
     font-size: 0.95rem;
   }
 
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .questionnaire-request {
+    padding: 20px 24px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--ember);
+    background: var(--bone);
+    margin-bottom: 28px;
+  }
+  .questionnaire-request h2 { margin: 0 0 8px; font-size: 1.15rem; }
+  .questionnaire-request p { margin: 0 0 14px; line-height: 1.6; }
+  .qr-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .qr-row input[type="email"] {
+    flex: 1 1 260px;
+    padding: 10px 12px;
+    border: 1px solid var(--dust);
+    font-size: 0.92rem;
+    background: #fff;
+  }
+  .qr-row button[type="submit"] {
+    background: var(--ember);
+    color: var(--bone);
+    font-weight: 800;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+  }
+  .qr-row button[type="submit"]:hover { background: #8b1a26; }
+  .qr-row button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
+  #qr-status { margin: 10px 0 0; font-weight: 700; font-size: 0.88rem; }
+  #qr-status.qr-status--ok { color: var(--sage); }
+  #qr-status.qr-status--error { color: var(--ember); }
+
   .endorsement-block {
     background: var(--bone);
     border: 1px solid var(--dust);
@@ -497,9 +604,9 @@ const questionLabels: Record<string, string> = {
   .q-note { margin: 0 0 20px; font-size: 0.88rem; color: var(--rust); font-style: italic; }
 
   .q-responses { display: grid; gap: 20px; }
-  .q-responses dt { font-weight: 800; font-size: 0.92rem; color: var(--charcoal); margin-bottom: 6px; }
+  .q-responses dt { font-weight: 800; font-size: 0.92rem; color: var(--charcoal); margin-bottom: 6px; white-space: pre-line; }
   .q-responses dd { margin: 0; padding: 14px; border-left: 4px solid var(--sandstone); background: var(--bone); }
-  .q-responses p { margin: 0 0 6px; line-height: 1.6; }
+  .q-responses p { margin: 0 0 6px; line-height: 1.6; white-space: pre-line; }
   .q-date { font-size: 0.78rem; color: var(--rust); font-weight: 700; margin-top: 8px; }
 
   /* Corrections */
