@@ -152,7 +152,7 @@ const hasResponses = (qResponses as any[]).length > 0;
       </div>
     )}
 
-    {isResearch && !isPublished && (
+    {isResearch && !isPublished && endorsement?.candidate_response_status !== 'responded' && (
       <div class="research-notice">
         <strong>Research in progress.</strong> This profile will be published July 15, 2026.
       </div>
