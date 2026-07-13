@@ -5,7 +5,11 @@ function normalizeText(value) {
 }
 
 function escapeHtml(value) {
-  return normalizeText(value)
+  // Deliberately does not trim -- renderPlainTextHtml calls this on interior
+  // text slices (the space before a URL, the blank line after it) where
+  // leading/trailing whitespace is significant and must survive the final
+  // \n -> <br> pass.
+  return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -13,8 +17,51 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+// Custom-mode emails are authored as plain text (see buildAdminOutreachEmail
+// below) but still send an HTML alternative part -- this turns links in that
+// text into a styled, clickable button in the HTML version only, so
+// recipients who don't naturally click a plain-text link have something more
+// visually obvious to tap. See renderButtonHtml below for the button color.
+//
+// The body author can write `[Button Text](https://...)` to control the
+// button's label; a bare URL falls back to showing the URL itself as the
+// label. Both forms render as the same styled button in HTML.
+const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|https?:\/\/[^\s<>"]+/g;
+
+// Sandstone (#c68a4a / "wy-gold" alias) -- brand/palette.json's secondary-warm
+// color, used here instead of Ember since a full-Ember button read as too loud.
+function renderButtonHtml(label, url) {
+  return `<a href="${escapeHtml(url)}" style="display:inline-block;background:#c68a4a;color:#2b2b2b;font-weight:bold;text-decoration:none;padding:10px 18px;border-radius:6px;margin:6px 0;">${escapeHtml(label)}</a>`;
+}
+
 function renderPlainTextHtml(value) {
-  return escapeHtml(value).replaceAll("\n", "<br>");
+  const text = String(value ?? "");
+  let html = "";
+  let lastIndex = 0;
+  for (const match of text.matchAll(LINK_PATTERN)) {
+    html += escapeHtml(text.slice(lastIndex, match.index));
+    const [full, label, markdownUrl] = match;
+    html += label && markdownUrl ? renderButtonHtml(label, markdownUrl) : renderButtonHtml(full, full);
+    lastIndex = match.index + full.length;
+  }
+  html += escapeHtml(text.slice(lastIndex));
+  return html.replaceAll("\n", "<br>");
+}
+
+// The plain-text part must not contain literal `[label](url)` markup, so
+// collapse it to "label: url" for readers on plain-text clients.
+function renderPlainTextBody(value) {
+  const text = String(value ?? "");
+  let out = "";
+  let lastIndex = 0;
+  for (const match of text.matchAll(LINK_PATTERN)) {
+    out += text.slice(lastIndex, match.index);
+    const [full, label, markdownUrl] = match;
+    out += label && markdownUrl ? `${label}: ${markdownUrl}` : full;
+    lastIndex = match.index + full.length;
+  }
+  out += text.slice(lastIndex);
+  return out;
 }
 
 export function getAdminEmailConfig(env) {
@@ -37,7 +84,7 @@ export function buildAdminOutreachEmail(config, recipient, subject, body, option
     to: [to],
     ...(replyTo ? { reply_to: replyTo } : {}),
     subject: normalizedSubject,
-    text: normalizedBody,
+    text: renderPlainTextBody(normalizedBody),
     html: `
       <div style="font-family: Georgia, 'Times New Roman', serif; color: #0f172a; line-height: 1.6;">
         ${renderPlainTextHtml(normalizedBody)}

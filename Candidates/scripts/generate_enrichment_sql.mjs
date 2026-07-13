@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const DOWNLOADS = '/mnt/c/Users/ancho/Downloads';
+const SEED_DIR = 'db/seed';
 const OUT = 'db/seed/002_enrichment_updates.sql';
 
 // ── CSV parser (handles quoted fields with embedded commas and "" escapes) ──
@@ -39,10 +39,10 @@ function esc(v) {
 }
 
 // ── Collect batch files ──────────────────────────────────────────────────────
-const files = readdirSync(DOWNLOADS)
+const files = readdirSync(SEED_DIR)
   .filter(f => /^wy_2026_primary_candidates_enhanced_batch\d+_rows/.test(f))
   .sort()
-  .map(f => join(DOWNLOADS, f));
+  .map(f => join(SEED_DIR, f));
 
 console.log(`Found ${files.length} batch file(s):`);
 files.forEach(f => console.log(' ', f.split('/').pop()));

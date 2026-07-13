@@ -16,6 +16,8 @@ import {
   insertAdminEmailAuditLog,
   sendAdminOutreachEmail,
 } from "./admin-email.js";
+import { lookupWyLegislativeDistricts, geocodeAddress } from "./address-districts.js";
+import { resolvePrecinct } from "./precinct-lookup.js";
 import { sendPulseOptInEmails } from "./pulse-email.js";
 import { sendResendEmail } from "./resend.js";
 import {
@@ -303,13 +305,14 @@ function bodyNeedsPersonalization(bodyHtml) {
 // No "there"/generic fallback when a contact has no name on file -- the
 // template's ", {first_name}" is dropped entirely (via the first .replace
 // below) so a blank name reads as "Hi," instead of "Hi, ," or "Hi, there,".
-function substitutePersonalization(text, { firstName = "", optinYesUrl = "", optinNoUrl = "" } = {}) {
+function substitutePersonalization(text, { firstName = "", optinYesUrl = "", optinNoUrl = "", pollLink = "" } = {}) {
   const name = titleCase(String(firstName || "").trim());
   return String(text || "")
     .replace(/,(\s*)\{first_name\}/gi, name ? `,$1${name}` : "")
     .replace(/\{first_name\}/gi, name)
     .replace(/\{optin_yes_url\}/g, optinYesUrl)
-    .replace(/\{optin_no_url\}/g, optinNoUrl);
+    .replace(/\{optin_no_url\}/g, optinNoUrl)
+    .replace(/\{poll_link\}/g, pollLink);
 }
 
 async function createEmailOptinToken(db, { email, emailNorm, messageSlug, batchId }) {
@@ -1509,6 +1512,10 @@ async function countBlastAudienceTotal(env, { filter, city = "", hd = "", sd = "
   if (filter === "verified_unsent") {
     return noGeo ? await countVerifiedUnsentAudience(env.DB) : 0;
   }
+  // Same "no geo data" shape -- see pollInviteWhereClause.
+  if (filter === "poll_invite_2026") {
+    return noGeo ? await countPollInviteAudience(env.DB) : 0;
+  }
   if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
     return await countEmailContacts(env.DB, { filter, q });
   }
@@ -1518,7 +1525,7 @@ async function countBlastAudienceTotal(env, { filter, city = "", hd = "", sd = "
   return await countAdminEmailContacts(env.DB, { filter, city, hd, sd, sinceHours });
 }
 
-async function queryBlastAudienceChunk(env, { filter, city = "", hd = "", sd = "", sinceHours = 24, limit, offset } = {}) {
+async function queryBlastAudienceChunk(env, { filter, city = "", hd = "", sd = "", sinceHours = 24, limit, offset, blastId } = {}) {
   const noGeo = !city && !hd && !sd;
   if (filter === "every_email" && !noGeo) {
     return await queryEveryEmailAudienceGeoChunk(env, { city, hd, sd, limit, offset });
@@ -1529,6 +1536,10 @@ async function queryBlastAudienceChunk(env, { filter, city = "", hd = "", sd = "
   if (filter === "verified_unsent") {
     // offset intentionally not passed -- see queryVerifiedUnsentAudienceChunk.
     return noGeo ? await queryVerifiedUnsentAudienceChunk(env.DB, { limit }) : [];
+  }
+  if (filter === "poll_invite_2026") {
+    // offset intentionally not passed -- see queryPollInviteAudienceChunk.
+    return noGeo ? await queryPollInviteAudienceChunk(env, blastId, { limit }) : [];
   }
   if (noGeo && EMAIL_CONTACTS_FILTERS[filter]) {
     return await queryEmailContacts(env.DB, { filter, limit, offset });
@@ -1925,6 +1936,195 @@ async function queryVerifiedUnsentAudienceChunk(db, { limit = 250 } = {}) {
   }));
 }
 
+// Mirrors grassmvt_survey's formatDistrictNumber -- voters_addr_norm (the
+// Candidates sub-project's own canonical district source, see
+// race_poll_data_plan.md) stores house/senate unpadded ("3"), but
+// race_candidates.district_number is zero-padded ("03"). Pad here so poll_invite_2026
+// recipients resolve districts the exact same way Candidates does, not just from
+// the same table.
+function padDistrictNumber(value, width = 2) {
+  const parsed = parseInt(String(value || "").trim(), 10);
+  if (Number.isNaN(parsed)) return null;
+  return String(parsed).padStart(width, "0");
+}
+
+// "poll_invite_2026" (filter=poll_invite_2026): invites Wyoming voters with a
+// verified-good email (email_verification_queue verdict='good') to the informal
+// 2026 primary candidate-choice poll (grassmvt_survey). Exclusion is job-scoped
+// (this blast_id's own email_blast_log rows) rather than global-ever like
+// VERIFIED_UNSENT_WHERE -- someone who already received some other campaign blast
+// should still get this one-time poll invite; only a retry of THIS job should skip
+// someone it already sent to. No geo/district data in email_verification_queue
+// itself (same as verified_unsent) -- district/party come from a WY_DB
+// voter_emails/voters join at query time instead, so this filter doesn't support
+// city/hd/sd narrowing at the job-creation level.
+function pollInviteWhereClause(blastId) {
+  const scopeClause = blastId
+    ? `NOT EXISTS (SELECT 1 FROM email_blast_log l WHERE l.blast_id = ?1 AND l.email_norm = q.email_norm)`
+    : `1=1`;
+  const binds = blastId ? [blastId] : [];
+  return {
+    sql: `
+      q.verdict = 'good'
+      AND ${scopeClause}
+      AND NOT EXISTS (SELECT 1 FROM email_suppressions es WHERE es.email_norm = q.email_norm)
+      AND NOT EXISTS (
+        SELECT 1 FROM consent_status cs
+         WHERE LOWER(TRIM(COALESCE(cs.email, ''))) = q.email_norm AND cs.consent_email = 0
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM newsletter_subscribers ns
+         WHERE ns.email_norm = q.email_norm AND (ns.consent_email = 0 OR ns.active = 0)
+      )
+    `,
+    binds,
+  };
+}
+
+async function countPollInviteAudience(db) {
+  const { sql, binds } = pollInviteWhereClause(null);
+  const row = await db.prepare(
+    `SELECT COUNT(*) AS n FROM email_verification_queue q WHERE ${sql}`
+  ).bind(...binds).first();
+  return Number(row?.n || 0);
+}
+
+// Same no-OFFSET discipline as queryVerifiedUnsentAudienceChunk, but job-scoped:
+// each call excludes only this blast_id's own email_blast_log rows, which grow as
+// this job sends -- so always querying from position 0 within that job-scoped
+// exclusion is correct and sufficient (same reasoning, narrower scope).
+//
+// After the email_verification_queue slice, batch-joins WY_DB voter_emails ->
+// voters/voters_addr_norm (<=90 per batch, same D1 100-bound-param ceiling as
+// queryVoterFileAudienceByAddress) to get voter_id/political_party/address --
+// the poll needs a voter_id to mint a token against, so an address with no voter
+// match is dropped rather than sent with no poll link.
+//
+// House/senate districts are resolved via lookupWyLegislativeDistricts
+// (address-districts.js) -- the exact same canonical resolver already used by
+// this worker's own Telnyx SMS opt-in address handling, and the same
+// wy_address_district_lookup mirror + Census-geocoder-polygon fallback the
+// Candidates sub-project's ballot-lookup flow uses. This must resolve districts
+// the same way those flows do, not independently from voters.house/senate or
+// voters_addr_norm.house/senate directly -- confirmed 2026-07-11 (caught by a
+// real test send showing the wrong district) that both of those raw columns
+// diverge from this canonical resolution for a meaningful share of real voters.
+// political_party has no equivalent in the district-lookup path, so that still
+// comes from voters.
+async function queryPollInviteAudienceChunk(env, blastId, { limit = 250 } = {}) {
+  const { sql, binds } = pollInviteWhereClause(blastId);
+  const rows = await env.DB.prepare(
+    `SELECT q.email_norm
+       FROM email_verification_queue q
+      WHERE ${sql}
+      ORDER BY q.email_norm ASC
+      LIMIT ?${binds.length + 1}`
+  ).bind(...binds, limit).all();
+  const emailNorms = (rows.results || []).map((r) => r.email_norm);
+  if (!emailNorms.length || !env.WY_DB) return [];
+
+  const BATCH_SIZE = 90;
+  const voterIdByEmail = new Map();
+  for (let i = 0; i < emailNorms.length; i += BATCH_SIZE) {
+    const batch = emailNorms.slice(i, i + BATCH_SIZE);
+    const placeholders = batch.map((_v, idx) => `?${idx + 1}`).join(", ");
+    const veRows = await env.WY_DB.prepare(
+      `SELECT voter_id, email_norm FROM voter_emails WHERE email_norm IN (${placeholders})`
+    ).bind(...batch).all();
+    for (const r of veRows.results || []) {
+      if (r.voter_id && !voterIdByEmail.has(r.email_norm)) voterIdByEmail.set(r.email_norm, r.voter_id);
+    }
+  }
+  if (!voterIdByEmail.size) return [];
+
+  const voterIds = [...new Set(voterIdByEmail.values())];
+  const votersByVoterId = new Map();
+  for (let i = 0; i < voterIds.length; i += BATCH_SIZE) {
+    const batch = voterIds.slice(i, i + BATCH_SIZE);
+    const placeholders = batch.map((_v, idx) => `?${idx + 1}`).join(", ");
+    const vRows = await env.WY_DB.prepare(
+      `SELECT v.voter_id, v.political_party, van.addr_raw, van.city, van.zip
+         FROM voters v
+         LEFT JOIN voters_addr_norm van ON van.voter_id = v.voter_id
+        WHERE v.voter_id IN (${placeholders})`
+    ).bind(...batch).all();
+    for (const r of vRows.results || []) votersByVoterId.set(r.voter_id, r);
+  }
+
+  // One lookupWyLegislativeDistricts call per voter -- not batchable like the SQL
+  // joins above, since it has its own internal cascade (local mirror, then a Census
+  // API fetch only when the local mirror has no unique match). Chunk sizes are
+  // small (<=MAX_SEND_CHUNK_SIZE, 20) so this is a handful of calls per chunk, not
+  // hundreds.
+  //
+  // Precinct resolution needs coordinates independently -- a wy_address_district_lookup
+  // hit for HD/SD involves no geocoding at all (voters_addr_norm.lat/lng are 0%
+  // populated, confirmed 2026-07-11), so every voter needs its own live geocode call
+  // here regardless of how house/senate resolved. This is the same live-per-recipient
+  // cost tradeoff accepted for the real send (~14,200 recipients) -- revisit
+  // throughput/rate-limiting when step 7 is actually scheduled, per Jimmy's direction.
+  const districtsByVoterId = new Map();
+  const precinctByVoterId = new Map();
+  for (const voterId of voterIds) {
+    const voter = votersByVoterId.get(voterId);
+    if (!voter?.addr_raw) continue;
+    try {
+      const resolved = await lookupWyLegislativeDistricts(env.DB, {
+        address1: voter.addr_raw,
+        city: voter.city,
+        zip: voter.zip,
+        state: "WY",
+      });
+      districtsByVoterId.set(voterId, resolved);
+
+      const county = resolved?.county;
+      if (county) {
+        const coords = await geocodeAddress({
+          address1: voter.addr_raw,
+          city: voter.city,
+          zip: voter.zip,
+        });
+        if (coords?.lat != null && coords?.lon != null) {
+          const precinct = await resolvePrecinct(env.WY_DB, county, coords.lat, coords.lon);
+          if (precinct) precinctByVoterId.set(voterId, precinct);
+        }
+      }
+    } catch (error) {
+      console.error("[queryPollInviteAudienceChunk] district/precinct lookup failed", {
+        voterId,
+        message: error?.message,
+      });
+    }
+  }
+
+  const recipients = [];
+  for (const emailNorm of emailNorms) {
+    const voterId = voterIdByEmail.get(emailNorm);
+    if (!voterId) continue; // dropped: no voter_emails match
+    const voter = votersByVoterId.get(voterId);
+    const districts = districtsByVoterId.get(voterId);
+    const precinct = precinctByVoterId.get(voterId);
+    recipients.push({
+      email: emailNorm,
+      email_norm: emailNorm,
+      first_name: "",
+      email_status: "emailable",
+      voter_id: voterId,
+      // lookupWyLegislativeDistricts normalizes to unpadded digits ("3", not
+      // "03") -- pad to 2 digits here the same way grassmvt_survey's
+      // formatDistrictNumber does, so this matches race_candidates.district_number's
+      // zero-padded format.
+      house_district: padDistrictNumber(districts?.stateHouseDistrict),
+      senate_district: padDistrictNumber(districts?.stateSenateDistrict),
+      political_party: voter?.political_party || null,
+      county: districts?.county || null,
+      city: voter?.city || null,
+      precinct_code: precinct?.precinctCode || null,
+    });
+  }
+  return recipients;
+}
+
 // Resolves an explicit recipient list against every source a Blast audience
 // can be drawn from -- not just ADMIN_EMAIL_CONTACTS_CTE (ballot_sources'
 // consent_status/newsletter_subscribers). Without the WY_DB fallback below,
@@ -2123,6 +2323,64 @@ async function mapInBatches(items, batchSize, pauseMs, worker) {
   }
 
   return results;
+}
+
+// filter=poll_invite_2026 only: mints a poll_invite_tokens row on grassmvt_survey
+// per recipient (server-to-server, POLL_MINT_SERVICE_KEY -- not the human admin-key
+// path) and attaches poll_link. A recipient whose mint call fails is excluded from
+// the send entirely (never emailed with no real link) and reported back as a
+// distinct failure so send-chunk can log it instead of silently dropping them.
+// Concurrency capped like the send step itself, but with no delay -- this hits our
+// own service, not a rate-limited external API like Resend.
+const POLL_MINT_BATCH_SIZE = 5;
+
+async function mintPollInviteLinksForChunk(env, recipients) {
+  const baseUrl = String(env.GRASSMVT_SURVEY_BASE_URL || "").trim();
+  const serviceKey = String(env.POLL_MINT_SERVICE_KEY || "").trim();
+  if (!baseUrl || !serviceKey) {
+    return {
+      withLinks: [],
+      mintFailures: recipients.map((recipient) => ({
+        recipient,
+        error: "GRASSMVT_SURVEY_BASE_URL or POLL_MINT_SERVICE_KEY not configured",
+      })),
+    };
+  }
+
+  const settled = await mapInBatches(recipients, POLL_MINT_BATCH_SIZE, 0, async (recipient) => {
+    try {
+      const res = await fetch(`${baseUrl}/api/poll/admin/mint-invite-token`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          service_key: serviceKey,
+          voter_id: recipient.voter_id,
+          email_norm: recipient.email_norm,
+          house_district: recipient.house_district || undefined,
+          senate_district: recipient.senate_district || undefined,
+          political_party: recipient.political_party || undefined,
+          county: recipient.county || undefined,
+          city: recipient.city || undefined,
+          precinct_code: recipient.precinct_code || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok || !data.poll_link) {
+        return { recipient, error: data.error || `mint failed (${res.status})` };
+      }
+      return { recipient: { ...recipient, poll_link: data.poll_link } };
+    } catch (err) {
+      return { recipient, error: String(err?.message || err) };
+    }
+  });
+
+  const withLinks = [];
+  const mintFailures = [];
+  for (const result of settled) {
+    if (result.error) mintFailures.push(result);
+    else withLinks.push(result.recipient);
+  }
+  return { withLinks, mintFailures };
 }
 
 function parseRetryAfterMs(value) {
@@ -2428,9 +2686,19 @@ async function sendOneAdminEmail(env, {
     messageSlug: emailMode !== "custom" ? shareSlug : "admin_email",
     batchId,
   });
+  // Feedback-ID: <id1>:<id2>:<esp> -- Gmail associates this header with the
+  // message and attributes any later "Report spam" click back to these
+  // identifiers, surfaced in Postmaster Tools' per-campaign Feedback Loop
+  // report (currently "0%, zero identifiers" domain-wide because no send has
+  // ever carried this header -- added 2026-07-12 after that report showed an
+  // 8.8% domain-wide complaint rate with no per-campaign breakdown to
+  // diagnose it). batchId ties directly to email_blast_jobs for filter/
+  // subject context; no separate Resend or Google enrollment needed, Gmail
+  // parses whatever header is present on an authenticated message.
   const listUnsubscribeHeaders = {
     "List-Unsubscribe": `<${optinToken.noUrl}>`,
     "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    "Feedback-ID": `${batchId}:${emailMode}:resend`,
   };
 
   let attempt = 0;
@@ -2485,11 +2753,18 @@ async function sendOneAdminEmail(env, {
         const resendResult = await sendResendEmail(emailConfig.apiKey, shareMessage, idempotencyKey);
         result = { sent: true, id: resendResult?.id || null, to: recipientEmail };
       } else {
+        // poll_invite_2026 attaches recipient.poll_link during mint (see
+        // mintPollInviteLinksForChunk); every other custom-mode send has no
+        // poll_link, so this is a no-op for them (the {poll_link} regex simply
+        // finds nothing to replace).
+        const personalizedBody = recipient?.poll_link
+          ? substitutePersonalization(messageBody, { pollLink: recipient.poll_link })
+          : messageBody;
         result = await sendAdminOutreachEmail(
           env,
           recipient,
           subject,
-          messageBody,
+          personalizedBody,
           {
             batchId,
             idempotencyKey,
@@ -2568,6 +2843,19 @@ async function sendOneAdminEmail(env, {
         email: recipient.email,
         error: String(error?.message || error || "Unknown email error"),
         status: error?.status || null,
+        // Resend returns this specific error only when the exact same
+        // idempotency key (sha256 of blastId+email_norm, deterministic --
+        // see idempotencyKey above) already succeeded once within the last
+        // 24 hours. It surfaces here when OUR OWN email_blast_log has no
+        // 'sent' row for this recipient -- confirmed 2026-07-10 this happens
+        // when a prior send-chunk invocation was killed by Cloudflare's
+        // CPU-time limit (error 1102) after Resend accepted the send but
+        // before the D1 write recording it ran. Treat as "already delivered,
+        // not a real failure" -- confirmed by re-checking recipients from an
+        // earlier incident: deleting their email_blast_log row and letting
+        // them be re-selected just reproduces the identical Resend rejection
+        // every time, proving no duplicate was ever actually sent.
+        likelyAlreadySent: error?.body?.name === "invalid_idempotent_request",
         attempt,
       };
     }
@@ -2689,8 +2977,19 @@ async function createStripePaymentIntent(env, data, metadata = {}) {
 // are in EmailListVerify's own docs; found by manually curling the live
 // endpoint).
 // ---------------------------------------------------------------------------
-const EMAIL_VERIFICATION_BATCH_SIZE = 25;
+// Reduced from 45 to 30 on 2026-07-11 -- monitoring after the 45 change showed a
+// real tick running 110-130s (close to/over the 120s cron interval), with a second
+// tick's rows visibly interleaved with the first tick's tail end starting right at
+// the next */2 boundary. Two concurrent invocations pacing at ~0.83 req/s each can
+// combine to ~1.66 req/s against EmailListVerify, over its real ~1/s limit during
+// the overlap window. 30 kept a tick comfortably under 120s (observed ~2.4s/item
+// average cycle time -- pacing plus real request latency -- put 30 items at ~75s).
+// Raised to 36 on 2026-07-11 -- at the same ~2.4s/item pace that's ~86s, still with
+// real margin under 120s. Re-verify with a couple of real ticks after deploying,
+// same as the 30 change.
+const EMAIL_VERIFICATION_BATCH_SIZE = 36;
 const EMAIL_VERIFICATION_REQUEST_PAUSE_MS = 1200;
+const EMAIL_VERIFICATION_REQUEST_TIMEOUT_MS = 10000;
 const EMAIL_VERIFICATION_ENDPOINT = "https://apps.emaillistverify.com/api/verifyEmail";
 const EMAIL_VERIFICATION_BAD_STATUSES = new Set(["invalid", "invalid_mx", "dead_server", "email_disabled", "spamtrap"]);
 const EMAIL_VERIFICATION_GOOD_STATUSES = new Set(["ok"]);
@@ -2703,7 +3002,7 @@ function classifyVerificationStatus(status) {
 
 async function verifyEmailListVerify(apiKey, email) {
   const url = `${EMAIL_VERIFICATION_ENDPOINT}?secret=${encodeURIComponent(apiKey)}&email=${encodeURIComponent(email)}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(EMAIL_VERIFICATION_REQUEST_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`verifyEmail HTTP ${res.status}`);
   return (await res.text()).trim();
 }
@@ -3906,6 +4205,9 @@ export default {
             shareUnsubscribeHeaders = {
               "List-Unsubscribe": `<${noUrl}>`,
               "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              // See sendOneAdminEmail's Feedback-ID comment -- same domain-wide
+              // reputation pool, so this path needs it too, not just admin blasts.
+              "Feedback-ID": `${shareBatchId}:${messageSlug}:resend`,
             };
             if (needsOptinPlaceholders) {
               sendText = substitutePersonalization(sendText, { optinYesUrl: yesUrl, optinNoUrl: noUrl });
@@ -6539,6 +6841,7 @@ export default {
           sinceHours: Number(job.since_hours || 24),
           limit: chunkSize,
           offset,
+          blastId: job.blast_id,
         });
 
         if (chunk.length === 0) {
@@ -6552,7 +6855,7 @@ export default {
         }
 
         let chunkSent = 0, chunkFailed = 0, chunkSkipped = 0;
-        const toSend = [];
+        let toSend = [];
         for (const recipient of chunk) {
           if (String(recipient.email_status || "").trim() !== "emailable") {
             await env.DB.prepare(
@@ -6577,6 +6880,17 @@ export default {
             continue;
           }
           toSend.push(recipient);
+        }
+
+        if (job.filter === "poll_invite_2026" && toSend.length) {
+          const { withLinks, mintFailures } = await mintPollInviteLinksForChunk(env, toSend);
+          for (const { recipient, error } of mintFailures) {
+            await env.DB.prepare(
+              `INSERT INTO email_blast_log (blast_id, email, email_norm, status, error_message) VALUES (?1,?2,?3,'failed',?4)`
+            ).bind(blastId, recipient.email || recipient.email_norm, recipient.email_norm, `poll_invite_mint_failed: ${error}`).run();
+            chunkFailed++;
+          }
+          toSend = withLinks;
         }
 
         const emailNormByEmail = new Map(toSend.map((r) => [r.email, r.email_norm]));
@@ -6605,6 +6919,16 @@ export default {
             await env.DB.prepare(
               `INSERT INTO email_blast_log (blast_id, email, email_norm, status, resend_message_id) VALUES (?1,?2,?3,'sent',?4)`
             ).bind(blastId, result.email, emailNorm, result.messageId || null).run();
+            chunkSent++;
+          } else if (result?.likelyAlreadySent) {
+            // See sendOneAdminEmail's likelyAlreadySent comment -- Resend's
+            // idempotency check rejected this as a duplicate of an already-
+            // successful send. Log distinctly (not plain 'sent', so this
+            // stays visible for audit) but count toward sent, not failed --
+            // it is not a delivery failure.
+            await env.DB.prepare(
+              `INSERT INTO email_blast_log (blast_id, email, email_norm, status, error_message) VALUES (?1,?2,?3,'sent_idempotent_conflict',?4)`
+            ).bind(blastId, result?.email || "", emailNorm, result?.error || "Unknown error").run();
             chunkSent++;
           } else {
             await env.DB.prepare(

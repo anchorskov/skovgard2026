@@ -51,12 +51,12 @@ UPDATE candidates SET
 WHERE slug = 'jill-m-edwards';
 
 UPDATE candidates SET
-  website_url = 'https://grassrootsmvt.org',
+  website_url = 'https://skovgard2026.org',
   photo_url = '/assets/candidates/jimmy-skovgard.webp',
   summary = 'Skovgard’s campaign site describes him as a small businessman, citizen soldier, and Wyoming neighbor running for U.S. Senate.',
   occupation = 'Small businessman; citizen soldier / military veteran',
   hometown = 'Casper / Mills area, Wyoming',
-  facebook_url = 'https://www.facebook.com/jimmy.skovgard/',
+  facebook_url = 'https://www.facebook.com/skovgard2026/',
   campaign_finance_url = 'https://www.fec.gov/data/candidate/S6WY00191/',
   linkedin_url = 'https://www.linkedin.com/in/jim-skovgard-92698844',
   fec_candidate_id = 'S6WY00191',

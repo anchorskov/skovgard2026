@@ -1,3 +1,4 @@
+<!-- Guide/AGENTS.md -->
 # Guide Sub-project — Agent Instructions
 
 Voter guide admin and rubric scoring for the Wyoming 2026 primary.
@@ -145,8 +146,10 @@ grassrootsmvt ballot page (grassrootsmvt.org)
 ### The join key: `wy_candidate_id`
 
 `race_candidates.wy_candidate_id` (ballot_sources D1) references `candidates.id` (wy D1).
-Populated by `Candidates/scripts/populate_wy_candidate_id.mjs`. 200/203 matched as of 2026-06-30.
-Three unmatched (wy_candidate_id = NULL): Fearneyhough (SOS), Bates (HD10), Lennox (HD46).
+Populated by `Candidates/scripts/populate_wy_candidate_id.mjs`. The 2026-06-30
+sync matched 200 of 203 rows. The unmatched Fearneyhough (Secretary of State),
+Bates (HD10), and Lennox (HD46) filings are all on the Wyoming Secretary of
+State withdrawn roster and must not be treated as active candidates.
 Candidates with NULL wy_candidate_id appear on the ballot page but have no evidence links.
 
 ---

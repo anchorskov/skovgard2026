@@ -368,6 +368,67 @@ async function lookupViaCensusFallback(input = {}) {
   return null;
 }
 
+// Standalone coordinate geocoding -- used for precinct/polygon resolution, which
+// needs lat/lon independently of district resolution (a wy_address_district_lookup
+// hit for HD/SD involves no geocoding at all, so lookupWyLegislativeDistricts alone
+// never yields coordinates for most voters). Mirrors Candidates'
+// fetchCensusCoordinates/fetchNominatimCoordinates cascade exactly (same endpoints,
+// same benchmark/vintage, same Nominatim fallback) so precinct resolution starts
+// from the same coordinates that flow would produce for the same address.
+async function fetchNominatimCoordinates(input = {}) {
+  try {
+    const params = new URLSearchParams({
+      format: "json",
+      limit: "1",
+      street: normalizeWhitespace([input.address1, input.address2].filter(Boolean).join(" ")),
+      city: normalizeWhitespace(input.city),
+      state: "Wyoming",
+      postalcode: normalizeZip5(input.zip),
+      countrycodes: "us",
+    });
+    const data = await fetchJsonWithTimeout(
+      `https://nominatim.openstreetmap.org/search?${params.toString()}`
+    );
+    const result = data?.[0];
+    if (!result) return null;
+    const lat = parseFloat(result.lat);
+    const lon = parseFloat(result.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return { lat, lon, coordSource: "nominatim" };
+  } catch {
+    return null;
+  }
+}
+
+export async function geocodeAddress(input = {}) {
+  const street = normalizeWhitespace([input.address1, input.address2].filter(Boolean).join(" "));
+  const city = normalizeWhitespace(input.city);
+  const zip = normalizeZip5(input.zip);
+  if (!street) return null;
+
+  try {
+    const params = new URLSearchParams({
+      street,
+      city,
+      state: "WY",
+      zip,
+      benchmark: "Public_AR_Current",
+      format: "json",
+    });
+    const data = await fetchJsonWithTimeout(
+      `https://geocoding.geo.census.gov/geocoder/locations/address?${params.toString()}`
+    );
+    const match = data?.result?.addressMatches?.[0];
+    const lat = typeof match?.coordinates?.y === "number" ? match.coordinates.y : null;
+    const lon = typeof match?.coordinates?.x === "number" ? match.coordinates.x : null;
+    if (lat != null && lon != null) return { lat, lon, coordSource: "census" };
+  } catch {
+    // fall through to Nominatim
+  }
+
+  return fetchNominatimCoordinates(input);
+}
+
 export async function lookupWyLegislativeDistricts(db, input = {}) {
   const state = normalizeWhitespace(input.state || "WY").toUpperCase();
   if (state && state !== "WY") return null;

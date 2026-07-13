@@ -105,7 +105,7 @@ Current meme images:
 
 Some slugs have a `-fb.png` variant (Facebook-optimised crop). When both exist,
 the `.astro` page uses the standard version; the `-fb` variant is for direct
-posting and is referenced in the index card's `emailBody` or social copy as needed.
+posting and is referenced in the listing card's `emailBody` or social copy as needed.
 
 ### Share social buttons — detail pages
 
@@ -127,7 +127,7 @@ const twUrl = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_
 The Facebook sharer reads `og:image` from the linked page's head — **it does not
 accept an image parameter**. The image must be set in the page's OG tags.
 
-### Share index card — `src/pages/share/index.astro`
+### Share listing card — `src/components/ShareListing.astro`
 
 Each card in the `cards` array requires:
 
@@ -142,7 +142,7 @@ Each card in the `cards` array requires:
   memeAlt:      'Descriptive alt text for screen readers',
   memeBg:       '#2b2b2b',                          // fallback while image loads
   tweetText:    'Max ~200 chars.',
-  emailSubject: 'Subject line for the quick mailto button on the index card',
+  emailSubject: 'Subject line for the quick mailto button on the listing card',
   emailBody:    '...',                              // plain-text for mailto
 }
 ```
@@ -195,8 +195,9 @@ steps:
 3. Set `const PAGE_URL = 'https://skovgard2026.org/share/<slug>'` in the
    page `<script>`.
 4. Set `tweetText` (≤ 200 chars) in the same script block.
-5. Add the card to `src/pages/share/index.astro` with `meme`, `tweetText`, and
-   `emailBody` filled in.
+5. Add the card to `src/components/ShareListing.astro` with `meme`, `tweetText`,
+   and `emailBody` filled in. Add its slug to `FEATURED_SLUGS` for `/share/`, or
+   leave it out for `/share/more-shares/`.
 6. After deploying, run the URL through the Facebook Sharing Debugger (see below)
    to confirm the image resolves before announcing the page.
 
@@ -243,4 +244,4 @@ This is required any time:
 - [ ] Facebook and X share buttons on the page link to the correct `PAGE_URL`
 - [ ] `tweetText` is ≤ 200 chars
 - [ ] Meme image committed to `static/images/share/meme-<slug>.png`
-- [ ] Index card in `src/pages/share/index.astro` updated (for share pages)
+- [ ] Listing card in `src/components/ShareListing.astro` updated and assigned to the intended listing (for share pages)
