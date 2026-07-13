@@ -1684,7 +1684,128 @@ const BOULDER_AND_THE_WEEDS_BODY_HTML = `
   </p>
 `;
 
+const QUESTIONNAIRE_CHALLENGE_QUESTIONS_HTML = `
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+  <tr>
+    <td style="background:#f9f6f0;border-left:4px solid #c68a4a;padding:18px 20px;border-radius:0 8px 8px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#c68a4a;">The 5 questions</p>
+      <ol style="margin:0;padding:0 0 0 20px;font-size:15px;line-height:1.85;color:#374151;">
+        <li>Have you sworn an oath to the Constitution &#8212; and what does it mean to you?</li>
+        <li>What&#8217;s your plan on the national debt and deficit spending?</li>
+        <li>Where do you stand on public land sales and outside money in Wyoming politics?</li>
+        <li>What&#8217;s the most important issue facing Wyoming, and what would you actually do about it?</li>
+        <li>Why should Wyoming voters choose you?</li>
+      </ol>
+    </td>
+  </tr>
+</table>
+
+<table cellpadding="0" cellspacing="0" style="margin:4px 0 24px;">
+  <tr>
+    <td style="background:#b22234;border-radius:8px;padding:12px 28px;">
+      <a href="https://candidates.skovgard2026.org/guide"
+         style="color:#f1ece1;font-weight:700;font-size:15px;text-decoration:none;">
+        Read every candidate&#8217;s answers &#8594;
+      </a>
+    </td>
+  </tr>
+</table>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 0;">
+  <tr>
+    <td style="background:#f9f6f0;border-left:4px solid #7a8a6b;padding:18px 20px;border-radius:0 8px 8px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#2b2b2b;">Build your primary ballot</p>
+      <ul style="margin:0;padding:0 0 0 20px;font-size:15px;line-height:1.85;color:#374151;">
+        <li>Host a watch-party or a kitchen-table discussion with friends and neighbors</li>
+        <li>Find a candidate who hasn&#8217;t answered yet and email them &#8212; their card has a link for it</li>
+        <li>Register to vote or check your registration at <a href="https://sos.wyo.gov/Elections/" style="color:#0f2742;font-weight:700;">sos.wyo.gov/Elections</a></li>
+      </ul>
+    </td>
+  </tr>
+</table>
+`;
+
+const ANSWER_THE_QUESTIONS_BODY_HTML = `
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  If you want my vote, answer the questions.
+</p>
+<p style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#111827;">
+  I put 5 questions to every candidate on the Wyoming 2026 primary ballot &#8212; on the oath of
+  office, the national debt, public land sales, Wyoming&#8217;s top issue, and why they&#8217;re
+  running. Their answers publish straight to their own candidate card, in their own words.
+</p>
+${QUESTIONNAIRE_CHALLENGE_QUESTIONS_HTML}
+`;
+
+const NO_SPIN_JUST_ANSWERS_BODY_HTML = `
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  No spin. No shouting. Just answers.
+</p>
+<p style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#111827;">
+  The Wyoming candidate questionnaire is live &#8212; the same 5 questions, in writing, for every
+  candidate on the primary ballot. No debate-stage theatrics, just a record of where each
+  candidate actually stands.
+</p>
+${QUESTIONNAIRE_CHALLENGE_QUESTIONS_HTML}
+`;
+
+const STRAIGHT_ANSWERS_BODY_HTML = `
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Wyoming voters deserve straight answers.
+</p>
+<p style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#111827;">
+  Candidate questionnaire and card review are now open for the Wyoming 2026 primary &#8212; 5
+  questions, every candidate, answers published in their own words.
+</p>
+${QUESTIONNAIRE_CHALLENGE_QUESTIONS_HTML}
+`;
+
 export const SHARE_MESSAGES = {
+  "answer-the-questions": {
+    title:        "If You Want My Vote, Answer the Questions",
+    body_html:    ANSWER_THE_QUESTIONS_BODY_HTML,
+    preview_text: "5 questions, every Wyoming primary candidate, answers published in their own words.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — answer the questions`
+        : "If you want my vote, answer the questions";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "no-spin-just-answers": {
+    title:        "No Spin. No Shouting. Just Answers.",
+    body_html:    NO_SPIN_JUST_ANSWERS_BODY_HTML,
+    preview_text: "The new Wyoming candidate questionnaire is live — no spin, no shouting, just answers.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — no spin, just answers`
+        : "No spin. No shouting. Just answers.";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "straight-answers": {
+    title:        "Wyoming Voters Deserve Straight Answers",
+    body_html:    STRAIGHT_ANSWERS_BODY_HTML,
+    preview_text: "Candidate questionnaire and card review are now open for the Wyoming 2026 primary.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — straight answers`
+        : "Wyoming voters deserve straight answers";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
   "wyoming-not-for-sale": {
     title:        "Wyoming Is Not for Sale",
     body_html:    WYOMING_NOT_FOR_SALE_BODY_HTML,
@@ -2247,9 +2368,56 @@ export function buildShareEmailHtml({ sender_name = "", sender_intro, body_html,
  * @param {string} p.sender_intro  — Personalisation sentence
  * @param {string} p.slug          — Message key from SHARE_MESSAGES
  */
+const QUESTIONNAIRE_CHALLENGE_LINES = [
+  "THE 5 QUESTIONS",
+  "",
+  "  1. Have you sworn an oath to the Constitution — and what does it mean to you?",
+  "  2. What's your plan on the national debt and deficit spending?",
+  "  3. Where do you stand on public land sales and outside money in Wyoming politics?",
+  "  4. What's the most important issue facing Wyoming, and what would you actually do about it?",
+  "  5. Why should Wyoming voters choose you?",
+  "",
+  "Read every candidate's answers: https://candidates.skovgard2026.org/guide",
+  "",
+  "BUILD YOUR PRIMARY BALLOT",
+  "",
+  "  - Host a watch-party or a kitchen-table discussion with friends and neighbors.",
+  "  - Find a candidate who hasn't answered yet and email them — their card has a link for it.",
+  "  - Register to vote or check your registration: https://sos.wyo.gov/Elections/",
+];
+
 export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" }) {
   const specificLines =
-    slug === "fleecing-letters"
+    slug === "answer-the-questions"
+      ? [
+          "If you want my vote, answer the questions.",
+          "",
+          "I put 5 questions to every candidate on the Wyoming 2026 primary ballot — on the oath",
+          "of office, the national debt, public land sales, Wyoming's top issue, and why they're",
+          "running. Their answers publish straight to their own candidate card, in their own words.",
+          "",
+          ...QUESTIONNAIRE_CHALLENGE_LINES,
+        ]
+    : slug === "no-spin-just-answers"
+      ? [
+          "No spin. No shouting. Just answers.",
+          "",
+          "The Wyoming candidate questionnaire is live — the same 5 questions, in writing, for",
+          "every candidate on the primary ballot. No debate-stage theatrics, just a record of",
+          "where each candidate actually stands.",
+          "",
+          ...QUESTIONNAIRE_CHALLENGE_LINES,
+        ]
+    : slug === "straight-answers"
+      ? [
+          "Wyoming voters deserve straight answers.",
+          "",
+          "Candidate questionnaire and card review are now open for the Wyoming 2026 primary —",
+          "5 questions, every candidate, answers published in their own words.",
+          "",
+          ...QUESTIONNAIRE_CHALLENGE_LINES,
+        ]
+    : slug === "fleecing-letters"
       ? [
           "Two letters arrived in Wyoming mailboxes on official congressional letterhead.",
           "",

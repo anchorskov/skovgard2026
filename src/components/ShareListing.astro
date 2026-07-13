@@ -1,0 +1,1442 @@
+---
+// src/components/ShareListing.astro
+import Base from '../layouts/Base.astro';
+import Nav from './Nav.astro';
+import Footer from './Footer.astro';
+
+const BASE = 'https://skovgard2026.org';
+
+const cards = [
+  {
+    slug: 'wyoming-family-economy',
+    href: '/share/wyoming-family-economy',
+    label: 'Economic Stewardship',
+    title: 'A Good Economy Starts at the Kitchen Table',
+    teaser: 'A strong economy is one where Wyoming families can pay their bills, save money, and build a sustainable life at home.',
+    meme: '/images/share/meme-wyoming-family-economy-fb.png',
+    memeAlt: 'Wall Street celebrates market gains while a Wyoming family weighs its grocery, fuel, utility, and housing bills',
+    memeBg: '#2b2b2b',
+    tweetText: 'A good economy is measured at the kitchen table: can Wyoming families pay their bills, save money, and build a life at home? — Jimmy Skovgard for U.S. Senate',
+    emailSubject: 'A good economy starts at the kitchen table',
+    emailBody: [
+      'Hi,',
+      '',
+      'I wanted to share Jimmy Skovgard\'s message about the financial reality facing Wyoming families.',
+      '',
+      'A strong economy is not just a market index. It means families can afford groceries, fuel, utilities, and housing — with room to save and build a life at home.',
+      '',
+      'Jimmy is calling for honest budgets, stable energy policy, and leaders who explain their votes plainly and listen to Wyoming citizens.',
+      '',
+      `Watch the video: ${BASE}/share/wyoming-family-economy/`,
+      '',
+      'Jimmy Skovgard — Preserving our legacy. Empowering our future.',
+      'Paid for by Skovgard for Senate.',
+    ].join("\n"),
+  },
+  {
+    slug: 'one-million-messages',
+    href: '/share/one-million-messages',
+    label: 'Civic Movement',
+    title: 'One Million Messages',
+    teaser: 'One conversation at a time. One neighbor at a time. Are we moving toward freedom or control? Start one conversation today.',
+    meme: '/images/share/meme-one-million-messages.png',
+    memeAlt: 'One Million Messages — one conversation, one neighbor, one community at a time',
+    memeBg: '#2b2b2b',
+    tweetText: 'One million conversations. One question: are we moving toward freedom or control? Start one conversation today. — Jimmy Skovgard for U.S. Senate',
+    emailSubject: 'One million messages — will you start one today?',
+    emailBody: [
+      'Hi,',
+      '',
+      'I wanted to share a message about a movement worth joining.',
+      '',
+      'One million conversations. One question: are we moving toward greater freedom, or greater control?',
+      '',
+      'It starts with one honest conversation between neighbors. You can be part of it today.',
+      '',
+      `Read the full message: ${BASE}/share/one-million-messages/`,
+      '',
+      'Jimmy Skovgard — Preserving our legacy. Empowering our future.',
+      'Paid for by Skovgard for Senate.',
+    ].join("\n"),
+  },
+  {
+    slug: 'higher-prices-washington-debt',
+    href: '/share/higher-prices-washington-debt',
+    label: 'Latest Video',
+    title: 'Higher Prices, Endless Wars, and Washington Debt',
+    teaser: "Jimmy discusses the rising cost of living, wars without a clear exit, and the debt burden Washington is placing on future generations.",
+    meme: '/images/share/meme-higher-prices-washington-debt-fb.png?v=2',
+    memeAlt: 'Higher Prices, Endless Wars, and Washington Debt — Jimmy Skovgard speaks plainly about three issues weighing on Wyoming families',
+    memeBg: '#2b2b2b',
+    tweetText: 'Higher prices, endless wars, and a $40 trillion debt spiral. Wyoming families pay the price. We need representatives from the people — not tied to big money. — Jimmy Skovgard for U.S. Senate 2026',
+    emailSubject: 'Higher prices, endless wars, and Washington debt — a Wyoming message',
+    emailBody: [
+      "Hi,",
+      "",
+      "I wanted to share a short video message from Jimmy Skovgard about three issues",
+      "weighing on Wyoming families right now.",
+      "",
+      "The economy may look strong on paper, but printed money and runaway spending show up",
+      "at the grocery store, the gas pump, the utility bill, and the cost of a home or vehicle.",
+      "",
+      "America keeps entering conflicts without a clear path out — open-ended wars that cost",
+      "lives, treasure, and the trust that holds a nation together.",
+      "",
+      "And the debt keeps climbing. We went from $36 trillion to nearly $40 trillion in less",
+      "than two years. Elected officials who abdicate their responsibility hand the bill to",
+      "our grandchildren.",
+      "",
+      "The answer starts with accountability: representatives from the people, not tied to",
+      "big money, and willing to speak honestly about what is happening.",
+      "",
+      `Watch the video: ${BASE}/share/higher-prices-washington-debt/`,
+      "",
+      "Stay connected at skovgard2026.org/pulse",
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'candidate-hub',
+    href: '/share/candidate-hub',
+    label: 'Voter Resource',
+    title: 'Wyoming Candidate Hub',
+    teaser: "A simple place to find every candidate running for office in Wyoming — so voters can compare the field, ask better questions, and make their own decisions. Every candidate. One place.",
+    meme: '/images/share/meme-candidate-hub.png',
+    memeAlt: 'Every candidate. One place. Wyoming voters decide. — Wyoming Candidate Hub',
+    memeBg: '#2b2b2b',
+    tweetText: 'Wyoming voters deserve a clear look at every candidate asking to represent us. Every candidate. One place. Wyoming voters decide. #Wyoming #WY2026',
+    emailSubject: 'Wyoming Candidate Hub: every candidate, one place',
+    emailBody: [
+      "Hi,",
+      "",
+      "Wyoming deserves an election process built around people, clarity, and trust.",
+      "",
+      "The Wyoming Candidate Hub is a simple place to find every candidate running for",
+      "office in Wyoming — so voters can compare the field, ask better questions, and",
+      "make their own decisions.",
+      "",
+      "This project is part of a larger effort to bring accountability, transparency,",
+      "and public input back into the center of our election process.",
+      "",
+      `View the Candidate Hub: https://candidates.skovgard2026.org/`,
+      "",
+      "Every candidate. One place. Wyoming voters decide.",
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'fleecing-letters',
+    href: '/share/fleecing-letters',
+    label: 'Official Accountability',
+    title: 'The Fleecing Letters',
+    teaser: "Two official letters arrived in Wyoming mailboxes on congressional letterhead — both paid for with public funds. An analysis of the fear, deflection, and five tactics used at taxpayer expense.",
+    meme: '/images/share/meme-fleecing-letters.png',
+    memeAlt: "Fleeced and Distracted — an analysis of two official congressional letters sent to Wyoming households at public expense",
+    memeBg: '#2b2b2b',
+    tweetText: 'Two official letters. Congressional letterhead. "PAID FOR BY OFFICIAL FUNDS." Fear, deflection, and skipped questions — at taxpayer expense. Wyoming deserves clean information. #Wyoming',
+    emailSubject: 'Official mail paid for by you. Here\'s what\'s in it.',
+    emailBody: [
+      "Hi,",
+      "",
+      "Two official letters arrived in Wyoming mailboxes on congressional letterhead —",
+      "both marked 'PAID FOR BY OFFICIAL FUNDS AUTHORIZED BY THE HOUSE OF REPRESENTATIVES.'",
+      "",
+      "Both letters use the same five tactics: fear-first framing, deflection of responsibility,",
+      "borrowed official authority, a proof pile of bills and hearings, and skipping the real",
+      "questions about costs and tradeoffs.",
+      "",
+      "Wyoming deserves clean information, honest costs, and public resources that serve the",
+      "public — not the incumbent's reelection.",
+      "",
+      `Read the full analysis: ${BASE}/share/fleecing-letters/`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'postage-bandit',
+    href: '/share/postage-bandit',
+    label: 'Campaign Finance',
+    title: 'Postage Bandit',
+    teaser: "Jimmy Skovgard filed an FEC complaint against Rep. Hageman for using an estimated $130,000–$145,000 in public funds to send a mass campaign mailing during a statutory pre-election blackout period.",
+    meme: '/images/share/meme-postage-bandit.png',
+    memeAlt: "Postage Bandit — FEC complaint filed against Rep. Hageman for franking abuse during a pre-election blackout period",
+    memeBg: '#2b2b2b',
+    tweetText: 'FEC complaint filed: Rep. Hageman used an est. $130K–$145K in public funds to send a campaign mailing during a statutory pre-election blackout period. The rules apply to everyone. #Wyoming #FEC',
+    emailSubject: 'Postage Bandit: FEC complaint filed against Rep. Hageman',
+    emailBody: [
+      "Hi,",
+      "",
+      "Jimmy Skovgard filed an official FEC complaint against Rep. Harriet Hageman.",
+      "",
+      "An estimated $130,000–$145,000 in public money was spent to send a mass campaign",
+      "letter on official congressional letterhead to Wyoming households — right in the",
+      "middle of a statutory pre-election blackout period.",
+      "",
+      "By law, using congressional franking privileges during a blackout window is strictly prohibited.",
+      "",
+      "The complaint and the original mailing are both available to read.",
+      "",
+      `Read more: ${BASE}/share/postage-bandit/`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'citizens-defend-the-constitution',
+    href: '/share/citizens-defend-the-constitution',
+    label: 'Featured Video',
+    title: 'Citizens Defend the Constitution',
+    teaser: "A short Wyoming message with Heart Mountain as the backdrop — the Golden Rule, and the three pillars of this campaign: defend the Constitution, restore accountability, and listen to Wyoming.",
+    meme: '/images/share/meme-citizens-defend-the-constitution.png',
+    memeAlt: "Citizens Defend the Constitution — Jimmy Skovgard with Heart Mountain as the backdrop, June 2026",
+    memeBg: '#2b2b2b',
+    tweetText: 'Citizens defend the Constitution. Public servants swear the oath. Wyoming deserves a Senator who takes that oath seriously. — Jimmy Skovgard for U.S. Senate 2026',
+    emailSubject: 'Citizens defend the Constitution — a Wyoming message from Jimmy Skovgard',
+    emailBody: [
+      "Hi,",
+      "",
+      "I wanted to share a short video message from Jimmy Skovgard, filmed in Wyoming.",
+      "",
+      "The message covers three pillars of the campaign:",
+      "  1. Defend the Constitution — The oath still matters.",
+      "  2. Restore Accountability — Public servants answer to Wyoming.",
+      "  3. Listen to Wyoming — Real decisions require real input.",
+      "",
+      "Filmed with Heart Mountain as the backdrop. No teleprompter. No handlers. About five minutes.",
+      "",
+      `Watch: ${BASE}/share/citizens-defend-the-constitution/`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'jimmys-story',
+    href: '/share/jimmys-story',
+    label: 'Campaign intro',
+    title: "Jimmy's Story",
+    teaser: "Know someone who cares about Wyoming's future? Share the campaign in 30 seconds — a message from you carries more weight than any ad.",
+    meme: '/images/share/meme-jimmys-story.png',
+    memeAlt: "Jimmy Skovgard for Wyoming — share his story",
+    memeBg: '#2b2b2b',
+    tweetText: "Wyoming deserves a Senator who actually shows up. Jimmy Skovgard is running for U.S. Senate on integrity, accountability, and a stronger Wyoming voice.",
+    emailSubject: "Your Wyoming neighbor wanted you to hear about Jimmy Skovgard",
+    emailBody: [
+      "Hi,",
+      "",
+      "I came across Jimmy Skovgard's campaign for Wyoming's U.S. Senate seat and thought you'd want to know about it.",
+      "",
+      "This campaign is built around two beliefs:",
+      "",
+      "— Wyoming voters deserve leadership grounded in integrity, accountability, and the rule of law.",
+      "",
+      "— Citizens are the fourth branch of government. Our representatives work for us, not the other way around.",
+      "",
+      "Three commitments:",
+      "  1. Integrity in leadership",
+      "  2. A stronger Wyoming voice",
+      "  3. A future built together",
+      "",
+      `Learn more:  ${BASE}/about/`,
+      `Volunteer:   ${BASE}/volunteer/`,
+      `Support:     ${BASE}/donate/`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'wyoming-voters-choose',
+    href: '/share/wyoming-voters-choose',
+    label: 'Party and primary',
+    title: 'Wyoming Voters Should Choose',
+    teaser: "Freedom means voters choose. Control means insiders choose first. The Wyoming GOP bylaw fight makes the issue plain.",
+    meme: '/images/share/meme-wyoming-voters-choose.png',
+    memeAlt: "Wyoming voters should choose — the people choose, the party serves",
+    memeBg: '#0f2742',
+    tweetText: 'Freedom means voters choose. Control means insiders choose first. Wyoming voters should be in charge of the primary. #Wyoming',
+    emailSubject: 'Wyoming voters should choose',
+    emailBody: [
+      "Hi,",
+      "",
+      "I want to share a message about what is happening inside Wyoming politics right now.",
+      "",
+      "Freedom means voters choose.",
+      "Control means insiders choose first and voters are expected to fall in line.",
+      "",
+      "The new Wyoming GOP bylaw fight makes the issue plain. Party insiders now claim the power to",
+      "endorse, oppose, and financially support candidates before voters have spoken in the primary.",
+      "",
+      "That turns the primary upside down.",
+      "",
+      "I believe the people choose. The party serves. The government answers to us.",
+      "",
+      `Read and share the full message: ${BASE}/share/wyoming-voters-choose/`,
+      "",
+      "Jimmy Skovgard -- Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'representatives-work-for',
+    href: '/share/representatives-work-for',
+    label: 'Accountability',
+    title: 'Who Do Our Representatives Work For?',
+    teaser: "We ask. Representatives vote. We measure. We remember. GrassrootsMVT.org is a working proof of concept for real-time constituent accountability.",
+    meme: '/images/share/meme-representatives-work-for.png',
+    memeAlt: "Who do our representatives work for? — GrassrootsMVT.org accountability survey",
+    memeBg: '#2b2b2b',
+    tweetText: 'Who do our representatives work for? We ask. Representatives vote. We measure. We remember. Join the Wyoming accountability effort at GrassrootsMVT.org. #Wyoming',
+    emailSubject: 'Who do our representatives work for?',
+    emailBody: [
+      "Hi,",
+      "",
+      "For too long, the voice of the constituency has been reduced to headlines, polls,",
+      "social media arguments, and election-year promises. Then the election passes and",
+      "the public is expected to simply remember four years later.",
+      "",
+      "We can do better.",
+      "",
+      "Jimmy Skovgard has developed a working proof of concept through GrassrootsMVT.org",
+      "to help Wyoming voters provide structured feedback on issues affecting our communities.",
+      "",
+      "We ask.",
+      "Representatives vote.",
+      "We measure.",
+      "We remember.",
+      "",
+      "Take part in the Wyoming primary election and party preselection survey:",
+      "https://grassrootsmvt.org/surveys/wy-primary-elections-party-preselection",
+      "",
+      `Read and share the full message: ${BASE}/share/representatives-work-for/`,
+      "",
+      "Jimmy Skovgard -- Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'wy-voter-access',
+    href: '/share/wy-voter-access',
+    label: 'Survey',
+    title: 'Wyoming Voter Access Survey',
+    teaser: 'Share a short survey asking Wyoming voters about election-day voting access, automatic voter registration, and same-day registration.',
+    meme: '/images/share/meme-wy-primary-election-participation.png',
+    memeAlt: 'Wyoming Voter Access Survey',
+    memeBg: '#2b2b2b',
+    tweetText: 'Wyoming voices matter. Take a short survey about voting holiday access, automatic voter registration, and same-day registration in Wyoming.',
+    emailSubject: 'Wyoming Voter Access Survey',
+    emailBody: [
+      "Hi,",
+      "",
+      "Wyoming voices matter.",
+      "",
+      "I am asking voters to take a short survey about voter access in Wyoming.",
+      "",
+      "Should Wyoming create a statewide voting holiday?",
+      "Should eligible residents be automatically registered to vote when getting or renewing a driver's license or state ID?",
+      "Should Wyoming protect same-day voter registration?",
+      "",
+      "Take the short survey:",
+      "https://grassrootsmvt.org/surveys/wy-voter-access",
+      "",
+      "Want to know more?",
+      `${BASE}/surveys/wy-voter-access/info`,
+      "",
+      "Exact questions and results will be published in aggregate.",
+      "",
+      "Jimmy Skovgard -- Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'freedom-or-control',
+    href: '/share/freedom-or-control',
+    label: 'Outside Influence',
+    title: 'Freedom or Control?',
+    teaser: "National PACs, billionaire networks, and out-of-state organizations are investing heavily in Wyoming's 2026 primary. Wyoming voters deserve to know who they are.",
+    meme: '/images/share/meme-freedom-or-control.png',
+    memeAlt: "Freedom or Control — One Million Messages, One Conversation at a Time, Skovgard 2026",
+    memeBg: '#1B2A4A',
+    tweetText: "Wyoming voters face a clear question: are outside PACs and national networks shaping our choices? Freedom or control — the answer is yours.",
+    emailSubject: "Freedom or Control? — Wyoming voters deserve to know who's paying",
+    emailBody: [
+      "Hi,",
+      "",
+      "Wyoming voters are being shaped by forces most of them will never hear named.",
+      "",
+      "National PACs. Billionaire-funded advocacy networks. Out-of-state consulting firms.",
+      "Dark money organizations. Social media algorithms built to divide.",
+      "AI-generated persuasion at scale.",
+      "",
+      "This is not a left problem or a right problem. It is a Wyoming problem.",
+      "",
+      "Here is what has been documented.",
+      "",
+      "AMERICANS FOR PROSPERITY / AFP-WYOMING",
+      "Connected to the Koch political network. AFP-Wyoming described its 2024 Wyoming",
+      "primary investment as historic and issued endorsements before voters had spoken.",
+      "In June 2026, AFP-Wyoming announced nine more endorsements ahead of August 18.",
+      "",
+      "YOUNG AMERICANS FOR LIBERTY AND MAKE LIBERTY WIN",
+      "YAL (Austin, Texas) runs Operation Win at the Door nationwide.",
+      "Its affiliated PAC, Make Liberty Win (Fairfax, Virginia), spent more than $370,000",
+      "in Wyoming's 2024 primary — with YAL as the PAC's primary financial backer.",
+      "Source: Wyoming Public Media.",
+      "",
+      "STATE FREEDOM CAUCUS NETWORK / WYOMING FREEDOM CAUCUS",
+      "WyoFile reported the Wyoming Freedom Caucus aligned with a national organization",
+      "and moved to control the statehouse. Now seeking to retain that power in 2026.",
+      "",
+      "WYOMING GOP PRE-PRIMARY ENDORSEMENT LAWSUIT",
+      "The Wyoming GOP filed a federal lawsuit challenging the state law that blocks",
+      "parties from spending to back one primary candidate before voters choose.",
+      "Can party insiders steer your primary before you vote? That fight is in court now.",
+      "",
+      "Outside money comes in.",
+      "Messages get sharpened.",
+      "Neighbors get divided.",
+      "Candidates get pressured.",
+      "Local judgment gets weakened.",
+      `Then we are told this is "freedom."`,
+      "",
+      "I call it control.",
+      "",
+      "Transparency strengthens freedom.",
+      "Hidden influence strengthens control.",
+      "",
+      "Every voter deserves to know who is speaking, who is paying for the message,",
+      "and what interests are being advanced before casting a ballot.",
+      "",
+      "The people choose.",
+      "The party serves.",
+      "The government answers to us.",
+      "",
+      "Read the evidence with sources:",
+      `${BASE}/share/freedom-or-control/sources/`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'wy-citizen-ballot',
+    href: '/share/wy-citizen-ballot',
+    label: "People's Primary",
+    title: 'Citizens Nonpartisan Ballot',
+    teaser: "Compare every candidate. Choose one per office. An unofficial civic project through The Integrity Project: People's Primary to show what voter choice could look like in Wyoming.",
+    meme: '/images/share/meme-wy-citizen-ballot.png',
+    memeAlt: "Citizens Nonpartisan Ballot — compare every candidate, choose one per office",
+    memeBg: '#2b2b2b',
+    tweetText: "Wyoming voters should compare every candidate and choose one per office. The Citizens Nonpartisan Ballot is an unofficial civic project. Keep party ballots. Add voter choice. #Wyoming",
+    emailSubject: 'Wyoming voter choice: Citizens Nonpartisan Ballot',
+    emailBody: [
+      "Hi,",
+      "",
+      "I wanted to share this idea with you.",
+      "",
+      "The Citizens Nonpartisan Ballot is a civic project through The Integrity Project:",
+      "People's Primary. The idea is simple: list every candidate for each office in one",
+      "place and let voters choose one candidate per office, regardless of party label.",
+      "",
+      "This is not an official election and does not replace the official Wyoming primary.",
+      "It is a voter education and public survey project to show what voter choice could look like.",
+      "",
+      "Some voters choose by party. Some voters choose by candidate. Wyoming should respect both.",
+      "",
+      `Take a look here: ${BASE}/share/wy-citizen-ballot`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'wy-four-pillars',
+    href: '/share/wy-four-pillars',
+    label: 'Survey',
+    title: 'Wyoming Four Pillars Survey',
+    teaser: "Life. Religious Liberty. Family Values. Education Freedom. Specific public policy questions, confidential answers, aggregate results published openly.",
+    meme: '/images/share/meme-wy-four-pillars-fb.png',
+    memeAlt: "Wyoming Four Pillars Survey — Life, Religious Liberty, Family Values, Education Freedom",
+    memeBg: '#2b2b2b',
+    tweetText: 'Wyoming voters should have a clear voice on Life, Religious Liberty, Family Values, and Education Freedom. This survey asks specific questions and publishes results in aggregate. #Wyoming',
+    emailSubject: 'Wyoming Four Pillars Survey',
+    emailBody: [
+      "Wyoming voters should have a clear voice on Life, Religious Liberty, Family Values, and Education Freedom.",
+      "",
+      "This survey asks specific public policy questions and publishes results in aggregate.",
+      "",
+      "Take the survey here:",
+      "https://grassrootsmvt.org/surveys/wy-four-pillars",
+      "",
+      `Share page: ${BASE}/share/wy-four-pillars/`,
+    ].join("\n"),
+  },
+  {
+    slug: 'wy-roadless-areas',
+    href: '/share/wy-roadless-areas',
+    label: 'Survey',
+    title: 'Wyoming Roadless Areas Survey',
+    teaser: "Wyoming has 3M+ acres of inventoried roadless areas. A federal rulemaking may rescind the 2001 Roadless Rule. This survey asks what standards Wyoming voters believe should come first.",
+    meme: '/images/share/meme-wy-roadless-areas-fb.png',
+    memeAlt: "Wyoming Roadless Areas Survey — Water, Wildlife, Access, Fire Risk, Local Voice",
+    memeBg: '#0f2742',
+    tweetText: 'Wyoming has 3M+ acres of inventoried roadless areas. A federal rulemaking may rescind the 2001 Roadless Rule. Water, wildlife, access, fire risk, local voice — take the survey. #Wyoming',
+    emailSubject: 'Wyoming roadless areas: what standards should come first?',
+    emailBody: [
+      "Hi,",
+      "",
+      "Wyoming has more than 3 million acres of inventoried roadless areas on National Forest System lands.",
+      "",
+      "A federal rulemaking is now considering rescission of the 2001 Roadless Rule. This survey asks",
+      "Wyoming voters what standards should guide those decisions.",
+      "",
+      "The questions cover water, wildlife, access, wildfire risk, and local voice.",
+      "Individual answers remain confidential. Results are published in aggregate only.",
+      "",
+      "Please take the survey and share it with three Wyoming neighbors:",
+      "https://grassrootsmvt.org/surveys/wy-roadless-areas",
+      "",
+      `Share page: ${BASE}/share/wy-roadless-areas/`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'wy-data-centers',
+    href: '/share/wy-data-centers',
+    label: 'Survey',
+    title: 'Wyoming Data Centers Survey',
+    teaser: "Large data centers may bring jobs and investment — and may affect water, power rates, roads, wildlife, and local planning. This survey asks Wyoming voters what safeguards should come first.",
+    meme: '/images/share/meme-wy-data-centers.png',
+    memeAlt: "Wyoming Data Centers Survey — Wyoming should decide the standards before the deal is done",
+    memeBg: '#2b2b2b',
+    tweetText: 'Wyoming should decide the standards before the deal is done. Take the Wyoming Data Centers Survey and share it with three neighbors. #Wyoming',
+    emailSubject: 'Wyoming data centers: what safeguards should come first?',
+    emailBody: [
+      "Hi,",
+      "",
+      "Wyoming is seeing more discussion about large data centers and other large-load facilities.",
+      "",
+      "These projects may bring investment, jobs, tax revenue, and technology infrastructure.",
+      "They may also affect water, electric rates, roads, housing, wildlife, agriculture, and local planning.",
+      "",
+      "This survey does not take a position for or against data centers.",
+      "It asks what standards Wyoming voters believe should apply before large projects move forward.",
+      "",
+      "Please take the survey and share it with three Wyoming neighbors:",
+      "https://grassrootsmvt.org/surveys/wy-data-centers",
+      "",
+      "Thank you.",
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'untrammeled-suffrage',
+    href: '/share/untrammeled-suffrage',
+    label: 'Voter outreach tool',
+    title: 'Untrammeled Suffrage',
+    teaser: "The Wyoming way is to build the tool you need. Untrammeled Suffrage is a phone-friendly voter outreach and volunteer coordination tool — now offering one test seat as a $100 in-kind contribution.",
+    meme: '/images/share/meme-untrammeled-suffrage-fb.png',
+    memeAlt: "Untrammeled Suffrage — the unrestricted right to vote, a Wyoming voter outreach tool",
+    memeBg: '#2b2b2b',
+    tweetText: 'Untrammeled suffrage means the unrestricted right to vote. Wyoming\'s constitutional promise. A voter outreach tool built the Wyoming way. #Wyoming',
+    emailSubject: 'Test access to Untrammeled Suffrage, a Wyoming voter outreach tool',
+    emailBody: [
+      "Hi,",
+      "",
+      "I wanted to share a tool I have been building called Untrammeled Suffrage.",
+      "",
+      "The name comes from Wyoming's constitutional promise that elections shall be open,",
+      "free, and equal. In plain language, untrammeled suffrage means the unrestricted",
+      "right to vote.",
+      "",
+      "Untrammeled Suffrage is a phone-friendly voter outreach and volunteer coordination",
+      "tool created for Wyoming candidates and civic efforts.",
+      "",
+      "Skovgard for Senate is offering one test seat as a $100 in-kind contribution.",
+      "",
+      "Suggested filing description:",
+      "  In-kind contribution from Skovgard for Senate: Untrammeled Suffrage voter",
+      "  outreach software test access, one active user seat, fair-market value $100.",
+      "",
+      `Read more: ${BASE}/share/untrammeled-suffrage`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'nothing-burger',
+    href: '/share/nothing-burger',
+    label: 'Public Lands',
+    title: 'Taxpayer-Funded Nothing Burger',
+    teaser: "Wyoming was listed in a federal land-sale proposal. Montana was carved out. Rep. Hageman's taxpayer-funded mailing answers the narrow vote question but leaves the Montana question unanswered.",
+    meme: '/images/share/meme-nothing-burger-fb.png',
+    memeAlt: "Taxpayer-Funded Nothing Burger — Wyoming was listed, Montana was carved out, Why?",
+    memeBg: '#2a1e0e',
+    tweetText: 'Wyoming was listed in a federal land-sale proposal. Montana was carved out. The taxpayer-funded mailing doesn\'t explain why. Wyoming deserves straight answers. #Wyoming #PublicLands',
+    emailSubject: 'Wyoming public lands: why did Montana get protection Wyoming didn\'t?',
+    emailBody: [
+      "Hi,",
+      "",
+      "Rep. Hageman sent Wyoming constituents a letter about public lands, paid for by official funds.",
+      "",
+      "The letter says she never voted for the mass sale of public lands — that narrow denial is",
+      "consistent with the record. The 2025 Senate land-sale provision was removed before any vote.",
+      "",
+      "But the Senate budget bill listed Wyoming among 11 states for potential land disposal.",
+      "Montana was excluded. When asked why, Hageman said she wasn't sure.",
+      "",
+      "The mailing answers the narrow vote question. It doesn't explain the Montana contrast.",
+      "",
+      "Wyoming public lands deserve straight answers.",
+      "",
+      `Read more: ${BASE}/share/nothing-burger`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'changing-health-care',
+    href: '/share/changing-health-care',
+    label: 'Health Care & Constitution',
+    title: 'Changing Health Care',
+    teaser: "Wyoming is facing a hard question. The honest path is a constitutional amendment placed before the people — not workarounds, not deflection, not ambiguity.",
+    meme: '/images/share/meme-changing-health-care.png',
+    memeAlt: 'Changing Health Care — Our representatives work for us. The Constitution belongs to the people.',
+    memeBg: '#2b2b2b',
+    tweetText: 'Wyoming is facing a hard question on health care and the Constitution. The honest path is a constitutional amendment placed before the people. #Wyoming',
+    emailSubject: 'Wyoming health care: the honest constitutional path',
+    emailBody: [
+      "Hi,",
+      "",
+      "Wyoming is facing a hard question about health care and the Constitution.",
+      "",
+      "The honest path forward is a constitutional amendment placed before the people of Wyoming —",
+      "not workarounds, not deflection, not ambiguity.",
+      "",
+      "Take the Wyoming Health Care and Constitutional Process Survey:",
+      "https://grassrootsmvt.org/surveys/wy-health-care-constitutional-process",
+      "",
+      "Read the source packet:",
+      "https://skovgard2026.org/docs/Wellspring_Completed_Questionnaire_Skovgard_With_Public_Input.pdf",
+      "",
+      `Read more: ${BASE}/share/changing-health-care`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'wyoming-not-for-sale',
+    href: '/share/wyoming-not-for-sale',
+    label: 'Accountability',
+    title: 'Wyoming Is Not for Sale',
+    teaser: 'Out-of-state PACs. Dark money. National templates. Wyoming citizens deserve to know who is paying for the message before the vote is over and the money moves on.',
+    meme: '/images/share/meme-wyoming-not-for-sale-v2.png',
+    memeAlt: 'Wyoming Is Not for Sale — Out-of-state PACs, dark money, and national templates stamped over the Wyoming state shape',
+    memeBg: '#f1ece1',
+    tweetText: 'Out-of-state PACs. Dark money. National templates. Wyoming citizens deserve to know who is paying for the message. Wyoming is not for sale. — Jimmy Skovgard for U.S. Senate',
+    emailSubject: 'Wyoming Is Not for Sale — follow the money',
+    emailBody: [
+      "Hi,",
+      "",
+      "Wyoming politics should belong to Wyoming citizens.",
+      "",
+      "But our local races are being crowded by national organizations, out-of-state PACs,",
+      "and opaque funding networks with agendas built far from our towns and main streets.",
+      "",
+      "The receipts:",
+      "  - AFP-Wyoming called its 2024 endorsements the single largest investment in",
+      "    Wyoming state-level politics in history.",
+      "  - Make Liberty Win, a Virginia-based PAC, spent just over $370,000 on texts,",
+      "    phone calls, and mailers — including mailers with wrong early-voting dates.",
+      "",
+      "Wyoming is not a testing ground. Wyoming is not a billionaire sandbox.",
+      "Wyoming belongs to the people who live here.",
+      "",
+      "Read the full breakdown with sources:",
+      `${BASE}/share/wyoming-not-for-sale/sources/`,
+      "",
+      `Share the message: ${BASE}/share/wyoming-not-for-sale`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'town-hall-introduction',
+    href: '/share/town-hall-introduction',
+    label: 'Town Hall',
+    title: 'If It Said R, I Hit the Checkbox.',
+    teaser: 'Jimmy Skovgard opens a Wyoming town hall with an honest admission — and a challenge to every Wyoming voter.',
+    meme: '/images/share/meme-town-hall-introduction.png',
+    memeAlt: '"If it said R, I hit the checkbox." — Jimmy Skovgard, Wyoming Town Hall, April 2026',
+    memeBg: '#2b2b2b',
+    tweetText: '"If it said R, I hit the checkbox." Wyoming deserves a Senator who earns the vote. — Jimmy Skovgard for U.S. Senate 2026',
+    emailSubject: '"If it said R, I hit the checkbox." — A Wyoming voice',
+    emailBody: [
+      "Hi,",
+      "",
+      "At a Wyoming town hall this spring, Jimmy Skovgard opened with an honest admission:",
+      "",
+      '  "If it said R, I hit the checkbox."',
+      "",
+      "Most Wyoming voters have been exactly there.",
+      "",
+      "Watch the video and hear his full message:",
+      `${BASE}/share/town-hall-introduction`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'wy-commercial-property-tax',
+    href: '/share/wy-commercial-property-tax',
+    label: 'Survey',
+    title: 'Wyoming Commercial Property Tax Transparency Survey',
+    teaser: "Wyoming's commercial rate is set statewide at 9.5% of market value. The real question is whether valuation, notices, mill levies, and appeal rights are clear enough — starting with Natrona County and Casper.",
+    meme: '/images/share/meme-wy-commercial-property-tax.png',
+    memeAlt: "Wyoming Commercial Property Tax Transparency Survey — same statewide rate, real questions about valuation, clarity, and consistency",
+    memeBg: '#2b2b2b',
+    tweetText: "Wyoming's commercial property tax rate is set statewide at 9.5% of market value — the real question is whether valuation, notices, and appeal rights are clear enough. Take the survey. #Wyoming",
+    emailSubject: 'Wyoming commercial property tax: is the process clear enough?',
+    emailBody: [
+      "Hi,",
+      "",
+      "Wyoming's commercial assessment rate is generally set statewide at 9.5% of market value.",
+      "",
+      "The real question isn't the rate — it's whether valuation, notices, mill levies, business",
+      "personal property rules, and appeal rights are clear enough for the people paying the bill.",
+      "This survey uses Natrona County and Casper as a case study, then asks whether the same",
+      "questions matter statewide.",
+      "",
+      "Please take the survey and share it with three Wyoming neighbors:",
+      "https://grassrootsmvt.org/surveys/wy-commercial-property-tax",
+      "",
+      `Share page: ${BASE}/share/wy-commercial-property-tax/`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'boulder-and-the-weeds',
+    href: '/share/boulder-and-the-weeds',
+    label: 'Reflection',
+    title: 'The Boulder and the Weeds',
+    teaser: 'Truth is the boulder — stoic and enduring. Fear and outrage are the weeds looking for a crack to grow in. One honest conversation at a time, we return to the truth.',
+    meme: '/images/share/meme-boulder-and-the-weeds.png',
+    memeAlt: 'The Boulder and the Weeds — truth is the boulder, stoic and enduring; fear and outrage are the weeds looking for a crack to grow in.',
+    memeBg: '#f1ece1',
+    tweetText: 'Truth is the boulder — stoic and enduring. Fear and outrage are the weeds looking for a crack to grow in. One honest conversation at a time, we return to the truth. — Jimmy Skovgard for U.S. Senate',
+    emailSubject: 'The Boulder and the Weeds',
+    emailBody: [
+      "Hi,",
+      "",
+      "Something is deeply off with our political system — a machine running on money and",
+      "outrage that keeps neighbors reacting, divided, and distracted.",
+      "",
+      "Truth is the boulder: stoic, existing, and enduring. Fear and outrage are the weeds",
+      "looking for a crack to grow in. We weed them out one honest conversation at a time.",
+      "",
+      "Watch the video and read the full essay:",
+      `${BASE}/share/boulder-and-the-weeds`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'answer-the-questions',
+    href: '/share/answer-the-questions',
+    label: 'Voter Resource',
+    title: 'If You Want My Vote, Answer the Questions',
+    teaser: 'I put 5 questions to every candidate on the Wyoming 2026 primary ballot — on the oath of office, the national debt, public land sales, Wyoming\'s top issue, and why they\'re running.',
+    meme: '/images/share/meme-answer-the-questions.png',
+    memeAlt: 'If you want my vote, answer the questions — New Wyoming candidate questionnaire now available.',
+    memeBg: '#2b2b2b',
+    tweetText: 'If you want my vote, answer the questions. I put 5 questions to every candidate on the Wyoming 2026 primary ballot. #Wyoming #WY2026',
+    emailSubject: 'If you want my vote, answer the questions',
+    emailBody: [
+      "Hi,",
+      "",
+      "I put 5 questions to every candidate on the Wyoming 2026 primary ballot — on the oath of",
+      "office, the national debt, public land sales, Wyoming's top issue, and why they're running.",
+      "Their answers publish straight to their own candidate card, in their own words.",
+      "",
+      `Read every candidate's answers: https://candidates.skovgard2026.org/guide`,
+      "",
+      `Share the message: ${BASE}/share/answer-the-questions`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'no-spin-just-answers',
+    href: '/share/no-spin-just-answers',
+    label: 'Voter Resource',
+    title: 'No Spin. No Shouting. Just Answers.',
+    teaser: 'The Wyoming candidate questionnaire is live — the same 5 questions, in writing, for every candidate on the primary ballot.',
+    meme: '/images/share/meme-no-spin-just-answers.png',
+    memeAlt: 'No spin. No shouting. Just answers. — The new Wyoming candidate questionnaire is live.',
+    memeBg: '#2b2b2b',
+    tweetText: 'No spin. No shouting. Just answers. The new Wyoming candidate questionnaire is live — same 5 questions, every candidate. #Wyoming #WY2026',
+    emailSubject: 'No spin. No shouting. Just answers.',
+    emailBody: [
+      "Hi,",
+      "",
+      "The Wyoming candidate questionnaire is live — the same 5 questions, in writing, for every",
+      "candidate on the primary ballot. No debate-stage theatrics, just a record of where each",
+      "candidate actually stands.",
+      "",
+      `Read every candidate's answers: https://candidates.skovgard2026.org/guide`,
+      "",
+      `Share the message: ${BASE}/share/no-spin-just-answers`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+  {
+    slug: 'straight-answers',
+    href: '/share/straight-answers',
+    label: 'Voter Resource',
+    title: 'Wyoming Voters Deserve Straight Answers',
+    teaser: 'Candidate questionnaire and card review are now open for the Wyoming 2026 primary — 5 questions, every candidate, answers published in their own words.',
+    meme: '/images/share/meme-straight-answers.png',
+    memeAlt: 'Wyoming voters deserve straight answers — Candidate questionnaire and card review now open.',
+    memeBg: '#2b2b2b',
+    tweetText: 'Wyoming voters deserve straight answers. Candidate questionnaire and card review are now open for the Wyoming 2026 primary. #Wyoming #WY2026',
+    emailSubject: 'Wyoming voters deserve straight answers',
+    emailBody: [
+      "Hi,",
+      "",
+      "Candidate questionnaire and card review are now open for the Wyoming 2026 primary — 5",
+      "questions, every candidate, answers published in their own words.",
+      "",
+      `Read every candidate's answers: https://candidates.skovgard2026.org/guide`,
+      "",
+      `Share the message: ${BASE}/share/straight-answers`,
+      "",
+      "Jimmy Skovgard — Preserving our legacy. Empowering our future.",
+      "Paid for by Skovgard for Senate.",
+    ].join("\n"),
+  },
+];
+
+const FEATURED_SLUGS = new Set([
+  'wyoming-family-economy',
+  'one-million-messages',
+  'higher-prices-washington-debt',
+  'candidate-hub',
+  'citizens-defend-the-constitution',
+  'wyoming-not-for-sale',
+  'town-hall-introduction',
+  'boulder-and-the-weeds',
+  'jimmys-story',
+  'answer-the-questions',
+  'no-spin-just-answers',
+  'straight-answers',
+]);
+
+interface Props {
+  archive?: boolean;
+}
+
+const { archive = false } = Astro.props;
+const visibleCards = cards.filter((card) => archive !== FEATURED_SLUGS.has(card.slug));
+const pageTitle = archive ? 'More Messages to Share' : 'Choose a Message to Share';
+const pageDescription = archive
+  ? 'Browse more campaign messages, surveys, and Wyoming issue resources to share with your neighbors.'
+  : "Spread the word about Jimmy Skovgard's campaign for Wyoming's U.S. Senate seat. Choose a message and share it with your contacts.";
+---
+<Base
+  title={`${archive ? 'More Shares' : 'Share'} — Skovgard 2026`}
+  description={pageDescription}
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-16 px-4 text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Spread the Word</p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-extrabold text-wy-bone mb-4 leading-tight">
+        {pageTitle}
+      </h1>
+      <p class="text-wy-bone/70 text-lg max-w-xl mx-auto">
+        {archive
+          ? 'These earlier messages and issue resources are still available to read and share.'
+          : 'Pick any message below. Preview the full content, then share it with your Wyoming neighbors in seconds.'}
+      </p>
+    </div>
+
+    <!-- Grid -->
+    <section class="bg-wy-bone py-16 px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="share-grid">
+          {visibleCards.map(card => (
+            <article class="share-card" data-slug={card.slug}>
+
+              <!-- Meme / image -->
+              <div
+                class="card-meme"
+                style={`background-color: ${card.memeBg}; --meme-url: url('${card.meme}')`}
+                role="img"
+                aria-label={card.memeAlt}
+              >
+                {!archive && (
+                  <div class="card-new-badge" aria-hidden="true">New</div>
+                )}
+
+                <!-- Quick-share bar (always visible on touch, slides up on hover on desktop) -->
+                <div class="quick-bar" aria-label="Quick share">
+                  <button
+                    type="button"
+                    class="qb-btn"
+                    data-action="copy-link"
+                    data-url={`${BASE}${card.href}`}
+                    aria-label="Copy link"
+                    title="Copy link"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span>Copy link</span>
+                  </button>
+                  <a
+                    class="qb-btn"
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(BASE + card.href)}`}
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="Share on Facebook"
+                    title="Facebook"
+                  >
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+                    </svg>
+                    <span>Facebook</span>
+                  </a>
+                  <a
+                    class="qb-btn"
+                    href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(BASE + card.href)}&text=${encodeURIComponent(card.tweetText)}`}
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="Share on X"
+                    title="X / Twitter"
+                  >
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                    <span>X</span>
+                  </a>
+                  <button
+                    type="button"
+                    class="qb-btn"
+                    data-action="email"
+                    data-subject={card.emailSubject}
+                    data-body={card.emailBody}
+                    aria-label="Send by email"
+                    title="Email"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span>Email</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Card body -->
+              <div class="card-body">
+                <span class="card-kicker">{card.label}</span>
+                <h2 class="card-title">{card.title}</h2>
+                <p class="card-teaser">{card.teaser}</p>
+                <p class="card-send-count" data-slug-count={card.slug}></p>
+                <p class="card-hint">Choose a quick-share button above, or click below to review the full message before sending.</p>
+                <a href={card.href} class="card-cta">
+                  Read full message &amp; send
+                  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </a>
+              </div>
+
+            </article>
+          ))}
+        </div>
+        <div class="listing-nav">
+          <a href={archive ? '/share/' : '/share/more-shares/'} class="listing-nav__link">
+            {archive ? 'Back to featured shares' : 'Browse more shares'}
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer note -->
+    <div class="bg-white py-12 px-4 text-center">
+      <p class="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
+        A message from someone you know carries more weight than any ad.<br />
+        Thank you for helping spread the word.
+      </p>
+    </div>
+
+  </main>
+  <Footer />
+</Base>
+
+<!-- Toast notification -->
+<div id="share-toast" role="status" aria-live="polite" hidden>
+  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+  </svg>
+  <span id="share-toast-msg">Copied!</span>
+</div>
+
+<style>
+  /* Grid */
+  .share-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  @media (max-width: 640px) {
+    .share-grid { grid-template-columns: 1fr; }
+  }
+
+  .listing-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: 2.5rem;
+  }
+  .listing-nav__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border: 2px solid #b22234;
+    border-radius: 8px;
+    color: #b22234;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .listing-nav__link:hover {
+    background: #b22234;
+    color: #f1ece1;
+  }
+
+  /* Card */
+  .share-card {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s, transform 0.2s;
+    display: flex;
+    flex-direction: column;
+  }
+  .share-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 12px 32px rgba(0,0,0,0.10);
+    transform: translateY(-3px);
+  }
+
+  /* Meme area */
+  .card-meme {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background-image: var(--meme-url);
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+  }
+
+  /* Quick-share bar */
+  .quick-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px;
+    background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%);
+    transform: translateY(100%);
+    transition: transform 0.22s ease;
+    flex-wrap: wrap;
+  }
+  .share-card:hover .quick-bar,
+  .share-card:focus-within .quick-bar {
+    transform: translateY(0);
+  }
+  /* Always visible on touch devices */
+  @media (hover: none) {
+    .quick-bar { transform: translateY(0); }
+  }
+
+  .qb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1.5px solid rgba(241, 236, 225, 0.5);
+    background: rgba(0, 0, 0, 0.35);
+    color: #f1ece1;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    backdrop-filter: blur(4px);
+    transition: background-color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .qb-btn:hover {
+    background: rgba(178, 34, 52, 0.7);
+    border-color: #b22234;
+  }
+
+  /* Card body */
+  .card-body {
+    padding: 20px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .card-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-family: 'Bitter', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2b2b2b;
+    margin: 0 0 8px;
+    line-height: 1.3;
+  }
+  .card-teaser {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0 0 10px;
+    flex: 1;
+  }
+  .card-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin: 0 0 14px;
+    line-height: 1.4;
+  }
+  .card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: #b22234;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    align-self: flex-start;
+    transition: background-color 0.15s;
+  }
+  .card-cta:hover { background: #8b1a26; }
+
+  /* Sunburst "New" badge */
+  .card-new-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    width: 54px;
+    height: 54px;
+    background: #b22234;
+    clip-path: polygon(
+      50% 0%,   61% 18%,  79%  7%,  74% 26%,  96% 26%,
+      82% 41%,  98% 55%,  78% 57%,  79% 79%,  60% 69%,
+      50% 90%,  40% 69%,  21% 79%,  22% 57%,   2% 55%,
+      18% 41%,   4% 26%,  26% 26%,  21%  7%,  39% 18%
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f1ece1;
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    animation: burst-pulse 2.4s ease-in-out infinite;
+    pointer-events: none;
+    user-select: none;
+  }
+  @keyframes burst-pulse {
+    0%, 100% { transform: scale(1) rotate(-6deg); }
+    50%       { transform: scale(1.1) rotate(-6deg); }
+  }
+
+  /* Send count */
+  .card-send-count {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #c68a4a;
+    margin: 0 0 8px;
+  }
+  .card-send-count.has-count {
+    display: flex;
+  }
+
+  /* Toast */
+  #share-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  #share-toast.toast-show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+
+<script>
+(function () {
+  const toast     = document.getElementById('share-toast');
+  const toastMsg  = document.getElementById('share-toast-msg');
+  let toastTimer;
+
+  function showToast(msg) {
+    toastMsg.textContent = msg;
+    toast.hidden = false;
+    requestAnimationFrame(() => toast.classList.add('toast-show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('toast-show');
+      setTimeout(() => { toast.hidden = true; }, 220);
+    }, 2400);
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Link copied!');
+    } catch {
+      showToast('Could not copy — please copy the URL manually.');
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+
+    if (action === 'copy-link') {
+      e.preventDefault();
+      copyText(btn.dataset.url);
+    }
+
+    if (action === 'email') {
+      e.preventDefault();
+      const url =
+        'mailto:?subject=' + encodeURIComponent(btn.dataset.subject) +
+        '&body='    + encodeURIComponent(btn.dataset.body);
+      window.location.href = url;
+    }
+  });
+})();
+
+/* Share send-count loader */
+(function () {
+  fetch('/api/share/stats')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (data) {
+      if (!data || !data.stats) return;
+      const stats = data.stats;
+      document.querySelectorAll('[data-slug-count]').forEach(function (el) {
+        const slug  = el.dataset.slugCount;
+        const count = stats[slug];
+        if (!count) return;
+        el.innerHTML =
+          '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">' +
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>' +
+          '</svg>' +
+          count.toLocaleString() + ' sent';
+        el.classList.add('has-count');
+      });
+    })
+    .catch(function () { /* silently ignore — counts are decorative */ });
+})();
+</script>
+
+<!-- Feedback button -->
+<button class="fb-trigger" id="fb-btn" aria-label="Send feedback" aria-expanded="false" aria-controls="fb-modal">
+  Feedback
+</button>
+
+<div class="fb-overlay" id="fb-modal" role="dialog" aria-modal="true" aria-labelledby="fb-title" hidden>
+  <div class="fb-panel">
+    <div class="fb-panel__head">
+      <h2 class="fb-panel__title" id="fb-title">Send feedback</h2>
+      <button class="fb-panel__close" id="fb-close" aria-label="Close">✕</button>
+    </div>
+    <form class="fb-panel__form" id="fb-form">
+      <label class="fb-panel__label" for="fb-name">
+        Name <span class="fb-optional">(optional)</span>
+      </label>
+      <input class="fb-panel__input" type="text" id="fb-name" name="name" autocomplete="name" />
+      <label class="fb-panel__label" for="fb-msg">Message</label>
+      <textarea class="fb-panel__textarea" id="fb-msg" name="message" rows="5" required placeholder="What would you like us to know?"></textarea>
+      <button class="fb-panel__submit" type="submit">Open in email →</button>
+    </form>
+    <p class="fb-panel__note">Opens your email client. Nothing is sent until you hit send.</p>
+  </div>
+</div>
+
+<style>
+  .fb-trigger {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 900;
+    height: 36px;
+    padding: 0 16px;
+    background: #b22234;
+    color: #f1ece1;
+    border: none;
+    border-radius: 18px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    transition: background 0.1s;
+  }
+  .fb-trigger:hover, .fb-trigger:focus-visible { background: #8b1a26; outline: none; }
+
+  .fb-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(43,43,43,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .fb-overlay[hidden] { display: none; }
+
+  .fb-panel {
+    width: min(480px, 100%);
+    background: #f1ece1;
+    border-top: 4px solid #b22234;
+    padding: 28px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .fb-panel__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .fb-panel__title { margin: 0; font-size: 1.2rem; font-family: 'Bitter', Georgia, serif; }
+  .fb-panel__close {
+    width: 32px; height: 32px; border: none; background: transparent;
+    font-size: 1rem; color: #8a3d23; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; border-radius: 3px;
+  }
+  .fb-panel__close:hover { background: #b7a88a; }
+  .fb-panel__form { display: flex; flex-direction: column; gap: 10px; }
+  .fb-panel__label { font-size: 0.85rem; font-weight: 700; color: #2b2b2b; }
+  .fb-optional { font-weight: 400; color: #8a3d23; }
+  .fb-panel__input, .fb-panel__textarea {
+    width: 100%; padding: 8px 10px;
+    border: 1.5px solid #b7a88a; background: #fff;
+    font-size: 0.95rem; color: #2b2b2b;
+    border-radius: 3px; font-family: inherit;
+  }
+  .fb-panel__input:focus, .fb-panel__textarea:focus { outline: none; border-color: #b22234; }
+  .fb-panel__textarea { resize: vertical; }
+  .fb-panel__submit {
+    align-self: flex-start; height: 36px; padding: 0 18px;
+    background: #b22234; color: #f1ece1; border: none; border-radius: 3px;
+    font-size: 0.88rem; font-weight: 800; cursor: pointer; margin-top: 4px;
+    transition: background 0.1s;
+  }
+  .fb-panel__submit:hover { background: #8b1a26; }
+  .fb-panel__note { margin: 0; font-size: 0.78rem; color: #8a3d23; }
+</style>
+
+<script>
+(function () {
+  const btn   = document.getElementById('fb-btn');
+  const modal = document.getElementById('fb-modal');
+  const close = document.getElementById('fb-close');
+  const form  = document.getElementById('fb-form');
+  if (!btn || !modal || !close || !form) return;
+
+  function open() {
+    modal.removeAttribute('hidden');
+    btn.setAttribute('aria-expanded', 'true');
+    const msg = document.getElementById('fb-msg');
+    if (msg) msg.focus();
+  }
+  function shut() {
+    modal.setAttribute('hidden', '');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.focus();
+  }
+
+  btn.addEventListener('click', open);
+  close.addEventListener('click', shut);
+  modal.addEventListener('click', function (e) { if (e.target === modal) shut(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) shut(); });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const name = (document.getElementById('fb-name')?.value || '').trim();
+    const msg  = (document.getElementById('fb-msg')?.value  || '').trim();
+    if (!msg) return;
+    const subject = encodeURIComponent('Share Page Feedback');
+    const body    = encodeURIComponent((name ? 'From: ' + name + '\n\n' : '') + msg);
+    window.location.href = 'mailto:candidates@grassroots.org?subject=' + subject + '&body=' + body;
+    shut();
+  });
+})();
+</script>

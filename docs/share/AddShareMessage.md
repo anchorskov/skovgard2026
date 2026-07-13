@@ -18,9 +18,14 @@ Follow every step in order — skipping any leaves the flow broken in at least o
 | Action | File |
 |--------|------|
 | Edit | `worker/src/email-template.js` |
-| Edit | `src/pages/share/index.astro` |
+| Edit | `src/components/ShareListing.astro` |
+| Optionally edit | `FEATURED_SLUGS` in `src/components/ShareListing.astro` |
 | Create | `src/pages/share/<slug>.astro` |
 | Add | `static/images/share/meme-<slug>.png` *(see §8)* |
+
+The route files `src/pages/share/index.astro` and
+`src/pages/share/more-shares.astro` are wrappers around `ShareListing.astro`.
+Do not add card data to those route files.
 
 No new D1 migration is needed for a new message — the `share_sends` table already has a `message_slug` column that accepts any string. Migrations only apply when new D1 tables or columns are added (Phase 2, deferred).
 
@@ -80,9 +85,8 @@ export const SHARE_MESSAGES = {
 
 ### 3c. Add the plain-text block to `buildShareEmailText()`
 
-The function uses a `slug ===` chain to select the correct plain-text body. There are currently
-**eight named branches** before the default `else` (jimmys-story). Add your new branch anywhere
-before the final `: [` default block:
+The function uses a `slug ===` chain to select the correct plain-text body. Add your new branch
+before the final `: [` default block (jimmys-story):
 
 ```js
 export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" }) {
@@ -165,9 +169,9 @@ campaign-visible editorial choice, not a mechanical step.
 
 ---
 
-## 5. Add the card to `/share` index
+## 5. Add the card to the shared listing
 
-Edit `src/pages/share/index.astro` and add an entry to the `cards` array:
+Edit `src/components/ShareListing.astro` and add an entry to the `cards` array:
 
 ```js
 const cards = [
@@ -182,7 +186,7 @@ const cards = [
     memeAlt:      'Descriptive alt text for screen readers',
     memeBg:       '#2b2b2b',                  // fallback color while image loads
     tweetText:    'Short tweet text (max ~200 chars).',
-    emailSubject: 'Subject line for the index quick-share mailto button',
+    emailSubject: 'Subject line for the listing quick-share mailto button',
     emailBody:    [
       "Hi,",
       "",
@@ -197,7 +201,15 @@ const cards = [
 ];
 ```
 
-`emailSubject` and `emailBody` on the index card are used only by the quick-bar "Email" button, which opens a `mailto:` link as a quick-share convenience. This is separate from the detail page send flow. The card's quick-bar mailto is acceptable; the detail page must not have one.
+Then decide where the card belongs:
+
+- Add its slug to `FEATURED_SLUGS` to show it on the main `/share/` page.
+- Leave it out of `FEATURED_SLUGS` to show it on `/share/more-shares/`.
+- Cards on `/share/more-shares/` do not display the "New" sunburst.
+- Moving a card between listings does not change or remove its detail-page URL.
+- New video shares normally remain featured unless the user directs otherwise.
+
+`emailSubject` and `emailBody` on a listing card are used only by the quick-bar "Email" button, which opens a `mailto:` link as a quick-share convenience. This is separate from the detail page send flow. The card's quick-bar mailto is acceptable; the detail page must not have one.
 
 ---
 
@@ -238,12 +250,12 @@ Before merging, verify:
 
 ## 8. Social share buttons
 
-**Index card (index.astro):**
+**Listing card (`src/components/ShareListing.astro`):**
 - Facebook and X links are built from `card.href` and `card.tweetText` automatically by the card template — no extra code needed
 - `tweetText` should be 200 characters or less
 
 **Detail page (.astro `<script>` block):**
-- `tweetText` is a const at the top of the IIFE — set it to the same value as the index card
+- `tweetText` is a const at the top of the IIFE — set it to the same value as the listing card
 - `fbUrl` and `twUrl` are constructed from `PAGE_URL` + `tweetText` — no other changes needed
 - Copy link works off `PAGE_URL` with no changes
 
@@ -263,8 +275,8 @@ The `mailto:` flow was intentionally removed from detail pages. Do not add:
 iteration; do not treat it as a pattern to copy. The canonical template (`jimmys-story.astro`)
 does not have it.
 
-The index quick-bar retains an "Email" button for quick-share convenience — that is the only
-acceptable `mailto:` path and it lives in `index.astro`, not in detail pages.
+The listing quick-bar retains an "Email" button for quick-share convenience — that is the only
+acceptable `mailto:` path and it lives in `ShareListing.astro`, not in detail pages.
 
 ---
 
@@ -274,7 +286,7 @@ Do not add `<img>` tags to `body_html` unless the user explicitly requests it.
 
 Reasons: email clients block remote images by default, some strip them entirely, and hosted image URLs must be on `https://media.skovgard2026.org` with confirmed CDN availability before use.
 
-The meme PNG in `static/images/share/` is for the social section of the detail page and the index card only — it is not embedded in the email.
+The meme PNG in `static/images/share/` is for the social section of the detail page and the shared listing card only — it is not embedded in the email.
 
 ---
 
@@ -305,7 +317,13 @@ npx wrangler d1 execute ballot_sources --command "SELECT * FROM share_sends ORDE
 ## 12. Production checklist
 
 1. Run `npm run build` locally — confirm no Astro build errors
-2. **Confirm slug registration** — check that `SHARE_MESSAGES['new-topic']` exists in
+2. **Confirm listing placement** — the slug must appear in exactly one listing:
+   ```bash
+   rg 'data-slug="new-topic"' dist/share/index.html
+   rg 'data-slug="new-topic"' dist/share/more-shares/index.html
+   ```
+   A featured slug appears only in the first file; an archival slug appears only in the second.
+3. **Confirm slug registration** — check that `SHARE_MESSAGES['new-topic']` exists in
    `worker/src/email-template.js` AND that a plain-text branch for the slug exists in
    `buildShareEmailText()`. A detail page whose slug is missing from either will silently
    fail on send. Grep to be sure:
@@ -313,15 +331,15 @@ npx wrangler d1 execute ballot_sources --command "SELECT * FROM share_sends ORDE
    grep -n '"new-topic"' worker/src/email-template.js
    grep -n '"new-topic"' worker/src/email-template.js | grep -c .   # should be ≥ 2
    ```
-3. Check that `subject()` / `intro()` return expected strings
-4. Test GET `/api/share/preview?slug=new-topic` from the deployed Worker before announcing the page
-5. Confirm `share_sends` rows are written after a real send:
+4. Check that `subject()` / `intro()` return expected strings
+5. Test GET `/api/share/preview?slug=new-topic` from the deployed Worker before announcing the page
+6. Confirm `share_sends` rows are written after a real send:
    ```bash
    npx wrangler d1 execute ballot_sources --remote --env production \
      --command "SELECT * FROM share_sends WHERE message_slug='new-topic' ORDER BY created_at DESC LIMIT 5;"
    ```
-6. Deploy with `./scripts/deploy_cf.sh` (Astro Pages) and `./scripts/deploy_worker.sh` (Worker) — both must run
-7. If the message has a video, confirm with the user whether it should replace the homepage
+7. Deploy with `./scripts/deploy_cf.sh` (Astro Pages) and `./scripts/deploy_worker.sh` (Worker) — both must run
+8. If the message has a video, confirm with the user whether it should replace the homepage
    "Featured Message Video" hero in `src/pages/index.astro` (see §4) — do not change it silently
 
 ---
