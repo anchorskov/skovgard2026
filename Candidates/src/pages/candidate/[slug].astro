@@ -261,6 +261,7 @@ const hasResponses = (qResponses as any[]).length > 0;
       <section class="questionnaire-section" aria-labelledby="q-title">
         <h2 id="q-title">Candidate questionnaire responses</h2>
         <p class="q-note">Responses submitted directly by the candidate via the guide questionnaire. Published verbatim.</p>
+        <p id="edit-answers-link" class="edit-answers-link" hidden></p>
         <dl class="q-responses">
           {(qResponses as any[]).map((r: any) => (
             <>
@@ -374,6 +375,23 @@ const hasResponses = (qResponses as any[]).length > 0;
       if (window.turnstile) window.turnstile.reset('#qr-ts-widget');
     }
   });
+</script>
+
+<script define:vars={{ slug }}>
+  // Never server-rendered: only shows an edit link to the browser that holds
+  // this candidate's questionnaire token from a prior successful submission.
+  try {
+    const stored = localStorage.getItem(`questionnaireToken:${slug}`);
+    const container = document.getElementById('edit-answers-link');
+    if (stored && container) {
+      const a = document.createElement('a');
+      a.href = `/questionnaire/${stored}`;
+      a.className = 'guide-link';
+      a.textContent = 'Edit your answers';
+      container.appendChild(a);
+      container.hidden = false;
+    }
+  } catch {}
 </script>
 
 <style>
@@ -602,6 +620,7 @@ const hasResponses = (qResponses as any[]).length > 0;
   .questionnaire-section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--dust); }
   .questionnaire-section h2 { font-size: 1.4rem; margin: 0 0 8px; }
   .q-note { margin: 0 0 20px; font-size: 0.88rem; color: var(--rust); font-style: italic; }
+  .edit-answers-link { margin: -8px 0 20px; font-size: 0.88rem; font-weight: 700; }
 
   .q-responses { display: grid; gap: 20px; }
   .q-responses dt { font-weight: 800; font-size: 0.92rem; color: var(--charcoal); margin-bottom: 6px; white-space: pre-line; }

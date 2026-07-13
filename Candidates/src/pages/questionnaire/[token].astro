@@ -187,7 +187,7 @@ const maxLabel = MAX_ANSWER_LENGTH.toLocaleString('en-US');
   #q-status.q-status--error { color: var(--ember); }
 </style>
 
-<script define:vars={{ MAX_ANSWER_LENGTH }}>
+<script define:vars={{ MAX_ANSWER_LENGTH, candidateSlug: tokenRow?.slug }}>
   const form = document.querySelector('#q-form');
   const status = document.querySelector('#q-status');
 
@@ -229,6 +229,14 @@ const maxLabel = MAX_ANSWER_LENGTH.toLocaleString('en-US');
       if (status) {
         status.textContent = data.message || (data.success ? 'Saved.' : 'Something went wrong.');
         status.className = data.success ? 'q-status--ok' : 'q-status--error';
+      }
+      if (data.success && candidateSlug) {
+        try { localStorage.setItem(`questionnaireToken:${candidateSlug}`, token); } catch {}
+        if (status) status.textContent = `${data.message || 'Saved.'} Taking you to your profile…`;
+        setTimeout(() => {
+          window.location.href = `/candidate/${candidateSlug}`;
+        }, 1400);
+        return;
       }
     } catch {
       if (status) {
