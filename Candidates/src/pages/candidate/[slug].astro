@@ -146,6 +146,12 @@ const hasResponses = (qResponses as any[]).length > 0;
       </div>
     )}
 
+    {isPublished && (
+      <div class="published-notice">
+        <strong>Published.</strong> This profile went live {new Date(endorsement.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.
+      </div>
+    )}
+
     {isResearch && !isPublished && (
       <div class="research-notice">
         <strong>Research in progress.</strong> This profile will be published July 15, 2026.
@@ -177,6 +183,18 @@ const hasResponses = (qResponses as any[]).length > 0;
           )}
           <p id="qr-status" role="status"></p>
         </form>
+        {candRow.email && (
+          <p class="nudge-candidate">
+            Not the candidate?
+            {' '}
+            <a
+              href={`mailto:${candRow.email}?subject=${encodeURIComponent('Please complete your Wyoming 2026 Voter Guide questionnaire')}&body=${encodeURIComponent(`Hi ${candRow.full_name},\n\nYour Wyoming 2026 Voter Guide profile doesn't have your questionnaire answers yet. Voters would like to hear from you directly — you can request your private link to respond here:\n\n${Astro.url.origin}/candidate/${slug}\n\nThanks!`)}`}
+              class="guide-link"
+            >
+              Email {candRow.full_name} and ask them to respond
+            </a>.
+          </p>
+        )}
       </section>
     )}
 
@@ -488,6 +506,15 @@ const hasResponses = (qResponses as any[]).length > 0;
     font-size: 0.95rem;
   }
 
+  .published-notice {
+    padding: 14px 18px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--sage);
+    background: var(--bone);
+    margin-bottom: 28px;
+    font-size: 0.95rem;
+  }
+
   .sr-only {
     position: absolute;
     width: 1px; height: 1px;
@@ -528,6 +555,8 @@ const hasResponses = (qResponses as any[]).length > 0;
   #qr-status { margin: 10px 0 0; font-weight: 700; font-size: 0.88rem; }
   #qr-status.qr-status--ok { color: var(--sage); }
   #qr-status.qr-status--error { color: var(--ember); }
+
+  .nudge-candidate { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--dust); font-size: 0.88rem; }
 
   .endorsement-block {
     background: var(--bone);
