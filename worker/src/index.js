@@ -3910,10 +3910,10 @@ export default {
         // Optional host/action assertions (skip for local bypass)
         if (!isLocalHost && sv.hostname && !tsHostAllowed(env, sv.hostname)) {
           console.log("Turnstile hostname rejected:", sv.hostname);
-          return json(req, env, { error: "Invalid origin" }, 400);
+          return json(req, env, { error: "Verification failed. Please try again." }, 400);
         }
         if (!isLocalHost && sv.action && sv.action !== "optin") {
-          return json(req, env, { error: "Verification mismatch" }, 400);
+          return json(req, env, { error: "Verification failed. Please try again." }, 400);
         }
         if (!sv.success) {
           const code = String((sv["error-codes"] || [])[0] || "");
@@ -3921,7 +3921,7 @@ export default {
             ? "Verification timed out. Please try again."
             : code.includes("invalid-input-response")
             ? "Verification failed. Please refresh and try again."
-            : "Verification failed";
+            : "Verification failed. Please try again.";
           return json(req, env, { error: msg }, 400);
         }
 
