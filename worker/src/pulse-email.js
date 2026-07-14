@@ -111,7 +111,19 @@ function buildConfirmationEmail(config, profile) {
   const firstName = normalizeText(profile.firstName);
   const greeting = firstName || "there";
   const phone = normalizeText(profile.phoneE164 || profile.phone);
+  const pollLink = normalizeText(profile.pollLink);
+  const candidatesUrl = "https://candidates.skovgard2026.org/";
   const subject = `Thank you for joining the ${config.campaignName} Pulse list`;
+
+  const pollTextLines = pollLink
+    ? [
+        "",
+        `Your Citizen Poll ballot is ready -- see where your district stands: ${pollLink}`,
+      ]
+    : [];
+  const pollHtml = pollLink
+    ? `<p>Your Citizen Poll ballot is ready -- <a href="${escapeHtml(pollLink)}">see where your district stands</a>.</p>`
+    : "";
 
   return {
     from: config.from,
@@ -122,10 +134,15 @@ function buildConfirmationEmail(config, profile) {
       "",
       `Thank you for signing up for Pulse updates from ${config.campaignName}.`,
       `You're on the list for campaign text updates, and we also recorded your request to receive campaign emails at ${email}.`,
+      ...pollTextLines,
+      "",
+      `Find everyone on your ballot: ${candidatesUrl}`,
       "",
       `Mobile: ${phone || "Not provided"}`,
       "",
       "We'll use this contact information for occasional campaign updates.",
+      "",
+      "Don't see this in your inbox? Check your Spam or Junk folder. If it's there, please select the \"Not Spam\" button (or add pulse@grassrootsmvt.org to your contacts) so future updates reach you.",
       "",
       "Reply STOP to any campaign text to stop receiving text messages.",
       "Reply HELP for help, or email skovgard2026@gmail.com if you need assistance.",
@@ -134,8 +151,11 @@ function buildConfirmationEmail(config, profile) {
       <p>Hi ${escapeHtml(greeting)},</p>
       <p>Thank you for signing up for Pulse updates from ${escapeHtml(config.campaignName)}.</p>
       <p>You're on the list for campaign text updates, and we also recorded your request to receive campaign emails at <strong>${escapeHtml(email)}</strong>.</p>
+      ${pollHtml}
+      <p>Find everyone on your ballot: <a href="${candidatesUrl}">${candidatesUrl}</a></p>
       <p><strong>Mobile:</strong> ${escapeHtml(phone || "Not provided")}</p>
       <p>We'll use this contact information for occasional campaign updates.</p>
+      <p>Don't see this in your inbox? Check your Spam or Junk folder. If it's there, please select the <strong>"Not Spam"</strong> button (or add <strong>pulse@grassrootsmvt.org</strong> to your contacts) so future updates reach you.</p>
       <p>Reply <strong>STOP</strong> to any campaign text to stop receiving text messages.</p>
       <p>Reply <strong>HELP</strong> for help, or email <a href="mailto:skovgard2026@gmail.com">skovgard2026@gmail.com</a> if you need assistance.</p>
     `,

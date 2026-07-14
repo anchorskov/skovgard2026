@@ -73,13 +73,15 @@ if (form) {
     host.innerHTML = `
       <div class="optin-dialog" role="dialog" aria-modal="true" aria-labelledby="optin-modal-title">
         <h2 id="optin-modal-title">Success!</h2>
-        <p>Thank you for confirming your opt-in. You’ll receive updates soon.</p>
+        <p id="optin-modal-body">Thank you for confirming your opt-in. You'll receive updates soon.</p>
         <div class="actions"><button id="optin-ok">OK</button></div>
       </div>`;
     document.body.appendChild(host);
     const okBtn = host.querySelector('#optin-ok');
+    const bodyEl = host.querySelector('#optin-modal-body');
     const goHome = () => { window.location.assign(HOME_URL); };
-    const show = () => {
+    const show = (text) => {
+      if (text && bodyEl) bodyEl.textContent = text;
       host.classList.add('show'); okBtn.focus();
       const onKey = (e) => { if (e.key === 'Escape') goHome(); };
       document.addEventListener('keydown', onKey, { once: true });
@@ -360,18 +362,36 @@ function resetTurnstile() {
         credentials: 'omit'
       });
 
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || `HTTP ${res.status}`);
+        throw new Error(data.error || `HTTP ${res.status}`);
       }
 
       form.reset();
       resetTurnstile();
       setBtn('Opt-In Confirmed', { disabled: true, success: true });
       $('#optin-submit').style.display = 'none';
-      const channels = consent_email ? ‘text and email lists’ : ‘SMS list’;
-      ok(`Thanks! You’re on our ${channels}. Reply STOP anytime to opt out of texts.`);
-      modal.show();
+      const channels = consent_email ? 'text and email lists' : 'SMS list';
+      const spamNote = consent_email
+        ? ' Check your inbox (and spam/junk folder) for a message from pulse@grassrootsmvt.org.'
+        : '';
+
+      const verificationStatus = data?.verification?.status || 'not_attempted';
+      let verifyNote = '';
+      if (verificationStatus === 'matched') {
+        verifyNote = ' You\'re verified as a Wyoming voter -- your Citizen Poll ballot link is on its way.';
+      } else if (verificationStatus === 'matched_no_email') {
+        verifyNote = ' You\'re verified as a Wyoming voter -- add your email above and resubmit to get your Citizen Poll link.';
+      } else if (verificationStatus === 'ambiguous' || verificationStatus === 'no_match') {
+        verifyNote = ' We couldn\'t automatically verify your voter registration -- we\'ll follow up if we can confirm it.';
+      }
+
+      ok(`Thanks! You're on our ${channels}. Reply STOP anytime to opt out of texts.${spamNote}${verifyNote}`);
+      modal.show(
+        consent_email
+          ? "Thank you for confirming your opt-in. You'll receive updates soon. If you don't see our email shortly, check your Spam or Junk folder -- if it's there, please select the \"Not Spam\" button so future updates land in your inbox."
+          : "Thank you for confirming your opt-in. You'll receive updates soon."
+      );
     } catch (e3) {
       console.error('opt-in error', e3);
       setBtn('Confirm Opt-In', { disabled: false });

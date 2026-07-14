@@ -584,7 +584,7 @@ async function findUniqueWyTargetMatch(wyDb, input) {
       return { match: addressRows[0], mode: "name_city_zip_address" };
     }
     if (addressRows.length > 1) {
-      return { match: null, mode: "ambiguous_address" };
+      return { match: null, mode: "ambiguous_address", candidates: addressRows };
     }
   }
 
@@ -598,9 +598,45 @@ async function findUniqueWyTargetMatch(wyDb, input) {
     return { match: rows[0], mode: "name_city_zip" };
   }
   if (rows.length > 1) {
-    return { match: null, mode: "ambiguous_name_city_zip" };
+    return { match: null, mode: "ambiguous_name_city_zip", candidates: rows };
   }
   return { match: null, mode: "no_match" };
+}
+
+// Shared by syncSubmittedPhoneToWyVoter (real-time /pulse match) and the
+// admin pulse-voter-review resolve endpoint (manual match after a review
+// queue row is picked/confirmed) -- same phone-to-voter mirror write either way.
+async function writeVoterPhoneMirror(wyDb, { voterId, phoneE164, phone10 }) {
+  const isWyArea = phone10.startsWith("307") ? 1 : 0;
+  const confidenceCode = 5;
+  const source = "skovgard_optin";
+
+  await wyDb.prepare(
+    `INSERT INTO voter_phones
+       (voter_id, phone10, phone_e164, confidence_code, is_wy_area, source, imported_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, datetime('now'))
+     ON CONFLICT(voter_id, phone10) DO UPDATE SET
+       phone_e164 = excluded.phone_e164,
+       confidence_code = MAX(COALESCE(voter_phones.confidence_code, 0), excluded.confidence_code),
+       is_wy_area = excluded.is_wy_area,
+       source = excluded.source,
+       imported_at = datetime('now')`
+  )
+    .bind(voterId, phone10, phoneE164, confidenceCode, isWyArea, source)
+    .run();
+
+  await wyDb.prepare(
+    `INSERT INTO v_best_phone
+       (voter_id, phone_e164, confidence_code, is_wy_area, imported_at)
+     VALUES (?1, ?2, ?3, ?4, datetime('now'))
+     ON CONFLICT(voter_id) DO UPDATE SET
+       phone_e164 = excluded.phone_e164,
+       confidence_code = excluded.confidence_code,
+       is_wy_area = excluded.is_wy_area,
+       imported_at = datetime('now')`
+  )
+    .bind(voterId, phoneE164, confidenceCode, isWyArea)
+    .run();
 }
 
 async function syncSubmittedPhoneToWyVoter(env, input) {
@@ -618,9 +654,9 @@ async function syncSubmittedPhoneToWyVoter(env, input) {
     return { ok: false, skipped: "missing_wy_tables" };
   }
 
-  const { match, mode } = await findUniqueWyTargetMatch(wyDb, input);
+  const { match, mode, candidates } = await findUniqueWyTargetMatch(wyDb, input);
   if (!match?.voter_id) {
-    return { ok: false, skipped: mode };
+    return { ok: false, skipped: mode, candidates };
   }
 
   const conflicts = await wyDb.prepare(
@@ -648,36 +684,7 @@ async function syncSubmittedPhoneToWyVoter(env, input) {
     };
   }
 
-  const isWyArea = phone10.startsWith("307") ? 1 : 0;
-  const confidenceCode = 5;
-  const source = "skovgard_optin";
-
-  await wyDb.prepare(
-    `INSERT INTO voter_phones
-       (voter_id, phone10, phone_e164, confidence_code, is_wy_area, source, imported_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, datetime('now'))
-     ON CONFLICT(voter_id, phone10) DO UPDATE SET
-       phone_e164 = excluded.phone_e164,
-       confidence_code = MAX(COALESCE(voter_phones.confidence_code, 0), excluded.confidence_code),
-       is_wy_area = excluded.is_wy_area,
-       source = excluded.source,
-       imported_at = datetime('now')`
-  )
-    .bind(match.voter_id, phone10, phoneE164, confidenceCode, isWyArea, source)
-    .run();
-
-  await wyDb.prepare(
-    `INSERT INTO v_best_phone
-       (voter_id, phone_e164, confidence_code, is_wy_area, imported_at)
-     VALUES (?1, ?2, ?3, ?4, datetime('now'))
-     ON CONFLICT(voter_id) DO UPDATE SET
-       phone_e164 = excluded.phone_e164,
-       confidence_code = excluded.confidence_code,
-       is_wy_area = excluded.is_wy_area,
-       imported_at = datetime('now')`
-  )
-    .bind(match.voter_id, phoneE164, confidenceCode, isWyArea)
-    .run();
+  await writeVoterPhoneMirror(wyDb, { voterId: match.voter_id, phoneE164, phone10 });
 
   return {
     ok: true,
@@ -2051,50 +2058,20 @@ async function queryPollInviteAudienceChunk(env, blastId, { limit = 250 } = {}) 
     for (const r of vRows.results || []) votersByVoterId.set(r.voter_id, r);
   }
 
-  // One lookupWyLegislativeDistricts call per voter -- not batchable like the SQL
-  // joins above, since it has its own internal cascade (local mirror, then a Census
-  // API fetch only when the local mirror has no unique match). Chunk sizes are
-  // small (<=MAX_SEND_CHUNK_SIZE, 20) so this is a handful of calls per chunk, not
-  // hundreds.
-  //
-  // Precinct resolution needs coordinates independently -- a wy_address_district_lookup
-  // hit for HD/SD involves no geocoding at all (voters_addr_norm.lat/lng are 0%
-  // populated, confirmed 2026-07-11), so every voter needs its own live geocode call
-  // here regardless of how house/senate resolved. This is the same live-per-recipient
-  // cost tradeoff accepted for the real send (~14,200 recipients) -- revisit
-  // throughput/rate-limiting when step 7 is actually scheduled, per Jimmy's direction.
+  // One resolveDistrictAndPrecinctForAddress call per voter -- not batchable like
+  // the SQL joins above, since it has its own internal cascade (local mirror,
+  // then a Census API fetch only when the local mirror has no unique match).
+  // Chunk sizes are small (<=MAX_SEND_CHUNK_SIZE, 20) so this is a handful of
+  // calls per chunk, not hundreds. Also reused by resolveVoterDistrictAndPrecinct
+  // (below) for a single /pulse opt-in outside the blast path.
   const districtsByVoterId = new Map();
   const precinctByVoterId = new Map();
   for (const voterId of voterIds) {
     const voter = votersByVoterId.get(voterId);
     if (!voter?.addr_raw) continue;
-    try {
-      const resolved = await lookupWyLegislativeDistricts(env.DB, {
-        address1: voter.addr_raw,
-        city: voter.city,
-        zip: voter.zip,
-        state: "WY",
-      });
-      districtsByVoterId.set(voterId, resolved);
-
-      const county = resolved?.county;
-      if (county) {
-        const coords = await geocodeAddress({
-          address1: voter.addr_raw,
-          city: voter.city,
-          zip: voter.zip,
-        });
-        if (coords?.lat != null && coords?.lon != null) {
-          const precinct = await resolvePrecinct(env.WY_DB, county, coords.lat, coords.lon);
-          if (precinct) precinctByVoterId.set(voterId, precinct);
-        }
-      }
-    } catch (error) {
-      console.error("[queryPollInviteAudienceChunk] district/precinct lookup failed", {
-        voterId,
-        message: error?.message,
-      });
-    }
+    const resolved = await resolveDistrictAndPrecinctForAddress(env, voter);
+    if (resolved?.districts) districtsByVoterId.set(voterId, resolved.districts);
+    if (resolved?.precinct) precinctByVoterId.set(voterId, resolved.precinct);
   }
 
   const recipients = [];
@@ -2123,6 +2100,69 @@ async function queryPollInviteAudienceChunk(env, blastId, { limit = 250 } = {}) 
     });
   }
   return recipients;
+}
+
+// Precinct resolution needs coordinates independently -- a wy_address_district_lookup
+// hit for HD/SD involves no geocoding at all (voters_addr_norm.lat/lng are 0%
+// populated, confirmed 2026-07-11), so every voter needs its own live geocode call
+// here regardless of how house/senate resolved. This is the same live-per-recipient
+// cost tradeoff accepted for the real send (~14,200 recipients) -- revisit
+// throughput/rate-limiting when step 7 is actually scheduled, per Jimmy's direction.
+// Takes an already-fetched voter row ({addr_raw, city, zip}) so batch callers
+// (queryPollInviteAudienceChunk) don't pay for a second per-voter SQL query.
+async function resolveDistrictAndPrecinctForAddress(env, voter) {
+  try {
+    const districts = await lookupWyLegislativeDistricts(env.DB, {
+      address1: voter.addr_raw,
+      city: voter.city,
+      zip: voter.zip,
+      state: "WY",
+    });
+
+    let precinct = null;
+    const county = districts?.county;
+    if (county) {
+      const coords = await geocodeAddress({
+        address1: voter.addr_raw,
+        city: voter.city,
+        zip: voter.zip,
+      });
+      if (coords?.lat != null && coords?.lon != null) {
+        precinct = await resolvePrecinct(env.WY_DB, county, coords.lat, coords.lon);
+      }
+    }
+    return { districts, precinct };
+  } catch (error) {
+    console.error("[resolveDistrictAndPrecinctForAddress] district/precinct lookup failed", {
+      message: error?.message,
+    });
+    return { districts: null, precinct: null };
+  }
+}
+
+// Single-voter counterpart to queryPollInviteAudienceChunk's batched voter/address
+// lookup -- used when a /pulse opt-in resolves to a WY voter_id via phone match
+// (syncSubmittedPhoneToWyVoter) and needs the same district/party/precinct fields
+// mintPollInviteLinksForChunk expects, without waiting for a blast job.
+async function resolveVoterDistrictAndPrecinct(env, voterId) {
+  if (!env.WY_DB) return null;
+  const voter = await env.WY_DB.prepare(
+    `SELECT v.voter_id, v.political_party, van.addr_raw, van.city, van.zip
+       FROM voters v
+       LEFT JOIN voters_addr_norm van ON van.voter_id = v.voter_id
+      WHERE v.voter_id = ?1`
+  ).bind(voterId).first();
+  if (!voter?.addr_raw) return null;
+
+  const { districts, precinct } = await resolveDistrictAndPrecinctForAddress(env, voter);
+  return {
+    political_party: voter.political_party || null,
+    city: voter.city || null,
+    house_district: padDistrictNumber(districts?.stateHouseDistrict),
+    senate_district: padDistrictNumber(districts?.stateSenateDistrict),
+    county: districts?.county || null,
+    precinct_code: precinct?.precinctCode || null,
+  };
 }
 
 // Resolves an explicit recipient list against every source a Blast audience
@@ -3932,39 +3972,93 @@ export default {
           });
         }
 
-        if (ctx?.waitUntil) {
-          ctx.waitUntil(
-            syncSubmittedPhoneToWyVoter(env, {
+        // Voter verification is independent of email -- attempted whenever the
+        // /pulse "verify your voter registration" section was used (signaled
+        // by `city`, since findUniqueWyTargetMatch hard-requires it). Poll-link
+        // minting additionally requires an email (grassmvt_survey's mint
+        // endpoint hard-requires email_norm), so a matched-but-no-email
+        // submission is recorded as verified without a link.
+        let pollLink = null;
+        let verification = { status: "not_attempted" };
+        if (city) {
+          try {
+            const syncResult = await syncSubmittedPhoneToWyVoter(env, {
               phone,
               firstName,
               lastName,
               address1,
               city,
               zip,
-            }).then((result) => {
-              if (result?.ok) {
-                console.log("[/api/optin] mirrored phone to WY voter", {
-                  voterId: result.voterId,
-                  matchedBy: result.matchedBy,
-                });
-                return;
+            });
+            if (syncResult?.ok) {
+              console.log("[/api/optin] mirrored phone to WY voter", {
+                voterId: syncResult.voterId,
+                matchedBy: syncResult.matchedBy,
+              });
+              if (email) {
+                const resolved = await resolveVoterDistrictAndPrecinct(env, syncResult.voterId);
+                const recipient = {
+                  voter_id: syncResult.voterId,
+                  email_norm: email.toLowerCase(),
+                  house_district: resolved?.house_district || undefined,
+                  senate_district: resolved?.senate_district || undefined,
+                  political_party: resolved?.political_party || undefined,
+                  county: resolved?.county || undefined,
+                  city: resolved?.city || undefined,
+                  precinct_code: resolved?.precinct_code || undefined,
+                };
+                const { withLinks, mintFailures } = await mintPollInviteLinksForChunk(env, [recipient]);
+                if (withLinks?.[0]?.poll_link) {
+                  pollLink = withLinks[0].poll_link;
+                } else if (mintFailures?.length) {
+                  console.log("[/api/optin] poll link mint skipped", {
+                    reason: mintFailures[0]?.error,
+                  });
+                }
+                verification = { status: "matched", pollLink };
+              } else {
+                verification = { status: "matched_no_email" };
               }
-              if (result?.skipped && result.skipped !== "missing_binding" && result.skipped !== "missing_wy_tables") {
-                console.log("[/api/optin] skipped WY phone mirror", {
-                  reason: result.skipped,
-                });
+            } else {
+              const mode = syncResult?.skipped;
+              if (mode === "ambiguous_address" || mode === "ambiguous_name_city_zip" || mode === "no_match") {
+                const candidateVoterIds = (syncResult.candidates || [])
+                  .map((row) => row?.voter_id)
+                  .filter(Boolean);
+                await env.DB.prepare(
+                  `INSERT INTO pulse_voter_match_review
+                     (phone_e164, submitted_first_name, submitted_last_name, submitted_address1, submitted_city, submitted_zip, match_mode, candidate_voter_ids)
+                   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
+                ).bind(
+                  phoneE164,
+                  firstName,
+                  lastName,
+                  address1 || null,
+                  city || null,
+                  zip || null,
+                  mode,
+                  candidateVoterIds.length ? JSON.stringify(candidateVoterIds) : null
+                ).run();
+                verification = { status: mode === "no_match" ? "no_match" : "ambiguous" };
+              } else if (mode && mode !== "missing_lookup_fields") {
+                console.log("[/api/optin] skipped WY phone mirror", { reason: mode });
               }
-            }).catch((error) => {
-              console.error("[/api/optin] WY phone mirror failed", String(error?.message || error));
-            })
-          );
+            }
+          } catch (error) {
+            console.error("[/api/optin] WY phone mirror or poll mint failed", String(error?.message || error));
+          }
         }
 
+        const welcomeConfig = pulseWelcomeConfig(env);
+        const welcomeBaseText = String(welcomeConfig.text || "").trim();
+        const welcomeText = pollLink
+          ? `${welcomeBaseText} See where your district stands: ${pollLink}`
+          : welcomeBaseText;
         const pulseWelcomeWork = maybeSendWelcomeText(
           env.DB,
           env,
           phone,
-          pulseWelcomeConfig(env)
+          { ...welcomeConfig, text: welcomeText }
         ).catch((error) => {
           console.error("[/api/optin] pulse welcome text failed", String(error?.message || error));
           return null;
@@ -4024,6 +4118,7 @@ export default {
             consentVersion: currentConsent.consent_version,
             source: currentConsent.source,
             sourceDetail: currentConsent.source_detail,
+            pollLink,
           }, {
             sendStaff: shouldSendStaffEmail,
             sendConfirmation: shouldSendConfirmationEmail,
@@ -4037,7 +4132,7 @@ export default {
           else await sendEmailWork;
         }
 
-        return json(req, env, { ok: true });
+        return json(req, env, { ok: true, verification });
       }
 
       // POST /api/share — visitor-initiated "share with a friend" sends
@@ -5227,6 +5322,82 @@ export default {
           phoneE164,
           item,
         });
+      }
+
+      // GET /api/admin/pulse-voter-review?unresolved=1
+      // Review queue for /pulse opt-ins whose voter-verification fields
+      // (city/zip, optionally address1) didn't cleanly resolve to exactly one
+      // WY voter record -- see pulse_voter_match_review (migration 031) and
+      // the ambiguous/no_match handling in POST /api/optin.
+      if (req.method === "GET" && path === "/api/admin/pulse-voter-review") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const unresolvedOnly = url.searchParams.get("unresolved") === "1";
+        const rows = await env.DB.prepare(
+          `SELECT id, phone_e164, submitted_first_name, submitted_last_name,
+                  submitted_address1, submitted_city, submitted_zip,
+                  match_mode, candidate_voter_ids, resolved_voter_id,
+                  resolved_at, resolved_by, created_at
+             FROM pulse_voter_match_review
+            ${unresolvedOnly ? "WHERE resolved_at IS NULL" : ""}
+            ORDER BY created_at DESC
+            LIMIT 200`
+        ).all();
+
+        return json(req, env, {
+          ok: true,
+          items: (rows.results || []).map((row) => ({
+            ...row,
+            candidate_voter_ids: row.candidate_voter_ids ? JSON.parse(row.candidate_voter_ids) : [],
+          })),
+        });
+      }
+
+      // POST /api/admin/pulse-voter-review/resolve
+      // Body: {id, voter_id} to confirm a candidate (writes the voter_phones
+      // mirror so future sends/matching treat this phone as linked), or
+      // {id, dismiss:true} when no real match exists. Record-only -- no
+      // message is sent; staff follow up manually via the existing admin
+      // texting/email tools.
+      if (req.method === "POST" && path === "/api/admin/pulse-voter-review/resolve") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const id = Number(body?.id);
+        const voterId = String(body?.voter_id || "").trim();
+        const dismiss = body?.dismiss === true;
+
+        if (!id) return json(req, env, { error: "Valid id required." }, 400);
+        if (!voterId && !dismiss) {
+          return json(req, env, { error: "voter_id or dismiss required." }, 400);
+        }
+
+        const row = await env.DB.prepare(
+          `SELECT id, phone_e164, resolved_at FROM pulse_voter_match_review WHERE id = ?1`
+        ).bind(id).first();
+        if (!row) return json(req, env, { error: "Review row not found." }, 404);
+        if (row.resolved_at) return json(req, env, { error: "Already resolved." }, 409);
+
+        if (voterId && env.WY_DB) {
+          const phoneE164 = normalizePhoneNumber(row.phone_e164);
+          const phone10 = normalizePhone10(phoneE164);
+          if (phoneE164 && phone10) {
+            await writeVoterPhoneMirror(env.WY_DB, { voterId, phoneE164, phone10 });
+          }
+        }
+
+        await env.DB.prepare(
+          `UPDATE pulse_voter_match_review
+              SET resolved_voter_id = ?1, resolved_at = datetime('now'), resolved_by = ?2
+            WHERE id = ?3`
+        ).bind(voterId || null, actor.actorEmail || null, id).run();
+
+        return json(req, env, { ok: true, id, resolvedVoterId: voterId || null });
       }
 
       if (req.method === "POST" && path === "/api/admin/texting/contacts/delete") {

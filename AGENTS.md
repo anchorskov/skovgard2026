@@ -235,6 +235,14 @@ Do NOT follow `docs/PODCAST_WORKFLOW.md` instructions that reference Hugo, `medi
   - the canonical host in `src/constants.ts`
   - the `MEDIA_BASE_URL` in `worker/wrangler.toml` `[env.production.vars]`
 
+## Test Data
+
+Reusable real (not fake) phone/email identities for end-to-end testing (SMS,
+email, voter-match flows) live in [docs/test_data.md](/home/anchor/projects/skovgard2026/docs/test_data.md).
+Check it before inventing a new throwaway identity for a test, and add an
+entry there when a test establishes a new one worth reusing. These are real
+contacts — sends against production bindings are real, not sandboxed.
+
 ## Repository Hygiene
 
 - Suggest cleanup of odd or stray files created in the project root when you notice them.
