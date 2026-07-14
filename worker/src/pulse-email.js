@@ -118,11 +118,11 @@ function buildConfirmationEmail(config, profile) {
   const pollTextLines = pollLink
     ? [
         "",
-        `Your Citizen Poll ballot is ready -- see where your district stands: ${pollLink}`,
+        `Your Citizen Poll ballot is ready -- cast your vote: ${pollLink}`,
       ]
     : [];
   const pollHtml = pollLink
-    ? `<p>Your Citizen Poll ballot is ready -- <a href="${escapeHtml(pollLink)}">see where your district stands</a>.</p>`
+    ? `<p>Your Citizen Poll ballot is ready -- <a href="${escapeHtml(pollLink)}">cast your vote</a>.</p>`
     : "";
 
   return {

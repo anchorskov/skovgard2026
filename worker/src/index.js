@@ -4080,7 +4080,7 @@ export default {
         const welcomeConfig = pulseWelcomeConfig(env);
         const welcomeBaseText = String(welcomeConfig.text || "").trim();
         const welcomeText = pollLink
-          ? `${welcomeBaseText} See where your district stands: ${pollLink}`
+          ? `${welcomeBaseText} Cast your vote in our Citizen Poll: ${pollLink}`
           : welcomeBaseText;
         const pulseWelcomeWork = maybeSendWelcomeText(
           env.DB,
