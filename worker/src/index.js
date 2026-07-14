@@ -600,6 +600,34 @@ async function findUniqueWyTargetMatch(wyDb, input) {
   if (rows.length > 1) {
     return { match: null, mode: "ambiguous_name_city_zip", candidates: rows };
   }
+
+  // City-scoped queries found nobody -- fall back to name+zip alone, dropping
+  // city entirely. Real-world mailing city often differs from the voter
+  // file's registered city (e.g. Mills/Evansville/Bar Nunn vs Casper, all
+  // sharing zip codes) without meaning the person isn't a real match.
+  // Zip alone is still a meaningful constraint in a low-population state; if
+  // it turns up more than one person, that's the existing ambiguous path,
+  // not a silent wrong match -- so this only ever helps, never mis-matches.
+  const zipOnlySql = `
+    SELECT voter_id, first_name, last_name, city, zip, addr1, addr_raw
+      FROM v_voter_targeting
+     WHERE UPPER(TRIM(first_name)) = ?1
+       AND UPPER(TRIM(last_name)) = ?2
+       AND zip = ?3
+     LIMIT 2
+  `;
+  const zipOnlyRows = await wyDb.prepare(zipOnlySql)
+    .bind(firstName, lastName, zip)
+    .all()
+    .then((result) => result?.results || [])
+    .catch(() => []);
+
+  if (zipOnlyRows.length === 1) {
+    return { match: zipOnlyRows[0], mode: "name_zip" };
+  }
+  if (zipOnlyRows.length > 1) {
+    return { match: null, mode: "ambiguous_name_zip", candidates: zipOnlyRows };
+  }
   return { match: null, mode: "no_match" };
 }
 
@@ -4021,7 +4049,7 @@ export default {
               }
             } else {
               const mode = syncResult?.skipped;
-              if (mode === "ambiguous_address" || mode === "ambiguous_name_city_zip" || mode === "no_match") {
+              if (mode === "ambiguous_address" || mode === "ambiguous_name_city_zip" || mode === "ambiguous_name_zip" || mode === "no_match") {
                 const candidateVoterIds = (syncResult.candidates || [])
                   .map((row) => row?.voter_id)
                   .filter(Boolean);

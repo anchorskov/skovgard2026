@@ -94,12 +94,13 @@ async function api(path, options = {}) {
 function matchModeLabel(mode) {
   if (mode === "ambiguous_address") return "Ambiguous (address)";
   if (mode === "ambiguous_name_city_zip") return "Ambiguous (name/city/zip)";
+  if (mode === "ambiguous_name_zip") return "Ambiguous (name/zip, city didn't match)";
   if (mode === "no_match") return "No match found";
   return mode || "Unknown";
 }
 
 function renderItem(item) {
-  const isAmbiguous = item.match_mode === "ambiguous_address" || item.match_mode === "ambiguous_name_city_zip";
+  const isAmbiguous = item.match_mode === "ambiguous_address" || item.match_mode === "ambiguous_name_city_zip" || item.match_mode === "ambiguous_name_zip";
   const candidates = Array.isArray(item.candidate_voter_ids) ? item.candidate_voter_ids : [];
 
   const resolveControl = isAmbiguous

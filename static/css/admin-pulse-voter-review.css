@@ -46,7 +46,8 @@
 }
 
 #admin-pvr-shell .status-ambiguous_address,
-#admin-pvr-shell .status-ambiguous_name_city_zip {
+#admin-pvr-shell .status-ambiguous_name_city_zip,
+#admin-pvr-shell .status-ambiguous_name_zip {
   background: #fef3c7;
   color: #92400e;
 }
