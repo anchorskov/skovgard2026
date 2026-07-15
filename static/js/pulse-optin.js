@@ -497,6 +497,8 @@ function resetTurnstile() {
         verifyNote = ' You\'re verified as a Wyoming voter. We could not create your ballot link yet, so we\'ll follow up.';
       } else if (verificationStatus === 'matched_no_email') {
         verifyNote = ' You\'re verified as a Wyoming voter -- add your email above and resubmit to get your Citizen Poll link.';
+      } else if (verificationStatus === 'already_sent') {
+        verifyNote = ' You\'re verified as a Wyoming voter -- you already received your Citizen Poll ballot link by text or email.';
       } else if (verificationStatus === 'ambiguous' || verificationStatus === 'no_match') {
         verifyNote = ' We couldn\'t automatically verify your voter registration -- we\'ll follow up if we can confirm it.';
       }
@@ -505,9 +507,11 @@ function resetTurnstile() {
       const modalText = submissionMode === 'poll'
         ? verificationStatus === 'matched' && data?.verification?.pollLink
           ? "You're verified. Your Citizen Poll ballot link is on its way by text and email."
-          : verificationStatus === 'ambiguous' || verificationStatus === 'no_match'
-            ? "Your opt-in is confirmed. We couldn't automatically match your voter registration, so our team will review it."
-            : "Your opt-in is confirmed. We'll follow up about your Citizen Poll ballot."
+          : verificationStatus === 'already_sent'
+            ? "You're verified. You already received your Citizen Poll ballot link -- check your earlier texts or email."
+            : verificationStatus === 'ambiguous' || verificationStatus === 'no_match'
+              ? "Your opt-in is confirmed. We couldn't automatically match your voter registration, so our team will review it."
+              : "Your opt-in is confirmed. We'll follow up about your Citizen Poll ballot."
         : consent_email
           ? "Thank you for confirming your opt-in. Check your inbox and spam or junk folder for our welcome message."
           : "Thank you for confirming your opt-in. You'll receive updates soon.";

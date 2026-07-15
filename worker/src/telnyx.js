@@ -316,6 +316,62 @@ export async function maybeSendWelcomeText(db, env, phoneE164, options = {}) {
   return { sent: true, providerId: telnyx.providerId, status: telnyx.status };
 }
 
+// Delivers a freshly-minted Citizen Poll ballot link by SMS. Deliberately
+// independent of maybeSendWelcomeText's welcome_sent_at gate -- that gate
+// means "don't re-welcome an existing subscriber," which has nothing to do
+// with whether *this* contact has ever actually received a poll link. The
+// caller (worker/src/index.js) is responsible for only calling this once
+// per contact (gated on consent_status.poll_link_sent_at), so this function
+// itself does no poll-specific dedupe -- it only respects a real opt-out.
+export async function sendPollLinkText(env, phoneE164, pollLink) {
+  const apiKey = String(env.TELNYX_API_KEY || "").trim();
+  const fromNumber = String(env.TELNYX_FROM_NUMBER || "").trim();
+  const to = normalizePhoneNumber(phoneE164);
+  const link = String(pollLink || "").trim();
+
+  if (!apiKey || !fromNumber || !to || !link) {
+    return { sent: false, reason: "disabled_or_missing_config" };
+  }
+
+  const blocked = await isOutboundSendBlocked(env.DB, to);
+  if (blocked) return { sent: false, reason: "opted_out" };
+
+  const text = `Your Citizen Poll ballot is ready -- cast your vote: ${link} Reply STOP to opt out.`;
+
+  const telnyx = await sendSmsWithTelnyx({ apiKey, fromNumber, to, text });
+
+  await env.DB.prepare(
+    `INSERT INTO outbound_messages
+       (telnyx_message_id, phone_from, phone_to, text, status, created_at, updated_at, raw_json)
+     VALUES (?1, ?2, ?3, ?4, ?5, datetime('now'), datetime('now'), ?6)
+     ON CONFLICT(telnyx_message_id) DO UPDATE SET
+       phone_from=excluded.phone_from,
+       phone_to=excluded.phone_to,
+       text=excluded.text,
+       status=excluded.status,
+       updated_at=datetime('now'),
+       raw_json=excluded.raw_json`
+  )
+    .bind(
+      telnyx.providerId,
+      fromNumber,
+      to,
+      text,
+      telnyx.status,
+      JSON.stringify(telnyx.body || null)
+    )
+    .run();
+
+  await insertTextingAuditLog(env.DB, {
+    action: "poll_link_send",
+    targetPhone: to,
+    messageId: telnyx.providerId,
+    detailsJson: JSON.stringify({ status: telnyx.status }),
+  });
+
+  return { sent: true, providerId: telnyx.providerId, status: telnyx.status };
+}
+
 export async function logTelnyxEvent(db, event) {
   const {
     eventId = null,

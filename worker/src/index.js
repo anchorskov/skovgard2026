@@ -8,6 +8,7 @@ import {
   phoneDigitsOnly,
   processTelnyxWebhookEvent,
   sendSmsWithTelnyx,
+  sendPollLinkText,
   upsertConsentStatus,
   verifyTelnyxSignature,
 } from "./telnyx.js";
@@ -18,7 +19,7 @@ import {
 } from "./admin-email.js";
 import { lookupWyLegislativeDistricts, geocodeAddress } from "./address-districts.js";
 import { resolvePrecinct } from "./precinct-lookup.js";
-import { sendPulseOptInEmails } from "./pulse-email.js";
+import { sendPulseOptInEmails, sendPollLinkEmail } from "./pulse-email.js";
 import { sendResendEmail } from "./resend.js";
 import {
   processResendWebhookEvent,
@@ -3900,13 +3901,14 @@ export default {
         const ip = req.headers.get("cf-connecting-ip") || "";
         const ipHash = await sha256Hex(ip);
         const priorConsent = await env.DB.prepare(
-          `SELECT status, consent_email, wy_voter
+          `SELECT status, consent_email, wy_voter, poll_link_sent_at
              FROM consent_status
             WHERE phone_e164 = ?1`
         )
           .bind(phoneE164)
           .first()
           .catch(() => null);
+        const pollLinkAlreadySent = Boolean(priorConsent?.poll_link_sent_at);
 
         const wyVoter =
           b.wy_voter === undefined
@@ -4023,7 +4025,16 @@ export default {
                 voterId: syncResult.voterId,
                 matchedBy: syncResult.matchedBy,
               });
-              if (email) {
+              if (email && pollLinkAlreadySent) {
+                // grassmvt_survey's mint endpoint replaces the existing
+                // token on every call (see its own comment: "re-minting
+                // ... replaces the token ... so a resend doesn't create
+                // orphan rows") -- re-minting here without also
+                // re-delivering would silently invalidate the link already
+                // sitting in this person's inbox/texts. Once delivered,
+                // leave it alone rather than mint-and-drop a replacement.
+                verification = { status: "already_sent" };
+              } else if (email) {
                 const resolved = await resolveVoterDistrictAndPrecinct(env, syncResult.voterId);
                 const recipient = {
                   voter_id: syncResult.voterId,
@@ -4082,20 +4093,21 @@ export default {
         const welcomeText = pollLink
           ? `${welcomeBaseText} Cast your vote in our Citizen Poll: ${pollLink}`
           : welcomeBaseText;
-        const pulseWelcomeWork = maybeSendWelcomeText(
+        // Awaited (not fire-and-forget) because the dedicated poll-link
+        // delivery below needs to know whether this already covered it --
+        // maybeSendWelcomeText only fires once ever per phone
+        // (contacts.welcome_sent_at), so a real result here is the only way
+        // to tell "just sent, poll link included" from "skipped, contact
+        // already welcomed before poll-link support existed".
+        const welcomeResult = await maybeSendWelcomeText(
           env.DB,
           env,
           phone,
           { ...welcomeConfig, text: welcomeText }
         ).catch((error) => {
           console.error("[/api/optin] pulse welcome text failed", String(error?.message || error));
-          return null;
+          return { sent: false, reason: "error" };
         });
-        if (ctx?.waitUntil) {
-          ctx.waitUntil(pulseWelcomeWork);
-        } else {
-          await pulseWelcomeWork;
-        }
 
         const currentConsent = await env.DB.prepare(
           `SELECT phone_e164, status, consented_at, source, source_detail,
@@ -4158,6 +4170,57 @@ export default {
 
           if (ctx?.waitUntil) ctx.waitUntil(sendEmailWork);
           else await sendEmailWork;
+        }
+
+        // Dedicated poll-link delivery -- independent of the general
+        // welcome-text/confirmation-email "first time subscribing" gates
+        // above, which exist to avoid re-welcoming an existing subscriber
+        // and have nothing to do with poll delivery. Only runs once ever
+        // per contact (pollLinkAlreadySent), and skips a channel the
+        // general sends above already covered (welcomeResult.sent already
+        // embedded the link in the welcome text; shouldSendConfirmationEmail
+        // means the confirmation email above already embedded it too) so a
+        // first-time subscriber who also wants the poll doesn't get the
+        // link twice on the same channel.
+        if (pollLink && !pollLinkAlreadySent) {
+          const needsSms = !welcomeResult?.sent;
+          const needsEmail = !shouldSendConfirmationEmail && Boolean(email && consentEmail);
+
+          const pollLinkDeliveryWork = (async () => {
+            const [smsResult, emailResult] = await Promise.all([
+              needsSms
+                ? sendPollLinkText(env, phoneE164, pollLink).catch((error) => {
+                    console.error("[/api/optin] poll link SMS failed", String(error?.message || error));
+                    return { sent: false, reason: "error" };
+                  })
+                : Promise.resolve({ sent: false, reason: "covered_by_welcome_text" }),
+              needsEmail
+                ? (async () => {
+                    const pollLinkKey = await hmacSha256Hex(consentVer || "pulse-optin", ["pulse-poll-link", phoneE164, pollLink].join("|"));
+                    return sendPollLinkEmail(env, { firstName, email, consentEmail: true, pollLink }, pollLinkKey).catch((error) => {
+                      console.error("[/api/optin] poll link email failed", String(error?.message || error));
+                      return { sent: false, reason: "error" };
+                    });
+                  })()
+                : Promise.resolve({ sent: false, reason: "covered_by_confirmation_email" }),
+            ]);
+
+            const delivered =
+              smsResult?.sent || emailResult?.sent ||
+              (!needsSms && welcomeResult?.sent) ||
+              (!needsEmail && shouldSendConfirmationEmail);
+
+            if (delivered) {
+              await env.DB.prepare(
+                `UPDATE consent_status SET poll_link_sent_at = datetime('now') WHERE phone_e164 = ?1`
+              ).bind(phoneE164).run();
+            } else {
+              console.error("[/api/optin] poll link delivery failed on all channels", { sms: smsResult, email: emailResult });
+            }
+          })();
+
+          if (ctx?.waitUntil) ctx.waitUntil(pollLinkDeliveryWork);
+          else await pollLinkDeliveryWork;
         }
 
         return json(req, env, { ok: true, verification });

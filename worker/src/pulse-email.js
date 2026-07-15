@@ -169,6 +169,54 @@ function buildConfirmationEmail(config, profile) {
   };
 }
 
+// Delivers a freshly-minted Citizen Poll ballot link by email, independent
+// of buildConfirmationEmail's wasOptedIn/hadEmailConsent gating in
+// worker/src/index.js -- that gating exists to avoid re-sending "thanks for
+// joining" to an existing subscriber, which has nothing to do with whether
+// *this* contact has ever actually received a poll link. The caller is
+// responsible for only requesting this once per contact (gated on
+// consent_status.poll_link_sent_at).
+function buildPollLinkEmail(config, profile) {
+  const email = normalizeText(profile.email);
+  const pollLink = normalizeText(profile.pollLink);
+  if (!email || !profile.consentEmail || !pollLink) return null;
+
+  const firstName = normalizeText(profile.firstName);
+  const greeting = firstName || "there";
+  const candidatesUrl = "https://candidates.skovgard2026.org/";
+  const subject = `Your ${config.campaignName} Citizen Poll ballot is ready`;
+
+  return {
+    from: config.from,
+    to: [email],
+    subject,
+    text: [
+      `Hi ${greeting},`,
+      "",
+      `You're verified as a Wyoming voter. Your Citizen Poll ballot is ready -- cast your vote: ${pollLink}`,
+      "",
+      `Find everyone on your ballot: ${candidatesUrl}`,
+      "",
+      "Don't see this in your inbox? Check your Spam or Junk folder. If it's there, please select the \"Not Spam\" button (or add pulse@grassrootsmvt.org to your contacts) so future updates reach you.",
+      "",
+      "Reply STOP to any campaign text to stop receiving text messages.",
+      "Reply HELP for help, or email skovgard2026@gmail.com if you need assistance.",
+    ].join("\n"),
+    html: `
+      <p>Hi ${escapeHtml(greeting)},</p>
+      <p>You're verified as a Wyoming voter. Your Citizen Poll ballot is ready -- <a href="${escapeHtml(pollLink)}">cast your vote</a>.</p>
+      <p>Find everyone on your ballot: <a href="${candidatesUrl}">${candidatesUrl}</a></p>
+      <p>Don't see this in your inbox? Check your Spam or Junk folder. If it's there, please select the <strong>"Not Spam"</strong> button (or add <strong>pulse@grassrootsmvt.org</strong> to your contacts) so future updates reach you.</p>
+      <p>Reply <strong>STOP</strong> to any campaign text to stop receiving text messages.</p>
+      <p>Reply <strong>HELP</strong> for help, or email <a href="mailto:skovgard2026@gmail.com">skovgard2026@gmail.com</a> if you need assistance.</p>
+    `,
+    tags: [
+      { name: "source", value: "pulse" },
+      { name: "kind", value: "poll_link" },
+    ],
+  };
+}
+
 export async function sendPulseOptInEmails(env, profile, options = {}) {
   const config = {
     enabled: String(env.PULSE_EMAIL_ENABLED || "0") === "1",
@@ -224,4 +272,30 @@ export async function sendPulseOptInEmails(env, profile, options = {}) {
     ),
     failures,
   };
+}
+
+// Standalone (not bundled into sendPulseOptInEmails' jobs array) so the
+// caller gets an unambiguous sent/failed signal for this one email, needed
+// to decide whether to mark consent_status.poll_link_sent_at.
+export async function sendPollLinkEmail(env, profile, idempotencyKey = null) {
+  const config = {
+    enabled: String(env.PULSE_EMAIL_ENABLED || "0") === "1",
+    apiKey: normalizeText(env.RESEND_API_KEY),
+    from: normalizeText(env.PULSE_EMAIL_FROM),
+    campaignName: normalizeText(env.PULSE_EMAIL_CAMPAIGN_NAME || "Skovgard for Senate") || "Skovgard for Senate",
+  };
+
+  if (!config.enabled || !config.apiKey || !config.from) {
+    return { sent: false, reason: "disabled_or_missing_config" };
+  }
+
+  const message = buildPollLinkEmail(config, profile);
+  if (!message) return { sent: false, reason: "no_email_or_consent" };
+
+  try {
+    const data = await sendResendEmail(config.apiKey, message, idempotencyKey);
+    return { sent: true, id: data?.id || null };
+  } catch (error) {
+    return { sent: false, reason: String(error?.message || error) };
+  }
 }
