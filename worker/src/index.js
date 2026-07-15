@@ -4162,7 +4162,7 @@ export default {
           const pollLinkDeliveryWork = (async () => {
             const [smsResult, emailResult] = await Promise.all([
               needsSms
-                ? sendPollLinkText(env, phoneE164, pollLink).catch((error) => {
+                ? sendPollLinkText(env, phoneE164, pollLink, { auditDetails: matchedVoterForPhone || {} }).catch((error) => {
                     console.error("[/api/optin] poll link SMS failed", String(error?.message || error));
                     return { sent: false, reason: "error" };
                   })

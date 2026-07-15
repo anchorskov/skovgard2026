@@ -337,7 +337,7 @@ export async function maybeSendWelcomeText(db, env, phoneE164, options = {}) {
 // caller (worker/src/index.js) is responsible for only calling this once
 // per contact (gated on consent_status.poll_link_sent_at), so this function
 // itself does no poll-specific dedupe -- it only respects a real opt-out.
-export async function sendPollLinkText(env, phoneE164, pollLink) {
+export async function sendPollLinkText(env, phoneE164, pollLink, options = {}) {
   const apiKey = String(env.TELNYX_API_KEY || "").trim();
   const fromNumber = String(env.TELNYX_FROM_NUMBER || "").trim();
   const to = normalizePhoneNumber(phoneE164);
@@ -380,7 +380,10 @@ export async function sendPollLinkText(env, phoneE164, pollLink) {
     action: "poll_link_send",
     targetPhone: to,
     messageId: telnyx.providerId,
-    detailsJson: JSON.stringify({ status: telnyx.status }),
+    detailsJson: JSON.stringify({
+      status: telnyx.status,
+      ...(options.auditDetails || {}),
+    }),
   });
 
   return { sent: true, providerId: telnyx.providerId, status: telnyx.status };
@@ -891,21 +894,29 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
           `SELECT action, target_phone, details_json
              FROM texting_audit_log
             WHERE message_id = ?1
-              AND action IN ('welcome_send', 'pulse_welcome_send')
+              AND action IN ('welcome_send', 'pulse_welcome_send', 'poll_link_send')
             ORDER BY id DESC
             LIMIT 1`
         ).bind(telnyxMessageId).first().catch(() => null)
       : null;
+    const isWelcomeAction = welcomeAudit?.action === "welcome_send" || welcomeAudit?.action === "pulse_welcome_send";
+    // poll_link_send is a distinct message (not the welcome text), but its
+    // delivery is an equally valid signal that this phone works and is tied
+    // to a matched voter -- eligible for the same promotion below, just
+    // never treated as satisfying the welcome-text gate.
+    const isPromotionEligible = isWelcomeAction || welcomeAudit?.action === "poll_link_send";
 
     if (welcomeAudit?.target_phone && eventType === "message.delivered") {
-      await db.prepare(
-        `UPDATE contacts
-            SET welcome_sent_at = COALESCE(welcome_sent_at, datetime('now')),
-                updated_at = datetime('now')
-          WHERE phone_e164 = ?1`
-      ).bind(welcomeAudit.target_phone).run();
+      if (isWelcomeAction) {
+        await db.prepare(
+          `UPDATE contacts
+              SET welcome_sent_at = COALESCE(welcome_sent_at, datetime('now')),
+                  updated_at = datetime('now')
+            WHERE phone_e164 = ?1`
+        ).bind(welcomeAudit.target_phone).run();
+      }
 
-      if (welcomeAudit.action === "pulse_welcome_send" && env?.WY_DB) {
+      if (isPromotionEligible && env?.WY_DB) {
         let auditDetails = {};
         try {
           auditDetails = JSON.parse(welcomeAudit.details_json || "{}");
@@ -939,7 +950,7 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
           });
         }
       }
-    } else if (welcomeAudit?.target_phone && eventType === "message.delivery_failed") {
+    } else if (welcomeAudit?.target_phone && isWelcomeAction && eventType === "message.delivery_failed") {
       await db.prepare(
         `UPDATE contacts SET welcome_sent_at = NULL, updated_at = datetime('now') WHERE phone_e164 = ?1`
       ).bind(welcomeAudit.target_phone).run();
