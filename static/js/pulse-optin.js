@@ -9,6 +9,16 @@ if (form) {
   const consentPanel = $('#consent-panel');
   const consentCheckbox = $('#consent_sms');
   const consentError = $('#consent-error');
+  const stepOne = $('#pulse-step-1');
+  const stepTwo = $('#pulse-step-2');
+  const stepOneIndicator = $('#pulse-step-indicator-1');
+  const stepTwoIndicator = $('#pulse-step-indicator-2');
+  const continuePollBtn = $('#pulse-continue-poll');
+  const updatesOnlyBtn = $('#pulse-updates-only');
+  const backBtn = $('#pulse-back');
+  const submitBtn = $('#optin-submit');
+  const stepTwoHeading = $('#pulse-step-2-heading');
+  let currentStep = 1;
 
   const msg = document.createElement('div');
   msg.setAttribute('aria-live', 'polite');
@@ -42,12 +52,42 @@ if (form) {
   };
 
   const setBtn = (txt, { disabled = false, success = false } = {}) => {
-    const btn = $('#optin-submit'); if (!btn) return;
+    const btn = form.dataset.submissionMode === 'updates' ? updatesOnlyBtn : submitBtn;
+    if (!btn) return;
     btn.textContent = txt;
-    btn.disabled = disabled;
-    btn.style.setProperty('background', success ? '#059669' : '#b22234', 'important');
-    btn.style.setProperty('color', '#fff', 'important');
-    btn.style.setProperty('opacity', (success && disabled) ? '.9' : '', 'important');
+    for (const action of [continuePollBtn, updatesOnlyBtn, backBtn, submitBtn]) {
+      if (action) action.disabled = disabled;
+    }
+    if (success) btn.setAttribute('data-success', 'true');
+    else btn.removeAttribute('data-success');
+  };
+
+  const resetActionLabels = () => {
+    if (continuePollBtn) continuePollBtn.textContent = 'Continue to Citizen Poll';
+    if (updatesOnlyBtn) updatesOnlyBtn.textContent = 'Join updates without voting';
+    if (submitBtn) submitBtn.textContent = 'Verify me and get my ballot';
+  };
+
+  const showStep = (step, { focus = true } = {}) => {
+    currentStep = step === 2 ? 2 : 1;
+    if (stepOne) stepOne.hidden = currentStep !== 1;
+    if (stepTwo) stepTwo.hidden = currentStep !== 2;
+    stepOneIndicator?.classList.toggle('is-active', currentStep === 1);
+    stepTwoIndicator?.classList.toggle('is-active', currentStep === 2);
+    if (currentStep === 1) {
+      stepOneIndicator?.setAttribute('aria-current', 'step');
+      stepTwoIndicator?.removeAttribute('aria-current');
+    } else {
+      stepTwoIndicator?.setAttribute('aria-current', 'step');
+      stepOneIndicator?.removeAttribute('aria-current');
+    }
+    msg.className = '';
+    msg.textContent = '';
+    if (focus) {
+      const target = currentStep === 2 ? stepTwoHeading : continuePollBtn;
+      target?.focus({ preventScroll: true });
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const normalize10 = (raw) => {
@@ -242,12 +282,18 @@ function resetTurnstile() {
   window.addEventListener('load', () => { setStart(); setTimeout(setStart, 50); }, { once: true });
   setStart();
 
-  /* ---------- bind + guard initial button ---------- */
+  /* ---------- bind + guard initial actions ---------- */
   form.dataset.js = 'ready';
   (() => {
-    const btn = $('#optin-submit'); if (!btn) return;
-    btn.disabled = true;
-    setTimeout(() => { btn.disabled = false; }, MIN_WAIT_MS);
+    const actions = [continuePollBtn, updatesOnlyBtn, submitBtn];
+    for (const action of actions) {
+      if (action) action.disabled = true;
+    }
+    setTimeout(() => {
+      for (const action of actions) {
+        if (action) action.disabled = false;
+      }
+    }, MIN_WAIT_MS);
   })();
 
   consentCheckbox?.addEventListener('change', () => {
@@ -269,11 +315,99 @@ function resetTurnstile() {
   emailField?.addEventListener('input', updateEmailConsent);
   updateEmailConsent();
 
+  const readFields = () => ({
+    first_name: $('#first_name')?.value.trim() || '',
+    last_name: $('#last_name')?.value.trim() || '',
+    address1: $('#address1')?.value.trim() || '',
+    address2: $('#address2')?.value.trim() || '',
+    city: $('#city')?.value.trim() || '',
+    state: ($('#state')?.value || '').trim().toUpperCase(),
+    zip: ($('#zip')?.value || '').replace(/\D/g, ''),
+    phone10: normalize10($('#phone')?.value || ''),
+    email: ($('#email')?.value || '').trim(),
+    consent_sms: $('#consent_sms')?.checked || false,
+    consent_email: $('#consent_email')?.checked || false,
+  });
+
+  const fieldError = (field, text) => {
+    err(text);
+    field?.focus({ preventScroll: true });
+    field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  };
+
+  const validateContactStep = ({ poll = false } = {}) => {
+    clearConsentError();
+    const fields = readFields();
+    if (!fields.first_name) return fieldError($('#first_name'), 'First name is required.');
+    if (!fields.last_name) return fieldError($('#last_name'), 'Last name is required.');
+    if (fields.phone10.length !== 10) return fieldError($('#phone'), 'Enter a valid 10-digit mobile number.');
+    if (!fields.consent_sms) {
+      showConsentError();
+      return false;
+    }
+    if (fields.email && !/.+@.+\..+/.test(fields.email)) {
+      return fieldError($('#email'), 'Enter a valid email address.');
+    }
+    if (poll && !fields.email) {
+      return fieldError($('#email'), 'Enter your email so we can deliver your Citizen Poll ballot.');
+    }
+    if (fields.email && !fields.consent_email) {
+      return fieldError($('#consent_email'), 'Check the email opt-in to receive your ballot and campaign emails.');
+    }
+    return true;
+  };
+
+  const validatePollStep = () => {
+    const fields = readFields();
+    if (!fields.city) return fieldError($('#city'), 'Enter your city so we can find your voter registration.');
+    if (!/^\d{5}$/.test(fields.zip)) return fieldError($('#zip'), 'Enter a valid 5-digit ZIP code.');
+    return true;
+  };
+
+  continuePollBtn?.addEventListener('click', () => {
+    msg.className = '';
+    msg.textContent = '';
+    if (!validateContactStep({ poll: true })) return;
+    form.dataset.submissionMode = 'poll';
+    showStep(2);
+  });
+
+  updatesOnlyBtn?.addEventListener('click', () => {
+    msg.className = '';
+    msg.textContent = '';
+    if (!validateContactStep()) return;
+    form.dataset.submissionMode = 'updates';
+    form.requestSubmit();
+  });
+
+  backBtn?.addEventListener('click', () => {
+    form.dataset.submissionMode = '';
+    resetActionLabels();
+    showStep(1);
+  });
+
   /* ---------- submit ---------- */
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     msg.className = ''; msg.textContent = '';
     clearConsentError();
+
+    let submissionMode = form.dataset.submissionMode || '';
+    if (!submissionMode && currentStep === 1) {
+      if (validateContactStep({ poll: true })) {
+        form.dataset.submissionMode = 'poll';
+        showStep(2);
+      }
+      return;
+    }
+    if (!submissionMode) submissionMode = 'poll';
+
+    if (!validateContactStep({ poll: submissionMode === 'poll' })) {
+      if (currentStep !== 1) showStep(1, { focus: false });
+      return;
+    }
+    if (submissionMode === 'poll' && !validatePollStep()) return;
 
     // honeypot: silent success
     if ((form.querySelector('#website')?.value || '').trim() !== '') {
@@ -288,30 +422,10 @@ function resetTurnstile() {
       return err('Please wait a moment and try again.');
     }
 
-    // fields
-    const first_name    = $('#first_name')?.value.trim() || '';
-    const last_name     = $('#last_name')?.value.trim() || '';
-    const address1      = $('#address1')?.value.trim() || '';
-    const address2      = $('#address2')?.value.trim() || '';
-    const city          = $('#city')?.value.trim() || '';
-    const state         = ($('#state')?.value || '').trim().toUpperCase();
-    const zip           = ($('#zip')?.value || '').replace(/\D/g, '');
-    const phone10       = normalize10($('#phone')?.value || '');
-    const email         = ($('#email')?.value || '').trim();
-    const consent_sms   = $('#consent_sms')?.checked || false;
-    const consent_email = $('#consent_email')?.checked || false;
-
-    // client validation
-    if (!first_name) return err('First name is required.');
-    if (!last_name)  return err('Last name is required.');
-    if (zip && !/^\d{5}$/.test(zip)) return err('Enter a valid 5-digit ZIP.');
-    if (phone10.length !== 10) return err('Enter a valid 10-digit mobile.');
-    if (!consent_sms) {
-      showConsentError();
-      return;
-    }
-    if (email && !/.+@.+\..+/.test(email)) return err('Enter a valid email address.');
-    if (email && !consent_email) return err('Check the email opt-in to receive emails.');
+    const {
+      first_name, last_name, address1, address2, city, state, zip,
+      phone10, email, consent_sms, consent_email,
+    } = readFields();
 
     // token
     let tsToken = '';
@@ -370,7 +484,6 @@ function resetTurnstile() {
       form.reset();
       resetTurnstile();
       setBtn('Opt-In Confirmed', { disabled: true, success: true });
-      $('#optin-submit').style.display = 'none';
       const channels = consent_email ? 'text and email lists' : 'SMS list';
       const spamNote = consent_email
         ? ' Check your inbox (and spam/junk folder) for a message from pulse@grassrootsmvt.org.'
@@ -378,8 +491,10 @@ function resetTurnstile() {
 
       const verificationStatus = data?.verification?.status || 'not_attempted';
       let verifyNote = '';
-      if (verificationStatus === 'matched') {
+      if (verificationStatus === 'matched' && data?.verification?.pollLink) {
         verifyNote = ' You\'re verified as a Wyoming voter -- your Citizen Poll ballot link is on its way.';
+      } else if (verificationStatus === 'matched') {
+        verifyNote = ' You\'re verified as a Wyoming voter. We could not create your ballot link yet, so we\'ll follow up.';
       } else if (verificationStatus === 'matched_no_email') {
         verifyNote = ' You\'re verified as a Wyoming voter -- add your email above and resubmit to get your Citizen Poll link.';
       } else if (verificationStatus === 'ambiguous' || verificationStatus === 'no_match') {
@@ -387,14 +502,20 @@ function resetTurnstile() {
       }
 
       ok(`Thanks! You're on our ${channels}. Reply STOP anytime to opt out of texts.${spamNote}${verifyNote}`);
-      modal.show(
-        consent_email
-          ? "Thank you for confirming your opt-in. You'll receive updates soon. If you don't see our email shortly, check your Spam or Junk folder -- if it's there, please select the \"Not Spam\" button so future updates land in your inbox."
-          : "Thank you for confirming your opt-in. You'll receive updates soon."
-      );
+      const modalText = submissionMode === 'poll'
+        ? verificationStatus === 'matched' && data?.verification?.pollLink
+          ? "You're verified. Your Citizen Poll ballot link is on its way by text and email."
+          : verificationStatus === 'ambiguous' || verificationStatus === 'no_match'
+            ? "Your opt-in is confirmed. We couldn't automatically match your voter registration, so our team will review it."
+            : "Your opt-in is confirmed. We'll follow up about your Citizen Poll ballot."
+        : consent_email
+          ? "Thank you for confirming your opt-in. Check your inbox and spam or junk folder for our welcome message."
+          : "Thank you for confirming your opt-in. You'll receive updates soon.";
+      modal.show(modalText);
     } catch (e3) {
       console.error('opt-in error', e3);
-      setBtn('Confirm Opt-In', { disabled: false });
+      setBtn(submissionMode === 'poll' ? 'Verify me and get my ballot' : 'Join updates without voting', { disabled: false });
+      resetActionLabels();
       err(e3?.message || 'Sorry—something went wrong. Please try again.');
       resetTurnstile(); // never reuse a failed/expired token
     }

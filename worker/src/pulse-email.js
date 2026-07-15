@@ -79,6 +79,8 @@ function buildStaffEmail(config, profile) {
       `Districts: ${districtSummary(profile)}`,
       `Consent version: ${normalizeText(profile.consentVersion) || "Unknown"}`,
       `Source: ${normalizeText(profile.sourceDetail || profile.source) || "pulse"}`,
+      "",
+      "View unresolved voter matches: https://www.skovgard2026.org/admin/pulse-voter-review/index.html",
     ].join("\n"),
     html: `
       <h1>New Pulse opt-in</h1>
@@ -96,6 +98,7 @@ function buildStaffEmail(config, profile) {
         <li><strong>Consent version:</strong> ${escapeHtml(normalizeText(profile.consentVersion) || "Unknown")}</li>
         <li><strong>Source:</strong> ${escapeHtml(normalizeText(profile.sourceDetail || profile.source) || "pulse")}</li>
       </ul>
+      <p><a href="https://www.skovgard2026.org/admin/pulse-voter-review/index.html">View unresolved voter matches</a></p>
     `,
     tags: [
       { name: "source", value: "pulse" },

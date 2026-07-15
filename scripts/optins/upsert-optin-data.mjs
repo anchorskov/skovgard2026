@@ -423,6 +423,44 @@ ON CONFLICT(email_norm) DO UPDATE SET
   updated_at = excluded.updated_at;`.trim();
 }
 
+// Mirrors worker/src/index.js's upsertEmailContactSubscriber dual-write exactly
+// (same ON CONFLICT priority/sticky-opted_out logic) so a signup-sheet import
+// lands in the canonical email_contacts table the same way a Pulse submission
+// does. newsletterRows are only ever pushed when opt_in_email=Yes (lib.mjs),
+// so consent_status is always 'opted_in' here -- same invariant the Worker's
+// upsertNewsletterSubscriber relies on (it throws before reaching the
+// dual-write call if consent wasn't granted).
+function emailContactsStatement(row) {
+  const emailNorm = normalizeCsvNullable(row.email_norm);
+  const sourceDetail = `email_contacts_dual_write:${normalizeCsvNullable(row.source) || "skovgard2026:signup_sheet_import"}`;
+  return `
+INSERT INTO email_contacts (email, email_norm, consent_status, source, source_detail, source_priority, first_seen_at, updated_at)
+VALUES (
+  ${sqlValue(normalizeCsvNullable(row.email))},
+  ${sqlValue(emailNorm)},
+  'opted_in',
+  'email_contacts_dual_write',
+  ${sqlValue(sourceDetail)},
+  4,
+  datetime('now'),
+  datetime('now')
+)
+ON CONFLICT(email_norm) DO UPDATE SET
+  consent_status = CASE
+    WHEN email_contacts.consent_status = 'opted_out' THEN 'opted_out'
+    WHEN excluded.consent_status = 'opted_out' THEN 'opted_out'
+    WHEN excluded.source_priority >= email_contacts.source_priority THEN excluded.consent_status
+    ELSE email_contacts.consent_status
+  END,
+  source = CASE WHEN excluded.source_priority >= email_contacts.source_priority THEN excluded.source ELSE email_contacts.source END,
+  source_detail = CASE WHEN excluded.source_priority >= email_contacts.source_priority THEN excluded.source_detail ELSE email_contacts.source_detail END,
+  source_priority = MAX(email_contacts.source_priority, excluded.source_priority),
+  updated_at = datetime('now');
+
+INSERT OR IGNORE INTO email_contact_purposes (email_contact_id, purpose, source)
+SELECT id, 'subscriber', ${sqlValue(sourceDetail)} FROM email_contacts WHERE email_norm = ${sqlValue(emailNorm)};`.trim();
+}
+
 function smsOptinsStatement(row) {
   return `
 INSERT INTO sms_optins (
@@ -544,6 +582,7 @@ function buildSql(runData, target) {
   for (const row of runData.contactsRows) statements.push(contactsStatement(row));
   for (const row of runData.consentStatusRows) statements.push(consentStatusStatement(row));
   for (const row of runData.newsletterRows) statements.push(newsletterStatement(row));
+  for (const row of runData.newsletterRows) statements.push(emailContactsStatement(row));
   for (const row of runData.smsOptinsRows) statements.push(smsOptinsStatement(row));
   for (const row of volunteerRows) statements.push(volunteerStatement(row));
 
@@ -554,6 +593,7 @@ function buildSql(runData, target) {
       contacts: runData.contactsRows.length,
       consent_status: runData.consentStatusRows.length,
       newsletter_subscribers: runData.newsletterRows.length,
+      email_contacts: runData.newsletterRows.length,
       sms_optins: runData.smsOptinsRows.length,
       volunteers: volunteerRows.length,
     },

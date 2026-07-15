@@ -8,7 +8,11 @@ This document covers the CSV transform and import workflow for signup-sheet styl
 - Primary application DB: `ballot_sources`, bound as `DB` in [worker/wrangler.toml](/home/anchor/projects/skovgard2026/worker/wrangler.toml).
 - Canonical SMS consent: `consent_status`.
 - Texting-facing contact identity: `contacts`.
-- Canonical email consent: `newsletter_subscribers`.
+- Canonical email consent (campaign-specific): `newsletter_subscribers`.
+- Canonical email consent (cross-source, all channels): `email_contacts` /
+  `email_contact_purposes` — see `docs/db/EmailConsolidationPlan.md`. This workflow
+  dual-writes into it whenever it writes a `newsletter_subscribers` row, the same
+  way the Worker's Pulse/opt-in-confirmation paths do. See `docs/OptinPlan.md` §4.
 - Volunteer compatibility flag for texting/admin audience queries: `sms_optins.is_volunteer`.
 - Operational volunteer intake table: `volunteers`.
 - `WY_DB` is separate. It is only for voter matching and phone mirroring. This workflow does not import into `WY_DB`.
@@ -19,6 +23,7 @@ This document covers the CSV transform and import workflow for signup-sheet styl
   - `consent_status`
   - `contacts`
   - `newsletter_subscribers`
+  - `email_contacts` / `email_contact_purposes`
 - Compatibility / operational tables:
   - `sms_optins`
     Current role here is volunteer compatibility, not canonical SMS consent.
@@ -131,6 +136,29 @@ Columns left blank on purpose:
 - `confirmed_at`
 - `user_agent`
 - `ip_hash`
+
+### `email_contacts` / `email_contact_purposes`
+
+Dual-write mirror of `newsletter_subscribers`: fires for the exact same rows
+(`opt_in_email=Yes` and a valid email), so this table stays in sync the same way
+`worker/src/index.js`'s `upsertEmailContactSubscriber` keeps it in sync with the
+Pulse web form and the email opt-in confirmation link. See `docs/OptinPlan.md` §4
+for why this exists.
+
+| Source column | Target column |
+|---|---|
+| `email` | `email` |
+| `email_norm` | `email_norm` |
+| always | `consent_status='opted_in'` (this row only ever fires when opt-in was granted) |
+| always | `source='email_contacts_dual_write'` |
+| `source` | `source_detail='email_contacts_dual_write:<source>'` |
+| always | `source_priority=4` (same "subscriber" priority the Worker's dual-write uses) |
+
+Conflict behavior mirrors `upsertEmailContactSubscriber` exactly: an existing
+`opted_out` row is never overwritten (sticky opt-out — checked before any priority
+comparison), and a lower- or equal-priority existing row is replaced, not merged.
+Also inserts an `email_contact_purposes` row tagged `subscriber`
+(`INSERT OR IGNORE`, so reruns don't duplicate the tag).
 
 ### `sms_optins`
 
@@ -274,6 +302,17 @@ ORDER BY email_norm;
 "
 ```
 
+### Check canonical cross-source email rows
+
+```bash
+sqlite3 -header -column /tmp/skovgard2026-optin-import.sqlite "
+SELECT ec.email_norm, ec.consent_status, ec.source_detail, ecp.purpose
+FROM email_contacts ec
+LEFT JOIN email_contact_purposes ecp ON ecp.email_contact_id = ec.id
+ORDER BY ec.email_norm;
+"
+```
+
 ### Check volunteer compatibility rows
 
 ```bash
@@ -300,6 +339,8 @@ The workflow is designed to be rerun safely.
 
 - Run the same `upsert-optin-data.mjs` command again against the same output directory.
 - Canonical tables stay keyed by `phone_e164` or `email_norm`.
+- `email_contacts` also stays keyed by `email_norm`; `email_contact_purposes` uses
+  `INSERT OR IGNORE` so a rerun never duplicates the `subscriber` tag.
 - `sms_optins` stays keyed by legacy `phone`.
 - `volunteers` first resolves existing rows by phone and email, then updates by resolved `id`.
 
@@ -333,6 +374,8 @@ That test:
 - verifies import counts
 - verifies combined-name parsing
 - verifies volunteer compatibility behavior
+- verifies the `email_contacts` dual-write, including that a pre-existing
+  `opted_out` row is never overwritten (sticky opt-out)
 - verifies duplicate reruns
 
 ## Do Not Commit Local Data

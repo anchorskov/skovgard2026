@@ -120,6 +120,15 @@ VALUES (
   'inactive@example.com', 'inactive@example.com', 0, 'seed-safety-email', 'seed', 0, NULL,
   NULL, NULL, '2026-04-01T12:00:00.000Z', '2026-04-02T12:00:00.000Z'
 );
+
+INSERT INTO email_contacts (
+  email, email_norm, consent_status, source, source_detail, source_priority,
+  first_seen_at, updated_at
+)
+VALUES (
+  'alice@example.com', 'alice@example.com', 'opted_out', 'seed', 'safety-preexisting-optout', 4,
+  '2026-04-01T12:00:00.000Z', '2026-04-02T12:00:00.000Z'
+);
 `);
 }
 
@@ -202,7 +211,9 @@ SELECT
   (SELECT COUNT(*) FROM consent_status) AS consent_count,
   (SELECT COUNT(*) FROM newsletter_subscribers) AS newsletter_count,
   (SELECT COUNT(*) FROM sms_optins) AS sms_optins_count,
-  (SELECT COUNT(*) FROM volunteers) AS volunteers_count;
+  (SELECT COUNT(*) FROM volunteers) AS volunteers_count,
+  (SELECT COUNT(*) FROM email_contacts) AS email_contacts_count,
+  (SELECT COUNT(*) FROM email_contact_purposes WHERE purpose = 'subscriber') AS email_contacts_purpose_count;
 `)[0];
 
   expectEqual(Number(counts.contacts_count || 0), 6, "Contacts count matches expected rows");
@@ -210,6 +221,8 @@ SELECT
   expectEqual(Number(counts.newsletter_count || 0), 6, "Newsletter count matches expected rows");
   expectEqual(Number(counts.sms_optins_count || 0), 4, "sms_optins count matches expected rows");
   expectEqual(Number(counts.volunteers_count || 0), 5, "Volunteers count matches expected rows");
+  expectEqual(Number(counts.email_contacts_count || 0), 6, "email_contacts dual-write count matches newsletter rows");
+  expectEqual(Number(counts.email_contacts_purpose_count || 0), 6, "email_contacts gets a 'subscriber' purpose tag per newsletter row");
 
   const becky = sqliteJson(`
 SELECT first_name, last_name
@@ -239,6 +252,25 @@ SELECT
   expectEqual(Number(volunteerEmailOnly?.newsletter_count || 0), 1, "Volunteer email-only row creates newsletter subscriber");
   expectEqual(Number(volunteerEmailOnly?.volunteer_count || 0), 1, "Volunteer email-only row creates volunteers row");
 
+  const aliceEmailContact = sqliteJson(`
+SELECT ec.consent_status, ec.source, ec.source_detail,
+  (SELECT COUNT(*) FROM email_contact_purposes ecp WHERE ecp.email_contact_id = ec.id AND ecp.purpose = 'subscriber') AS purpose_count
+  FROM email_contacts ec WHERE ec.email_norm = 'alice@example.com';
+`)[0];
+  expectEqual(aliceEmailContact?.consent_status || "", "opted_out", "Pre-existing opted-out email_contacts row is not overwritten by the CSV import (sticky opt-out)");
+  // source/source_detail are not part of the sticky-opt-out rule -- they follow
+  // the same priority comparison as any other field, same as the Worker's
+  // upsertEmailContactSubscriber. Equal priority (both 'subscriber', 4) means
+  // the newer import's source_detail wins even though consent_status stays opted_out.
+  expectTruthy(String(aliceEmailContact?.source_detail || "").startsWith("email_contacts_dual_write:"), "Equal-priority source_detail is updated to the newer import even though consent_status stays sticky");
+  expectEqual(Number(aliceEmailContact?.purpose_count || 0), 1, "Sticky opt-out row still gets tagged with the subscriber purpose");
+
+  const steveEmailContact = sqliteJson(`
+SELECT consent_status, source, source_detail FROM email_contacts WHERE email_norm = 'w44sdh@gmail.com';
+`)[0];
+  expectEqual(steveEmailContact?.consent_status || "", "opted_in", "A fresh signup-sheet email opt-in lands in email_contacts as opted_in");
+  expectTruthy(String(steveEmailContact?.source_detail || "").startsWith("email_contacts_dual_write:"), "email_contacts source_detail is tagged as a dual-write from the signup-sheet import");
+
   const textOnly = sqliteJson(`
 SELECT
   (SELECT COUNT(*) FROM contacts WHERE phone_e164 = '+13075550111') AS contacts_count,
@@ -263,7 +295,9 @@ SELECT
   (SELECT COUNT(*) FROM consent_status) AS consent_count,
   (SELECT COUNT(*) FROM newsletter_subscribers) AS newsletter_count,
   (SELECT COUNT(*) FROM sms_optins) AS sms_optins_count,
-  (SELECT COUNT(*) FROM volunteers) AS volunteers_count;
+  (SELECT COUNT(*) FROM volunteers) AS volunteers_count,
+  (SELECT COUNT(*) FROM email_contacts) AS email_contacts_count,
+  (SELECT COUNT(*) FROM email_contact_purposes WHERE purpose = 'subscriber') AS email_contacts_purpose_count;
 `)[0];
   runImport(true);
   const afterRerun = sqliteJson(`
@@ -272,7 +306,9 @@ SELECT
   (SELECT COUNT(*) FROM consent_status) AS consent_count,
   (SELECT COUNT(*) FROM newsletter_subscribers) AS newsletter_count,
   (SELECT COUNT(*) FROM sms_optins) AS sms_optins_count,
-  (SELECT COUNT(*) FROM volunteers) AS volunteers_count;
+  (SELECT COUNT(*) FROM volunteers) AS volunteers_count,
+  (SELECT COUNT(*) FROM email_contacts) AS email_contacts_count,
+  (SELECT COUNT(*) FROM email_contact_purposes WHERE purpose = 'subscriber') AS email_contacts_purpose_count;
 `)[0];
 
   expectEqual(Number(afterRerun.contacts_count || 0), Number(beforeRerun.contacts_count || 0), "Rerun keeps contacts deduped");
@@ -280,6 +316,8 @@ SELECT
   expectEqual(Number(afterRerun.newsletter_count || 0), Number(beforeRerun.newsletter_count || 0), "Rerun keeps newsletter_subscribers deduped");
   expectEqual(Number(afterRerun.sms_optins_count || 0), Number(beforeRerun.sms_optins_count || 0), "Rerun keeps sms_optins deduped");
   expectEqual(Number(afterRerun.volunteers_count || 0), Number(beforeRerun.volunteers_count || 0), "Rerun keeps volunteers deduped");
+  expectEqual(Number(afterRerun.email_contacts_count || 0), Number(beforeRerun.email_contacts_count || 0), "Rerun keeps email_contacts deduped");
+  expectEqual(Number(afterRerun.email_contacts_purpose_count || 0), Number(beforeRerun.email_contacts_purpose_count || 0), "Rerun keeps email_contact_purposes deduped (INSERT OR IGNORE)");
 } catch (error) {
   fail(String(error?.message || error));
 } finally {

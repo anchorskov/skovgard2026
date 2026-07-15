@@ -17,77 +17,178 @@ const {
     </div>
   </noscript>
 
-  <form id="optin-form" class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-gray-100 space-y-5" method="post" novalidate>
+  <form id="optin-form" class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-gray-100" method="post" novalidate>
 
-    <!-- Name -->
-    <div class="grid sm:grid-cols-2 gap-4">
+    <ol class="pulse-step-indicator" aria-label="Signup progress">
+      <li id="pulse-step-indicator-1" class="is-active" aria-current="step">
+        <span>1</span>
+        <strong>Contact &amp; consent</strong>
+      </li>
+      <li id="pulse-step-indicator-2">
+        <span>2</span>
+        <strong>Citizen Poll</strong>
+      </li>
+    </ol>
+
+    <section id="pulse-step-1" class="pulse-form-step space-y-5" aria-labelledby="pulse-step-1-title">
       <div>
-        <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">First name <span class="text-red-500">*</span></label>
+        <p class="text-xs font-bold uppercase tracking-widest text-wy-rust mb-1">Step 1 of 2</p>
+        <h2 id="pulse-step-1-title" class="text-2xl font-serif font-bold text-wy-charcoal">Join the Pulse</h2>
+        <p class="text-sm text-gray-600 mt-1">Enter your contact information and choose how you want to hear from us.</p>
+      </div>
+
+      <!-- Name -->
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">First name <span class="text-red-500">*</span></label>
+          <input
+            id="first_name"
+            name="first_name"
+            type="text"
+            autocomplete="given-name"
+            required
+            class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
+          />
+        </div>
+        <div>
+          <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Last name <span class="text-red-500">*</span></label>
+          <input
+            id="last_name"
+            name="last_name"
+            type="text"
+            autocomplete="family-name"
+            required
+            class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <!-- Mobile (required) -->
+      <div>
+        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Mobile number <span class="text-red-500">*</span></label>
         <input
-          id="first_name"
-          name="first_name"
-          type="text"
-          autocomplete="given-name"
+          id="phone"
+          name="phone"
+          type="tel"
+          inputmode="tel"
+          placeholder="307-555-1234"
+          autocomplete="tel"
           required
           class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
         />
+        <p class="text-xs text-gray-400 mt-1">Standard message and data rates may apply. Reply STOP to opt out.</p>
       </div>
+
+      <!-- Email (required for poll, optional for updates) -->
       <div>
-        <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Last name <span class="text-red-500">*</span></label>
+        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+          Email address <span class="text-gray-400 font-normal text-xs">(required for the Citizen Poll)</span>
+        </label>
         <input
-          id="last_name"
-          name="last_name"
-          type="text"
-          autocomplete="family-name"
-          required
+          id="email"
+          name="email"
+          type="email"
+          inputmode="email"
+          autocomplete="email"
+          placeholder="you@example.com"
           class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
         />
+        <p class="text-xs text-gray-400 mt-1">We use your email to deliver your district's poll ballot. It is optional if you only want text updates.</p>
       </div>
-    </div>
 
-    <!-- Mobile (required) -->
-    <div>
-      <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Mobile number <span class="text-red-500">*</span></label>
-      <input
-        id="phone"
-        name="phone"
-        type="tel"
-        inputmode="tel"
-        placeholder="307-555-1234"
-        autocomplete="tel"
-        required
-        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
-      />
-      <p class="text-xs text-gray-400 mt-1">Standard message and data rates may apply. Reply STOP to opt out.</p>
-    </div>
+      <!-- SMS consent (required) -->
+      <div id="consent-panel" class="pulse-consent-panel rounded-xl border border-wy-ember/25 bg-wy-bone/50 px-4 py-4 space-y-3">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            id="consent_sms"
+            name="consent_sms"
+            required
+            aria-describedby="consent-copy consent-error"
+            class="mt-1 w-4 h-4 shrink-0"
+            style="accent-color:#b22234"
+          />
+          <span class="text-sm text-gray-700 font-medium">
+            I agree to receive campaign text messages from Jimmy Skovgard. <span class="text-red-500">*</span>
+          </span>
+        </label>
+        <p id="consent-copy" class="text-xs leading-5 text-gray-500 pl-7">
+          By checking this box and submitting your mobile number, you agree to receive campaign text messages from Skovgard for Senate.
+          Message frequency may vary. Message and data rates may apply. Reply STOP to opt out. Reply HELP for help.
+          Consent is not a condition of donation. View
+          <a href="/privacy" class="text-wy-ember underline">Privacy Policy</a>
+          and
+          <a href="/terms" class="text-wy-ember underline">Terms</a>.
+        </p>
+        <p id="consent-error" class="hidden pl-7 text-sm font-semibold text-wy-ember-dark" aria-live="polite"></p>
+      </div>
 
-    <!-- Email (optional) -->
-    <div>
-      <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-        Email address <span class="text-gray-400 font-normal text-xs">(optional)</span>
-      </label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        inputmode="email"
-        autocomplete="email"
-        placeholder="you@example.com"
-        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
-      />
-      <p class="text-xs text-gray-400 mt-1">Add your email to also receive campaign updates in your inbox.</p>
-    </div>
+      <!-- Email consent (shown only when email is filled — toggled by JS) -->
+      <div id="email-consent-wrap" style="display:none">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            id="consent_email"
+            name="consent_email"
+            class="mt-0.5 w-4 h-4 shrink-0"
+            style="accent-color:#b22234"
+          />
+          <span class="text-sm text-gray-700">
+            I also agree to receive campaign emails from Jimmy Skovgard.
+          </span>
+        </label>
+      </div>
 
-    <!-- Voter verification (optional, collapsed by default) -->
-    <details id="verify-voter-section" class="rounded-xl border border-wy-ember/25 bg-wy-bone/40 px-4 py-3">
-      <summary class="text-sm font-semibold text-wy-charcoal cursor-pointer select-none">
-        Verify your voter registration to join the Citizen Poll <span class="text-gray-400 font-normal text-xs">(optional)</span>
-      </summary>
-      <p class="text-xs text-gray-500 mt-2 mb-3">
-        Checked against our Wyoming voter roll (as of Aug 25, 2025). Not required to opt in —
-        skip this if you'd rather just get texts/emails.
-      </p>
-      <div class="space-y-4">
+      <div class="pulse-poll-card">
+        <p class="text-xs font-bold uppercase tracking-widest text-wy-rust mb-1">Next: Citizen Poll</p>
+        <h3 class="text-xl font-serif font-bold text-wy-charcoal">Vote in your district's poll</h3>
+        <p class="text-sm text-gray-600 mt-1 mb-4">Continue to verify your Wyoming voter registration and receive the correct ballot.</p>
+        <button type="button" id="pulse-continue-poll" class="pulse-primary-action">
+          Continue to Citizen Poll
+        </button>
+        <button type="button" id="pulse-updates-only" class="pulse-secondary-action">
+          Join updates without voting
+        </button>
+      </div>
+    </section>
+
+    <section id="pulse-step-2" class="pulse-form-step space-y-5" aria-labelledby="pulse-step-2-title" hidden>
+      <div tabindex="-1" id="pulse-step-2-heading">
+        <p class="text-xs font-bold uppercase tracking-widest text-wy-rust mb-1">Step 2 of 2</p>
+        <h2 id="pulse-step-2-title" class="text-2xl font-serif font-bold text-wy-charcoal">Get your Citizen Poll ballot</h2>
+        <p class="text-sm text-gray-600 mt-1">
+          We check your name, city, and ZIP against the Wyoming voter roll so we can send the ballot for your district.
+        </p>
+      </div>
+
+      <div class="rounded-xl border border-wy-dust bg-wy-bone/50 px-4 py-4 space-y-4">
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
+            <input
+              id="city"
+              name="city"
+              type="text"
+              autocomplete="address-level2"
+              placeholder="Casper"
+              aria-required="true"
+              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
+            />
+          </div>
+          <div>
+            <label for="zip" class="block text-sm font-medium text-gray-700 mb-1">ZIP code <span class="text-red-500">*</span></label>
+            <input
+              id="zip"
+              name="zip"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]{5}"
+              placeholder="82601"
+              aria-required="true"
+              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
+            />
+          </div>
+        </div>
         <div>
           <label for="address1" class="block text-sm font-medium text-gray-700 mb-1">
             Street address <span class="text-gray-400 font-normal text-xs">(optional)</span>
@@ -100,81 +201,24 @@ const {
             placeholder="123 Main St"
             class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
           />
-          <p class="text-xs text-gray-400 mt-1">Helps us find your exact ballot; not required.</p>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City</label>
-            <input
-              id="city"
-              name="city"
-              type="text"
-              autocomplete="address-level2"
-              placeholder="Casper"
-              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
-            />
-          </div>
-          <div>
-            <label for="zip" class="block text-sm font-medium text-gray-700 mb-1">ZIP code</label>
-            <input
-              id="zip"
-              name="zip"
-              type="text"
-              inputmode="numeric"
-              pattern="[0-9]{5}"
-              placeholder="82601"
-              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
-            />
-          </div>
+          <p class="text-xs text-gray-400 mt-1">Adding your street address improves matching when names are similar.</p>
         </div>
       </div>
-    </details>
+
+      <p class="text-xs text-gray-500">
+        Voter verification is required for the Citizen Poll, but you can go back and join campaign updates without voting.
+      </p>
+
+      <button type="submit" id="optin-submit" class="pulse-primary-action">
+        Verify me and get my ballot
+      </button>
+      <button type="button" id="pulse-back" class="pulse-secondary-action">
+        Back to contact information
+      </button>
+    </section>
 
     <!-- Hidden fields -->
     <input id="state" name="state" type="hidden" value="WY" />
-
-    <!-- SMS consent (required) -->
-    <div id="consent-panel" class="pulse-consent-panel rounded-xl border border-wy-ember/25 bg-wy-bone/50 px-4 py-4 space-y-3">
-      <label class="flex items-start gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          id="consent_sms"
-          name="consent_sms"
-          required
-          aria-describedby="consent-copy consent-error"
-          class="mt-1 w-4 h-4 shrink-0"
-          style="accent-color:#b22234"
-        />
-        <span class="text-sm text-gray-700 font-medium">
-          I agree to receive campaign text messages from Jimmy Skovgard. <span class="text-red-500">*</span>
-        </span>
-      </label>
-      <p id="consent-copy" class="text-xs leading-5 text-gray-500 pl-7">
-        By checking this box and submitting your mobile number, you agree to receive campaign text messages from Skovgard for Senate.
-        Message frequency may vary. Message and data rates may apply. Reply STOP to opt out. Reply HELP for help.
-        Consent is not a condition of donation. View
-        <a href="/privacy" class="text-wy-ember underline">Privacy Policy</a>
-        and
-        <a href="/terms" class="text-wy-ember underline">Terms</a>.
-      </p>
-      <p id="consent-error" class="hidden pl-7 text-sm font-semibold text-[#991b1b]" aria-live="polite"></p>
-    </div>
-
-    <!-- Email consent (shown only when email is filled — toggled by JS) -->
-    <div id="email-consent-wrap" style="display:none">
-      <label class="flex items-start gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          id="consent_email"
-          name="consent_email"
-          class="mt-0.5 w-4 h-4 shrink-0"
-          style="accent-color:#b22234"
-        />
-        <span class="text-sm text-gray-700">
-          I also agree to receive campaign emails from Jimmy Skovgard.
-        </span>
-      </label>
-    </div>
 
     <!-- Honeypot -->
     <div class="hp-field" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;pointer-events:none;">
@@ -183,14 +227,6 @@ const {
     </div>
     <input type="hidden" id="ts_start" name="ts_start" value="" />
     <div id="ts-slot" aria-live="polite"></div>
-
-    <button
-      type="submit"
-      id="optin-submit"
-      class="w-full bg-wy-ember text-wy-bone font-bold py-4 rounded-xl text-lg hover:bg-wy-ember-dark transition-colors"
-    >
-      Join the Pulse
-    </button>
 
     <div id="form-message" class="hidden mt-2 text-center text-sm"></div>
   </form>
@@ -207,9 +243,120 @@ const {
   )}
 </div>
 
-<script type="module" src="/js/pulse-optin.js?v=6"></script>
+<script type="module" src="/js/pulse-optin.js?v=7"></script>
 
 <style is:global>
+  #optin-form .pulse-step-indicator {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  #optin-form .pulse-step-indicator li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    color: #7a8a6b;
+    font-size: 0.78rem;
+  }
+
+  #optin-form .pulse-step-indicator li::after {
+    content: "";
+    height: 2px;
+    flex: 1;
+    min-width: 0.5rem;
+    background: #b7a88a;
+  }
+
+  #optin-form .pulse-step-indicator li:last-child::after {
+    display: none;
+  }
+
+  #optin-form .pulse-step-indicator span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 1.75rem;
+    border: 1px solid #b7a88a;
+    border-radius: 999px;
+    background: #f1ece1;
+    color: #2b2b2b;
+    font-weight: 700;
+  }
+
+  #optin-form .pulse-step-indicator .is-active {
+    color: #2b2b2b;
+  }
+
+  #optin-form .pulse-step-indicator .is-active span {
+    border-color: #b22234;
+    background: #b22234;
+    color: #f1ece1;
+  }
+
+  #optin-form .pulse-poll-card {
+    border: 2px solid #b22234;
+    border-radius: 1rem;
+    background: #f1ece1;
+    padding: 1.1rem;
+  }
+
+  #optin-form .pulse-primary-action,
+  #optin-form .pulse-secondary-action {
+    display: block;
+    width: 100%;
+    min-height: 3rem;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  #optin-form .pulse-primary-action {
+    border: 1px solid #b22234;
+    background: #b22234;
+    color: #f1ece1;
+    font-size: 1.05rem;
+  }
+
+  #optin-form .pulse-primary-action:hover,
+  #optin-form .pulse-primary-action:focus-visible {
+    border-color: #8b1a26;
+    background: #8b1a26;
+  }
+
+  #optin-form .pulse-secondary-action {
+    margin-top: 0.55rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #8a3d23;
+    font-size: 0.95rem;
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
+  }
+
+  #optin-form .pulse-primary-action:disabled,
+  #optin-form .pulse-secondary-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  #optin-form .pulse-form-step[hidden] {
+    display: none;
+  }
+
+  @media (max-width: 420px) {
+    #optin-form .pulse-step-indicator strong {
+      line-height: 1.15;
+    }
+  }
+
   #optin-form .optin-success {
     margin-top: 0.75rem;
     color: #166534;
