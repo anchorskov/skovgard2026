@@ -410,6 +410,23 @@ Key files involved: `worker/src/email-template.js` (SHARE_MESSAGES registry), `s
 
 - If a share email makes verifiable public claims, create `src/pages/share/<slug>/sources.astro` and point the email CTA (`body_html` link in `SHARE_MESSAGES`) to `https://skovgard2026.org/share/<slug>/sources/` — not back to the share page itself.
 
+## Pulse Flow (opt-in + Citizen Poll)
+
+The `/pulse` opt-in form and its Citizen Poll (candidate-choice poll)
+integration span voter matching, poll-link minting/delivery, and voter phone
+promotion. Read [docs/pulse_flow.md](/home/anchor/projects/skovgard2026/docs/pulse_flow.md)
+before changing anything in this flow — it covers the two-step form, the
+`consent_status` data model (and why it currently lacks a `voter_id`
+column), the voter-matching cascade, why poll-link delivery and voter-phone
+promotion are gated the way they are (both fixed 2026-07-15 after real
+silent-failure bugs), and the open design gap around submitters who can't
+be matched to the Wyoming voter file.
+
+Key files: `src/components/PulseOptInForm.astro`, `static/js/pulse-optin.js`,
+`worker/src/index.js` (`/api/optin`), `worker/src/telnyx.js`
+(`maybeSendWelcomeText`, `sendPollLinkText`), `worker/src/pulse-email.js`
+(`sendPollLinkEmail`), `worker/src/voter-phone.js` (`promoteDeliveredOptInPhone`).
+
 ## Blast Flow (email) — active debugging
 
 The email Blast flow (`static/admin/emails/blast.html` +
