@@ -22,8 +22,10 @@ existing ones fit — don't create a fresh throwaway identity per session.
   `CASPER`, zip `82604`; House 59, Senate 29, Natrona county, precinct `8-1`,
   political_party `Republican`). Posting `first_name/last_name/address1/city/
   zip` matching this to `/api/optin` resolves via `findUniqueWyTargetMatch`
-  mode `name_city_zip_address` and writes a real `voter_phones`/`v_best_phone`
-  mirror row linking this phone to voter_id 158596.
+  mode `name_city_zip_address`. After Telnyx confirms the welcome SMS was
+  delivered, the Worker writes a real `voter_phones`/`v_best_phone` mirror row
+  linking this phone to voter_id 158596. An accepted or failed SMS does not
+  promote the submitted number.
   **Correction (2026-07-14)**: this is the *same* voter_id referenced in
   `grassmvt_survey/docs/poll_summary.md` as "Jimmy's own real test identity"
   (1 pre-existing `poll_invite_tokens` row from 2026-07-11, minted via the

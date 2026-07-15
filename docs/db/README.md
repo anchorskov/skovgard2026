@@ -61,7 +61,7 @@ Inputs -> Worker -> D1 -> Local mirror / CSV -> Ops
    - Both flows update `contacts`.
    - Pulse writes a full mailing address (`address1`, `address2`, `city`, `state`, `zip`, `country`) and keeps district fields on `consent_status`.
    - When email consent is present, the Worker upserts `newsletter_subscribers`.
-   - Pulse also attempts an async phone mirror into `WY_DB` (`voter_phones` and `v_best_phone`) after a unique voter match.
+   - Pulse records a unique voter match with the welcome-message audit record. The submitted phone is mirrored into `WY_DB` (`voter_phones` and `v_best_phone`) only after Telnyx confirms `message.delivered`; provider acceptance alone is not sufficient. The prior best phone remains in `voter_phones` as history.
 
 2. Telnyx webhooks
    - Incoming STOP/START/HELP and delivery events arrive at the Worker.

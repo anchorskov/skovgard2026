@@ -34,6 +34,7 @@ import {
   estimatePersonalizedSmsCost,
   calcBlastCost,
 } from "./sms-cost.js";
+import { promoteDeliveredOptInPhone } from "./voter-phone.js";
 
 function pulseWelcomeConfig(env) {
   return {
@@ -632,42 +633,6 @@ async function findUniqueWyTargetMatch(wyDb, input) {
   return { match: null, mode: "no_match" };
 }
 
-// Shared by syncSubmittedPhoneToWyVoter (real-time /pulse match) and the
-// admin pulse-voter-review resolve endpoint (manual match after a review
-// queue row is picked/confirmed) -- same phone-to-voter mirror write either way.
-async function writeVoterPhoneMirror(wyDb, { voterId, phoneE164, phone10 }) {
-  const isWyArea = phone10.startsWith("307") ? 1 : 0;
-  const confidenceCode = 5;
-  const source = "skovgard_optin";
-
-  await wyDb.prepare(
-    `INSERT INTO voter_phones
-       (voter_id, phone10, phone_e164, confidence_code, is_wy_area, source, imported_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, datetime('now'))
-     ON CONFLICT(voter_id, phone10) DO UPDATE SET
-       phone_e164 = excluded.phone_e164,
-       confidence_code = MAX(COALESCE(voter_phones.confidence_code, 0), excluded.confidence_code),
-       is_wy_area = excluded.is_wy_area,
-       source = excluded.source,
-       imported_at = datetime('now')`
-  )
-    .bind(voterId, phone10, phoneE164, confidenceCode, isWyArea, source)
-    .run();
-
-  await wyDb.prepare(
-    `INSERT INTO v_best_phone
-       (voter_id, phone_e164, confidence_code, is_wy_area, imported_at)
-     VALUES (?1, ?2, ?3, ?4, datetime('now'))
-     ON CONFLICT(voter_id) DO UPDATE SET
-       phone_e164 = excluded.phone_e164,
-       confidence_code = excluded.confidence_code,
-       is_wy_area = excluded.is_wy_area,
-       imported_at = datetime('now')`
-  )
-    .bind(voterId, phoneE164, confidenceCode, isWyArea)
-    .run();
-}
-
 async function syncSubmittedPhoneToWyVoter(env, input) {
   const wyDb = env.WY_DB;
   if (!wyDb) return { ok: false, skipped: "missing_binding" };
@@ -713,12 +678,11 @@ async function syncSubmittedPhoneToWyVoter(env, input) {
     };
   }
 
-  await writeVoterPhoneMirror(wyDb, { voterId: match.voter_id, phoneE164, phone10 });
-
   return {
     ok: true,
     voterId: match.voter_id,
     matchedBy: mode,
+    phoneE164,
   };
 }
 
@@ -4010,6 +3974,7 @@ export default {
         // submission is recorded as verified without a link.
         let pollLink = null;
         let verification = { status: "not_attempted" };
+        let matchedVoterForPhone = null;
         if (city) {
           try {
             const syncResult = await syncSubmittedPhoneToWyVoter(env, {
@@ -4021,7 +3986,11 @@ export default {
               zip,
             });
             if (syncResult?.ok) {
-              console.log("[/api/optin] mirrored phone to WY voter", {
+              matchedVoterForPhone = {
+                voterId: syncResult.voterId,
+                matchedBy: syncResult.matchedBy,
+              };
+              console.log("[/api/optin] matched submitted phone to WY voter; awaiting SMS delivery", {
                 voterId: syncResult.voterId,
                 matchedBy: syncResult.matchedBy,
               });
@@ -4103,7 +4072,11 @@ export default {
           env.DB,
           env,
           phone,
-          { ...welcomeConfig, text: welcomeText }
+          {
+            ...welcomeConfig,
+            text: welcomeText,
+            auditDetails: matchedVoterForPhone || {},
+          }
         ).catch((error) => {
           console.error("[/api/optin] pulse welcome text failed", String(error?.message || error));
           return { sent: false, reason: "error" };
@@ -5447,8 +5420,8 @@ export default {
       }
 
       // POST /api/admin/pulse-voter-review/resolve
-      // Body: {id, voter_id} to confirm a candidate (writes the voter_phones
-      // mirror so future sends/matching treat this phone as linked), or
+      // Body: {id, voter_id} to confirm a candidate (records the association;
+      // the opt-in phone is promoted only after confirmed welcome delivery), or
       // {id, dismiss:true} when no real match exists. Record-only -- no
       // message is sent; staff follow up manually via the existing admin
       // texting/email tools.
@@ -5474,21 +5447,42 @@ export default {
         if (!row) return json(req, env, { error: "Review row not found." }, 404);
         if (row.resolved_at) return json(req, env, { error: "Already resolved." }, 409);
 
-        if (voterId && env.WY_DB) {
-          const phoneE164 = normalizePhoneNumber(row.phone_e164);
-          const phone10 = normalizePhone10(phoneE164);
-          if (phoneE164 && phone10) {
-            await writeVoterPhoneMirror(env.WY_DB, { voterId, phoneE164, phone10 });
-          }
-        }
-
         await env.DB.prepare(
           `UPDATE pulse_voter_match_review
               SET resolved_voter_id = ?1, resolved_at = datetime('now'), resolved_by = ?2
             WHERE id = ?3`
         ).bind(voterId || null, actor.actorEmail || null, id).run();
 
-        return json(req, env, { ok: true, id, resolvedVoterId: voterId || null });
+        let phonePromotion = null;
+        if (voterId && env.WY_DB) {
+          const phoneE164 = normalizePhoneNumber(row.phone_e164);
+          const deliveredWelcome = await env.DB.prepare(
+            `SELECT 1 AS delivered
+               FROM texting_audit_log tal
+               JOIN outbound_messages om ON om.telnyx_message_id = tal.message_id
+              WHERE tal.action = 'pulse_welcome_send'
+                AND tal.target_phone = ?1
+                AND om.status = 'delivered'
+              ORDER BY tal.id DESC
+              LIMIT 1`
+          ).bind(phoneE164).first().catch(() => null);
+
+          if (phoneE164 && deliveredWelcome?.delivered) {
+            phonePromotion = await promoteDeliveredOptInPhone(env.WY_DB, {
+              voterId,
+              phoneE164,
+            });
+          } else {
+            phonePromotion = { promoted: false, reason: "welcome_not_delivered" };
+          }
+        }
+
+        return json(req, env, {
+          ok: true,
+          id,
+          resolvedVoterId: voterId || null,
+          phonePromotion,
+        });
       }
 
       if (req.method === "POST" && path === "/api/admin/texting/contacts/delete") {

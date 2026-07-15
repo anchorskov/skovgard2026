@@ -1,4 +1,5 @@
 // worker/src/telnyx.js
+import { promoteDeliveredOptInPhone } from "./voter-phone.js";
 import { lookupWyLegislativeDistricts, normalizeZip5 } from "./address-districts.js";
 import { sendResendEmail } from "./resend.js";
 
@@ -262,8 +263,29 @@ export async function maybeSendWelcomeText(db, env, phoneE164, options = {}) {
   if (String(row.status || "").trim() !== "opted_in") {
     return { sent: false, reason: "not_opted_in" };
   }
-  if (row.welcome_sent_at) {
+
+  const latestWelcome = await db.prepare(
+    `SELECT om.status
+       FROM texting_audit_log tal
+       LEFT JOIN outbound_messages om ON om.telnyx_message_id = tal.message_id
+      WHERE tal.action = ?1 AND tal.target_phone = ?2
+      ORDER BY tal.id DESC
+      LIMIT 1`
+  ).bind(auditAction, to).first().catch(() => null);
+  const latestStatus = String(latestWelcome?.status || "").trim().toLowerCase();
+
+  // Older code marked welcome_sent_at as soon as Telnyx accepted a request.
+  // Repair that state when the provider subsequently reported a failure.
+  if (row.welcome_sent_at && latestStatus === "delivery_failed") {
+    await db.prepare(
+      `UPDATE contacts SET welcome_sent_at = NULL, updated_at = datetime('now') WHERE phone_e164 = ?1`
+    ).bind(to).run();
+  } else if (row.welcome_sent_at) {
     return { sent: false, reason: "already_sent" };
+  }
+
+  if (latestStatus && !["delivery_failed", "failed", "canceled", "cancelled"].includes(latestStatus)) {
+    return { sent: false, reason: "pending_or_delivered" };
   }
 
   const telnyx = await sendSmsWithTelnyx({
@@ -272,15 +294,6 @@ export async function maybeSendWelcomeText(db, env, phoneE164, options = {}) {
     to,
     text: welcomeText,
   });
-
-  await db.prepare(
-    `UPDATE contacts
-        SET welcome_sent_at = datetime('now'),
-            updated_at = datetime('now')
-      WHERE phone_e164 = ?1`
-  )
-    .bind(to)
-    .run();
 
   await db.prepare(
     `INSERT INTO outbound_messages
@@ -310,6 +323,7 @@ export async function maybeSendWelcomeText(db, env, phoneE164, options = {}) {
     messageId: telnyx.providerId,
     detailsJson: JSON.stringify({
       status: telnyx.status,
+      ...(options.auditDetails || {}),
     }),
   });
 
@@ -871,6 +885,65 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
       payload,
       rawJson: rawBody,
     });
+
+    const welcomeAudit = telnyxMessageId
+      ? await db.prepare(
+          `SELECT action, target_phone, details_json
+             FROM texting_audit_log
+            WHERE message_id = ?1
+              AND action IN ('welcome_send', 'pulse_welcome_send')
+            ORDER BY id DESC
+            LIMIT 1`
+        ).bind(telnyxMessageId).first().catch(() => null)
+      : null;
+
+    if (welcomeAudit?.target_phone && eventType === "message.delivered") {
+      await db.prepare(
+        `UPDATE contacts
+            SET welcome_sent_at = COALESCE(welcome_sent_at, datetime('now')),
+                updated_at = datetime('now')
+          WHERE phone_e164 = ?1`
+      ).bind(welcomeAudit.target_phone).run();
+
+      if (welcomeAudit.action === "pulse_welcome_send" && env?.WY_DB) {
+        let auditDetails = {};
+        try {
+          auditDetails = JSON.parse(welcomeAudit.details_json || "{}");
+        } catch {
+          auditDetails = {};
+        }
+
+        let voterId = String(auditDetails?.voterId || "").trim();
+        if (!voterId) {
+          const resolvedReview = await db.prepare(
+            `SELECT resolved_voter_id
+               FROM pulse_voter_match_review
+              WHERE phone_e164 = ?1
+                AND resolved_voter_id IS NOT NULL
+              ORDER BY resolved_at DESC, id DESC
+              LIMIT 1`
+          ).bind(welcomeAudit.target_phone).first().catch(() => null);
+          voterId = String(resolvedReview?.resolved_voter_id || "").trim();
+        }
+
+        if (voterId) {
+          const promotion = await promoteDeliveredOptInPhone(env.WY_DB, {
+            voterId,
+            phoneE164: welcomeAudit.target_phone,
+          });
+          await insertTextingAuditLog(db, {
+            action: promotion?.promoted ? "pulse_voter_phone_promoted" : "pulse_voter_phone_promotion_skipped",
+            targetPhone: welcomeAudit.target_phone,
+            messageId: telnyxMessageId,
+            detailsJson: JSON.stringify({ voterId, ...promotion }),
+          });
+        }
+      }
+    } else if (welcomeAudit?.target_phone && eventType === "message.delivery_failed") {
+      await db.prepare(
+        `UPDATE contacts SET welcome_sent_at = NULL, updated_at = datetime('now') WHERE phone_e164 = ?1`
+      ).bind(welcomeAudit.target_phone).run();
+    }
     return;
   }
 
