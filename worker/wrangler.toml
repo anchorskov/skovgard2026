@@ -73,8 +73,19 @@ database_id         = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"
 # 2026-07-11 after monitoring showed a real tick overlapping into the next
 # boundary, then raised to 36 the same day after 30 proved safe). See
 # docs/blast_tracking.md.
+#
+# DISABLED 2026-07-15: a fixed set of ~18 addresses (small/personal-domain
+# mail servers -- wrws.net, colsons.net, jlazyyl.com, etc.) consistently hit
+# the 10s per-request timeout in runEmailVerificationBatch and are never
+# marked checked_at, so ORDER BY email_norm ASC re-selects the same stuck
+# addresses first on every tick -- roughly half of every 36-item batch was
+# being burned on requests that would never resolve, and it's unconfirmed
+# whether EmailListVerify still charges a credit for a request we gave up
+# waiting on. Re-enable once runEmailVerificationBatch gives up on a
+# too-slow address after N failures (marking it distinctly, not silently
+# retrying it forever) instead of leaving it queued indefinitely.
 [env.production.triggers]
-crons = ["*/2 * * * *"]
+crons = []
 
 # ---------- Preview environment (Pages preview, etc.) ----------
 [env.preview]
