@@ -5767,6 +5767,7 @@ export default {
             fromNumber: String(env.TELNYX_FROM_NUMBER || "").trim(),
             to,
             text,
+            db: env.DB,
           });
 
           await env.DB.prepare(
@@ -6041,6 +6042,7 @@ export default {
               fromNumber: String(env.TELNYX_FROM_NUMBER || "").trim(),
               to: recipient.phone_e164,
               text: personalizeSmsFirstName(text, recipient.first_name),
+              db: env.DB,
             });
 
             await env.DB.prepare(
@@ -6387,7 +6389,7 @@ export default {
             chunkSent++;
           } else {
             try {
-              const telnyx = await sendSmsWithTelnyx({ apiKey, fromNumber, to: voter.phone_e164, text: msgText });
+              const telnyx = await sendSmsWithTelnyx({ apiKey, fromNumber, to: voter.phone_e164, text: msgText, db: env.DB });
               await env.DB.prepare(
                 `INSERT INTO voter_blast_log (blast_id, voter_id, phone_e164, status, telnyx_message_id) VALUES (?1,?2,?3,'sent',?4)`
               ).bind(blastId, voter.voter_id, voter.phone_e164, telnyx.providerId).run();

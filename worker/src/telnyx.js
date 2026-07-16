@@ -208,7 +208,16 @@ export async function verifyTelnyxSignature(rawBody, headers, publicKey, options
   return crypto.subtle.verify({ name: "Ed25519" }, publicCryptoKey, sigBytes, data);
 }
 
-export async function sendSmsWithTelnyx({ apiKey, fromNumber, to, text }) {
+// Telnyx "block rules" (their term -- a STOP reply, or a number manually
+// blocked in Mission Control) apply at the messaging-profile level and have
+// no listing API (confirmed against their docs -- only a send-time error).
+// A blocked recipient makes every future send fail with this code until we
+// notice and stop trying. db is optional so this function still works
+// wherever a caller doesn't have one on hand (existing behavior, error just
+// isn't reconciled in that case).
+const TELNYX_BLOCK_RULE_ERROR_CODE = "40300";
+
+export async function sendSmsWithTelnyx({ apiKey, fromNumber, to, text, db = null }) {
   const response = await fetch("https://api.telnyx.com/v2/messages", {
     method: "POST",
     headers: {
@@ -224,10 +233,21 @@ export async function sendSmsWithTelnyx({ apiKey, fromNumber, to, text }) {
 
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const message = body?.errors?.[0]?.detail || `Telnyx request failed with ${response.status}`;
+    const telnyxError = body?.errors?.[0] || {};
+    const message = telnyxError.detail || `Telnyx request failed with ${response.status}`;
     const error = new Error(message);
     error.status = response.status;
     error.body = body;
+
+    if (String(telnyxError.code || "") === TELNYX_BLOCK_RULE_ERROR_CODE) {
+      error.blockRule = true;
+      if (db) {
+        await reconcileTelnyxBlockRule(db, to).catch((reconcileError) => {
+          console.error("[sendSmsWithTelnyx] failed to reconcile block-rule opt-out", String(reconcileError?.message || reconcileError));
+        });
+      }
+    }
+
     throw error;
   }
 
@@ -236,6 +256,30 @@ export async function sendSmsWithTelnyx({ apiKey, fromNumber, to, text }) {
     status: body?.data?.status || "accepted",
     body,
   };
+}
+
+// Self-heals consent_status the moment a blocked send is discovered --
+// Telnyx has no API to proactively list block rules, so this is the only
+// reliable signal short of the inbound STOP webhook actually reaching us
+// (which it evidently doesn't always -- confirmed 2026-07-16 investigating
+// a number with an active block rule and zero inbound_messages rows ever).
+async function reconcileTelnyxBlockRule(db, phoneE164) {
+  const phone = normalizePhoneNumber(phoneE164);
+  if (!phone) return;
+
+  await upsertConsentStatus(db, {
+    phoneE164: phone,
+    status: "opted_out",
+    source: "telnyx_block_rule",
+    sourceDetail: "reactive:send_error_40300",
+    revokedAt: new Date().toISOString(),
+  });
+
+  await insertTextingAuditLog(db, {
+    action: "reactive_opt_out_block_rule",
+    targetPhone: phone,
+    detailsJson: JSON.stringify({ errorCode: TELNYX_BLOCK_RULE_ERROR_CODE }),
+  });
 }
 
 export async function maybeSendWelcomeText(db, env, phoneE164, options = {}) {
@@ -293,6 +337,7 @@ export async function maybeSendWelcomeText(db, env, phoneE164, options = {}) {
     fromNumber,
     to,
     text: welcomeText,
+    db,
   });
 
   await db.prepare(
@@ -352,7 +397,7 @@ export async function sendPollLinkText(env, phoneE164, pollLink, options = {}) {
 
   const text = `Your Citizen Poll ballot is ready -- cast your vote: ${link} Reply STOP to opt out.`;
 
-  const telnyx = await sendSmsWithTelnyx({ apiKey, fromNumber, to, text });
+  const telnyx = await sendSmsWithTelnyx({ apiKey, fromNumber, to, text, db: env.DB });
 
   await env.DB.prepare(
     `INSERT INTO outbound_messages
