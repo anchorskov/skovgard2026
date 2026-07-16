@@ -9,6 +9,37 @@ This file is repo-local. It applies only inside:
 
 If instructions, names, domains, emails, or policies from another project appear here or in generated work, treat that as drift and do not apply them without explicit user approval.
 
+## Documentation Index
+
+Every file in `docs/` (and its subdirectories), one line each. The topic
+sections below also link the relevant doc(s) inline where they're needed —
+this table exists so nothing gets orphaned (found 3 unlinked docs on
+2026-07-16 before adding this index). **Keep this list current**: add a row
+here whenever a new `docs/*.md` file is created, remove the row if a file
+is deleted.
+
+| File | What it's for |
+|---|---|
+| `docs/OptinPlan.md` | Opt-in growth plan (email + SMS) — current state, the CSV-import dual-write gap, phased roadmap |
+| `docs/PODCAST_WORKFLOW.md` | Operational how-to: adding a hosted episode, multi-part episodes, campaign videos |
+| `docs/podcast_notes.md` | Podcast flow architecture + known issues (live-vs-dead file trap, caching incident) |
+| `docs/UpsertOptinData.md` | CSV signup-sheet import — technical field mapping and script reference |
+| `docs/after_verification.md` | Runbook for after the EmailListVerify queue finishes — poll-audience data-quality phases |
+| `docs/blast_tracking.md` | Email Blast flow debugging notes and incident history (gitignored — may be missing after a fresh clone) |
+| `docs/cloudflare_workerPlan.md` | Cloudflare Workers account plan tier history and the incident that motivated an upgrade |
+| `docs/conf.md` | Local `.dev.vars` secrets management across `worker/`, `Candidates/`, `Guide/` (gitignored) |
+| `docs/db/EmailConsolidationPlan.md` | Plan for consolidating ~10 email tables into one canonical `email_contacts` table |
+| `docs/db/README.md` | Full D1 schema and data-flow reference — read before any database-related change |
+| `docs/deploy.md` | Cloudflare Pages Git-integration build configuration reference |
+| `docs/email_guide.md` | `voter_emails`/`v_best_email` pipeline — schema, tiering, match/import process |
+| `docs/media/AddCampaignVideo.md` | Adding a campaign video to the site |
+| `docs/polling/AddPollingLocations.md` | Adding polling locations for a new Wyoming county |
+| `docs/pulse_flow.md` | `/pulse` opt-in + Citizen Poll flow architecture, data model, and the open unmatched-voter design gap |
+| `docs/share/AddShareMessage.md` | Checklist for adding a new `/share/<slug>` shareable message |
+| `docs/social_media.md` | Open Graph / Twitter card requirements for both `skovgard2026.org` and `candidates.skovgard2026.org` |
+| `docs/test_data.md` | Reusable real (not fake) phone/email identities for end-to-end testing |
+| `docs/update_new_contact_emails_texts.md` | Human-facing operations guide for the CSV contact-import workflow |
+
 ## Framework: Astro (not Hugo)
 
 This project **migrated from Hugo to Astro** in early April 2026. All code changes must target the Astro environment.
