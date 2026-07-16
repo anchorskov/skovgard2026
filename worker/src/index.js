@@ -4095,6 +4095,24 @@ export default {
           } catch (error) {
             console.error("[/api/optin] WY phone mirror or poll mint failed", String(error?.message || error));
           }
+
+          // The wy_voter flag set by upsertConsentStatus above is a
+          // self-report field with no corresponding input in the current
+          // two-step /pulse form (removed when the poll-verification step
+          // was built) -- it always defaults to whatever was previously
+          // stored (0/"No" for a fresh contact), regardless of whether the
+          // real voter-file match just above -- including the tier-3
+          // name+zip fallback -- actually succeeded. Correct it here now
+          // that the real outcome is known: matchedVoterForPhone is only
+          // set on a genuine unique match via any tier; a real
+          // no-match/ambiguous result (already routed to
+          // pulse_voter_match_review above) correctly stays "No".
+          const realWyVoter = matchedVoterForPhone ? 1 : 0;
+          if (realWyVoter !== wyVoter) {
+            await env.DB.prepare(
+              `UPDATE consent_status SET wy_voter = ?2, updated_at = datetime('now') WHERE phone_e164 = ?1`
+            ).bind(phoneE164, realWyVoter).run();
+          }
         }
 
         const welcomeConfig = pulseWelcomeConfig(env);
