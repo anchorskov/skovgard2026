@@ -713,6 +713,8 @@ export async function updateMessageDeliveryStatus(db, input) {
       input?.rawJson ?? null
     )
     .run();
+
+  return status;
 }
 
 export async function isOutboundSendBlocked(db, phone) {
@@ -883,11 +885,24 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
     || eventType === "message.finalized"
     || eventType === "message.delivery_failed"
   ) {
-    await updateMessageDeliveryStatus(db, {
-      eventType,
-      payload,
-      rawJson: rawBody,
-    });
+    const deliveryStatus = String(
+      await updateMessageDeliveryStatus(db, {
+        eventType,
+        payload,
+        rawJson: rawBody,
+      }) || ""
+    ).trim().toLowerCase();
+    // This account's webhook config has never once sent a literal
+    // "message.delivered" or "message.delivery_failed" event type (checked
+    // 2026-07-15: 6,829 message.finalized / 339 message.sent / 0 of either
+    // "delivered" type in telnyx_events) -- the real outcome always arrives
+    // nested in message.finalized's payload.to[0].status. Gating on
+    // eventType directly meant the promotion/reset logic below had never
+    // fired even once in production despite outbound_messages.status
+    // correctly showing "delivered" -- gate on the actual derived status
+    // instead, same value updateMessageDeliveryStatus just wrote.
+    const isDelivered = deliveryStatus === "delivered";
+    const isFailedDelivery = ["delivery_failed", "failed"].includes(deliveryStatus);
 
     const welcomeAudit = telnyxMessageId
       ? await db.prepare(
@@ -906,7 +921,7 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
     // never treated as satisfying the welcome-text gate.
     const isPromotionEligible = isWelcomeAction || welcomeAudit?.action === "poll_link_send";
 
-    if (welcomeAudit?.target_phone && eventType === "message.delivered") {
+    if (welcomeAudit?.target_phone && isDelivered) {
       if (isWelcomeAction) {
         await db.prepare(
           `UPDATE contacts
@@ -950,7 +965,7 @@ export async function processTelnyxWebhookEvent(db, rawBody, event, env) {
           });
         }
       }
-    } else if (welcomeAudit?.target_phone && isWelcomeAction && eventType === "message.delivery_failed") {
+    } else if (welcomeAudit?.target_phone && isWelcomeAction && isFailedDelivery) {
       await db.prepare(
         `UPDATE contacts SET welcome_sent_at = NULL, updated_at = datetime('now') WHERE phone_e164 = ?1`
       ).bind(welcomeAudit.target_phone).run();
