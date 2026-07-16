@@ -3778,7 +3778,16 @@ export default {
         }
       }
 
-      // Substack RSS proxy (public, cached 1 hour)
+      // Substack RSS proxy (public, cached 1 hour). Called client-side on
+      // every page load of both index.astro and podcast/index.astro with no
+      // dedup -- the response cache-control header only caps how often a
+      // single browser re-fetches, not how often this Worker re-fetches
+      // Substack across every visitor. Without cf.cacheTtl here, every
+      // unique page load was a fresh live fetch to Substack; found
+      // 2026-07-16 hitting an intermittent 429 from Substack against this
+      // Worker's shared egress IPs. cf.cacheTtl caches the subrequest at
+      // Cloudflare's edge, so most visitors within the hour are served from
+      // cache instead of each generating a new Substack request.
       if (req.method === "GET" && path === "/api/podcast-feed") {
         try {
           const upstream = await fetch("https://jimskovgard.substack.com/feed", {
@@ -3786,6 +3795,7 @@ export default {
               "Accept": "application/rss+xml, application/xml, text/xml",
               "User-Agent": "Mozilla/5.0 (compatible; skovgard2026-bot/1.0)",
             },
+            cf: { cacheTtl: 3600, cacheEverything: true },
           });
           if (!upstream.ok) return json(req, env, { error: "Feed unavailable", status: upstream.status }, 502);
           const xml = await upstream.text();
