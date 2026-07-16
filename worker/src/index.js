@@ -3045,27 +3045,53 @@ async function verifyEmailListVerify(apiKey, email) {
 // (EmailListVerify's real rate limit is ~1/sec -- confirmed via response
 // headers, not documented). A request that fails (network error, non-200)
 // is left unchecked (checked_at stays NULL) so it's retried next tick,
-// rather than being marked with a fake result.
+// rather than being marked with a fake result -- UNLESS it's already
+// failed EMAIL_VERIFICATION_MAX_ATTEMPTS times, in which case it's marked
+// checked with status='verify_timeout'/verdict='risky' (not suppressed,
+// not claimed good -- an honest "we gave up," distinct from any real
+// EmailListVerify status) so it stops permanently occupying the front of
+// the unchecked queue. Found 2026-07-15: a handful of slow/small mail
+// servers timed out every tick forever, halving effective batch throughput
+// since ORDER BY email_norm ASC always reselected the same stuck rows.
+const EMAIL_VERIFICATION_MAX_ATTEMPTS = 3;
+
 async function runEmailVerificationBatch(env) {
   if (!env.DB) return { ran: false, reason: "DB not configured" };
   if (!env.EMAILLISTVERIFY_API_KEY) return { ran: false, reason: "EMAILLISTVERIFY_API_KEY not configured" };
 
   const rows = await env.DB.prepare(
-    `SELECT email_norm FROM email_verification_queue WHERE checked_at IS NULL ORDER BY email_norm ASC LIMIT ?1`
+    `SELECT email_norm, attempt_count FROM email_verification_queue WHERE checked_at IS NULL ORDER BY email_norm ASC LIMIT ?1`
   ).bind(EMAIL_VERIFICATION_BATCH_SIZE).all();
   const batch = rows.results || [];
   if (!batch.length) return { ran: true, checked: 0, bad: 0, queueEmpty: true };
 
   let checked = 0;
   let bad = 0;
+  let gaveUp = 0;
   let creditExhausted = false;
   for (let i = 0; i < batch.length; i++) {
     const emailNorm = batch[i].email_norm;
+    const attemptCount = Number(batch[i].attempt_count || 0);
     let status;
     try {
       status = await verifyEmailListVerify(env.EMAILLISTVERIFY_API_KEY, emailNorm);
     } catch (e) {
       console.error(`email verification failed for ${emailNorm}: ${e.message}`);
+      const nextAttemptCount = attemptCount + 1;
+      if (nextAttemptCount >= EMAIL_VERIFICATION_MAX_ATTEMPTS) {
+        console.error(`email verification giving up on ${emailNorm} after ${nextAttemptCount} failed attempts`);
+        await env.DB.prepare(
+          `UPDATE email_verification_queue
+              SET status='verify_timeout', verdict='risky', checked_at=datetime('now'),
+                  attempt_count=?2, last_attempted_at=datetime('now')
+            WHERE email_norm=?1`
+        ).bind(emailNorm, nextAttemptCount).run();
+        gaveUp++;
+      } else {
+        await env.DB.prepare(
+          `UPDATE email_verification_queue SET attempt_count=?2, last_attempted_at=datetime('now') WHERE email_norm=?1`
+        ).bind(emailNorm, nextAttemptCount).run();
+      }
       if (i + 1 < batch.length) await new Promise((r) => setTimeout(r, EMAIL_VERIFICATION_REQUEST_PAUSE_MS));
       continue;
     }
@@ -3105,7 +3131,7 @@ async function runEmailVerificationBatch(env) {
 
     if (i + 1 < batch.length) await new Promise((r) => setTimeout(r, EMAIL_VERIFICATION_REQUEST_PAUSE_MS));
   }
-  return { ran: true, checked, bad, queueEmpty: false, creditExhausted };
+  return { ran: true, checked, bad, gaveUp, queueEmpty: false, creditExhausted };
 }
 
 // --- Worker ------------------------------------------------------------------
@@ -7417,7 +7443,8 @@ export default {
              SUM(CASE WHEN checked_at IS NULL THEN 1 ELSE 0 END) AS remaining,
              SUM(CASE WHEN verdict = 'good' THEN 1 ELSE 0 END) AS good,
              SUM(CASE WHEN verdict = 'risky' THEN 1 ELSE 0 END) AS risky,
-             SUM(CASE WHEN verdict = 'bad' THEN 1 ELSE 0 END) AS bad
+             SUM(CASE WHEN verdict = 'bad' THEN 1 ELSE 0 END) AS bad,
+             SUM(CASE WHEN status = 'verify_timeout' THEN 1 ELSE 0 END) AS gaveUp
            FROM email_verification_queue`
         ).first();
         return json(req, env, {
@@ -7428,6 +7455,7 @@ export default {
           good: Number(row?.good || 0),
           risky: Number(row?.risky || 0),
           bad: Number(row?.bad || 0),
+          gaveUp: Number(row?.gaveUp || 0),
         });
       }
 
