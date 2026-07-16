@@ -207,6 +207,11 @@ The podcast page and landing page "On the Record" section pull from two independ
 
 **Full podcast workflow:** `docs/PODCAST_WORKFLOW.md`
 
+**Architecture notes and known issues before changing this flow:** [docs/podcast_notes.md](/home/anchor/projects/skovgard2026/docs/podcast_notes.md) —
+covers the live-vs-dead `index.js`/`router.js` trap, why `cf: { cacheEverything: true }`
+must never be added to the Substack upstream fetch (real recurring incident,
+use `cacheTtlByStatus` instead), and other known gaps.
+
 **Adding a campaign video to the site:** `docs/media/AddCampaignVideo.md`
 
 Key rules for hosted episodes:
