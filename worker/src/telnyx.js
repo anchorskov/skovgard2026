@@ -587,11 +587,15 @@ export async function upsertConsentStatus(db, input) {
   const existingState = normalizeOptionalText(existing?.state)?.toUpperCase() || null;
   const existingZip = normalizeZip5(existing?.zip) || null;
 
-  const effectiveAddress1 = overwriteProfile ? address1 : address1 || existingAddress1;
-  const effectiveAddress2 = overwriteProfile ? address2 : address2 || existingAddress2;
-  const effectiveCity = overwriteProfile ? city : city || existingCity;
-  const effectiveState = overwriteProfile ? state : state || existingState;
-  const effectiveZip = overwriteProfile ? zip : zip || existingZip;
+  // Not gated on overwriteProfile -- these drive both the district
+  // re-lookup below and the persisted columns above, and a blank field
+  // (e.g. an "updates only" resubmission that never collected an address)
+  // should fall back to what's already on file rather than blanking it out.
+  const effectiveAddress1 = address1 || existingAddress1;
+  const effectiveAddress2 = address2 || existingAddress2;
+  const effectiveCity = city || existingCity;
+  const effectiveState = state || existingState;
+  const effectiveZip = zip || existingZip;
 
   const effectiveAddressKey = JSON.stringify([
     effectiveAddress1 || "",
@@ -669,12 +673,20 @@ export async function upsertConsentStatus(db, input) {
        consent_email=CASE WHEN ?25 = 1 THEN ?11 ELSE COALESCE(?11, consent_status.consent_email) END,
        wy_voter=CASE WHEN ?25 = 1 THEN ?12 ELSE COALESCE(?12, consent_status.wy_voter) END,
        county=CASE WHEN ?25 = 1 THEN ?13 ELSE COALESCE(?13, consent_status.county) END,
-       zip=CASE WHEN ?25 = 1 THEN ?14 ELSE COALESCE(?14, consent_status.zip) END,
-       address1=CASE WHEN ?25 = 1 THEN ?15 ELSE COALESCE(?15, consent_status.address1) END,
-       address2=CASE WHEN ?25 = 1 THEN ?16 ELSE COALESCE(?16, consent_status.address2) END,
-       city=CASE WHEN ?25 = 1 THEN ?17 ELSE COALESCE(?17, consent_status.city) END,
-       state=CASE WHEN ?25 = 1 THEN ?18 ELSE COALESCE(?18, consent_status.state) END,
-       country=CASE WHEN ?25 = 1 THEN ?19 ELSE COALESCE(?19, consent_status.country) END,
+       -- zip/address1/address2/city/state/country are deliberately NOT
+       -- gated on overwriteProfile like the fields above: they're only
+       -- ever collected on /pulse's step-2 "Citizen Poll" verification
+       -- screen, so a step-1-only "join updates without voting"
+       -- resubmission (overwriteProfile=true, these fields blank) would
+       -- otherwise blast away a previously-stored address instead of
+       -- leaving it alone. A real correction still works fine here since
+       -- COALESCE prefers the new value whenever one was actually submitted.
+       zip=COALESCE(?14, consent_status.zip),
+       address1=COALESCE(?15, consent_status.address1),
+       address2=COALESCE(?16, consent_status.address2),
+       city=COALESCE(?17, consent_status.city),
+       state=COALESCE(?18, consent_status.state),
+       country=COALESCE(?19, consent_status.country),
        state_house_district=CASE WHEN ?25 = 1 THEN ?20 ELSE COALESCE(?20, consent_status.state_house_district) END,
        state_senate_district=CASE WHEN ?25 = 1 THEN ?21 ELSE COALESCE(?21, consent_status.state_senate_district) END,
        consent_version=COALESCE(?22, consent_status.consent_version),

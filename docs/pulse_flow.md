@@ -3,10 +3,10 @@
 
 `/pulse` is the campaign's SMS+email opt-in form and the front door to the
 Citizen Poll (candidate-choice poll). This doc describes the flow as it
-exists today, end to end, and the open design gap around voters who can't
-be matched to the Wyoming voter file.
+exists today, end to end, including voter matching, the staff review queue,
+and the poll-link mint/send path.
 
-Last updated: 2026-07-15.
+Last updated: 2026-07-17.
 
 ## 1. Entry points
 
@@ -22,14 +22,36 @@ Last updated: 2026-07-15.
    its own required SMS-consent checkbox), email (required if continuing to
    the poll, optional for "updates only"), email consent checkbox.
    - "Continue to Citizen Poll" → step 2 (requires email + email consent)
-   - "Join updates without voting" → submits immediately, skips step 2
+   - "Join updates without voting" → submits immediately, skips step 2. A
+     small non-blocking note under the button nudges toward the poll step
+     ("adding your city and ZIP helps us confirm your voter registration")
+     without making city/zip required here — this path is intentionally
+     low-friction.
 2. **Step 2 — Citizen Poll verification**: city (required), zip (required),
    street address (optional). These are what `findUniqueWyTargetMatch`
-   needs to resolve a Wyoming voter record.
+   uses to resolve a Wyoming voter record.
 
 City/zip became mandatory on the poll path specifically because the old
 optional `<details>` voter-verification section let people request a poll
-link without submitting enough to ever match one — see §5.
+link without submitting enough to ever match one — see §7.
+
+### Client-side data-quality checks (soft, non-blocking)
+
+Wyoming is one of the few states with a single area code (307) for the
+entire state, and its ZIP codes fall in a contiguous range (82001–83128).
+Neither fact is proof of a typo — real WY voters keep out-of-state cell
+numbers and list different mailing ZIPs all the time — so `pulse-optin.js`
+never blocks on them. Instead:
+
+- A phone number not starting with `307` shows an inline warning next to
+  the field and requires one extra click to proceed (the flag resets if the
+  field is edited again).
+- A ZIP outside 82001–83128 gets the same treatment on step 2.
+
+These are pure UX nudges to catch a fat-finger (e.g. `304` instead of `307`)
+before it ever reaches voter matching — they carry no server-side
+enforcement. The server independently recomputes both signals (never trusts
+the client) and stores them on any resulting review-queue row — see §4a.
 
 ## 2. Data model
 
@@ -41,12 +63,28 @@ this means for a reused test identity).
 
 Relevant columns: `status`, `consent_email`, `first_name`, `last_name`,
 `email`, `address1`, `address2`, `city`, `state`, `zip`,
-`state_house_district`, `state_senate_district`, `poll_link_sent_at`.
+`state_house_district`, `state_senate_district`, `poll_link_sent_at`,
+`voter_id`.
 
-**There is currently no `voter_id` column on `consent_status`.** The only
-place a phone-to-voter link is recorded is `WY_DB.voter_phones` /
-`v_best_phone`, keyed by phone — a different database, and (as of §4) only
-written once SMS delivery is confirmed. See §6 for why this is a real gap.
+**`consent_status.voter_id`** (added `worker/migrations/034_consent_status_voter_id.sql`)
+is the durable local record of a resolved WY voter match. It's written by
+`POST /api/optin` on a fresh match and by both pulse-voter-review admin
+actions (§5), always as `COALESCE(voter_id, new_value)` — **not** gated on
+`overwriteProfile` the way most other columns are, since a confirmed match
+is a fact that shouldn't be erasable by a later, less-informative
+resubmission.
+
+**`overwriteProfile` no longer applies to `address1`/`address2`/`city`/
+`state`/`zip`/`country`** (fixed in `upsertConsentStatus`). These fields are
+only ever collected on step 2; before this fix, a "join updates without
+voting" resubmission (step 1 only, `overwriteProfile: true`, these fields
+blank) would blast away a previously-stored address instead of leaving it
+alone, because the write used the raw submitted value even when blank. The
+fix always prefers the new value when one was actually submitted and falls
+back to the existing stored value otherwise, independent of
+`overwriteProfile`. `overwriteProfile` still governs `first_name`,
+`last_name`, `email`, `consent_email`, `wy_voter`, `county`, `user_agent`,
+`ip_hash` as before.
 
 ## 3. District resolution runs for *everyone*, matched or not
 
@@ -71,31 +109,76 @@ reasonably well for unmatched submitters too. This is not the gap.
 
 ### 4a. Matching (`findUniqueWyTargetMatch`, `worker/src/index.js`)
 
-Cascading passes against `WY_DB.v_voter_targeting`, tried in order,
-first unique hit wins:
+Only attempted when `city` was submitted (i.e. the poll-verification step
+was used) — the "join updates without voting" path never calls this at
+all, by design: matching/poll behavior should only run for someone who
+actually asked for the Citizen Poll.
 
-1. name + city + zip + address1
-2. name + city + zip
-3. name + zip only (city dropped — mailing city often differs from the
+Cascading tiers, tried in order, first unique hit wins:
+
+0. **Submitted phone already uniquely linked to a WY voter**
+   (`voter_phones`/`v_best_phone`) — may include numbers from other
+   sources (e.g. a vendor cell-append), not just this repo's own writes.
+1. **Submitted email already uniquely linked to a WY voter**
+   (`voter_emails.email_norm`). This table isn't otherwise read by this
+   Worker (see `docs/db/README.md`/`docs/email_guide.md`) — this is the
+   first place it is.
+2. name + city + zip + address1
+3. name + city + zip
+4. name + zip only (city dropped — mailing city often differs from the
    voter file's registered city; added 2026-07-13, see commit `19d2891`)
+5. **name + city only, zip missing** — added alongside the phone/email
+   tiers. Unlike every tier above, this one is *never* auto-accepted even
+   when the name+city pair is unique: too many people can share a name
+   within one city for a ZIP-less match to stand as verification on its
+   own. It always lands in the review queue for staff confirmation.
 
-Zero hits → `no_match`. More than one hit at any tier → `ambiguous_*`.
-Both land in `pulse_voter_match_review` for manual staff resolution
-(`/admin/pulse-voter-review/index.html`) — no poll link, no district beyond
-what §3 already resolved.
+Zero hits with no further tier to try → `no_match`. More than one hit at
+any tier → `ambiguous_*`. All of these, plus two previously-silent failure
+modes, land in `pulse_voter_match_review` for manual staff resolution
+(`/admin/pulse-voter-review/index.html`):
+
+- **`missing_lookup_fields`** — city was submitted (so matching was
+  attempted at all) but first/last name or both city and zip were empty.
+  Previously dropped with no trace; only reachable today via a malformed
+  or direct API submission, since the browser form requires city+zip
+  together before allowing a step-2 submit.
+- **`phone_belongs_to_other_voter`** — the name/city/zip (or phone/email)
+  match was clean and unique, but the submitted phone is already linked in
+  `WY_DB` to a *different* voter (shared household number, hand-me-down
+  cell, wrong number on file). Previously this correct match was thrown
+  away with only a `console.log` — worse than a genuine ambiguous case,
+  since it discarded a right answer instead of an uncertain one. The
+  matched voter is stored as the row's sole candidate, so staff just
+  confirms it.
+
+The only skip reasons that do **not** create a review row are genuine
+local/infra gaps with nothing to review: `missing_wy_tables` (e.g. local
+dev with no `WY_DB` voter-file data seeded) and `invalid_phone`.
+
+Every candidate list is capped at 25 rows (`WY_MATCH_CANDIDATE_LIMIT`), up
+from the previous cap of 2 — a real ambiguity in a low-population voter
+file was being understated (a 5-way name/zip collision only ever showed 2
+candidates to reviewing staff).
+
+Review rows also carry `phone_area_flag`/`zip_range_flag`
+(`worker/migrations/035_pulse_voter_match_review_flags.sql`), recomputed
+server-side (see §1) — context for staff, not a matching input.
 
 ### 4b. Poll link mint (`mintPollInviteLinksForChunk`, `worker/src/index.js`)
 
 Server-to-server call to grassmvt_survey's `POST /api/poll/admin/mint-invite-token`,
 authenticated via `POLL_MINT_SERVICE_KEY`. **Hard-requires `voter_id` and
 `email_norm`** — 400 without both. This is the actual, sole hard blocker for
-unmatched voters (see §6 — district/precinct resolution itself is *not*
+unmatched voters (see §7 — district/precinct resolution itself is *not*
 the blocker, it's already generic).
 
 The mint is **not idempotent in the token sense**: `ON CONFLICT(poll_slug, voter_id)
 DO UPDATE` replaces `token_hash` on every call, invalidating whatever token
 was previously issued to that voter. Re-minting without re-delivering
-silently breaks an already-sent link — this is why delivery is gated (§4c).
+silently breaks an already-sent link — this is why delivery is gated (§4c),
+and why the admin mint-and-send action (§5) mints and delivers in the same
+call rather than as two separate steps.
 
 ### 4c. Delivery (fixed 2026-07-15, commit `369fe5d`)
 
@@ -115,21 +198,39 @@ is set only after a real send succeeds — a failed send still retries next
 submission. If a poll link was already delivered once, `/api/optin` does
 **not** re-mint (see §4b) — `verification.status` comes back `already_sent`.
 
-Before this fix: an *existing* subscriber resubmitting `/pulse` specifically
-to get the poll got a "your ballot link is on its way" success message and
-nothing arrived, on any channel, no matter how many times they resubmitted
-— both delivery channels were silently no-ops for anyone previously
-welcomed/confirmed.
+## 5. Admin review queue (`pulse_voter_match_review`)
 
-## 5. `verification.status` values (API response + frontend copy)
+`/admin/pulse-voter-review/index.html` (JS: `static/js/admin-pulse-voter-review.js`,
+CSS: `static/css/admin-pulse-voter-review.css`) lists unresolved rows
+(`GET /api/admin/pulse-voter-review?unresolved=1`) with the submitted name/
+address, `match_mode` (see §4a for the full list of modes), any candidate
+`voter_id`s, and the `phone_area_flag`/`zip_range_flag` badges.
 
-| Status | Meaning | Frontend copy source |
-|---|---|---|
-| `not_attempted` | No `city` submitted (updates-only path) | `pulse-optin.js` |
-| `matched` | Unique voter match; `pollLink` present if minted | same |
-| `matched_no_email` | Matched, but no email to mint/deliver to | same |
-| `already_sent` | Matched; link already delivered previously, not re-minted | same |
-| `ambiguous` / `no_match` | Landed in `pulse_voter_match_review` | same |
+**Resolve** (`POST /api/admin/pulse-voter-review/resolve`, body
+`{id, voter_id}` or `{id, dismiss:true}`): records `resolved_voter_id` on
+the review row and, for a real (non-dismiss) resolution, writes
+`consent_status.voter_id` via the same `COALESCE` semantics as the
+auto-match path. If the confirmed voter's phone shows a delivered welcome
+SMS in `texting_audit_log`, it's promoted into `voter_phones`/`v_best_phone`
+(§6). **This step never sends anything** — it's record-only.
+
+**Mint & send poll link** (`POST /api/admin/pulse-voter-review/mint-and-send`,
+body `{id}`) — added alongside the review-queue expansion above, this
+closes the gap where a resolved review row (e.g. Mollie Hand's case: one
+unique statewide voter, but missing city/zip meant the auto path never ran)
+had no path to ever receive a ballot without a completely separate manual
+process. Requires the row to already be resolved to a real `voter_id`, and
+re-checks — at send time, not from the original submission — that the
+contact currently has `status = 'opted_in'` and `consent_email = 1` with a
+current email on file, and that no poll link has been sent already. Mints
+and delivers (SMS + email, same pattern as §4c) in a single call, since a
+mint that isn't immediately followed by delivery would silently invalidate
+any link already in the person's inbox/texts (§4b).
+
+The admin UI keeps a resolved row visible (rather than immediately removing
+it, since `?unresolved=1` would otherwise hide it) with a single
+"Mint & send poll link" button, and removes it only once that call
+succeeds.
 
 ## 6. Voter phone promotion is delivery-gated (fixed 2026-07-15, commit `bc6afec`)
 
@@ -170,27 +271,31 @@ exist** — they're just not wired together for this case:
   is no path today to issue a ballot to someone with no voter-file match,
   regardless of how well their district/precinct is known.
 
-### What's missing on this repo's side, concretely
+### What's done, as of this update
 
-1. **`consent_status.voter_id` column** — once `findUniqueWyTargetMatch`
-   succeeds, nothing durable records that link locally today. The only
-   record is the phone-keyed `WY_DB` mirror (§6), which is a different
-   database, keyed by a mutable field (phone), and now delivery-gated —
-   none of which make it a reliable "is this contact voter X" lookup for
-   this repo's own tables. A migration adding this column, set at match
-   time in `/api/optin`, is a clean, low-risk win independent of everything
-   else in this section.
-2. **Address capture is optional today.** `address1` is present in the
-   step-2 form but not required (only city+zip are). A submitted street
-   address materially improves match precision (tier 1 vs. tier 3 in §4a)
-   and is required input for Census/GIS precinct resolution. Worth making
-   it required specifically on the poll-verification step, not the
-   updates-only path.
-3. **No fallback path exists for a `no_match`/`ambiguous` submitter to
-   get *anything* poll-related** — not even an honest "you're in HD-X,
-   we just can't confirm you're a registered voter there yet" message.
-   They currently get generic "we'll follow up if we can confirm it" copy
-   and silence.
+- **`consent_status.voter_id` column** — done (§2).
+- **Matching tiers expanded** — phone/email pre-checks, a staff-confirmed
+  name+city tier for zip-missing submissions, and every non-infra failure
+  mode (including the two previously-silent ones) now reaches the review
+  queue (§4a).
+- **The review queue can now actually deliver a ballot** — the
+  mint-and-send admin action (§5) was the missing half of "resolve"; before
+  it, confirming a voter_id in the review queue still left that person with
+  no way to receive their poll link short of a fully manual, off-system
+  process.
+
+### What's still missing, concretely
+
+1. **Address capture is still optional on step 2.** `address1` is present
+   but not required (only city+zip are). A submitted street address
+   materially improves match precision (tier 2 vs. tier 4 in §4a) and is
+   required input for Census/GIS precinct resolution. Worth making it
+   required specifically on the poll-verification step.
+2. **No fallback path exists for a `no_match`/genuinely-unresolvable
+   submitter to get *anything* poll-related** — not even an honest "you're
+   in HD-X, we just can't confirm you're a registered voter there yet"
+   message. They currently get generic "we'll follow up if we can confirm
+   it" copy and silence.
 
 ### The actual decision, not just an engineering task
 
@@ -207,15 +312,11 @@ doesn't own outright.
 **Recommended default**, pending an explicit decision otherwise:
 
 - Keep poll ballot access strictly voter-file-verified (no change to §4b).
-- Ship the two low-risk, skovgard2026-only wins now: `voter_id` column
-  (item 1) and required address on the poll step (item 2) — these reduce
-  how often someone falls into "unmatched" in the first place, and make
-  matches durable once they happen.
-- For someone who still lands in `no_match`/`ambiguous`, use the
-  district/precinct we can already resolve (§3, §7 first bullet) to give
-  them an honest, useful message — "you're likely in District X, a
-  campaign volunteer will follow up to confirm your registration" — instead
-  of silence, without granting a real ballot.
+- For someone who still lands in `no_match`, use the district/precinct we
+  can already resolve (§3, item 1 above) to give them an honest, useful
+  message — "you're likely in District X, a campaign volunteer will follow
+  up to confirm your registration" — instead of silence, without granting
+  a real ballot.
 - If self-attested poll participation is ever wanted, that's a distinct,
   explicit decision requiring a grassmvt_survey-side conversation, not
   something to build unilaterally from this repo.

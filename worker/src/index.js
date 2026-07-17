@@ -534,6 +534,23 @@ function normalizePhone10(raw) {
   return "";
 }
 
+// Wyoming is one of the few states with a single area code for the entire
+// state, and its ZIP codes fall in one contiguous range -- so a submitted
+// phone/ZIP outside either is a useful (not proof-positive: real WY
+// residents keep out-of-state cell numbers all the time) signal worth
+// surfacing to staff reviewing an ambiguous/no_match row. Recomputed
+// server-side rather than trusted from the client.
+const WY_PHONE_AREA_CODE = "307";
+
+export function isWyAreaCodePhone10(phone10) {
+  return phone10.length === 10 && phone10.startsWith(WY_PHONE_AREA_CODE);
+}
+
+export function isWyZip5(zip5) {
+  const n = Number(zip5);
+  return Number.isFinite(n) && n >= 82001 && n <= 83128;
+}
+
 async function wyObjectExists(db, type, name) {
   const row = await db.prepare(
     `SELECT 1 AS ok
@@ -548,15 +565,128 @@ async function wyObjectExists(db, type, name) {
   return Boolean(row?.ok);
 }
 
-async function findUniqueWyTargetMatch(wyDb, input) {
+// Row cap for every ambiguity-detection query below. Only ever needs to be
+// ">1 row" to detect ambiguity, but the actual rows are also what gets
+// stored as candidate_voter_ids for staff review -- capping at 2 (the old
+// value) meant a review row for a 5-way collision only ever showed 2
+// candidates, understating how ambiguous the case really was. 25 is
+// generous enough that a real collision in a low-population voter file is
+// never truncated in practice.
+const WY_MATCH_CANDIDATE_LIMIT = 25;
+
+async function findWyVoterIdByPhone(wyDb, phoneE164) {
+  if (!phoneE164) return [];
+  return wyDb.prepare(
+    `SELECT DISTINCT voter_id FROM (
+       SELECT voter_id FROM v_best_phone WHERE phone_e164 = ?1
+       UNION
+       SELECT voter_id FROM voter_phones WHERE phone_e164 = ?1
+     )
+     WHERE voter_id IS NOT NULL
+     LIMIT ?2`
+  )
+    .bind(phoneE164, WY_MATCH_CANDIDATE_LIMIT)
+    .all()
+    .then((result) => result?.results || [])
+    .catch(() => []);
+}
+
+async function findWyVoterIdByEmail(wyDb, emailNorm) {
+  if (!emailNorm) return [];
+  return wyDb.prepare(
+    `SELECT DISTINCT voter_id FROM voter_emails
+      WHERE voter_id IS NOT NULL AND email_norm = ?1
+      LIMIT ?2`
+  )
+    .bind(emailNorm, WY_MATCH_CANDIDATE_LIMIT)
+    .all()
+    .then((result) => result?.results || [])
+    .catch(() => []);
+}
+
+async function loadWyTargetingRowsByVoterIds(wyDb, voterIds) {
+  const ids = [...new Set(voterIds.filter(Boolean))];
+  if (!ids.length) return [];
+  const placeholders = ids.map((_v, i) => `?${i + 1}`).join(", ");
+  return wyDb.prepare(
+    `SELECT voter_id, first_name, last_name, city, zip, addr1, addr_raw
+       FROM v_voter_targeting
+      WHERE voter_id IN (${placeholders})`
+  )
+    .bind(...ids)
+    .all()
+    .then((result) => result?.results || [])
+    .catch(() => []);
+}
+
+// Cascading match, tried in this order, first unique hit wins:
+//   0. submitted phone already uniquely linked to a WY voter (voter_phones/
+//      v_best_phone) -- may include numbers from other sources, e.g. a
+//      vendor cell-append, not just this repo's own writes.
+//   1. submitted email already uniquely linked to a WY voter (voter_emails)
+//   2. name + city + zip + address1
+//   3. name + city + zip
+//   4. name + zip only (city dropped -- mailing city often differs from
+//      the voter file's registered city)
+//   5. name + city only, zip missing -- NEVER auto-accepted even when
+//      unique (too many people can share a name within one city for a
+//      ZIP-less match to stand on its own); always routed to staff review.
+// Zero hits at a tier with no further tier to try -> no_match. More than
+// one hit at any tier -> ambiguous_*. Both land in pulse_voter_match_review.
+export async function findUniqueWyTargetMatch(wyDb, input) {
   const firstName = normalizeLookupText(input.firstName);
   const lastName = normalizeLookupText(input.lastName);
   const city = normalizeLookupText(input.city);
   const zip = normalizeZip5(input.zip);
   const address1 = normalizeLookupText(input.address1);
+  const phoneE164 = normalizePhoneNumber(input.phone || input.phoneE164 || "");
+  const emailNorm = normalizeText(input.email).toLowerCase();
 
-  if (!firstName || !lastName || !city || !zip) {
+  if (phoneE164) {
+    const phoneRows = await findWyVoterIdByPhone(wyDb, phoneE164);
+    if (phoneRows.length === 1) {
+      const rows = await loadWyTargetingRowsByVoterIds(wyDb, [phoneRows[0].voter_id]);
+      return { match: rows[0] || { voter_id: phoneRows[0].voter_id }, mode: "phone_match" };
+    }
+    if (phoneRows.length > 1) {
+      return { match: null, mode: "ambiguous_phone", candidates: phoneRows };
+    }
+  }
+
+  if (emailNorm) {
+    const emailRows = await findWyVoterIdByEmail(wyDb, emailNorm);
+    if (emailRows.length === 1) {
+      const rows = await loadWyTargetingRowsByVoterIds(wyDb, [emailRows[0].voter_id]);
+      return { match: rows[0] || { voter_id: emailRows[0].voter_id }, mode: "email_match" };
+    }
+    if (emailRows.length > 1) {
+      return { match: null, mode: "ambiguous_email", candidates: emailRows };
+    }
+  }
+
+  if (!firstName || !lastName || (!city && !zip)) {
     return { match: null, mode: "missing_lookup_fields" };
+  }
+
+  if (!zip) {
+    // City present, zip missing -- weaker signal than any zip-anchored
+    // tier below, so it's always sent to staff review, even when the
+    // name+city pair happens to be unique.
+    const cityOnlyRows = await wyDb.prepare(
+      `SELECT voter_id, first_name, last_name, city, zip, addr1, addr_raw
+         FROM v_voter_targeting
+        WHERE UPPER(TRIM(first_name)) = ?1
+          AND UPPER(TRIM(last_name)) = ?2
+          AND UPPER(TRIM(city)) = ?3
+        LIMIT ?4`
+    )
+      .bind(firstName, lastName, city, WY_MATCH_CANDIDATE_LIMIT)
+      .all()
+      .then((result) => result?.results || [])
+      .catch(() => []);
+
+    if (!cityOnlyRows.length) return { match: null, mode: "no_match" };
+    return { match: null, mode: "ambiguous_name_city", candidates: cityOnlyRows };
   }
 
   const baseSql = `
@@ -575,9 +705,9 @@ async function findUniqueWyTargetMatch(wyDb, input) {
           UPPER(TRIM(COALESCE(addr1, ''))) = ?5
           OR UPPER(TRIM(COALESCE(addr_raw, ''))) = ?5
         )
-      LIMIT 2`
+      LIMIT ?6`
     )
-      .bind(firstName, lastName, city, zip, address1)
+      .bind(firstName, lastName, city, zip, address1, WY_MATCH_CANDIDATE_LIMIT)
       .all()
       .then((result) => result?.results || [])
       .catch(() => []);
@@ -590,8 +720,8 @@ async function findUniqueWyTargetMatch(wyDb, input) {
     }
   }
 
-  const rows = await wyDb.prepare(`${baseSql} LIMIT 2`)
-    .bind(firstName, lastName, city, zip)
+  const rows = await wyDb.prepare(`${baseSql} LIMIT ?5`)
+    .bind(firstName, lastName, city, zip, WY_MATCH_CANDIDATE_LIMIT)
     .all()
     .then((result) => result?.results || [])
     .catch(() => []);
@@ -616,10 +746,10 @@ async function findUniqueWyTargetMatch(wyDb, input) {
      WHERE UPPER(TRIM(first_name)) = ?1
        AND UPPER(TRIM(last_name)) = ?2
        AND zip = ?3
-     LIMIT 2
+     LIMIT ?4
   `;
   const zipOnlyRows = await wyDb.prepare(zipOnlySql)
-    .bind(firstName, lastName, zip)
+    .bind(firstName, lastName, zip, WY_MATCH_CANDIDATE_LIMIT)
     .all()
     .then((result) => result?.results || [])
     .catch(() => []);
@@ -633,7 +763,7 @@ async function findUniqueWyTargetMatch(wyDb, input) {
   return { match: null, mode: "no_match" };
 }
 
-async function syncSubmittedPhoneToWyVoter(env, input) {
+export async function syncSubmittedPhoneToWyVoter(env, input) {
   const wyDb = env.WY_DB;
   if (!wyDb) return { ok: false, skipped: "missing_binding" };
 
@@ -671,10 +801,17 @@ async function syncSubmittedPhoneToWyVoter(env, input) {
     (row) => String(row?.voter_id || "").trim() && String(row.voter_id) !== String(match.voter_id)
   );
   if (conflictingVoter) {
+    // The name/city/zip (or phone/email) match itself was clean and
+    // unique -- `match` IS the right candidate, staff just needs to
+    // confirm it isn't a coincidence (shared household phone, hand-me-down
+    // number, wrong number on file). Previously this whole case was
+    // dropped with only a console.log -- a correct match thrown away
+    // silently, worse than a genuine ambiguous case.
     return {
       ok: false,
       skipped: "phone_belongs_to_other_voter",
       voterId: match.voter_id,
+      candidates: [match],
     };
   }
 
@@ -4024,6 +4161,7 @@ export default {
               address1,
               city,
               zip,
+              email,
             });
             if (syncResult?.ok) {
               matchedVoterForPhone = {
@@ -4034,6 +4172,9 @@ export default {
                 voterId: syncResult.voterId,
                 matchedBy: syncResult.matchedBy,
               });
+              await env.DB.prepare(
+                `UPDATE consent_status SET voter_id = COALESCE(voter_id, ?2), updated_at = datetime('now') WHERE phone_e164 = ?1`
+              ).bind(phoneE164, syncResult.voterId).run();
               if (email && pollLinkAlreadySent) {
                 // grassmvt_survey's mint endpoint replaces the existing
                 // token on every call (see its own comment: "re-minting
@@ -4069,14 +4210,26 @@ export default {
               }
             } else {
               const mode = syncResult?.skipped;
-              if (mode === "ambiguous_address" || mode === "ambiguous_name_city_zip" || mode === "ambiguous_name_zip" || mode === "no_match") {
+              // Every non-ok outcome except a genuine local/infra gap gets a
+              // review row now -- previously only the ambiguous_*/no_match
+              // modes did, silently dropping `missing_lookup_fields` (city
+              // was submitted, so this path was entered at all, but
+              // zip/name didn't resolve to anything queryable) and
+              // `phone_belongs_to_other_voter` (a clean, unique name/email/
+              // phone match thrown away over an unrelated phone collision)
+              // with nothing but a console.log.
+              const infraSkip = mode === "missing_wy_tables" || mode === "invalid_phone" || mode === "missing_binding";
+              if (!infraSkip) {
                 const candidateVoterIds = (syncResult.candidates || [])
                   .map((row) => row?.voter_id)
                   .filter(Boolean);
+                const phone10ForFlag = normalizePhone10(phone);
+                const phoneAreaFlag = phone10ForFlag.length === 10 && !isWyAreaCodePhone10(phone10ForFlag);
+                const zipRangeFlag = Boolean(zip) && !isWyZip5(zip);
                 await env.DB.prepare(
                   `INSERT INTO pulse_voter_match_review
-                     (phone_e164, submitted_first_name, submitted_last_name, submitted_address1, submitted_city, submitted_zip, match_mode, candidate_voter_ids)
-                   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
+                     (phone_e164, submitted_first_name, submitted_last_name, submitted_address1, submitted_city, submitted_zip, match_mode, candidate_voter_ids, phone_area_flag, zip_range_flag)
+                   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`
                 ).bind(
                   phoneE164,
                   firstName,
@@ -4085,10 +4238,12 @@ export default {
                   city || null,
                   zip || null,
                   mode,
-                  candidateVoterIds.length ? JSON.stringify(candidateVoterIds) : null
+                  candidateVoterIds.length ? JSON.stringify(candidateVoterIds) : null,
+                  phoneAreaFlag ? 1 : 0,
+                  zipRangeFlag ? 1 : 0
                 ).run();
-                verification = { status: mode === "no_match" ? "no_match" : "ambiguous" };
-              } else if (mode && mode !== "missing_lookup_fields") {
+                verification = { status: mode === "no_match" || mode === "missing_lookup_fields" ? "no_match" : "ambiguous" };
+              } else {
                 console.log("[/api/optin] skipped WY phone mirror", { reason: mode });
               }
             }
@@ -5461,7 +5616,8 @@ export default {
           `SELECT id, phone_e164, submitted_first_name, submitted_last_name,
                   submitted_address1, submitted_city, submitted_zip,
                   match_mode, candidate_voter_ids, resolved_voter_id,
-                  resolved_at, resolved_by, created_at
+                  resolved_at, resolved_by, created_at,
+                  phone_area_flag, zip_range_flag
              FROM pulse_voter_match_review
             ${unresolvedOnly ? "WHERE resolved_at IS NULL" : ""}
             ORDER BY created_at DESC
@@ -5511,9 +5667,15 @@ export default {
             WHERE id = ?3`
         ).bind(voterId || null, actor.actorEmail || null, id).run();
 
+        const phoneE164 = normalizePhoneNumber(row.phone_e164);
+        if (voterId) {
+          await env.DB.prepare(
+            `UPDATE consent_status SET voter_id = COALESCE(voter_id, ?2), updated_at = datetime('now') WHERE phone_e164 = ?1`
+          ).bind(phoneE164, voterId).run();
+        }
+
         let phonePromotion = null;
         if (voterId && env.WY_DB) {
-          const phoneE164 = normalizePhoneNumber(row.phone_e164);
           const deliveredWelcome = await env.DB.prepare(
             `SELECT 1 AS delivered
                FROM texting_audit_log tal
@@ -5540,6 +5702,102 @@ export default {
           id,
           resolvedVoterId: voterId || null,
           phonePromotion,
+        });
+      }
+
+      // POST /api/admin/pulse-voter-review/mint-and-send
+      // Body: {id} for an already-resolved review row (see /resolve above).
+      // Mints a Citizen Poll invite token for the confirmed voter and
+      // delivers it by SMS/email in the same call -- grassmvt_survey's mint
+      // endpoint replaces any existing token on every call, so a mint that
+      // isn't immediately followed by delivery would silently invalidate a
+      // link already sitting in someone's inbox/texts (the same hazard the
+      // auto-mint path in POST /api/optin already guards against). Current
+      // SMS/email consent is re-checked here, at send time, rather than
+      // trusting whatever was true when the original /pulse form was
+      // submitted -- consent can have changed in between.
+      if (req.method === "POST" && path === "/api/admin/pulse-voter-review/mint-and-send") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const body = await req.json().catch(() => ({}));
+        const id = Number(body?.id);
+        if (!id) return json(req, env, { error: "Valid id required." }, 400);
+
+        const row = await env.DB.prepare(
+          `SELECT id, phone_e164, resolved_voter_id, resolved_at FROM pulse_voter_match_review WHERE id = ?1`
+        ).bind(id).first();
+        if (!row) return json(req, env, { error: "Review row not found." }, 404);
+        if (!row.resolved_voter_id || !row.resolved_at) {
+          return json(req, env, { error: "Row is not resolved to a voter yet." }, 409);
+        }
+
+        const phoneE164 = normalizePhoneNumber(row.phone_e164);
+        const consent = await env.DB.prepare(
+          `SELECT phone_e164, status, first_name, email, consent_email, poll_link_sent_at
+             FROM consent_status
+            WHERE phone_e164 = ?1`
+        ).bind(phoneE164).first();
+        if (!consent) {
+          return json(req, env, { error: "No consent_status record for this contact." }, 404);
+        }
+        if (String(consent.status || "").trim() !== "opted_in") {
+          return json(req, env, { error: "Contact is not currently opted in to SMS." }, 409);
+        }
+        if (!consent.email || Number(consent.consent_email || 0) !== 1) {
+          return json(req, env, { error: "Contact has no current email consent -- cannot mint a ballot link." }, 409);
+        }
+        if (consent.poll_link_sent_at) {
+          return json(req, env, { error: "A poll link was already sent to this contact." }, 409);
+        }
+
+        const voterId = row.resolved_voter_id;
+        await env.DB.prepare(
+          `UPDATE consent_status SET voter_id = COALESCE(voter_id, ?2), updated_at = datetime('now') WHERE phone_e164 = ?1`
+        ).bind(phoneE164, voterId).run();
+
+        const resolved = await resolveVoterDistrictAndPrecinct(env, voterId);
+        const recipient = {
+          voter_id: voterId,
+          email_norm: String(consent.email).toLowerCase(),
+          house_district: resolved?.house_district || undefined,
+          senate_district: resolved?.senate_district || undefined,
+          political_party: resolved?.political_party || undefined,
+          county: resolved?.county || undefined,
+          city: resolved?.city || undefined,
+          precinct_code: resolved?.precinct_code || undefined,
+        };
+        const { withLinks, mintFailures } = await mintPollInviteLinksForChunk(env, [recipient]);
+        const pollLink = withLinks?.[0]?.poll_link || null;
+        if (!pollLink) {
+          return json(req, env, { error: mintFailures?.[0]?.error || "Mint failed." }, 502);
+        }
+
+        const [smsResult, emailResult] = await Promise.all([
+          sendPollLinkText(env, phoneE164, pollLink, {
+            auditDetails: { voterId, matchedBy: "admin_review" },
+          }).catch((error) => ({ sent: false, reason: String(error?.message || error) })),
+          sendPollLinkEmail(env, {
+            firstName: consent.first_name,
+            email: consent.email,
+            consentEmail: true,
+            pollLink,
+          }).catch((error) => ({ sent: false, reason: String(error?.message || error) })),
+        ]);
+
+        const delivered = Boolean(smsResult?.sent || emailResult?.sent);
+        if (delivered) {
+          await env.DB.prepare(
+            `UPDATE consent_status SET poll_link_sent_at = datetime('now') WHERE phone_e164 = ?1`
+          ).bind(phoneE164).run();
+        }
+
+        return json(req, env, {
+          ok: delivered,
+          pollLink: delivered ? pollLink : null,
+          sms: smsResult,
+          email: emailResult,
         });
       }
 

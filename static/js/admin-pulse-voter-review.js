@@ -95,15 +95,20 @@ function matchModeLabel(mode) {
   if (mode === "ambiguous_address") return "Ambiguous (address)";
   if (mode === "ambiguous_name_city_zip") return "Ambiguous (name/city/zip)";
   if (mode === "ambiguous_name_zip") return "Ambiguous (name/zip, city didn't match)";
+  if (mode === "ambiguous_name_city") return "Unconfirmed (name+city, no ZIP submitted)";
+  if (mode === "ambiguous_phone") return "Ambiguous (phone matches multiple voters)";
+  if (mode === "ambiguous_email") return "Ambiguous (email matches multiple voters)";
+  if (mode === "phone_belongs_to_other_voter") return "Clean match, but phone linked to a different voter";
+  if (mode === "missing_lookup_fields") return "Insufficient data submitted";
   if (mode === "no_match") return "No match found";
   return mode || "Unknown";
 }
 
 function renderItem(item) {
-  const isAmbiguous = item.match_mode === "ambiguous_address" || item.match_mode === "ambiguous_name_city_zip" || item.match_mode === "ambiguous_name_zip";
   const candidates = Array.isArray(item.candidate_voter_ids) ? item.candidate_voter_ids : [];
+  const hasCandidates = candidates.length > 0;
 
-  const resolveControl = isAmbiguous
+  const resolveControl = hasCandidates
     ? `<select class="pvr-voter-select" data-id="${escapeHtml(item.id)}">
         <option value="">Choose voter_id...</option>
         ${candidates.map((vid) => `<option value="${escapeHtml(vid)}">${escapeHtml(vid)}</option>`).join("")}
@@ -115,11 +120,32 @@ function renderItem(item) {
     .filter(Boolean)
     .join(", ");
 
+  const flagBadges = [
+    Number(item.phone_area_flag) === 1 ? `<span class="pvr-flag-badge">non-307 phone</span>` : "",
+    Number(item.zip_range_flag) === 1 ? `<span class="pvr-flag-badge">ZIP outside WY range</span>` : "",
+  ].join("");
+
+  if (item._resolved) {
+    return `
+      <article class="pvr-item" data-row-id="${escapeHtml(item.id)}">
+        <div class="pvr-item-head">
+          <strong>${escapeHtml(submittedName)}</strong>
+          <span class="status-badge status-resolved">Resolved -- voter ${escapeHtml(item.resolved_voter_id || "")}</span>
+        </div>
+        <div class="help">Phone: ${escapeHtml(item.phone_e164)}</div>
+        <div class="pvr-item-resolve">
+          <button type="button" class="pvr-mint-btn" data-id="${escapeHtml(item.id)}">Mint &amp; send poll link</button>
+        </div>
+      </article>
+    `;
+  }
+
   return `
     <article class="pvr-item" data-row-id="${escapeHtml(item.id)}">
       <div class="pvr-item-head">
         <strong>${escapeHtml(submittedName)}</strong>
         <span class="status-badge status-${escapeHtml(item.match_mode)}">${escapeHtml(matchModeLabel(item.match_mode))}</span>
+        ${flagBadges}
       </div>
       <div class="help">Phone: ${escapeHtml(item.phone_e164)}</div>
       <div class="help">Submitted: ${escapeHtml(submittedAddress || "no address given")}</div>
@@ -142,7 +168,10 @@ function renderList() {
     summaryEl.textContent = "0 unresolved items.";
     return;
   }
-  summaryEl.textContent = `${currentItems.length} unresolved item${currentItems.length === 1 ? "" : "s"}.`;
+  const unresolvedCount = currentItems.filter((item) => !item._resolved).length;
+  const resolvedPendingCount = currentItems.length - unresolvedCount;
+  summaryEl.textContent = `${unresolvedCount} unresolved item${unresolvedCount === 1 ? "" : "s"}`
+    + (resolvedPendingCount ? `, ${resolvedPendingCount} resolved pending send.` : ".");
   listEl.innerHTML = currentItems.map(renderItem).join("");
 }
 
@@ -166,11 +195,37 @@ async function resolveItem(id, { voterId = "", dismiss = false } = {}) {
       method: "POST",
       body: JSON.stringify(dismiss ? { id, dismiss: true } : { id, voter_id: voterId }),
     });
-    currentItems = currentItems.filter((item) => String(item.id) !== String(id));
+    if (dismiss) {
+      // Nothing to send for a dismissed row -- remove it like before.
+      currentItems = currentItems.filter((item) => String(item.id) !== String(id));
+      setStatus(actionStatusEl, "Dismissed.");
+    } else {
+      // Keep the row visible (resolved rows drop out of the unresolved=1
+      // queue on refresh) so staff can immediately mint & send the poll
+      // link without having to re-find this contact elsewhere.
+      currentItems = currentItems.map((item) =>
+        String(item.id) === String(id) ? { ...item, _resolved: true, resolved_voter_id: voterId } : item
+      );
+      setStatus(actionStatusEl, "Resolved.");
+    }
     renderList();
-    setStatus(actionStatusEl, dismiss ? "Dismissed." : "Resolved.");
   } catch (error) {
     setStatus(actionStatusEl, error?.message || "Failed to resolve item.", true);
+  }
+}
+
+async function mintAndSendItem(id) {
+  setStatus(actionStatusEl, "");
+  try {
+    const data = await api("/api/admin/pulse-voter-review/mint-and-send", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    });
+    currentItems = currentItems.filter((item) => String(item.id) !== String(id));
+    renderList();
+    setStatus(actionStatusEl, data?.pollLink ? "Poll link minted and sent." : "Sent.");
+  } catch (error) {
+    setStatus(actionStatusEl, error?.message || "Failed to mint/send poll link.", true);
   }
 }
 
@@ -193,6 +248,12 @@ listEl?.addEventListener("click", (event) => {
   const dismissBtn = event.target.closest(".pvr-dismiss-btn");
   if (dismissBtn) {
     resolveItem(dismissBtn.dataset.id, { dismiss: true });
+    return;
+  }
+
+  const mintBtn = event.target.closest(".pvr-mint-btn");
+  if (mintBtn) {
+    mintAndSendItem(mintBtn.dataset.id);
   }
 });
 

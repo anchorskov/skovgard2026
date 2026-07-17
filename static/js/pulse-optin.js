@@ -95,6 +95,24 @@ if (form) {
     return d.length === 11 && d.startsWith('1') ? d.slice(1) : d;
   };
 
+  /* ---------- soft data-quality checks ----------
+     Wyoming has a single area code (307) and a contiguous ZIP range. A
+     mismatch here isn't proof of a typo -- real WY voters keep out-of-state
+     cell numbers or list a different mailing ZIP all the time -- so these
+     never block submission outright. They just require one extra click to
+     confirm, the same way a second look catches a "304 instead of 307"
+     fat-finger before it ever reaches voter matching. Flags reset whenever
+     the field is edited again. */
+  const WY_AREA_CODE = '307';
+  const isWyZip = (zip5) => {
+    const n = Number(zip5);
+    return Number.isFinite(n) && n >= 82001 && n <= 83128;
+  };
+  let phoneAreaConfirmed = false;
+  let zipRangeConfirmed = false;
+  $('#phone')?.addEventListener('input', () => { phoneAreaConfirmed = false; });
+  $('#zip')?.addEventListener('input', () => { zipRangeConfirmed = false; });
+
   /* ---------- hide honeypot at runtime ---------- */
   {
     const hpWrap = form.querySelector('.hp-field');
@@ -342,6 +360,10 @@ function resetTurnstile() {
     if (!fields.first_name) return fieldError($('#first_name'), 'First name is required.');
     if (!fields.last_name) return fieldError($('#last_name'), 'Last name is required.');
     if (fields.phone10.length !== 10) return fieldError($('#phone'), 'Enter a valid 10-digit mobile number.');
+    if (!fields.phone10.startsWith(WY_AREA_CODE) && !phoneAreaConfirmed) {
+      phoneAreaConfirmed = true;
+      return fieldError($('#phone'), "That doesn't look like a Wyoming (307) number -- check it, then click again to continue if it's correct.");
+    }
     if (!fields.consent_sms) {
       showConsentError();
       return false;
@@ -362,6 +384,10 @@ function resetTurnstile() {
     const fields = readFields();
     if (!fields.city) return fieldError($('#city'), 'Enter your city so we can find your voter registration.');
     if (!/^\d{5}$/.test(fields.zip)) return fieldError($('#zip'), 'Enter a valid 5-digit ZIP code.');
+    if (!isWyZip(fields.zip) && !zipRangeConfirmed) {
+      zipRangeConfirmed = true;
+      return fieldError($('#zip'), "That ZIP doesn't look like a Wyoming ZIP code -- check it, then click again to continue if it's correct.");
+    }
     return true;
   };
 

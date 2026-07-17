@@ -47,14 +47,38 @@
 
 #admin-pvr-shell .status-ambiguous_address,
 #admin-pvr-shell .status-ambiguous_name_city_zip,
-#admin-pvr-shell .status-ambiguous_name_zip {
+#admin-pvr-shell .status-ambiguous_name_zip,
+#admin-pvr-shell .status-ambiguous_name_city,
+#admin-pvr-shell .status-ambiguous_phone,
+#admin-pvr-shell .status-ambiguous_email {
   background: #fef3c7;
   color: #92400e;
 }
 
-#admin-pvr-shell .status-no_match {
+#admin-pvr-shell .status-no_match,
+#admin-pvr-shell .status-missing_lookup_fields {
   background: #fee2e2;
   color: #991b1b;
+}
+
+#admin-pvr-shell .status-phone_belongs_to_other_voter {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+#admin-pvr-shell .status-resolved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+#admin-pvr-shell .pvr-flag-badge {
+  display: inline-block;
+  padding: .1rem .5rem;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 #admin-pvr-shell .pvr-item-resolve {
@@ -119,4 +143,14 @@
   padding: .4rem .6rem;
   border: 1px solid #cbd5e1;
   border-radius: .5rem;
+}
+
+#admin-pvr-shell .pvr-item-resolve button.pvr-mint-btn {
+  background: #15803d;
+  border-color: #15803d;
+}
+
+#admin-pvr-shell .pvr-item-resolve button.pvr-mint-btn:hover {
+  background: #166534;
+  border-color: #166534;
 }
