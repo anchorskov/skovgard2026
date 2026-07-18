@@ -1760,6 +1760,86 @@ const STRAIGHT_ANSWERS_BODY_HTML = `
 ${QUESTIONNAIRE_CHALLENGE_QUESTIONS_HTML}
 `;
 
+const WASHINGTON_PUPPETS_BODY_HTML = `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+    style="margin:0 0 22px;border-left:5px solid #2b2b2b;background:#f1ece1;">
+  <tr>
+    <td style="padding:14px 18px;">
+      <p style="margin:0;font-size:16px;line-height:1.6;color:#111827;font-style:italic;">
+        &#8220;The Party told you to reject the evidence of your eyes and ears.&#8221;
+      </p>
+      <p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:#6b7280;">
+        &#8212; George Orwell
+      </p>
+    </td>
+  </tr>
+</table>
+
+<h2 style="margin:26px 0 12px;font-size:20px;line-height:1.3;color:#0f2742;">Who Gets to Choose?</h2>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  I recently received notice giving me exactly 24 hours to justify my candidacy to a 13-member
+  committee. I have been a registered Republican for 40 years, yet this small group now proposes
+  to decide whether party resources should favor another candidate before Wyoming voters ever
+  have a chance to speak.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+    style="margin:0 0 18px;border-left:4px solid #c68a4a;background:#fef9f0;">
+  <tr>
+    <td style="padding:14px 18px;">
+      <p style="margin:0 0 8px;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.06em;color:#8b1a26;">
+        Wyoming Statute W.S. 22-25-104
+      </p>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;font-style:italic;">
+        &#8220;No political party funds shall be expended directly or indirectly in the aid of
+        the nomination of any one person as against another person of the same political party
+        running in the primary election.&#8221;
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Party leadership recently hired a Washington, D.C., law firm and filed a federal lawsuit
+  challenging that law. The party has every right to challenge a statute in court, but until a
+  judge rules otherwise, that statute remains the law.
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Many of us, including members of this committee, have sworn oaths to support and defend our
+  constitution and the rule of law. We are all bound by those oaths. This vetting process does
+  not strengthen democracy. Instead, it concentrates control in fewer hands while asking voters
+  to stand aside.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+    style="margin:8px 0 24px;border-top:2px solid #2b2b2b;border-bottom:2px solid #2b2b2b;">
+  <tr>
+    <td style="padding:16px 4px;">
+      <p style="margin:0 0 6px;font-size:18px;line-height:1.4;color:#0f2742;font-weight:bold;">
+        We, the voters, will decide who represents us.
+      </p>
+      <p style="margin:0;font-size:18px;line-height:1.4;color:#0f2742;font-weight:bold;">
+        In doing so, we will also decide whether the rule of law still matters in Wyoming.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 24px;font-size:17px;line-height:1.5;color:#b22234;font-weight:bold;">
+  Let the people speak first.
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  <a href="https://skovgard2026.org/share/washington-puppets/sources/"
+      style="color:#0f2742;font-weight:bold;">
+    Read the full breakdown with sources
+  </a>
+  at skovgard2026.org/share/washington-puppets/sources/
+</p>
+`;
+
 export const SHARE_MESSAGES = {
   "answer-the-questions": {
     title:        "If You Want My Vote, Answer the Questions",
@@ -1919,6 +1999,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted you to see this`
         : "Wyoming voters should choose";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "washington-puppets": {
+    title:        "Washington Puppets",
+    body_html:    WASHINGTON_PUPPETS_BODY_HTML,
+    preview_text: "A 13-member committee gave me 24 hours to justify my candidacy. Wyoming voters should decide first.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this`
+        : "Who gets to choose? A message from Jimmy Skovgard";
     },
     intro(n) {
       return n
@@ -2529,6 +2624,39 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "https://grassrootsmvt.org/surveys/wy-primary-elections-party-preselection",
           "",
           "Join the proof of concept at GrassrootsMVT.org.",
+        ]
+    : slug === "washington-puppets"
+      ? [
+          "\"The Party told you to reject the evidence of your eyes and ears.\" — George Orwell",
+          "",
+          "WHO GETS TO CHOOSE?",
+          "",
+          "I recently received notice giving me exactly 24 hours to justify my candidacy to a",
+          "13-member committee. I have been a registered Republican for 40 years, yet this small",
+          "group now proposes to decide whether party resources should favor another candidate",
+          "before Wyoming voters ever have a chance to speak.",
+          "",
+          "Wyoming Statute W.S. 22-25-104 is clear:",
+          "\"No political party funds shall be expended directly or indirectly in the aid of the",
+          "nomination of any one person as against another person of the same political party",
+          "running in the primary election.\"",
+          "",
+          "Party leadership recently hired a Washington, D.C., law firm and filed a federal lawsuit",
+          "challenging that law. The party has every right to challenge a statute in court, but",
+          "until a judge rules otherwise, that statute remains the law.",
+          "",
+          "Many of us, including members of this committee, have sworn oaths to support and defend",
+          "our constitution and the rule of law. We are all bound by those oaths. This vetting",
+          "process does not strengthen democracy. Instead, it concentrates control in fewer hands",
+          "while asking voters to stand aside.",
+          "",
+          "We, the voters, will decide who represents us. In doing so, we will also decide whether",
+          "the rule of law still matters in Wyoming.",
+          "",
+          "Let the people speak first.",
+          "",
+          "Read the full breakdown with sources:",
+          "https://skovgard2026.org/share/washington-puppets/sources/",
         ]
     : slug === "wyoming-voters-choose"
       ? [

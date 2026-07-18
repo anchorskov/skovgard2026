@@ -1,0 +1,751 @@
+---
+// src/pages/share/washington-puppets.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="Washington Puppets — Skovgard 2026"
+  description="A 13-member committee gave Jimmy Skovgard 24 hours to justify his candidacy before Wyoming voters ever have a chance to speak. Here is his response."
+  ogImage="/images/share/meme-washington-puppets.png"
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-14 px-4 text-center">
+      <a href="/share" class="inline-flex items-center gap-1.5 text-wy-bone/50 hover:text-wy-bone text-xs font-semibold uppercase tracking-widest mb-6 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        All messages
+      </a>
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Party and Primary</p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-extrabold mb-4 leading-tight">
+        <span class="text-wy-bone">Washington</span>
+        <span class="text-wy-ember"> Puppets</span>
+      </h1>
+      <p class="text-wy-bone/70 text-lg max-w-xl mx-auto mb-8">
+        A 13-member committee gave me 24 hours to justify my candidacy &#8212; before Wyoming
+        voters ever have a chance to speak. Who gets to choose?
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <button id="hero-copy-link" type="button" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy link
+        </button>
+        <a id="hero-facebook" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+          </svg>
+          Facebook
+        </a>
+        <a id="hero-twitter" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          X / Twitter
+        </a>
+      </div>
+    </div>
+
+    <!-- ① Share on social media -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+
+        <p class="section-kicker">Share on social media</p>
+        <p class="section-desc">
+          This image and link are what people see when you post on Facebook or X.
+          When someone clicks the link, they land on this page with the full message.
+        </p>
+
+        <figure class="rounded-xl overflow-hidden shadow-lg mb-7">
+          <img
+            src="/images/share/meme-washington-puppets.png"
+            alt="A party endorsement before the primary? Wyoming voters deserve the final word. A 13-member committee recommends endorsements; the State Central Committee decides whether to endorse before the primary."
+            class="w-full block"
+            style="background-color:#0f1620;min-height:180px;"
+            loading="eager"
+          />
+        </figure>
+
+        <div class="flex flex-wrap gap-3">
+          <a id="social-facebook" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+            </svg>
+            Share on Facebook
+          </a>
+          <a id="social-twitter" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Share on X
+          </a>
+          <button id="social-copy-link" type="button" class="social-btn-outline">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy link
+          </button>
+          <a id="social-whatsapp" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.089.534 4.05 1.475 5.757L0 24l6.435-1.689A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.797 9.797 0 01-4.993-1.368l-.358-.213-3.716.975.993-3.62-.234-.372A9.799 9.799 0 012.182 12C2.182 6.565 6.565 2.182 12 2.182S21.818 6.565 21.818 12 17.435 21.818 12 21.818z"/>
+            </svg>
+            WhatsApp
+          </a>
+          <button id="social-native-share" type="button" class="social-btn-outline" hidden>
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/>
+            </svg>
+            Share…
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ② Send by email -->
+    <section class="bg-white py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+
+        <p class="section-kicker">Send by email to your contacts</p>
+        <p class="section-desc">
+          This is the written message your contacts receive in their inbox.
+          It is not the image above — it is a personal email that comes from you.
+        </p>
+
+        <div class="bg-wy-bone rounded-2xl border border-gray-200 p-7">
+
+          <!-- Your name -->
+          <div class="mb-6">
+            <label for="wp-sender" class="block text-sm font-semibold text-gray-700 mb-1">
+              Your name <span class="font-normal text-gray-400">(optional — personalises the message)</span>
+            </label>
+            <input
+              id="wp-sender"
+              type="text"
+              autocomplete="given-name"
+              placeholder="e.g. Sarah"
+              maxlength="80"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-wy-ember focus:border-wy-ember"
+            />
+          </div>
+
+          <!-- Honeypot -->
+          <input id="wp-trap" name="wp_trap" type="text" autocomplete="off" tabindex="-1"
+            style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+
+          <!-- Recipient input -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-sm font-semibold text-gray-700">
+                Friends' email addresses
+              </label>
+              <button id="wp-contacts-btn" type="button" hidden
+                class="text-xs font-semibold text-wy-ember hover:text-wy-ember-dark flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.47-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.47.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Add from contacts
+              </button>
+            </div>
+            <div id="wp-tag-box"
+              class="min-h-[48px] w-full px-2 py-1.5 border border-gray-300 rounded-lg bg-white cursor-text flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-wy-ember focus-within:border-wy-ember"
+              aria-label="Recipient email list">
+              <input id="wp-email-input" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
+                placeholder="Type an address and press Enter"
+                class="flex-1 min-w-[180px] border-0 outline-none text-sm py-1 px-1 bg-transparent" />
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">
+              Press <kbd>Enter</kbd> or <kbd>,</kbd> after each address. Paste a comma-separated list to add several at once. Up to 10.
+            </p>
+          </div>
+
+          <!-- Live HTML email preview -->
+          <div class="email-preview-wrap mb-6">
+            <div class="email-preview-header">
+              <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
+              <div class="epf"><span class="epl">Subject:</span> <span id="wp-preview-subject">Who gets to choose? A message from Jimmy Skovgard</span></div>
+            </div>
+            <iframe
+              id="wp-preview-iframe"
+              title="Preview of the email your contacts will receive"
+              sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+              scrolling="yes"
+              class="email-preview-iframe"
+            ></iframe>
+          </div>
+
+          <!-- Status -->
+          <div id="wp-status" role="status" aria-live="polite" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+          <!-- Action button -->
+          <button id="wp-send-btn" type="button"
+            class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            <span id="wp-send-label">Have us send it</span>
+          </button>
+
+          <p class="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+            We send a campaign-branded email on your behalf. Recipients are not added to any mailing list.
+          </p>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Full essay -->
+    <article class="bg-wy-bone border-t border-gray-200 py-14 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-8">The message</p>
+
+        <div class="prose-content">
+
+          <div class="orwell-box">
+            <p>&#8220;The Party told you to reject the evidence of your eyes and ears.&#8221;</p>
+            <p class="orwell-attr">&#8212; George Orwell</p>
+          </div>
+
+          <h2>Who Gets to Choose?</h2>
+
+          <p>
+            I recently received notice giving me exactly 24 hours to justify my candidacy to a
+            13-member committee. I have been a registered Republican for 40 years, yet this small
+            group now proposes to decide whether party resources should favor another candidate
+            before Wyoming voters ever have a chance to speak.
+          </p>
+
+          <div class="statute-box">
+            <p class="statute-label">Wyoming Statute W.S. 22-25-104</p>
+            <p class="statute-text">
+              &#8220;No political party funds shall be expended directly or indirectly in the aid
+              of the nomination of any one person as against another person of the same political
+              party running in the primary election.&#8221;
+            </p>
+          </div>
+
+          <p>
+            Party leadership recently hired a Washington, D.C., law firm and filed a federal
+            lawsuit challenging that law. The party has every right to challenge a statute in
+            court, but until a judge rules otherwise, that statute remains the law.
+          </p>
+
+          <p>
+            Many of us, including members of this committee, have sworn oaths to support and
+            defend our constitution and the rule of law. We are all bound by those oaths. This
+            vetting process does not strengthen democracy. Instead, it concentrates control in
+            fewer hands while asking voters to stand aside.
+          </p>
+
+          <div class="manifesto">
+            <p>We, the voters, will decide who represents us.</p>
+            <p>In doing so, we will also decide whether the rule of law still matters in Wyoming.</p>
+          </div>
+
+          <p class="closing-line">Let the people speak first.</p>
+
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 mt-10">
+          <a href="/donate"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            Support the campaign
+          </a>
+          <a href="/share/washington-puppets/sources/"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-wy-charcoal font-bold rounded-lg border-2 border-wy-charcoal hover:bg-wy-charcoal hover:text-wy-bone transition-colors text-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Read the sources
+          </a>
+        </div>
+
+      </div>
+    </article>
+
+    <!-- Bottom share bar -->
+    <div class="bg-wy-charcoal py-14 px-4 text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Spread the Word</p>
+      <p class="text-wy-bone/70 text-sm mb-6 max-w-md mx-auto">
+        One message from someone you know carries more weight than any ad. Share this with Wyoming neighbors.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <button id="footer-copy-link" type="button" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy link
+        </button>
+        <a id="footer-facebook" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+          </svg>
+          Facebook
+        </a>
+        <a id="footer-twitter" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          X / Twitter
+        </a>
+      </div>
+    </div>
+
+    <!-- Sources -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1">Sources &amp; Evidence</h2>
+          <p class="text-sm text-gray-600">
+            All claims are documented with publicly available sources.
+          </p>
+        </div>
+        <a href="/share/washington-puppets/sources/"
+           class="inline-flex items-center gap-2 px-5 py-2.5 bg-wy-charcoal text-wy-bone font-bold rounded-lg hover:bg-wy-ember transition-colors text-sm shrink-0">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          View all sources
+        </a>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 52ch;
+  }
+
+  .social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.15s;
+  }
+  .social-btn:hover { background: #b22234; }
+  .social-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: transparent;
+    color: #2b2b2b;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 2px solid #2b2b2b;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .social-btn-outline:hover { background: #2b2b2b; color: #f1ece1; }
+
+  .share-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border: 2px solid rgba(241, 236, 225, 0.45);
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    background: transparent;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+  .share-btn-outline:hover {
+    background-color: rgba(241, 236, 225, 0.1);
+    border-color: #f1ece1;
+  }
+
+  .email-preview-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .email-preview-header {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .epf { font-size: 0.8125rem; color: #374151; line-height: 1.6; }
+  .epl { font-weight: 700; color: #6b7280; margin-right: 4px; }
+  .email-preview-iframe { display: block; width: 100%; height: 460px; border: none; }
+
+  #wp-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .wp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1ece1;
+    border: 1px solid #c68a4a33;
+    color: #2b2b2b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 8px 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+  .wp-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .wp-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: #c68a4a55;
+    color: #2b2b2b;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .wp-chip button:hover { background: #b22234; color: #fff; }
+
+  kbd {
+    padding: 1px 5px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    color: #6b7280;
+  }
+
+  /* Essay typography */
+  .prose-content { line-height: 1.8; color: #2b2b2b; }
+  .prose-content h2 {
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin: 2rem 0 1rem;
+    color: #2b2b2b;
+  }
+  .prose-content p { margin-bottom: 1.25rem; font-size: 1.0625rem; }
+
+  /* Orwell pull-quote */
+  .orwell-box {
+    background: #2b2b2b;
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin: 0 0 2rem;
+  }
+  .orwell-box p {
+    color: #f1ece1;
+    font-style: italic;
+    font-size: 1.125rem;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .orwell-attr {
+    margin-top: 8px !important;
+    font-style: normal !important;
+    font-size: 0.875rem !important;
+    color: #c68a4a !important;
+  }
+
+  /* Statute callout */
+  .statute-box {
+    border-left: 4px solid #c68a4a;
+    background: #fef9f0;
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 0 0 1.5rem;
+  }
+  .statute-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8b1a26;
+    margin: 0 0 8px;
+  }
+  .statute-text {
+    font-size: 0.9375rem;
+    font-style: italic;
+    line-height: 1.65;
+    color: #2b2b2b;
+    margin: 0;
+  }
+
+  /* Manifesto */
+  .manifesto {
+    border-top: 2px solid #2b2b2b;
+    border-bottom: 2px solid #2b2b2b;
+    padding: 18px 0;
+    margin: 2rem 0;
+  }
+  .manifesto p {
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #0f2742;
+    margin: 0 0 4px;
+    line-height: 1.4;
+  }
+  .manifesto p:last-child { margin: 0; }
+
+  .closing-line {
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    font-size: 1.375rem !important;
+    color: #b22234 !important;
+  }
+
+  #wp-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  #wp-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  #wp-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+</style>
+
+<script>
+(function () {
+  const PAGE_URL = 'https://skovgard2026.org/share/washington-puppets';
+
+  const TWEET = '"The Party told you to reject the evidence of your eyes and ears." — Orwell. Wyoming voters, not a 13-member committee, should decide our primary. #Wyoming #WY2026';
+
+  const fb = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
+  const tw = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_URL) +
+    '&text=' + encodeURIComponent(TWEET);
+  ['hero-facebook', 'social-facebook', 'footer-facebook'].forEach(id => { const el = document.getElementById(id); if (el) el.href = fb; });
+  ['hero-twitter',  'social-twitter',  'footer-twitter' ].forEach(id => { const el = document.getElementById(id); if (el) el.href = tw; });
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus('Link copied!', 'success');
+      setTimeout(() => setStatus('', ''), 3000);
+    } catch {
+      setStatus('Could not copy — please copy manually.', 'error');
+    }
+  }
+
+  ['hero-copy-link', 'social-copy-link', 'footer-copy-link']
+    .forEach(id => { const btn = document.getElementById(id); if (btn) btn.addEventListener('click', () => copyText(PAGE_URL)); });
+
+  /* ── WhatsApp + Web Share API ───────────────────────────── */
+  const elWa = document.getElementById('social-whatsapp');
+  if (elWa) elWa.href = 'https://wa.me/?text=' + encodeURIComponent(PAGE_URL);
+
+  const nativeShareBtn = document.getElementById('social-native-share');
+  if (nativeShareBtn && navigator.canShare && navigator.canShare({ url: PAGE_URL })) {
+    nativeShareBtn.hidden = false;
+    nativeShareBtn.addEventListener('click', async () => {
+      try { await navigator.share({ title: document.title, url: PAGE_URL }); }
+      catch (_) {}
+    });
+  }
+
+  /* ── Email state ─────────────────────────────────────────── */
+  const wpEmails      = [];
+  const WP_MAX         = 10;
+  const tagBox         = document.getElementById('wp-tag-box');
+  const emailInput     = document.getElementById('wp-email-input');
+  const senderInput    = document.getElementById('wp-sender');
+  const contactsBtn    = document.getElementById('wp-contacts-btn');
+  const previewIframe  = document.getElementById('wp-preview-iframe');
+  const previewSubject = document.getElementById('wp-preview-subject');
+  const sendBtn        = document.getElementById('wp-send-btn');
+  const sendLabel      = document.getElementById('wp-send-label');
+  const statusEl       = document.getElementById('wp-status');
+
+  function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
+
+  function setStatus(msg, type) {
+    if (!msg) { statusEl.classList.add('hidden'); statusEl.textContent = ''; return; }
+    statusEl.className = `mb-4 px-4 py-3 rounded-lg text-sm font-medium status-${type}`;
+    statusEl.textContent = msg;
+    statusEl.classList.remove('hidden');
+  }
+
+  function renderTags() {
+    Array.from(tagBox.querySelectorAll('.wp-chip')).forEach(c => c.remove());
+    wpEmails.forEach((email, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'wp-chip';
+      chip.innerHTML = `<span title="${email}">${email}</span><button type="button" aria-label="Remove ${email}">✕</button>`;
+      chip.querySelector('button').addEventListener('click', () => { wpEmails.splice(i, 1); setStatus('', ''); renderTags(); });
+      tagBox.insertBefore(chip, emailInput);
+    });
+    updateButtons();
+    schedulePreview();
+  }
+
+  function addEmail(raw) {
+    const e = raw.trim().toLowerCase();
+    if (!e) return;
+    if (!isValidEmail(e)) { setStatus(`"${e}" doesn't look like a valid email address.`, 'error'); return; }
+    if (wpEmails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
+    if (wpEmails.length >= WP_MAX) { setStatus(`Maximum ${WP_MAX} recipients.`, 'info'); return; }
+    setStatus('', '');
+    wpEmails.push(e);
+    renderTags();
+  }
+
+  function updateButtons() { sendBtn.disabled = wpEmails.length === 0 && !isValidEmail(emailInput.value.trim()); }
+
+  emailInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addEmail(emailInput.value); emailInput.value = ''; }
+    else if (e.key === 'Backspace' && emailInput.value === '' && wpEmails.length > 0) {
+      wpEmails.splice(wpEmails.length - 1, 1); setStatus('', ''); renderTags();
+    }
+  });
+  emailInput.addEventListener('blur', () => { if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; } });
+  emailInput.addEventListener('input', updateButtons);
+  emailInput.addEventListener('paste', e => {
+    e.preventDefault();
+    (e.clipboardData || window.clipboardData).getData('text').split(/[,;\s\n]+/).forEach(p => { if (p.trim()) addEmail(p); });
+    emailInput.value = '';
+  });
+  tagBox.addEventListener('click', () => emailInput.focus());
+
+  (async () => {
+    if (!('contacts' in navigator)) return;
+    try {
+      const props = await navigator.contacts.getProperties();
+      if (!props.includes('email')) return;
+      contactsBtn.hidden = false;
+      contactsBtn.addEventListener('click', async () => {
+        try { const picked = await navigator.contacts.select(['name', 'email'], { multiple: true }); picked.forEach(c => (c.email || []).forEach(e => addEmail(e))); } catch (_) {}
+      });
+    } catch (_) {}
+  })();
+
+  /* ── Live email preview ──────────────────────────────────── */
+  let previewTimer = null;
+
+  function buildPreviewUrl() {
+    const name = senderInput.value.trim().slice(0, 80);
+    const params = new URLSearchParams({ slug: 'washington-puppets' });
+    if (name) params.set('sender_name', name);
+    return '/api/share/preview?' + params.toString();
+  }
+
+  function updateSubjectLine() {
+    const name = senderInput.value.trim();
+    if (previewSubject) {
+      previewSubject.textContent = name
+        ? `${name} wanted you to see this`
+        : 'Who gets to choose? A message from Jimmy Skovgard';
+    }
+  }
+
+  async function fetchPreview() {
+    updateSubjectLine();
+    if (!previewIframe) return;
+    try {
+      const resp = await fetch(buildPreviewUrl());
+      if (resp.ok) previewIframe.srcdoc = await resp.text();
+    } catch (_) {}
+  }
+
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(fetchPreview, 300);
+  }
+
+  senderInput.addEventListener('input', schedulePreview);
+
+  /* ── Send via Worker ─────────────────────────────────────── */
+  sendBtn.addEventListener('click', async () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+    if (wpEmails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
+
+    sendBtn.disabled = true;
+    sendLabel.textContent = 'Sending…';
+    setStatus('', '');
+
+    try {
+      const resp = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message_slug: 'washington-puppets',
+          sender_name:  senderInput.value.trim(),
+          recipients:   wpEmails.slice(),
+          _trap: "",
+          _t:    Date.now(),
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        setStatus(
+          resp.status === 404 && isLocal
+            ? 'Route not found — make sure the Worker is running: cd worker && npx wrangler dev'
+            : resp.status === 503
+            ? 'Share feature is not enabled on this environment yet.'
+            : data.error || 'Something went wrong. Please try again.',
+          'error'
+        );
+      } else {
+        const n = data.sent || wpEmails.length;
+        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} accepted for delivery. Thank you for spreading the word.`, 'success');
+        wpEmails.length = 0;
+        renderTags();
+      }
+    } catch (_) {
+      setStatus(
+        ['localhost', '127.0.0.1'].includes(window.location.hostname)
+          ? 'Worker not reachable. Run `cd worker && npx wrangler dev` in a second terminal.'
+          : 'Network error — please check your connection and try again.',
+        'error'
+      );
+    } finally {
+      sendLabel.textContent = 'Have us send it';
+      updateButtons();
+    }
+  });
+
+  updateButtons();
+  fetchPreview();
+
+  if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    setStatus(
+      'Local dev: "Have us send it" needs the Worker running. ' +
+      'In a second terminal: cd worker && npx wrangler dev.',
+      'info'
+    );
+  }
+})();
+</script>
