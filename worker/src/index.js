@@ -4416,9 +4416,10 @@ export default {
       if (req.method === "POST" && path === "/api/share") {
         const shareEnabled = String(env.SHARE_ENABLED || "0") === "1";
         const apiKey = String(env.RESEND_API_KEY || "").trim();
-        const fromAddr = String(env.ADMIN_EMAIL_FROM || "").trim();
+        const adminFromAddr = String(env.ADMIN_EMAIL_FROM || "").trim();
+        const shareFromAddr = String(env.SHARE_EMAIL_FROM || "").trim() || adminFromAddr;
 
-        if (!shareEnabled || !apiKey || !fromAddr) {
+        if (!shareEnabled || !apiKey || !adminFromAddr || !shareFromAddr) {
           return json(req, env, { error: "Share feature is not currently available." }, 503);
         }
 
@@ -4466,6 +4467,11 @@ export default {
         if (isCustomAdminEmail && !isAdminSend) {
           return json(req, env, { error: "Regular email requires the admin key." }, 403);
         }
+
+        // Custom admin-composed emails (Blast) keep their own reputation-isolated
+        // identity; predefined SHARE_MESSAGES sends use the identity every /share
+        // page's own preview UI actually promises.
+        const fromAddr = isCustomAdminEmail ? adminFromAddr : shareFromAddr;
 
         const messageSlug = isCustomAdminEmail
           ? "admin-regular-email"
@@ -4524,7 +4530,7 @@ export default {
         // Use "Display Name <addr>" format; bare address from env stays as-is if already formatted
         const fromFormatted = fromAddr.includes('<')
           ? fromAddr
-          : `The Integrity Project <${fromAddr}>`;
+          : `${isCustomAdminEmail ? "The Integrity Project" : "Jimmy Skovgard for Wyoming"} <${fromAddr}>`;
 
         // Pre-fetch first names for {first_name} substitution (custom emails, or a
         // share message like primary-candidates whose body_html itself has the tag)
