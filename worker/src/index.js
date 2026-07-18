@@ -4551,7 +4551,7 @@ export default {
         // recipient serves both purposes: its noUrl backs the header always,
         // and its yesUrl/noUrl back the {optin_yes_url}/{optin_no_url}
         // placeholders when the body needs them.
-        const shareBatchId = env.DB ? `share:${crypto.randomUUID()}` : null;
+        const shareBatchId = env.DB ? `share-${crypto.randomUUID()}` : null;
 
         // Send sequentially with 200ms gap to avoid Resend rate-limit bursts
         const results = [];
