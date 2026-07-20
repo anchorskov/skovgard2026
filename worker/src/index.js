@@ -19,7 +19,7 @@ import {
 } from "./admin-email.js";
 import { lookupWyLegislativeDistricts, geocodeAddress } from "./address-districts.js";
 import { resolvePrecinct } from "./precinct-lookup.js";
-import { sendPulseOptInEmails, sendPollLinkEmail } from "./pulse-email.js";
+import { sendPulseOptInEmails, sendPollLinkEmail, sendPulseReviewNeededEmail, sendPulseFollowUpDigest } from "./pulse-email.js";
 import { sendResendEmail } from "./resend.js";
 import {
   processResendWebhookEvent,
@@ -35,6 +35,16 @@ import {
   calcBlastCost,
 } from "./sms-cost.js";
 import { promoteDeliveredOptInPhone } from "./voter-phone.js";
+
+// Fixed engineering enum, not staff-editable -- see migrations 036/037.
+const PULSE_CALL_STATUSES = new Set([
+  "not_called",
+  "left_voicemail",
+  "reached_confirmed",
+  "reached_declined",
+  "bad_number",
+  "do_not_call",
+]);
 
 function pulseWelcomeConfig(env) {
   return {
@@ -633,6 +643,28 @@ async function loadWyTargetingRowsByVoterIds(wyDb, voterIds) {
 //      ZIP-less match to stand on its own); always routed to staff review.
 // Zero hits at a tier with no further tier to try -> no_match. More than
 // one hit at any tier -> ambiguous_*. Both land in pulse_voter_match_review.
+// Reduces raw v_voter_targeting rows (voter_id, first_name, last_name,
+// city, zip, addr1, addr_raw) down to what's worth persisting in
+// pulse_voter_match_review.candidate_voter_ids -- previously this stored
+// bare voter_id numbers only, leaving the admin review UI with nothing to
+// show staff but an anonymous ID list (found 2026-07-19 reviewing why a
+// real, correct candidate for "Keith Goodenough" was invisible in the
+// dropdown). Keeping first_name/last_name/city/zip/addr1 lets the UI
+// render "8543 -- 333 S SOCONY PL, CASPER 82609" next to the submitted
+// address so staff can actually compare them.
+function summarizeMatchCandidates(candidates) {
+  return (candidates || [])
+    .filter((row) => row?.voter_id)
+    .map((row) => ({
+      voter_id: row.voter_id,
+      first_name: row.first_name || null,
+      last_name: row.last_name || null,
+      city: row.city || null,
+      zip: row.zip || null,
+      addr1: row.addr1 || row.addr_raw || null,
+    }));
+}
+
 export async function findUniqueWyTargetMatch(wyDb, input) {
   const firstName = normalizeLookupText(input.firstName);
   const lastName = normalizeLookupText(input.lastName);
@@ -668,11 +700,12 @@ export async function findUniqueWyTargetMatch(wyDb, input) {
     return { match: null, mode: "missing_lookup_fields" };
   }
 
-  if (!zip) {
-    // City present, zip missing -- weaker signal than any zip-anchored
-    // tier below, so it's always sent to staff review, even when the
-    // name+city pair happens to be unique.
-    const cityOnlyRows = await wyDb.prepare(
+  // Shared by both the "zip never submitted" tier below and the
+  // zip-anchored cascade's final fallback -- name+city alone is too weak a
+  // signal to ever auto-accept, even when it turns up exactly one hit, so
+  // every caller of this always routes to staff review, never a match.
+  const findByNameCity = () =>
+    wyDb.prepare(
       `SELECT voter_id, first_name, last_name, city, zip, addr1, addr_raw
          FROM v_voter_targeting
         WHERE UPPER(TRIM(first_name)) = ?1
@@ -685,6 +718,11 @@ export async function findUniqueWyTargetMatch(wyDb, input) {
       .then((result) => result?.results || [])
       .catch(() => []);
 
+  if (!zip) {
+    // City present, zip missing -- weaker signal than any zip-anchored
+    // tier below, so it's always sent to staff review, even when the
+    // name+city pair happens to be unique.
+    const cityOnlyRows = await findByNameCity();
     if (!cityOnlyRows.length) return { match: null, mode: "no_match" };
     return { match: null, mode: "ambiguous_name_city", candidates: cityOnlyRows };
   }
@@ -760,6 +798,25 @@ export async function findUniqueWyTargetMatch(wyDb, input) {
   if (zipOnlyRows.length > 1) {
     return { match: null, mode: "ambiguous_name_zip", candidates: zipOnlyRows };
   }
+
+  // Every zip-anchored tier above struck out. A wrong-but-plausible ZIP
+  // (e.g. a different real ZIP in the same city -- Casper alone spans
+  // several) silently killed all of them despite name+city being a clean
+  // match, previously landing here as a bare no_match with zero candidates
+  // for staff to work from (found 2026-07-19, "Keith Goodenough" case: real
+  // voter, city matched exactly, submitted ZIP was a different real Casper
+  // ZIP than the one on file). Retry name+city with the zip dropped
+  // entirely -- same as the "zip never submitted" tier above, so still
+  // never auto-accepted, always routed to review, just with real
+  // candidates attached instead of none. Distinct mode from
+  // ambiguous_name_city (which means "no zip was ever given") since a
+  // submitted-but-wrong zip is a different, worth-flagging-differently
+  // situation for the reviewer.
+  const nameCityFallbackRows = await findByNameCity();
+  if (nameCityFallbackRows.length) {
+    return { match: null, mode: "ambiguous_name_city_zip_conflict", candidates: nameCityFallbackRows };
+  }
+
   return { match: null, mode: "no_match" };
 }
 
@@ -3271,6 +3328,38 @@ async function runEmailVerificationBatch(env) {
   return { ran: true, checked, bad, gaveUp, queueEmpty: false, creditExhausted };
 }
 
+// Daily cron (wrangler.toml [env.production.triggers]) -- see
+// docs/who_needs_to_know.md recommendation 3. Summarizes the two Pulse
+// admin call queues that don't otherwise page anyone: unresolved
+// pulse_voter_match_review rows and open pulse_abandoned_signups rows.
+async function runPulseFollowUpDigest(env) {
+  if (!env.DB) return { ran: false, reason: "no_db" };
+
+  const reviewRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN created_at <= datetime('now', '-48 hours') THEN 1 ELSE 0 END) AS stale
+       FROM pulse_voter_match_review
+      WHERE resolved_at IS NULL`
+  ).first().catch(() => null);
+
+  const abandonedRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN captured_at <= datetime('now', '-48 hours') THEN 1 ELSE 0 END) AS stale
+       FROM pulse_abandoned_signups
+      WHERE do_not_call = 0 AND completed_phone_e164 IS NULL`
+  ).first().catch(() => null);
+
+  const counts = {
+    reviewTotal: Number(reviewRow?.total || 0),
+    reviewStale: Number(reviewRow?.stale || 0),
+    abandonedTotal: Number(abandonedRow?.total || 0),
+    abandonedStale: Number(abandonedRow?.stale || 0),
+  };
+
+  const result = await sendPulseFollowUpDigest(env, counts);
+  return { ran: true, counts, ...result };
+}
+
 // --- Worker ------------------------------------------------------------------
 export default {
   async fetch(req, env, ctx) {
@@ -3856,9 +3945,11 @@ export default {
                 "Payment ID: " + paymentIntentId,
               ].join("\n");
 
+              const donateNotifyTo = normalizeText(env.DONATE_NOTIFY_TO);
+              if (!donateNotifyTo) return;
               await sendResendEmail(env.RESEND_API_KEY, {
                 from: "Skovgard 2026 <" + fromAddr + ">",
-                to: ["donate@grassrootsmvt.org"],
+                to: [donateNotifyTo],
                 subject: "Donation " + amount + " from " + donorName + " (" + period + ")",
                 html: htmlBody,
                 text: textBody,
@@ -4220,9 +4311,7 @@ export default {
               // with nothing but a console.log.
               const infraSkip = mode === "missing_wy_tables" || mode === "invalid_phone" || mode === "missing_binding";
               if (!infraSkip) {
-                const candidateVoterIds = (syncResult.candidates || [])
-                  .map((row) => row?.voter_id)
-                  .filter(Boolean);
+                const candidateVoterIds = summarizeMatchCandidates(syncResult.candidates);
                 const phone10ForFlag = normalizePhone10(phone);
                 const phoneAreaFlag = phone10ForFlag.length === 10 && !isWyAreaCodePhone10(phone10ForFlag);
                 const zipRangeFlag = Boolean(zip) && !isWyZip5(zip);
@@ -4243,6 +4332,14 @@ export default {
                   zipRangeFlag ? 1 : 0
                 ).run();
                 verification = { status: mode === "no_match" || mode === "missing_lookup_fields" ? "no_match" : "ambiguous" };
+
+                const reviewNeededWork = sendPulseReviewNeededEmail(env, {
+                  phoneE164, firstName, lastName, address1, city, zip, matchMode: mode,
+                }).catch((error) => {
+                  console.error("[/api/optin] review-needed email failed", String(error?.message || error));
+                });
+                if (ctx?.waitUntil) ctx.waitUntil(reviewNeededWork);
+                else await reviewNeededWork;
               } else {
                 console.log("[/api/optin] skipped WY phone mirror", { reason: mode });
               }
@@ -4410,6 +4507,52 @@ export default {
         }
 
         return json(req, env, { ok: true, verification });
+      }
+
+      // POST /api/pulse/progress — best-effort capture of a /pulse form
+      // that hasn't reached a real submission yet (see
+      // static/js/pulse-optin.js). Fired once the SMS-consent checkbox is
+      // checked with a valid phone, and again on "Continue to Citizen
+      // Poll". This is NOT a consent record -- no row here is ever read as
+      // an opt-in (see pulse_abandoned_signups, migration 037); it exists
+      // purely so staff can call and try to complete a real opt-in
+      // verbally. Silently no-ops for a phone that already has a real
+      // opt-in on file, so the call queue doesn't fill with noise from
+      // people re-visiting a form they already completed.
+      if (req.method === "POST" && path === "/api/pulse/progress") {
+        if (!env.DB) return json(req, env, { ok: true });
+
+        const b = await req.json().catch(() => ({}));
+        const phoneE164 = normalizePhoneNumber(b?.phone || "");
+        const stepReached = String(b?.step_reached || "").trim();
+        const consentSms = b?.consent_sms === true;
+        const firstName = normalizeText(b?.first_name) || null;
+
+        if (!phoneE164 || !consentSms) return json(req, env, { ok: true });
+        if (!["consent_checked", "step2_reached"].includes(stepReached)) {
+          return json(req, env, { ok: true });
+        }
+
+        const ip = req.headers.get("cf-connecting-ip") || "";
+        const ipHash = await sha256Hex(ip);
+        const okRl = await rateLimitOk(env, ipHash, 15, 10);
+        if (!okRl) return json(req, env, { ok: true });
+
+        const alreadyOptedIn = await env.DB.prepare(
+          `SELECT 1 FROM consent_status WHERE phone_e164 = ?1 AND status = 'opted_in'`
+        ).bind(phoneE164).first().catch(() => null);
+        if (alreadyOptedIn) return json(req, env, { ok: true });
+
+        await env.DB.prepare(
+          `INSERT INTO pulse_abandoned_signups (phone_e164, first_name, step_reached)
+           VALUES (?1, ?2, ?3)
+           ON CONFLICT(phone_e164) DO UPDATE SET
+             first_name = COALESCE(excluded.first_name, pulse_abandoned_signups.first_name),
+             step_reached = excluded.step_reached,
+             updated_at = datetime('now')`
+        ).bind(phoneE164, firstName, stepReached).run().catch(() => null);
+
+        return json(req, env, { ok: true });
       }
 
       // POST /api/share — visitor-initiated "share with a friend" sends
@@ -5805,6 +5948,365 @@ export default {
           sms: smsResult,
           email: emailResult,
         });
+      }
+
+      // POST /api/admin/pulse-voter-review/log-call
+      // Body: {id, call_status, call_notes}. Records a staff phone-call
+      // attempt against an unresolved/ambiguous review row -- these
+      // contacts already have real SMS/email consent on file (they
+      // submitted /pulse for real); the call is to verbally confirm the
+      // address that resolves the voter match, not to obtain new consent.
+      // Record-only, same as /resolve -- does not itself resolve the row;
+      // staff still call /resolve separately once the call confirms a
+      // voter_id.
+      if (req.method === "POST" && path === "/api/admin/pulse-voter-review/log-call") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const id = Number(body?.id);
+        const callStatus = String(body?.call_status || "").trim();
+        const callNotes = normalizeText(body?.call_notes) || null;
+
+        if (!id) return json(req, env, { error: "Valid id required." }, 400);
+        if (!PULSE_CALL_STATUSES.has(callStatus)) {
+          return json(req, env, { error: `call_status must be one of: ${[...PULSE_CALL_STATUSES].join(", ")}` }, 400);
+        }
+
+        const row = await env.DB.prepare(
+          `SELECT id FROM pulse_voter_match_review WHERE id = ?1`
+        ).bind(id).first();
+        if (!row) return json(req, env, { error: "Review row not found." }, 404);
+
+        await env.DB.prepare(
+          `UPDATE pulse_voter_match_review
+              SET call_status = ?1, call_attempts = call_attempts + 1, call_notes = ?2,
+                  called_at = datetime('now'), called_by = ?3
+            WHERE id = ?4`
+        ).bind(callStatus, callNotes, actor.actorEmail || null, id).run();
+
+        return json(req, env, { ok: true, id, callStatus });
+      }
+
+      // POST /api/admin/pulse-voter-review/recheck
+      // Body: {id}. pulse_voter_match_review rows are write-once snapshots
+      // of what the matching cascade found at submission time -- nothing
+      // ever re-runs it, so a row written before a matching-logic fix (or
+      // before a WY_DB data update) stays stuck showing its stale result
+      // forever (found 2026-07-19: the "Keith Goodenough" review row still
+      // showed zero candidates well after the fallback tier that would now
+      // find him shipped). Re-runs findUniqueWyTargetMatch against the
+      // row's already-stored submitted_* fields and refreshes match_mode/
+      // candidate_voter_ids in place. Record-only, same as /resolve --
+      // never writes to consent_status and never auto-resolves the row,
+      // even if this now finds a single clean match; staff still confirm
+      // via the existing Resolve action.
+      if (req.method === "POST" && path === "/api/admin/pulse-voter-review/recheck") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        if (!env.WY_DB) return json(req, env, { error: "WY_DB not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const body = await req.json().catch(() => ({}));
+        const id = Number(body?.id);
+        if (!id) return json(req, env, { error: "Valid id required." }, 400);
+
+        const row = await env.DB.prepare(
+          `SELECT id, phone_e164, submitted_first_name, submitted_last_name, submitted_address1, submitted_city, submitted_zip, resolved_at
+             FROM pulse_voter_match_review WHERE id = ?1`
+        ).bind(id).first();
+        if (!row) return json(req, env, { error: "Review row not found." }, 404);
+        if (row.resolved_at) return json(req, env, { error: "Already resolved." }, 409);
+
+        const result = await findUniqueWyTargetMatch(env.WY_DB, {
+          phone: row.phone_e164,
+          firstName: row.submitted_first_name,
+          lastName: row.submitted_last_name,
+          address1: row.submitted_address1,
+          city: row.submitted_city,
+          zip: row.submitted_zip,
+        });
+
+        const candidateRows = result.match ? [result.match] : (result.candidates || []);
+        const candidateVoterIds = summarizeMatchCandidates(candidateRows);
+
+        await env.DB.prepare(
+          `UPDATE pulse_voter_match_review SET match_mode = ?1, candidate_voter_ids = ?2 WHERE id = ?3`
+        ).bind(
+          result.mode,
+          candidateVoterIds.length ? JSON.stringify(candidateVoterIds) : null,
+          id
+        ).run();
+
+        return json(req, env, { ok: true, id, matchMode: result.mode, candidates: candidateVoterIds });
+      }
+
+      // GET /api/admin/pulse-voter-review/search-voters?q=...
+      // Manual last-resort lookup for the review UI: a free-text search
+      // across v_voter_targeting (name/city/address), independent of the
+      // automated matching cascade in findUniqueWyTargetMatch. Exists
+      // because that cascade only ever matches on exact-normalized
+      // signals (see docs/pulse_flow.md §4a) -- deliberately, since
+      // typo-tolerant/fuzzy matching against a voter registration risks
+      // false positives. This is the alternative: put a human in the loop
+      // with a real search box instead of teaching the algorithm to guess.
+      // Every token in q must appear somewhere in name/city/address for a
+      // row to match (bounded to 6 tokens to keep the query cheap).
+      if (req.method === "GET" && path === "/api/admin/pulse-voter-review/search-voters") {
+        if (!env.WY_DB) return json(req, env, { error: "WY_DB not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const q = String(url.searchParams.get("q") || "").trim();
+        const tokens = q.split(/\s+/).filter(Boolean).slice(0, 6);
+        if (!tokens.length) return json(req, env, { ok: true, items: [] });
+
+        const clauses = tokens
+          .map((_t, i) => {
+            const p = i + 1;
+            return `(UPPER(first_name) LIKE ?${p} OR UPPER(last_name) LIKE ?${p} OR UPPER(city) LIKE ?${p} OR UPPER(COALESCE(addr1, '')) LIKE ?${p} OR UPPER(COALESCE(addr_raw, '')) LIKE ?${p})`;
+          })
+          .join(" AND ");
+        const binds = tokens.map((t) => `%${t.toUpperCase()}%`);
+
+        const rows = await env.WY_DB.prepare(
+          `SELECT voter_id, first_name, last_name, city, zip, addr1, addr_raw
+             FROM v_voter_targeting
+            WHERE ${clauses}
+            LIMIT 25`
+        )
+          .bind(...binds)
+          .all()
+          .then((result) => result?.results || [])
+          .catch(() => []);
+
+        return json(req, env, { ok: true, items: summarizeMatchCandidates(rows) });
+      }
+
+      // GET /api/admin/pulse-abandoned-signups?open=1
+      // Call queue for /pulse form starts that never reached a real
+      // submission (migration 037). `open=1` hides do-not-call and
+      // already-completed rows.
+      if (req.method === "GET" && path === "/api/admin/pulse-abandoned-signups") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const openOnly = url.searchParams.get("open") === "1";
+        const rows = await env.DB.prepare(
+          `SELECT id, phone_e164, first_name, step_reached, captured_at, updated_at,
+                  call_status, call_attempts, call_notes, called_at, called_by,
+                  do_not_call, completed_phone_e164
+             FROM pulse_abandoned_signups
+            ${openOnly ? "WHERE do_not_call = 0 AND completed_phone_e164 IS NULL" : ""}
+            ORDER BY captured_at DESC
+            LIMIT 200`
+        ).all();
+
+        return json(req, env, { ok: true, items: rows.results || [] });
+      }
+
+      // POST /api/admin/pulse-abandoned-signups/log-call
+      // Body: {id, call_status, call_notes}. Records a staff attempt to
+      // reach someone who started (but never finished) the /pulse form.
+      if (req.method === "POST" && path === "/api/admin/pulse-abandoned-signups/log-call") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const id = Number(body?.id);
+        const callStatus = String(body?.call_status || "").trim();
+        const callNotes = normalizeText(body?.call_notes) || null;
+
+        if (!id) return json(req, env, { error: "Valid id required." }, 400);
+        if (!PULSE_CALL_STATUSES.has(callStatus)) {
+          return json(req, env, { error: `call_status must be one of: ${[...PULSE_CALL_STATUSES].join(", ")}` }, 400);
+        }
+
+        const row = await env.DB.prepare(
+          `SELECT id FROM pulse_abandoned_signups WHERE id = ?1`
+        ).bind(id).first();
+        if (!row) return json(req, env, { error: "Row not found." }, 404);
+
+        const doNotCall = callStatus === "do_not_call" ? 1 : 0;
+        await env.DB.prepare(
+          `UPDATE pulse_abandoned_signups
+              SET call_status = ?1, call_attempts = call_attempts + 1, call_notes = ?2,
+                  called_at = datetime('now'), called_by = ?3,
+                  do_not_call = MAX(do_not_call, ?4), updated_at = datetime('now')
+            WHERE id = ?5`
+        ).bind(callStatus, callNotes, actor.actorEmail || null, doNotCall, id).run();
+
+        return json(req, env, { ok: true, id, callStatus });
+      }
+
+      // POST /api/admin/pulse-abandoned-signups/complete-optin
+      // Body: {id, first_name, last_name, email, consent_email, address1,
+      // city, zip}. Staff obtained real SMS consent (and optionally email
+      // consent + voter-verification fields) on the call -- writes it
+      // through the same upsertConsentStatus path a real /pulse submission
+      // uses, tagged source='staff_call'/consent_version='verbal-callback-v1'
+      // so it's auditable as staff-obtained rather than self-submitted (see
+      // docs/pulse_flow.md). If city was captured, runs the same
+      // voter-matching cascade a real step-2 submission would: mints and
+      // sends a poll link on a clean match, or files a
+      // pulse_voter_match_review row on an ambiguous/no-match result --
+      // identical outcome to what would have happened had this person
+      // actually finished the web form themselves. Does NOT re-fire the
+      // automated welcome-text/confirmation-email flow -- the phone call
+      // itself was the welcome; those are for self-service submissions.
+      if (req.method === "POST" && path === "/api/admin/pulse-abandoned-signups/complete-optin") {
+        if (!env.DB) return json(req, env, { error: "Database not configured" }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const actor = getAdminActor(req);
+        const body = await req.json().catch(() => ({}));
+        const id = Number(body?.id);
+        if (!id) return json(req, env, { error: "Valid id required." }, 400);
+
+        const row = await env.DB.prepare(
+          `SELECT id, phone_e164 FROM pulse_abandoned_signups WHERE id = ?1`
+        ).bind(id).first();
+        if (!row) return json(req, env, { error: "Row not found." }, 404);
+
+        const phoneE164 = normalizePhoneNumber(row.phone_e164);
+        const firstName = normalizeText(body?.first_name);
+        const lastName = normalizeText(body?.last_name);
+        const email = normalizeText(body?.email) || null;
+        const consentEmail = body?.consent_email === true;
+        const address1 = normalizeText(body?.address1) || null;
+        const city = normalizeText(body?.city) || null;
+        const zip = normalizeZip5(body?.zip) || null;
+
+        if (!firstName || !lastName) {
+          return json(req, env, { error: "First and last name are required." }, 400);
+        }
+        if (email && !isValidEmail(email)) {
+          return json(req, env, { error: "Email is not valid." }, 400);
+        }
+        if (email && !consentEmail) {
+          return json(req, env, { error: "Email consent required to save email." }, 400);
+        }
+
+        await upsertConsentStatus(env.DB, {
+          phone: phoneE164,
+          status: "opted_in",
+          source: "staff_call",
+          sourceDetail: "pulse_verbal_followup",
+          consentedAt: new Date().toISOString(),
+          firstName,
+          lastName,
+          email,
+          consentEmail: consentEmail ? 1 : 0,
+          zip,
+          address1,
+          city,
+          consentVersion: "verbal-callback-v1",
+          overwriteProfile: true,
+        });
+
+        if (consentEmail && email) {
+          await upsertNewsletterSubscriber(env.DB, {
+            email,
+            consentEmail: true,
+            consentVersion: "verbal-callback-v1",
+            source: "skovgard2026:pulse_verbal_followup",
+          }).catch((error) => {
+            console.error("[pulse-abandoned-signups/complete-optin] newsletter upsert failed", String(error?.message || error));
+          });
+        }
+
+        await insertTextingAuditLog(env.DB, {
+          actorEmail: actor.actorEmail,
+          actorUserId: actor.actorUserId,
+          action: "pulse_verbal_optin_completed",
+          targetPhone: phoneE164,
+          detailsJson: JSON.stringify({ abandonedSignupId: id }),
+        });
+
+        let matchResult = { attempted: false };
+        let pollLink = null;
+        let smsResult = null;
+        let emailResult = null;
+        if (city) {
+          const syncResult = await syncSubmittedPhoneToWyVoter(env, {
+            phone: phoneE164, firstName, lastName, address1, city, zip, email,
+          });
+          if (syncResult?.ok) {
+            await env.DB.prepare(
+              `UPDATE consent_status SET voter_id = COALESCE(voter_id, ?2), updated_at = datetime('now') WHERE phone_e164 = ?1`
+            ).bind(phoneE164, syncResult.voterId).run();
+
+            if (email) {
+              const resolved = await resolveVoterDistrictAndPrecinct(env, syncResult.voterId);
+              const recipient = {
+                voter_id: syncResult.voterId,
+                email_norm: email.toLowerCase(),
+                house_district: resolved?.house_district || undefined,
+                senate_district: resolved?.senate_district || undefined,
+                political_party: resolved?.political_party || undefined,
+                county: resolved?.county || undefined,
+                city: resolved?.city || undefined,
+                precinct_code: resolved?.precinct_code || undefined,
+              };
+              const { withLinks, mintFailures } = await mintPollInviteLinksForChunk(env, [recipient]);
+              pollLink = withLinks?.[0]?.poll_link || null;
+              if (pollLink) {
+                [smsResult, emailResult] = await Promise.all([
+                  sendPollLinkText(env, phoneE164, pollLink, {
+                    auditDetails: { voterId: syncResult.voterId, matchedBy: "staff_call" },
+                  }).catch((error) => ({ sent: false, reason: String(error?.message || error) })),
+                  sendPollLinkEmail(env, { firstName, email, consentEmail: true, pollLink })
+                    .catch((error) => ({ sent: false, reason: String(error?.message || error) })),
+                ]);
+                if (smsResult?.sent || emailResult?.sent) {
+                  await env.DB.prepare(
+                    `UPDATE consent_status SET poll_link_sent_at = datetime('now') WHERE phone_e164 = ?1`
+                  ).bind(phoneE164).run();
+                }
+              } else if (mintFailures?.length) {
+                console.log("[pulse-abandoned-signups/complete-optin] poll link mint skipped", { reason: mintFailures[0]?.error });
+              }
+            }
+            matchResult = { attempted: true, matched: true, voterId: syncResult.voterId, matchedBy: syncResult.matchedBy };
+          } else {
+            const mode = syncResult?.skipped;
+            const infraSkip = mode === "missing_wy_tables" || mode === "invalid_phone" || mode === "missing_binding";
+            if (!infraSkip) {
+              const candidateVoterIds = summarizeMatchCandidates(syncResult.candidates);
+              await env.DB.prepare(
+                `INSERT INTO pulse_voter_match_review
+                   (phone_e164, submitted_first_name, submitted_last_name, submitted_address1, submitted_city, submitted_zip, match_mode, candidate_voter_ids)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
+              ).bind(
+                phoneE164, firstName, lastName, address1, city, zip, mode,
+                candidateVoterIds.length ? JSON.stringify(candidateVoterIds) : null
+              ).run();
+
+              await sendPulseReviewNeededEmail(env, {
+                phoneE164, firstName, lastName, address1, city, zip, matchMode: mode,
+              }).catch((error) => {
+                console.error("[pulse-abandoned-signups/complete-optin] review-needed email failed", String(error?.message || error));
+              });
+            }
+            matchResult = { attempted: true, matched: false, mode };
+          }
+        }
+
+        await env.DB.prepare(
+          `UPDATE pulse_abandoned_signups
+              SET completed_phone_e164 = ?1, call_status = 'reached_confirmed',
+                  call_attempts = call_attempts + 1, called_at = datetime('now'),
+                  called_by = ?2, updated_at = datetime('now')
+            WHERE id = ?3`
+        ).bind(phoneE164, actor.actorEmail || null, id).run();
+
+        return json(req, env, { ok: true, id, phoneE164, matchResult, pollLink, sms: smsResult, email: emailResult });
       }
 
       if (req.method === "POST" && path === "/api/admin/texting/contacts/delete") {
@@ -8058,15 +8560,23 @@ export default {
     }
   },
 
-  // Cloudflare Cron Trigger (see wrangler.toml [triggers] crons) -- runs one
-  // bounded batch of runEmailVerificationBatch every tick. If a second cron
-  // pattern is ever added to this Worker, branch on controller.cron here;
-  // this is the only one today.
+  // Cloudflare Cron Trigger (see wrangler.toml [env.production.triggers]
+  // crons). runEmailVerificationBatch's "*/2 * * * *" trigger is PAUSED as
+  // of 2026-07-19 (EmailListVerify account out of credits, not being
+  // topped up right now -- docs/who_needs_to_know.md §5) -- the function
+  // itself is untouched so it's a one-line wrangler.toml change to resume
+  // it later, it's just not wired to any cron pattern below at the moment.
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(
-      runEmailVerificationBatch(env).catch((e) => {
-        console.error("scheduled email verification batch failed:", e);
-      })
-    );
+    if (controller.cron === "0 14 * * *") {
+      ctx.waitUntil(
+        runPulseFollowUpDigest(env).catch((e) => {
+          console.error("scheduled pulse follow-up digest failed:", e);
+        })
+      );
+      return;
+    }
+    // Unrecognized cron pattern (e.g. the paused email-verification one, if
+    // it's ever re-added without updating this branch) -- log, don't crash.
+    console.error("scheduled(): no handler for cron pattern", controller.cron);
   },
 };

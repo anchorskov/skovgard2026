@@ -91,27 +91,132 @@ async function api(path, options = {}) {
   return json;
 }
 
+const CALL_STATUS_LABELS = {
+  not_called: "Not called",
+  left_voicemail: "Left voicemail",
+  reached_confirmed: "Reached -- confirmed",
+  reached_declined: "Reached -- declined",
+  bad_number: "Bad number",
+  do_not_call: "Do not call",
+};
+
+function callStatusLabel(status) {
+  return CALL_STATUS_LABELS[status] || status || "Not called";
+}
+
+function callStatusOptionsHtml(selected) {
+  return Object.entries(CALL_STATUS_LABELS)
+    .map(([value, label]) => `<option value="${escapeHtml(value)}"${value === selected ? " selected" : ""}>${escapeHtml(label)}</option>`)
+    .join("");
+}
+
+function callTrackingHtml(item) {
+  const badge = item.call_status && item.call_status !== "not_called"
+    ? `<span class="status-badge status-call-${escapeHtml(item.call_status)}">${escapeHtml(callStatusLabel(item.call_status))}</span>`
+    : "";
+  const meta = item.called_at
+    ? `<div class="help">Last call: ${escapeHtml(formatTs(item.called_at))} by ${escapeHtml(item.called_by || "unknown")} (${escapeHtml(String(item.call_attempts || 0))} attempt${Number(item.call_attempts) === 1 ? "" : "s"})</div>`
+    : "";
+  const notes = item.call_notes ? `<div class="help">Notes: ${escapeHtml(item.call_notes)}</div>` : "";
+  return `
+    <div class="pvr-call-tracking" data-id="${escapeHtml(item.id)}">
+      <div class="pvr-item-head">
+        <strong>Call to verify</strong>
+        ${badge}
+      </div>
+      ${meta}
+      ${notes}
+      <div class="pvr-item-resolve">
+        <select class="pvr-call-status-select" data-id="${escapeHtml(item.id)}">
+          ${callStatusOptionsHtml(item.call_status || "not_called")}
+        </select>
+        <input type="text" class="pvr-call-notes-input" data-id="${escapeHtml(item.id)}" placeholder="Call notes (optional)" />
+        <button type="button" class="pvr-log-call-btn secondary" data-id="${escapeHtml(item.id)}">Log call</button>
+      </div>
+    </div>
+  `;
+}
+
 function matchModeLabel(mode) {
   if (mode === "ambiguous_address") return "Ambiguous (address)";
   if (mode === "ambiguous_name_city_zip") return "Ambiguous (name/city/zip)";
   if (mode === "ambiguous_name_zip") return "Ambiguous (name/zip, city didn't match)";
   if (mode === "ambiguous_name_city") return "Unconfirmed (name+city, no ZIP submitted)";
+  if (mode === "ambiguous_name_city_zip_conflict") return "Unconfirmed (name+city match, submitted ZIP didn't match)";
   if (mode === "ambiguous_phone") return "Ambiguous (phone matches multiple voters)";
   if (mode === "ambiguous_email") return "Ambiguous (email matches multiple voters)";
   if (mode === "phone_belongs_to_other_voter") return "Clean match, but phone linked to a different voter";
   if (mode === "missing_lookup_fields") return "Insufficient data submitted";
   if (mode === "no_match") return "No match found";
+  // Clean-match tiers below normally auto-accept in the live /pulse flow
+  // and never reach the review queue -- they only show up here via
+  // "Re-check match" surfacing a single confirmed candidate for staff to
+  // click Resolve on.
+  if (mode === "phone_match") return "Match found by phone (confirm to resolve)";
+  if (mode === "email_match") return "Match found by email (confirm to resolve)";
+  if (mode === "name_city_zip_address") return "Match found by name/city/zip/address (confirm to resolve)";
+  if (mode === "name_city_zip") return "Match found by name/city/zip (confirm to resolve)";
+  if (mode === "name_zip") return "Match found by name/zip, city didn't match (confirm to resolve)";
   return mode || "Unknown";
+}
+
+// Purely a display aid over the same match_mode already stored -- no new
+// data, just translating the raw mode into "how much should I trust this
+// without independent verification" for staff scanning the queue.
+const CONFIDENCE_HIGH = new Set([
+  "phone_belongs_to_other_voter", "phone_match", "email_match",
+  "name_city_zip_address", "name_city_zip",
+]);
+const CONFIDENCE_MEDIUM = new Set([
+  "ambiguous_address", "ambiguous_name_city_zip", "ambiguous_name_zip",
+  "ambiguous_phone", "ambiguous_email", "name_zip",
+]);
+
+function confidenceBadgeHtml(mode) {
+  if (CONFIDENCE_HIGH.has(mode)) return `<span class="pvr-confidence pvr-confidence-high">High confidence</span>`;
+  if (CONFIDENCE_MEDIUM.has(mode)) return `<span class="pvr-confidence pvr-confidence-medium">Medium confidence</span>`;
+  return `<span class="pvr-confidence pvr-confidence-low">Low confidence</span>`;
+}
+
+const STALE_AFTER_MS = 48 * 60 * 60 * 1000;
+
+function staleBadgeHtml(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return "";
+  if (Date.now() - date.getTime() < STALE_AFTER_MS) return "";
+  return `<span class="status-badge status-stale">Open &gt;48h</span>`;
+}
+
+// candidate_voter_ids rows are either a plain voter_id string (legacy rows
+// written before 2026-07-19) or a {voter_id, first_name, last_name, city,
+// zip, addr1} object (current) -- render whichever shape shows up so old
+// unresolved queue rows don't break.
+function candidateOptionHtml(candidate, selected = false) {
+  const selectedAttr = selected ? " selected" : "";
+  if (typeof candidate === "string" || typeof candidate === "number") {
+    return `<option value="${escapeHtml(candidate)}"${selectedAttr}>${escapeHtml(candidate)}</option>`;
+  }
+  const voterId = candidate?.voter_id;
+  if (!voterId) return "";
+  const addressBits = [candidate.addr1, candidate.city, candidate.zip].filter(Boolean).join(", ");
+  const label = addressBits ? `${voterId} -- ${addressBits}` : String(voterId);
+  return `<option value="${escapeHtml(voterId)}"${selectedAttr}>${escapeHtml(label)}</option>`;
 }
 
 function renderItem(item) {
   const candidates = Array.isArray(item.candidate_voter_ids) ? item.candidate_voter_ids : [];
   const hasCandidates = candidates.length > 0;
 
+  // A single candidate is pre-selected (still requires clicking Resolve --
+  // never auto-submitted) since an empty-looking <select> that already has
+  // the only real option sitting in it just reads as "nothing found" until
+  // someone thinks to open it. Multiple candidates stay on the placeholder
+  // -- genuine ambiguity should force an active choice.
   const resolveControl = hasCandidates
     ? `<select class="pvr-voter-select" data-id="${escapeHtml(item.id)}">
         <option value="">Choose voter_id...</option>
-        ${candidates.map((vid) => `<option value="${escapeHtml(vid)}">${escapeHtml(vid)}</option>`).join("")}
+        ${candidates.map((c) => candidateOptionHtml(c, candidates.length === 1)).join("")}
       </select>`
     : `<input type="text" class="pvr-voter-input" data-id="${escapeHtml(item.id)}" placeholder="voter_id (if known)" />`;
 
@@ -145,6 +250,8 @@ function renderItem(item) {
       <div class="pvr-item-head">
         <strong>${escapeHtml(submittedName)}</strong>
         <span class="status-badge status-${escapeHtml(item.match_mode)}">${escapeHtml(matchModeLabel(item.match_mode))}</span>
+        ${confidenceBadgeHtml(item.match_mode)}
+        ${staleBadgeHtml(item.created_at)}
         ${flagBadges}
       </div>
       <div class="help">Phone: ${escapeHtml(item.phone_e164)}</div>
@@ -154,7 +261,17 @@ function renderItem(item) {
         ${resolveControl}
         <button type="button" class="pvr-resolve-btn" data-id="${escapeHtml(item.id)}">Resolve</button>
         <button type="button" class="pvr-dismiss-btn secondary" data-id="${escapeHtml(item.id)}">Dismiss (no real match)</button>
+        <button type="button" class="pvr-recheck-btn secondary" data-id="${escapeHtml(item.id)}">Re-check match</button>
+        <button type="button" class="pvr-search-toggle-btn secondary" data-id="${escapeHtml(item.id)}">Search voter file</button>
       </div>
+      <div class="pvr-manual-search" data-id="${escapeHtml(item.id)}" hidden>
+        <div class="pvr-item-resolve">
+          <input type="text" class="pvr-search-input" placeholder="Search by name, city, or address..." />
+          <button type="button" class="pvr-search-btn" data-id="${escapeHtml(item.id)}">Search</button>
+        </div>
+        <div class="pvr-search-results help"></div>
+      </div>
+      ${callTrackingHtml(item)}
     </article>
   `;
 }
@@ -214,6 +331,100 @@ async function resolveItem(id, { voterId = "", dismiss = false } = {}) {
   }
 }
 
+async function logCall(id, { callStatus, callNotes } = {}) {
+  setStatus(actionStatusEl, "");
+  try {
+    const data = await api("/api/admin/pulse-voter-review/log-call", {
+      method: "POST",
+      body: JSON.stringify({ id, call_status: callStatus, call_notes: callNotes || undefined }),
+    });
+    currentItems = currentItems.map((item) =>
+      String(item.id) === String(id)
+        ? {
+            ...item,
+            call_status: data.callStatus,
+            call_attempts: (Number(item.call_attempts) || 0) + 1,
+            call_notes: callNotes || item.call_notes,
+            called_at: new Date().toISOString(),
+            called_by: getActorEmail() || item.called_by,
+          }
+        : item
+    );
+    renderList();
+    setStatus(actionStatusEl, "Call logged.");
+  } catch (error) {
+    setStatus(actionStatusEl, error?.message || "Failed to log call.", true);
+  }
+}
+
+async function recheckItem(id) {
+  setStatus(actionStatusEl, "");
+  try {
+    const data = await api("/api/admin/pulse-voter-review/recheck", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    });
+    currentItems = currentItems.map((item) =>
+      String(item.id) === String(id)
+        ? { ...item, match_mode: data.matchMode, candidate_voter_ids: data.candidates || [] }
+        : item
+    );
+    renderList();
+    const count = (data.candidates || []).length;
+    setStatus(actionStatusEl, count ? `Re-checked: ${count} candidate${count === 1 ? "" : "s"} found.` : "Re-checked: still no match.");
+  } catch (error) {
+    setStatus(actionStatusEl, error?.message || "Failed to re-check match.", true);
+  }
+}
+
+function setResolveVoterId(article, voterId, label) {
+  const select = article.querySelector(".pvr-voter-select");
+  const input = article.querySelector(".pvr-voter-input");
+  if (select) {
+    let option = [...select.options].find((o) => o.value === String(voterId));
+    if (!option) {
+      option = document.createElement("option");
+      option.value = String(voterId);
+      option.textContent = label || String(voterId);
+      select.appendChild(option);
+    }
+    select.value = String(voterId);
+  } else if (input) {
+    input.value = String(voterId);
+  }
+}
+
+async function searchVoters(id, query) {
+  const article = listEl?.querySelector(`.pvr-item[data-row-id="${CSS.escape(String(id))}"]`);
+  const resultsEl = article?.querySelector(".pvr-search-results");
+  if (!resultsEl) return;
+  if (!query) {
+    resultsEl.innerHTML = `<span class="help">Enter a name, city, or address to search.</span>`;
+    return;
+  }
+  resultsEl.textContent = "Searching...";
+  try {
+    const data = await api(`/api/admin/pulse-voter-review/search-voters?q=${encodeURIComponent(query)}`);
+    const items = Array.isArray(data.items) ? data.items : [];
+    if (!items.length) {
+      resultsEl.innerHTML = `<span class="help">No voter-file matches.</span>`;
+      return;
+    }
+    resultsEl.innerHTML = items
+      .map((candidate) => {
+        const html = candidateOptionHtml(candidate);
+        const label = html.replace(/<[^>]+>/g, "").trim();
+        return `<div class="pvr-search-result">
+          <span>${escapeHtml(label)}</span>
+          <button type="button" class="pvr-use-candidate-btn" data-id="${escapeHtml(id)}" data-voter-id="${escapeHtml(candidate.voter_id)}" data-label="${escapeHtml(label)}">Use</button>
+        </div>`;
+      })
+      .join("");
+  } catch (error) {
+    resultsEl.innerHTML = `<span class="help">${escapeHtml(error?.message || "Search failed.")}</span>`;
+  }
+}
+
 async function mintAndSendItem(id) {
   setStatus(actionStatusEl, "");
   try {
@@ -223,7 +434,13 @@ async function mintAndSendItem(id) {
     });
     currentItems = currentItems.filter((item) => String(item.id) !== String(id));
     renderList();
-    setStatus(actionStatusEl, data?.pollLink ? "Poll link minted and sent." : "Sent.");
+    // Both channels always fire (worker/src/index.js mint-and-send) -- show
+    // which ones actually landed instead of a generic "sent" that leaves
+    // staff guessing whether SMS went out at all (found 2026-07-20: it was
+    // sending correctly the whole time, the UI just never said so).
+    const smsText = data?.sms?.sent ? "sent" : `not sent (${data?.sms?.reason || "unknown"})`;
+    const emailText = data?.email?.sent ? "sent" : `not sent (${data?.email?.reason || "unknown"})`;
+    setStatus(actionStatusEl, data?.pollLink ? `Poll link minted -- SMS: ${smsText}, Email: ${emailText}.` : "Sent.");
   } catch (error) {
     setStatus(actionStatusEl, error?.message || "Failed to mint/send poll link.", true);
   }
@@ -254,7 +471,58 @@ listEl?.addEventListener("click", (event) => {
   const mintBtn = event.target.closest(".pvr-mint-btn");
   if (mintBtn) {
     mintAndSendItem(mintBtn.dataset.id);
+    return;
   }
+
+  const logCallBtn = event.target.closest(".pvr-log-call-btn");
+  if (logCallBtn) {
+    const id = logCallBtn.dataset.id;
+    const wrap = logCallBtn.closest(".pvr-call-tracking");
+    const select = wrap?.querySelector(".pvr-call-status-select");
+    const notesInput = wrap?.querySelector(".pvr-call-notes-input");
+    logCall(id, { callStatus: select?.value, callNotes: notesInput?.value.trim() });
+    return;
+  }
+
+  const recheckBtn = event.target.closest(".pvr-recheck-btn");
+  if (recheckBtn) {
+    recheckItem(recheckBtn.dataset.id);
+    return;
+  }
+
+  const searchToggleBtn = event.target.closest(".pvr-search-toggle-btn");
+  if (searchToggleBtn) {
+    const article = searchToggleBtn.closest(".pvr-item");
+    const panel = article?.querySelector(".pvr-manual-search");
+    if (panel) panel.hidden = !panel.hidden;
+    return;
+  }
+
+  const searchBtn = event.target.closest(".pvr-search-btn");
+  if (searchBtn) {
+    const id = searchBtn.dataset.id;
+    const panel = searchBtn.closest(".pvr-manual-search");
+    const input = panel?.querySelector(".pvr-search-input");
+    searchVoters(id, input?.value.trim());
+    return;
+  }
+
+  const useCandidateBtn = event.target.closest(".pvr-use-candidate-btn");
+  if (useCandidateBtn) {
+    const id = useCandidateBtn.dataset.id;
+    const article = listEl.querySelector(`.pvr-item[data-row-id="${CSS.escape(String(id))}"]`);
+    if (article) setResolveVoterId(article, useCandidateBtn.dataset.voterId, useCandidateBtn.dataset.label);
+    setStatus(actionStatusEl, `voter_id ${useCandidateBtn.dataset.voterId} filled in -- click Resolve to confirm.`);
+  }
+});
+
+listEl?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") return;
+  const input = event.target.closest(".pvr-search-input");
+  if (!input) return;
+  event.preventDefault();
+  const panel = input.closest(".pvr-manual-search");
+  searchVoters(panel?.dataset.id, input.value.trim());
 });
 
 function showShell() {

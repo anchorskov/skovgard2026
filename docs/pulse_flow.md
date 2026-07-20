@@ -6,7 +6,7 @@ Citizen Poll (candidate-choice poll). This doc describes the flow as it
 exists today, end to end, including voter matching, the staff review queue,
 and the poll-link mint/send path.
 
-Last updated: 2026-07-17.
+Last updated: 2026-07-20.
 
 ## 1. Entry points
 
@@ -132,6 +132,19 @@ Cascading tiers, tried in order, first unique hit wins:
    when the name+city pair is unique: too many people can share a name
    within one city for a ZIP-less match to stand as verification on its
    own. It always lands in the review queue for staff confirmation.
+6. **name + city only, zip present but wrong** (added 2026-07-19, mode
+   `ambiguous_name_city_zip_conflict`) — final fallback when every
+   zip-anchored tier above (2–4) came back with zero hits. A submitted ZIP
+   that's wrong-but-plausible (a different real ZIP in the same city —
+   Casper alone spans several) previously killed every tier despite
+   name+city being a clean match, landing on a bare `no_match` with zero
+   candidates for staff to work from (the "Keith Goodenough" case: real
+   voter, city matched exactly, wrong-but-real ZIP submitted). Same
+   never-auto-accept rule as tier 5 — this only ever adds a real candidate
+   to the review queue, never silently accepts one. Distinct `match_mode`
+   from tier 5's `ambiguous_name_city` since "no ZIP given" and "ZIP given
+   but wrong" are different situations worth flagging differently to the
+   reviewer.
 
 Zero hits with no further tier to try → `no_match`. More than one hit at
 any tier → `ambiguous_*`. All of these, plus two previously-silent failure
@@ -203,8 +216,21 @@ submission. If a poll link was already delivered once, `/api/optin` does
 `/admin/pulse-voter-review/index.html` (JS: `static/js/admin-pulse-voter-review.js`,
 CSS: `static/css/admin-pulse-voter-review.css`) lists unresolved rows
 (`GET /api/admin/pulse-voter-review?unresolved=1`) with the submitted name/
-address, `match_mode` (see §4a for the full list of modes), any candidate
-`voter_id`s, and the `phone_area_flag`/`zip_range_flag` badges.
+address, `match_mode` (see §4a for the full list of modes), any candidates,
+and the `phone_area_flag`/`zip_range_flag` badges.
+
+**`candidate_voter_ids` carries full candidate detail, not just IDs**
+(fixed 2026-07-19). It previously stored bare `voter_id` numbers only
+(`summarizeMatchCandidates` in `worker/src/index.js` used to be an inline
+`.map(row => row?.voter_id)`), which left the dropdown showing staff
+anonymous numbers with nothing to compare against the submitted address —
+found while investigating why a real, correct candidate for "Keith
+Goodenough" wasn't visibly useful even when present. Now stores
+`{voter_id, first_name, last_name, city, zip, addr1}` per candidate, and
+the dropdown renders `8543 -- 333 S SOCONY PL, CASPER 82609` next to the
+"Submitted: ..." line already shown above it. Rows written before this fix
+still have the old bare-string shape — `candidateOptionHtml` in
+`static/js/admin-pulse-voter-review.js` handles both.
 
 **Resolve** (`POST /api/admin/pulse-voter-review/resolve`, body
 `{id, voter_id}` or `{id, dismiss:true}`): records `resolved_voter_id` on
@@ -231,6 +257,119 @@ The admin UI keeps a resolved row visible (rather than immediately removing
 it, since `?unresolved=1` would otherwise hide it) with a single
 "Mint & send poll link" button, and removes it only once that call
 succeeds.
+
+**Re-check match** (`POST /api/admin/pulse-voter-review/recheck`, added
+2026-07-20, body `{id}`): `pulse_voter_match_review` rows are write-once
+snapshots of what the cascade found *at submission time* -- nothing ever
+re-runs the match against an existing row, so a row written before a
+matching-logic fix (or before a `wy` DB data update) stays stuck showing
+its stale result forever. Found via the "Keith Goodenough" case (§4a tier
+6): his review row still showed zero candidates well after the fix that
+would now find him had shipped, because the row itself was never
+re-evaluated. Recheck re-runs `findUniqueWyTargetMatch` against the row's
+already-stored `submitted_*` fields and refreshes `match_mode`/
+`candidate_voter_ids` in place. Record-only, same as Resolve -- never
+writes to `consent_status`, never auto-resolves the row even on a single
+clean match; staff still confirm via the existing Resolve action.
+
+**Manual voter search** (`GET /api/admin/pulse-voter-review/search-voters?q=...`,
+added 2026-07-20): a free-text fallback independent of the automated
+cascade, for the cases no tier will ever catch (a genuine first-name typo,
+a maiden-name mismatch). Every whitespace-separated token in `q` (max 6)
+must appear somewhere across `first_name`/`last_name`/`city`/`addr1`/
+`addr_raw` in `v_voter_targeting`. Deliberately **not** fuzzy/typo-tolerant
+matching folded into the cascade itself -- that risks false positives on a
+voter-registration match; this keeps a human doing the fuzzy matching
+instead, with real search results to confirm against. Wired into
+`/admin/pulse-voter-review/index.html` as a per-row "Search voter file"
+panel; picking a result fills the row's resolve control so staff still
+click Resolve themselves.
+
+**Confidence badge** (client-side only, `static/js/admin-pulse-voter-review.js`):
+translates the raw `match_mode` into High/Medium/Low for staff scanning the
+queue -- no new data, just a display aid over what's already stored.
+High is reserved for a single clean candidate (`phone_belongs_to_other_voter`,
+or any of the auto-accept-tier modes surfaced via Re-check); anything
+genuinely ambiguous (`ambiguous_*`) is Medium or Low depending on how weak
+the underlying signal was (zip-anchored vs. name+city-only).
+
+## 5a. Call-tracking on the review queue (`worker/migrations/036`, added 2026-07-19)
+
+`pulse_voter_match_review` rows in §5 are people who *did* submit `/pulse`
+for real (they already have SMS/email consent on file) but couldn't be
+cleanly matched to a WY voter record. `call_status`/`call_attempts`/
+`call_notes`/`called_at`/`called_by` let staff log a phone call made to
+verbally confirm the address that resolves the match, via
+`POST /api/admin/pulse-voter-review/log-call` (body `{id, call_status,
+call_notes}`) — surfaced as a "Call to verify" control on each unresolved
+row in `/admin/pulse-voter-review/index.html`. This is bookkeeping only:
+confirming a voter_id over the phone still goes through the existing
+`/resolve` action (§5) exactly as if staff had confirmed it any other way.
+`call_status` is a fixed engineering enum (`not_called`, `left_voicemail`,
+`reached_confirmed`, `reached_declined`, `bad_number`, `do_not_call`) — not
+a staff-editable list, matching the `match_mode`/`consent_status.status`
+precedent.
+
+**Notification** (added 2026-07-19, `docs/who_needs_to_know.md`): every new
+unresolved row (from either insert site — auto-match in `/api/optin` or the
+admin verbal-completion path in §5b) fires a distinct
+`sendPulseReviewNeededEmail` (`worker/src/pulse-email.js`) to
+`PULSE_STAFF_NOTIFY_TO`, subject `Pulse review needed: <name>` — separate
+from the generic per-opt-in notice so it can't get lost in routine signup
+volume. A daily digest (`runPulseFollowUpDigest`, `"0 14 * * *"` cron) also
+summarizes the open/unresolved count. Both admin pages render an
+"Open >48h" badge on stale rows.
+
+## 5b. Abandoned-signup follow-up (`pulse_abandoned_signups`, `worker/migrations/037`, added 2026-07-19)
+
+Before this, someone who checked the SMS-consent box and typed a phone
+number on `/pulse` but never actually clicked submit left **zero trace
+anywhere** — checkbox/field state is pure client-side JS until the form's
+`submit` handler fires (`static/js/pulse-optin.js`).
+
+`static/js/pulse-optin.js` now fires a best-effort, fire-and-forget beacon
+(`POST /api/pulse/progress`, `keepalive: true`) once the SMS-consent
+checkbox is checked with a valid 10-digit phone (debounced 600ms), and again
+on "Continue to Citizen Poll". The Worker endpoint no-ops unless
+`consent_sms: true` and a valid phone are present, so it can never itself
+manufacture a phantom opt-in signal, and it silently skips writing anything
+if that phone already has a real `consent_status.status = 'opted_in'` row
+(avoids queue noise from someone re-visiting a form they already completed).
+
+**`pulse_abandoned_signups` is explicitly not a consent record** — same
+doctrine as `docs/after_verification.md`'s pre-consent poll-calling view:
+possession of a phone number is not consent to contact. It exists purely so
+staff can call and try to complete a real opt-in verbally, via
+`/admin/pulse-followup/index.html` (JS: `static/js/admin-pulse-followup.js`).
+That page supports the same `log-call` pattern as §5a, plus **"Complete
+opt-in verbally"** (`POST /api/admin/pulse-abandoned-signups/complete-optin`,
+body `{id, first_name, last_name, email?, consent_email?, address1?, city?,
+zip?}`):
+
+- Writes real consent through the same `upsertConsentStatus` (`telnyx.js`)
+  path `/api/optin` uses — not a bespoke insert — tagged
+  `source = 'staff_call'`, `source_detail = 'pulse_verbal_followup'`,
+  `consent_version = 'verbal-callback-v1'` so it's auditable as
+  staff-obtained rather than self-submitted. Logs a
+  `pulse_verbal_optin_completed` row in `texting_audit_log` with the
+  operator's `actor_email`.
+- If `city` was captured on the call, runs the same `syncSubmittedPhoneToWyVoter`
+  cascade (§4a) a real step-2 submission would: a clean match mints and
+  sends a Citizen Poll link (§4b/§4c) exactly like the auto path; an
+  ambiguous/no-match result files a `pulse_voter_match_review` row (§4a) for
+  later follow-up, same as any other submission.
+- Deliberately does **not** re-fire the automated welcome-text/confirmation-email
+  flow (`shouldSendStaffEmail`/`shouldSendConfirmationEmail` in §2's
+  `POST /api/optin` handler) — the phone call itself was the welcome; those
+  gates exist for self-service web submissions.
+
+**Notification** (added 2026-07-19): unlike `pulse_voter_match_review`
+above, a new `pulse_abandoned_signups` capture (`POST /api/pulse/progress`)
+does **not** send an immediate email — a real-time email per form
+abandonment would be high-volume and low-signal for something that isn't
+even a consent record yet. It's surfaced instead through the daily digest
+(`runPulseFollowUpDigest`, `"0 14 * * *"` cron, see §5a) and the "Open >48h"
+staleness badge on `/admin/pulse-followup/index.html`.
 
 ## 6. Voter phone promotion is delivery-gated (fixed 2026-07-15, commit `bc6afec`)
 
@@ -295,7 +434,11 @@ exist** — they're just not wired together for this case:
    submitter to get *anything* poll-related** — not even an honest "you're
    in HD-X, we just can't confirm you're a registered voter there yet"
    message. They currently get generic "we'll follow up if we can confirm
-   it" copy and silence.
+   it" copy and silence. §5a's call-tracking on `pulse_voter_match_review`
+   gives staff a *manual* tool to actually act on that "follow up" promise
+   (call, verbally confirm the address, resolve) — it doesn't close this
+   gap for someone who stays genuinely unresolvable after a real call
+   attempt; that person still gets nothing.
 
 ### The actual decision, not just an engineering task
 
@@ -328,7 +471,15 @@ name, address, matching `voter_id`, and known gotchas (`welcome_sent_at`
 stickiness, name overwrite behavior): [docs/test_data.md](/home/anchor/projects/skovgard2026/docs/test_data.md).
 `scripts/optins/reset-pulse-test-contact.mjs --phone <number>` resets the
 send-gating state (`consent_status` row + `contacts.welcome_sent_at`) for a
-standing test contact so a resubmission looks brand-new again.
+standing test contact so a resubmission looks brand-new again. **Nulling
+`welcome_sent_at` is not always sufficient** (found 2026-07-19): `telnyx.js`'s
+`maybeSendWelcomeText` also looks up the delivery status of the *most
+recent* `pulse_welcome_send` message for that phone, and no-ops with
+`pending_or_delivered` if that prior message shows `delivered` — regardless
+of `welcome_sent_at`. If a resubmission needs to exercise the welcome-SMS
+send path specifically (not just the confirmation email / poll link), that
+prior delivery-status check is the thing actually gating it, not the column
+the reset script clears. See `docs/test_data.md` for the full gate list.
 
 Turnstile blocks automated (Playwright/curl) testing of the real `/pulse`
 page in production — the bot-detection widget can only be solved by an

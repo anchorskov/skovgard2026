@@ -1760,6 +1760,107 @@ const STRAIGHT_ANSWERS_BODY_HTML = `
 ${QUESTIONNAIRE_CHALLENGE_QUESTIONS_HTML}
 `;
 
+const KEVIN_CHRISTENSEN_VETTING_BODY_HTML = `
+<h2 style="margin:26px 0 12px;font-size:20px;line-height:1.3;color:#0f2742;">Did Serving Our Country Count Against Him?</h2>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Kevin Christensen recently received notice that the Wyoming Republican Party&#8217;s 13-member
+  Candidate Vetting Committee intended to recommend that he <strong>not receive the party&#8217;s
+  endorsement at this time</strong>.
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Kevin answered with respect and precision. He told the committee he is in 100% alignment with
+  the Wyoming Republican Party Platform &#8212; then explained why some of its additional criteria
+  deserve public scrutiny.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+    style="margin:0 0 18px;border-left:4px solid #c68a4a;background:#fef9f0;">
+  <tr>
+    <td style="padding:14px 18px;">
+      <p style="margin:0 0 8px;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.06em;color:#8b1a26;">
+        What the committee said it would weigh
+      </p>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:#111827;">
+        Past donations to state or county parties, attendance and involvement in party
+        organizations, past party registration, and legislative scorecards.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Kevin has no legislative voting record. His record is more than 27 years of military service
+  &#8212; combat leadership in Iraq, command at the company, battalion, and brigade levels, and
+  service on the Joint Staff at the Pentagon.
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  During that service, Kevin&#8217;s duty required discipline, professional independence, and at
+  times a nonpartisan posture. He asked the committee to distinguish actual party switching from
+  periods of nonaffiliation connected to national security responsibilities.
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  That is a fair request.
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  The party&#8217;s executive director replied that Kevin&#8217;s response had been given to the
+  committee for review. The available correspondence contains no final decision and no explanation
+  of how the committee weighed his service.
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  I find the process deeply disturbing.
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  When donations, organizational attendance, and insider involvement become measures of loyalty,
+  public service can become a disadvantage. A system like that risks rewarding proximity to party
+  power while discounting years spent defending our country.
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Kevin and I are seeking different federal offices. This question reaches beyond either campaign:
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+    style="margin:8px 0 24px;border-top:2px solid #2b2b2b;border-bottom:2px solid #2b2b2b;">
+  <tr>
+    <td style="padding:16px 4px;">
+      <p style="margin:0;font-size:18px;line-height:1.4;color:#0f2742;font-weight:bold;">
+        Does this process strengthen the ability of Wyoming citizens to govern ourselves, or does
+        it place more influence into fewer hands?
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  Wyoming law currently says political party funds cannot be spent directly or indirectly to help
+  one primary candidate defeat another candidate from the same party. Party leadership has
+  challenged that restriction in federal court. The court will decide the constitutional question.
+  Wyoming voters should still decide our nominees.
+</p>
+
+<p style="margin:0 0 6px;font-size:17px;line-height:1.5;color:#b22234;font-weight:bold;">
+  Service should count as service.
+</p>
+<p style="margin:0 0 24px;font-size:17px;line-height:1.5;color:#b22234;font-weight:bold;">
+  Let Wyoming voters speak first.
+</p>
+
+<p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+  <a href="https://skovgard2026.org/share/kevin-christensen-vetting/sources/"
+      style="color:#0f2742;font-weight:bold;">
+    Read the full breakdown with sources
+  </a>
+  at skovgard2026.org/share/kevin-christensen-vetting/sources/
+</p>
+`;
+
 const WASHINGTON_PUPPETS_BODY_HTML = `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
     style="margin:0 0 22px;border-left:5px solid #2b2b2b;background:#f1ece1;">
@@ -1999,6 +2100,21 @@ export const SHARE_MESSAGES = {
       return n
         ? `${n} wanted you to see this`
         : "Wyoming voters should choose";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "kevin-christensen-vetting": {
+    title:        "Did Serving Our Country Count Against Kevin Christensen?",
+    body_html:    KEVIN_CHRISTENSEN_VETTING_BODY_HTML,
+    preview_text: "A 27-year Army veteran was told his service didn't count. Should it?",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this`
+        : "Did serving our country count against him?";
     },
     intro(n) {
       return n
@@ -2624,6 +2740,56 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "https://grassrootsmvt.org/surveys/wy-primary-elections-party-preselection",
           "",
           "Join the proof of concept at GrassrootsMVT.org.",
+        ]
+    : slug === "kevin-christensen-vetting"
+      ? [
+          "DID SERVING OUR COUNTRY COUNT AGAINST HIM?",
+          "",
+          "Kevin Christensen recently received notice that the Wyoming Republican Party's 13-member",
+          "Candidate Vetting Committee intended to recommend that he not receive the party's",
+          "endorsement at this time.",
+          "",
+          "Kevin answered with respect and precision. He told the committee he is in 100% alignment",
+          "with the Wyoming Republican Party Platform -- then explained why some of its additional",
+          "criteria deserve public scrutiny.",
+          "",
+          "What the committee said it would weigh: past donations to state or county parties,",
+          "attendance and involvement in party organizations, past party registration, and",
+          "legislative scorecards.",
+          "",
+          "Kevin has no legislative voting record. His record is more than 27 years of military",
+          "service -- combat leadership in Iraq, command at the company, battalion, and brigade",
+          "levels, and service on the Joint Staff at the Pentagon.",
+          "",
+          "During that service, Kevin's duty required discipline, professional independence, and",
+          "at times a nonpartisan posture. He asked the committee to distinguish actual party",
+          "switching from periods of nonaffiliation connected to national security responsibilities.",
+          "",
+          "That is a fair request.",
+          "",
+          "The party's executive director replied that Kevin's response had been given to the",
+          "committee for review. The available correspondence contains no final decision and no",
+          "explanation of how the committee weighed his service.",
+          "",
+          "I find the process deeply disturbing. When donations, organizational attendance, and",
+          "insider involvement become measures of loyalty, public service can become a",
+          "disadvantage. A system like that risks rewarding proximity to party power while",
+          "discounting years spent defending our country.",
+          "",
+          "Kevin and I are seeking different federal offices. This question reaches beyond either",
+          "campaign: Does this process strengthen the ability of Wyoming citizens to govern",
+          "ourselves, or does it place more influence into fewer hands?",
+          "",
+          "Wyoming law currently says political party funds cannot be spent directly or indirectly",
+          "to help one primary candidate defeat another candidate from the same party. Party",
+          "leadership has challenged that restriction in federal court. The court will decide the",
+          "constitutional question. Wyoming voters should still decide our nominees.",
+          "",
+          "Service should count as service.",
+          "Let Wyoming voters speak first.",
+          "",
+          "Read the full breakdown with sources:",
+          "https://skovgard2026.org/share/kevin-christensen-vetting/sources/",
         ]
     : slug === "washington-puppets"
       ? [

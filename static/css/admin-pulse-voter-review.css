@@ -49,6 +49,7 @@
 #admin-pvr-shell .status-ambiguous_name_city_zip,
 #admin-pvr-shell .status-ambiguous_name_zip,
 #admin-pvr-shell .status-ambiguous_name_city,
+#admin-pvr-shell .status-ambiguous_name_city_zip_conflict,
 #admin-pvr-shell .status-ambiguous_phone,
 #admin-pvr-shell .status-ambiguous_email {
   background: #fef3c7;
@@ -69,6 +70,11 @@
 #admin-pvr-shell .status-resolved {
   background: #dcfce7;
   color: #166534;
+}
+
+#admin-pvr-shell .status-stale {
+  background: #fecaca;
+  color: #7f1d1d;
 }
 
 #admin-pvr-shell .pvr-flag-badge {
@@ -153,4 +159,107 @@
 #admin-pvr-shell .pvr-item-resolve button.pvr-mint-btn:hover {
   background: #166534;
   border-color: #166534;
+}
+
+#admin-pvr-shell .pvr-call-tracking {
+  border-top: 1px dashed #e5e7eb;
+  padding-top: .65rem;
+  margin-top: .15rem;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+#admin-pvr-shell .status-call-left_voicemail {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+#admin-pvr-shell .status-call-reached_confirmed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+#admin-pvr-shell .status-call-reached_declined,
+#admin-pvr-shell .status-call-bad_number,
+#admin-pvr-shell .status-call-do_not_call {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+#admin-pvr-shell .pvr-confidence {
+  display: inline-block;
+  padding: .15rem .55rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 700;
+}
+
+#admin-pvr-shell .pvr-confidence-high {
+  background: #dcfce7;
+  color: #166534;
+}
+
+#admin-pvr-shell .pvr-confidence-medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+#admin-pvr-shell .pvr-confidence-low {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+#admin-pvr-shell .pvr-manual-search {
+  border-top: 1px dashed #e5e7eb;
+  padding-top: .65rem;
+  margin-top: .15rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+#admin-pvr-shell .pvr-search-input {
+  flex: 1 1 16rem;
+}
+
+#admin-pvr-shell .pvr-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+#admin-pvr-shell .pvr-search-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .4rem .6rem;
+  border: 1px solid #e5e7eb;
+  border-radius: .5rem;
+  background: #f8fafc;
+}
+
+#admin-pvr-shell .pvr-search-result button.pvr-use-candidate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  min-height: 2rem;
+  padding: .3rem .75rem;
+  border: 1px solid #2563eb;
+  border-radius: .6rem;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  font-size: .8rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+#admin-pvr-shell .pvr-search-result button.pvr-use-candidate-btn:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }

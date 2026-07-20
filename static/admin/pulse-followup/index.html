@@ -1,0 +1,66 @@
+<!doctype html>
+<!-- static/admin/pulse-followup/index.html -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pulse Follow-Up Calls — Skovgard 2026</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/admin-pulse-followup.css?v=2">
+</head>
+<body>
+  <header style="background:#1B2A4A;padding:12px 24px;display:flex;align-items:center;gap:12px;">
+    <a href="/" style="color:#C8973A;font-weight:700;font-family:serif;font-size:1.1rem;text-decoration:none;">
+      Skovgard 2026
+    </a>
+    <span style="color:rgba(255,255,255,.4);font-size:.75rem;">Admin</span>
+  </header>
+  <main style="max-width:900px;margin:2rem auto;padding:0 1rem;">
+
+<p class="notice">
+  People who started the /pulse form (checked the SMS-consent box with a
+  valid phone) but never actually submitted it. <strong>These are not opt-ins
+  and must never be treated as consent to contact</strong> — this list exists
+  only so staff can call and try to complete a real opt-in verbally.
+  Completing one here writes real consent through the same path a web
+  submission uses, tagged as staff-obtained.
+  <a href="/admin/pulse-voter-review/index.html">Voter match review queue</a>
+</p>
+
+<form id="admin-pf-auth" class="optin-form" novalidate>
+  <div class="field-inline">
+    <div class="field">
+      <label for="admin_pf_key">Admin key</label>
+      <input id="admin_pf_key" name="admin_pf_key" type="password" autocomplete="off" required />
+    </div>
+    <div class="field">
+      <label for="admin_pf_actor_email">Operator email <span class="help">(optional for audit log)</span></label>
+      <input id="admin_pf_actor_email" name="admin_pf_actor_email" type="email" autocomplete="off" placeholder="you@example.com" />
+    </div>
+  </div>
+  <div class="button-row">
+    <button type="button" id="admin-pf-connect">Load call queue</button>
+    <button type="button" id="admin-pf-clear" class="secondary">Clear key</button>
+  </div>
+  <p id="admin-pf-auth-status" class="help" role="status" aria-live="polite"></p>
+</form>
+
+<section id="admin-pf-shell" class="admin-pf-shell" hidden>
+  <div class="card-head">
+    <div>
+      <h1>Pulse Follow-Up Calls</h1>
+      <p class="help" id="admin-pf-summary">Loading...</p>
+    </div>
+    <div class="button-row">
+      <button type="button" id="admin-pf-refresh">Refresh</button>
+    </div>
+  </div>
+  <p id="admin-pf-action-status" class="help" role="status" aria-live="polite"></p>
+  <div id="admin-pf-list" class="list-stack"></div>
+</section>
+
+  </main>
+  <script type="module" src="/js/admin-pulse-followup.js?v=3"></script>
+</body>
+</html>

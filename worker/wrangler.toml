@@ -27,6 +27,7 @@ ADMIN_EMAIL_FROM = "support@grassrootsmvt.org"
 # whatever address the admin Blast tool is currently isolated to.
 SHARE_EMAIL_FROM = "support@grassrootsmvt.org"
 INBOUND_SMS_NOTIFY_TO = "support@grassrootsmvt.org"
+DONATE_NOTIFY_TO = "donate@grassrootsmvt.org"
 SHARE_ENABLED = "0"
 PULSE_EMAIL_ENABLED = "0"
 PULSE_STAFF_NOTIFY_TO = "pulse@grassrootsmvt.org"
@@ -55,6 +56,7 @@ ADMIN_EMAIL_ENABLED = "1"
 ADMIN_EMAIL_FROM = "news@updates.grassrootsmvt.org"
 SHARE_EMAIL_FROM = "support@grassrootsmvt.org"
 INBOUND_SMS_NOTIFY_TO = "support@grassrootsmvt.org"
+DONATE_NOTIFY_TO = "donate@grassrootsmvt.org"
 SHARE_ENABLED = "1"
 PULSE_EMAIL_ENABLED = "1"
 PULSE_STAFF_NOTIFY_TO = "pulse@grassrootsmvt.org"
@@ -73,20 +75,22 @@ binding             = "WY_DB"
 database_name       = "wy"
 database_id         = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"
 
-# Scheduled EmailListVerify batch job (email_verification_queue, migration
-# 029) -- every 2 minutes, up to 36 addresses/tick (reduced from 45 to 30 on
-# 2026-07-11 after monitoring showed a real tick overlapping into the next
-# boundary, then raised to 36 the same day after 30 proved safe). See
-# docs/blast_tracking.md.
+# EmailListVerify batch job (email_verification_queue, migration 029) is
+# PAUSED as of 2026-07-19 -- the EmailListVerify account is out of credits
+# and no more are being purchased at this time (user decision, see
+# docs/who_needs_to_know.md §5). It was previously on "*/2 * * * *" and had
+# been silently failing every tick with status "error_credit" -- see
+# runEmailVerificationBatch's error_* handling in worker/src/index.js. The
+# TODO is: when credits are restored, re-add "*/2 * * * *" to the crons
+# array below (and branch on controller.cron in the scheduled() handler,
+# same as the digest cron already does) rather than reintroducing a
+# standalone trigger.
 #
-# Re-enabled 2026-07-15 after runEmailVerificationBatch was fixed to give up
-# on an address (status='verify_timeout') after EMAIL_VERIFICATION_MAX_ATTEMPTS
-# consecutive failures instead of retrying it every tick forever -- see
-# migration 033 and worker/src/index.js. Was briefly disabled the same day
-# after a fixed set of ~18 slow/small mail-server addresses were found
-# permanently occupying the front of the unchecked queue.
+# The only live cron trigger is the daily Pulse follow-up digest (added
+# 2026-07-19, docs/who_needs_to_know.md §3) -- see runPulseFollowUpDigest
+# in worker/src/index.js.
 [env.production.triggers]
-crons = ["*/2 * * * *"]
+crons = ["0 14 * * *"]
 
 # ---------- Preview environment (Pages preview, etc.) ----------
 [env.preview]
@@ -105,6 +109,7 @@ ADMIN_EMAIL_ENABLED = "0"
 ADMIN_EMAIL_FROM = "support@grassrootsmvt.org"
 SHARE_EMAIL_FROM = "support@grassrootsmvt.org"
 INBOUND_SMS_NOTIFY_TO = ""
+DONATE_NOTIFY_TO = ""
 SHARE_ENABLED = "0"
 PULSE_EMAIL_ENABLED = "0"
 PULSE_STAFF_NOTIFY_TO = "pulse@grassrootsmvt.org"

@@ -7,6 +7,16 @@
 // brand-new opt-in and re-triggers the staff email, confirmation email, and
 // SMS welcome text. Does not touch newsletter_subscribers/email_contacts --
 // those aren't part of the send-gating logic and don't need resetting.
+//
+// KNOWN GAP (found 2026-07-19): clearing welcome_sent_at is NOT always
+// enough to re-trigger the welcome SMS. maybeSendWelcomeText (telnyx.js)
+// also checks the delivery status of the most recent pulse_welcome_send
+// message for this phone -- if that prior send shows "delivered", it
+// no-ops with reason "pending_or_delivered" regardless of welcome_sent_at.
+// This script does not (yet) account for that. Also does not clear
+// consent_status.poll_link_sent_at (migration 032) -- moot for this script
+// since it deletes the whole consent_status row, but worth knowing if you
+// adapt this logic elsewhere. See docs/pulse_flow.md §8 and docs/test_data.md.
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { ROOT_DIR, normalizePhoneE164 } from "./lib.mjs";

@@ -314,9 +314,40 @@ function resetTurnstile() {
     }, MIN_WAIT_MS);
   })();
 
+  /* ---------- best-effort progress capture (see docs/pulse_flow.md) ----------
+     Fires once someone has shown real intent (consent box checked + a
+     plausible phone number) so staff can follow up if the form is never
+     actually submitted. Fire-and-forget: no UI feedback, no blocking, and
+     it never sends consent_sms=false, so it can never itself create a
+     phantom opt-in signal server-side. */
+  let progressBeaconTimer = null;
+  const sendProgressBeacon = (stepReached) => {
+    const phone10 = normalize10($('#phone')?.value || '');
+    const consentSms = consentCheckbox?.checked || false;
+    if (phone10.length !== 10 || !consentSms) return;
+    const firstName = $('#first_name')?.value.trim() || '';
+    fetch(`${API_URL}/api/pulse/progress`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({
+        phone: phone10,
+        first_name: firstName,
+        step_reached: stepReached,
+        consent_sms: consentSms,
+      }),
+    }).catch(() => {});
+  };
+  const queueProgressBeacon = (stepReached) => {
+    clearTimeout(progressBeaconTimer);
+    progressBeaconTimer = setTimeout(() => sendProgressBeacon(stepReached), 600);
+  };
+
   consentCheckbox?.addEventListener('change', () => {
     if (consentCheckbox.checked) clearConsentError();
+    queueProgressBeacon('consent_checked');
   });
+  $('#phone')?.addEventListener('input', () => queueProgressBeacon('consent_checked'));
 
   /* ---------- show email consent panel only when email is filled ---------- */
   const emailField = $('#email');
@@ -397,6 +428,7 @@ function resetTurnstile() {
     if (!validateContactStep({ poll: true })) return;
     form.dataset.submissionMode = 'poll';
     showStep(2);
+    sendProgressBeacon('step2_reached');
   });
 
   updatesOnlyBtn?.addEventListener('click', () => {

@@ -107,6 +107,89 @@ function buildStaffEmail(config, profile) {
   };
 }
 
+const MATCH_MODE_LABELS = {
+  ambiguous_address: "Ambiguous (address)",
+  ambiguous_name_city_zip: "Ambiguous (name/city/zip)",
+  ambiguous_name_zip: "Ambiguous (name/zip, city didn't match)",
+  ambiguous_name_city: "Unconfirmed (name+city, no ZIP submitted)",
+  ambiguous_name_city_zip_conflict: "Unconfirmed (name+city match, submitted ZIP didn't match)",
+  ambiguous_phone: "Ambiguous (phone matches multiple voters)",
+  ambiguous_email: "Ambiguous (email matches multiple voters)",
+  phone_belongs_to_other_voter: "Clean match, but phone linked to a different voter",
+  missing_lookup_fields: "Insufficient data submitted",
+  no_match: "No match found",
+};
+
+function matchModeLabel(mode) {
+  return MATCH_MODE_LABELS[mode] || mode || "Unknown";
+}
+
+// Distinct from buildStaffEmail's per-opt-in notice above -- that one fires
+// once per contact ever and says nothing about whether *this* submission
+// needs action. This one fires specifically when a submission lands in
+// pulse_voter_match_review (worker/migrations/031) unresolved, so it can't
+// blend into routine "new opt-in" noise (see docs/who_needs_to_know.md
+// recommendation 1).
+function buildReviewNeededEmail(config, profile) {
+  const name = fullName(profile);
+  const phone = normalizeText(profile.phoneE164 || profile.phone);
+  const mode = matchModeLabel(profile.matchMode);
+  const address = addressLines(profile).join(", ") || "Not provided";
+  const subject = `Pulse review needed: ${name}`;
+
+  return {
+    from: config.from,
+    to: [config.staffTo],
+    subject,
+    text: [
+      `A /pulse submission needs manual review -- it didn't cleanly match a Wyoming voter record.`,
+      "",
+      `Name: ${name}`,
+      `Phone: ${phone || "Not provided"}`,
+      `Address: ${address}`,
+      `Reason: ${mode}`,
+      "",
+      "Review it: https://www.skovgard2026.org/admin/pulse-voter-review/index.html",
+    ].join("\n"),
+    html: `
+      <h1>Pulse review needed</h1>
+      <p>A /pulse submission needs manual review -- it didn't cleanly match a Wyoming voter record.</p>
+      <ul>
+        <li><strong>Name:</strong> ${escapeHtml(name)}</li>
+        <li><strong>Phone:</strong> ${escapeHtml(phone || "Not provided")}</li>
+        <li><strong>Address:</strong> ${escapeHtml(address)}</li>
+        <li><strong>Reason:</strong> ${escapeHtml(mode)}</li>
+      </ul>
+      <p><a href="https://www.skovgard2026.org/admin/pulse-voter-review/index.html">Review it</a></p>
+    `,
+    tags: [
+      { name: "source", value: "pulse" },
+      { name: "kind", value: "review_needed" },
+    ],
+  };
+}
+
+// Fire-and-forget from the caller's perspective (wrap in ctx.waitUntil where
+// available) -- a failure here must never block the opt-in/admin action that
+// triggered it.
+export async function sendPulseReviewNeededEmail(env, profile) {
+  const config = {
+    enabled: String(env.PULSE_EMAIL_ENABLED || "0") === "1",
+    apiKey: normalizeText(env.RESEND_API_KEY),
+    from: normalizeText(env.PULSE_EMAIL_FROM),
+    staffTo: normalizeText(env.PULSE_STAFF_NOTIFY_TO || "pulse@grassrootsmvt.org"),
+  };
+  if (!config.enabled || !config.apiKey || !config.from || !config.staffTo) {
+    return { sent: false, reason: "disabled_or_missing_config" };
+  }
+  try {
+    const data = await sendResendEmail(config.apiKey, buildReviewNeededEmail(config, profile));
+    return { sent: true, id: data?.id || null };
+  } catch (error) {
+    return { sent: false, reason: String(error?.message || error) };
+  }
+}
+
 function buildConfirmationEmail(config, profile) {
   const email = normalizeText(profile.email);
   if (!email || !profile.consentEmail) return null;
@@ -294,6 +377,66 @@ export async function sendPollLinkEmail(env, profile, idempotencyKey = null) {
 
   try {
     const data = await sendResendEmail(config.apiKey, message, idempotencyKey);
+    return { sent: true, id: data?.id || null };
+  } catch (error) {
+    return { sent: false, reason: String(error?.message || error) };
+  }
+}
+
+// Daily summary (worker/wrangler.toml [env.production.triggers], added
+// 2026-07-19 -- see docs/who_needs_to_know.md recommendation 3) of the two
+// admin call queues that otherwise have no push notification of their own:
+// pulse_voter_match_review (partially covered by buildReviewNeededEmail
+// above, but this adds an aggregate view) and pulse_abandoned_signups
+// (which has NO other notification at all). Only sends when there's at
+// least one open item, so a quiet day stays quiet instead of adding to
+// inbox noise.
+function buildFollowUpDigestEmail(config, counts) {
+  const { reviewTotal, reviewStale, abandonedTotal, abandonedStale } = counts;
+  const subject = `Pulse follow-up digest: ${reviewTotal + abandonedTotal} open item${reviewTotal + abandonedTotal === 1 ? "" : "s"}`;
+
+  return {
+    from: config.from,
+    to: [config.staffTo],
+    subject,
+    text: [
+      "Daily Pulse follow-up summary.",
+      "",
+      `Voter match review queue: ${reviewTotal} unresolved (${reviewStale} older than 48h).`,
+      "  https://www.skovgard2026.org/admin/pulse-voter-review/index.html",
+      "",
+      `Abandoned-signup call queue: ${abandonedTotal} open (${abandonedStale} older than 48h).`,
+      "  https://www.skovgard2026.org/admin/pulse-followup/index.html",
+    ].join("\n"),
+    html: `
+      <h1>Pulse follow-up digest</h1>
+      <p><strong>Voter match review queue:</strong> ${reviewTotal} unresolved (${reviewStale} older than 48h).<br>
+        <a href="https://www.skovgard2026.org/admin/pulse-voter-review/index.html">Open the review queue</a></p>
+      <p><strong>Abandoned-signup call queue:</strong> ${abandonedTotal} open (${abandonedStale} older than 48h).<br>
+        <a href="https://www.skovgard2026.org/admin/pulse-followup/index.html">Open the follow-up queue</a></p>
+    `,
+    tags: [
+      { name: "source", value: "pulse" },
+      { name: "kind", value: "followup_digest" },
+    ],
+  };
+}
+
+export async function sendPulseFollowUpDigest(env, counts) {
+  const config = {
+    enabled: String(env.PULSE_EMAIL_ENABLED || "0") === "1",
+    apiKey: normalizeText(env.RESEND_API_KEY),
+    from: normalizeText(env.PULSE_EMAIL_FROM),
+    staffTo: normalizeText(env.PULSE_STAFF_NOTIFY_TO || "pulse@grassrootsmvt.org"),
+  };
+  if (!config.enabled || !config.apiKey || !config.from || !config.staffTo) {
+    return { sent: false, reason: "disabled_or_missing_config" };
+  }
+  const totalOpen = Number(counts?.reviewTotal || 0) + Number(counts?.abandonedTotal || 0);
+  if (totalOpen === 0) return { sent: false, reason: "nothing_open" };
+
+  try {
+    const data = await sendResendEmail(config.apiKey, buildFollowUpDigestEmail(config, counts));
     return { sent: true, id: data?.id || null };
   } catch (error) {
     return { sent: false, reason: String(error?.message || error) };

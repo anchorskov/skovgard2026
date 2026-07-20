@@ -209,6 +209,16 @@ Then decide where the card belongs:
 - Moving a card between listings does not change or remove its detail-page URL.
 - New video shares normally remain featured unless the user directs otherwise.
 
+**Ordering**: neither listing sorts by date — display order is just the
+`cards` array's literal order (see `docs/share/show_shares.md`). A new
+featured card goes at **index 0** (top of the array) so it leads `/share`.
+This repo's convention is to keep the two most recent messages leading the
+featured page, so also check whether the *previous* top card needs to move
+down to index 1 (stays one of the "newest two") or further down /
+un-featured (retires from the front page) — it will not do either
+automatically. Update `docs/share/show_shares.md`'s order lists to match
+once done.
+
 `emailSubject` and `emailBody` on a listing card are used only by the quick-bar "Email" button, which opens a `mailto:` link as a quick-share convenience. This is separate from the detail page send flow. The card's quick-bar mailto is acceptable; the detail page must not have one.
 
 ---

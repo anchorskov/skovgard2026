@@ -70,6 +70,20 @@ existing ones fit — don't create a fresh throwaway identity per session.
   that's this same test number, not a real contact. Don't be alarmed by a
   name mismatch in audit history; check `consent_status.updated_at` against
   the audit trail before assuming a name change indicates a real problem.
+- **`consent_status.poll_link_sent_at` (migration 032, added after this note
+  was first written) is a separate gate from the two above.** Even with
+  `welcome_sent_at` cleared and `consent_email` zeroed, a matched voter with
+  email won't get the poll link re-minted/re-sent if `poll_link_sent_at` is
+  already set — `/api/optin` just returns `verification: "already_sent"` and
+  silently skips it (`worker/src/index.js`, ~line 4178). Reset it too for a
+  full retest:
+  `UPDATE consent_status SET poll_link_sent_at = NULL WHERE phone_e164 = '+13072772260'`.
+  **Reset 2026-07-19**: cleared `consent_email` and `poll_link_sent_at` for
+  this phone to retest the full `/pulse` flow (voter match → poll-link mint →
+  welcome SMS → confirmation email) end-to-end with `anchorskov@gmail.com`.
+  `consent_status.voter_id` does *not* need resetting — the voter-matching
+  cascade re-queries the `wy` DB live on every submit regardless of what's
+  already stored there.
 - Real sends: submitting this through `/pulse` (or `/api/optin` directly)
   against production bindings sends a real Telnyx SMS to this phone (when
   `welcome_sent_at` isn't already set) and a real Resend email to this

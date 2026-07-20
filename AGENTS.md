@@ -35,7 +35,9 @@ is deleted.
 | `docs/media/AddCampaignVideo.md` | Adding a campaign video to the site |
 | `docs/polling/AddPollingLocations.md` | Adding polling locations for a new Wyoming county |
 | `docs/pulse_flow.md` | `/pulse` opt-in + Citizen Poll flow architecture, data model, and the open unmatched-voter design gap |
+| `docs/who_needs_to_know.md` | Inventory of every staff/donor notification trigger site-wide — recipient, condition, and known gaps (start here before assuming who gets emailed when) |
 | `docs/share/AddShareMessage.md` | Checklist for adding a new `/share/<slug>` shareable message |
+| `docs/share/show_shares.md` | Tracks `/share` and `/share/more-shares` card display order (array order, not date-sorted) — update after adding or reordering a share card |
 | `docs/social_media.md` | Open Graph / Twitter card requirements for both `skovgard2026.org` and `candidates.skovgard2026.org` |
 | `docs/test_data.md` | Reusable real (not fake) phone/email identities for end-to-end testing |
 | `docs/update_new_contact_emails_texts.md` | Human-facing operations guide for the CSV contact-import workflow |
@@ -462,6 +464,13 @@ Key files: `src/components/PulseOptInForm.astro`, `static/js/pulse-optin.js`,
 `worker/src/index.js` (`/api/optin`), `worker/src/telnyx.js`
 (`maybeSendWelcomeText`, `sendPollLinkText`), `worker/src/pulse-email.js`
 (`sendPollLinkEmail`), `worker/src/voter-phone.js` (`promoteDeliveredOptInPhone`).
+Staff call-follow-up (added 2026-07-19, `docs/pulse_flow.md` §5a/§5b):
+`static/admin/pulse-voter-review/index.html` (call-tracking on the existing
+review queue) and `static/admin/pulse-followup/index.html` +
+`static/js/admin-pulse-followup.js` (abandoned/never-submitted `/pulse`
+starts, `pulse_abandoned_signups` table) — neither is a consent record; a
+verbal opt-in completed there writes through the normal `upsertConsentStatus`
+path, tagged `source='staff_call'`.
 
 ## Blast Flow (email) — active debugging
 

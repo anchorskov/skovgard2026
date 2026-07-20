@@ -228,6 +228,38 @@ test("no match anywhere in the full cascade", async () => {
   assert.equal(result.mode, "no_match");
 });
 
+test("name+city fallback surfaces a candidate when the submitted ZIP doesn't match a real voter (Keith Goodenough case, 2026-07-19)", async () => {
+  // Every zip-anchored tier comes back empty (submitted 82604 doesn't match
+  // this voter's real 82609), but name+city alone still finds the real
+  // record -- must not fall through to a bare no_match with zero
+  // candidates for staff to work from.
+  const wyDb = mockWyDb({
+    city_only_tier: [{ voter_id: "8543", first_name: "KEITH", last_name: "GOODENOUGH", city: "CASPER", zip: "82609", addr1: "333 S SOCONY PL" }],
+  });
+  const result = await findUniqueWyTargetMatch(wyDb, {
+    firstName: "Keith",
+    lastName: "Goodenough",
+    city: "Casper",
+    zip: "82604",
+    address1: "333 S Socony",
+  });
+  assert.equal(result.mode, "ambiguous_name_city_zip_conflict");
+  assert.equal(result.candidates.length, 1);
+  assert.equal(result.candidates[0].voter_id, "8543");
+});
+
+test("name+city fallback stays silent when even that tier finds nobody", async () => {
+  const wyDb = mockWyDb({});
+  const result = await findUniqueWyTargetMatch(wyDb, {
+    firstName: "Nobody",
+    lastName: "Real",
+    city: "Casper",
+    zip: "82604",
+  });
+  assert.equal(result.mode, "no_match");
+  assert.equal(result.candidates, undefined);
+});
+
 test("syncSubmittedPhoneToWyVoter: clean unique name match is not silently dropped when the phone belongs to a different voter", async () => {
   const wyDb = mockWyDb({
     name_city_zip_tier: [{ voter_id: "139834", first_name: "MOLLIE", last_name: "HAND", city: "LARAMIE", zip: "82070" }],

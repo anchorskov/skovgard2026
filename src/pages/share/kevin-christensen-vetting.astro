@@ -1,0 +1,792 @@
+---
+// src/pages/share/kevin-christensen-vetting.astro
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+<Base
+  title="Did Serving Our Country Count Against Kevin Christensen? — Skovgard 2026"
+  description="A 27-year Army veteran running for Wyoming's U.S. House seat was told the party's Candidate Vetting Committee did not intend to recommend his endorsement. Jimmy Skovgard asks whether that process serves Wyoming voters."
+  ogImage="/images/share/meme-kevin-christensen-vetting.png"
+  ogImageWidth={1672}
+  ogImageHeight={941}
+>
+  <Nav />
+  <main class="pt-20">
+
+    <!-- Hero -->
+    <div class="bg-wy-charcoal py-14 px-4 text-center">
+      <a href="/share" class="inline-flex items-center gap-1.5 text-wy-bone/50 hover:text-wy-bone text-xs font-semibold uppercase tracking-widest mb-6 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        All messages
+      </a>
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Veterans and the Primary Process</p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-extrabold mb-4 leading-tight">
+        <span class="text-wy-bone">Did Serving Our Country</span>
+        <span class="text-wy-ember"> Count Against Him?</span>
+      </h1>
+      <p class="text-wy-bone/70 text-lg max-w-xl mx-auto mb-8">
+        A 27-year Army career should count as evidence of duty, character, and service.
+        Kevin Christensen was told it might not be enough.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <button id="hero-copy-link" type="button" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy link
+        </button>
+        <a id="hero-facebook" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+          </svg>
+          Facebook
+        </a>
+        <a id="hero-twitter" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          X / Twitter
+        </a>
+      </div>
+    </div>
+
+    <!-- ① Share on social media -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+
+        <p class="section-kicker">Share on social media</p>
+        <p class="section-desc">
+          This image and link are what people see when you post on Facebook or X.
+          When someone clicks the link, they land on this page with the full message.
+        </p>
+
+        <figure class="rounded-xl overflow-hidden shadow-lg mb-2">
+          <img
+            src="/images/share/meme-kevin-christensen-vetting.png"
+            alt="27 years of service. Did that count against him? Kevin Christensen, Apache pilot and retired Army colonel, running for Wyoming's U.S. House seat. Let Wyoming voters decide."
+            class="w-full block"
+            style="background-color:#0f1620;min-height:180px;"
+            loading="eager"
+          />
+        </figure>
+        <a href="https://www.youtube.com/watch?v=h3Pgg__jYco" target="_blank" rel="noopener" class="video-credit-badge mb-7">
+          <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <span>
+            <strong>Watch the footage:</strong> background photography from
+            <em>Apache Warrior</em> &#8212; U.S. Army Aviation documentary
+          </span>
+          <svg class="w-4 h-4 shrink-0 ml-auto opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+
+        <div class="flex flex-wrap gap-3">
+          <a id="social-facebook" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+            </svg>
+            Share on Facebook
+          </a>
+          <a id="social-twitter" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Share on X
+          </a>
+          <button type="button" id="social-copy-link" class="social-btn-outline">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy link
+          </button>
+          <a id="social-whatsapp" href="#" target="_blank" rel="noopener" class="social-btn">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.089.534 4.05 1.475 5.757L0 24l6.435-1.689A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.797 9.797 0 01-4.993-1.368l-.358-.213-3.716.975.993-3.62-.234-.372A9.799 9.799 0 012.182 12C2.182 6.565 6.565 2.182 12 2.182S21.818 6.565 21.818 12 17.435 21.818 12 21.818z"/>
+            </svg>
+            WhatsApp
+          </a>
+          <button type="button" id="social-native-share" class="social-btn-outline" hidden>
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/>
+            </svg>
+            Share…
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ② Send by email -->
+    <section class="bg-white py-12 px-4">
+      <div class="max-w-3xl mx-auto">
+
+        <p class="section-kicker">Send by email to your contacts</p>
+        <p class="section-desc">
+          This is the written message your contacts receive in their inbox.
+          It is not the image above — it is a personal email that comes from you.
+        </p>
+
+        <div class="bg-wy-bone rounded-2xl border border-gray-200 p-7">
+
+          <!-- Your name -->
+          <div class="mb-6">
+            <label for="kcv-sender" class="block text-sm font-semibold text-gray-700 mb-1">
+              Your name <span class="font-normal text-gray-400">(optional — personalises the message)</span>
+            </label>
+            <input
+              id="kcv-sender"
+              type="text"
+              autocomplete="given-name"
+              placeholder="e.g. Sarah"
+              maxlength="80"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-wy-ember focus:border-wy-ember"
+            />
+          </div>
+
+          <!-- Honeypot -->
+          <input id="kcv-trap" name="kcv_trap" type="text" autocomplete="off" tabindex="-1"
+            style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+
+          <!-- Recipient input -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-sm font-semibold text-gray-700">
+                Friends' email addresses
+              </label>
+              <button id="kcv-contacts-btn" type="button" hidden
+                class="text-xs font-semibold text-wy-ember hover:text-wy-ember-dark flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.768-.231-1.47-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.768.231-1.47.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Add from contacts
+              </button>
+            </div>
+            <div id="kcv-tag-box"
+              class="min-h-[48px] w-full px-2 py-1.5 border border-gray-300 rounded-lg bg-white cursor-text flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-wy-ember focus-within:border-wy-ember"
+              aria-label="Recipient email list">
+              <input id="kcv-email-input" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
+                placeholder="Type an address and press Enter"
+                class="flex-1 min-w-[180px] border-0 outline-none text-sm py-1 px-1 bg-transparent" />
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">
+              Press <kbd>Enter</kbd> or <kbd>,</kbd> after each address. Paste a comma-separated list to add several at once. Up to 10.
+            </p>
+          </div>
+
+          <!-- Live HTML email preview -->
+          <div class="email-preview-wrap mb-6">
+            <div class="email-preview-header">
+              <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
+              <div class="epf"><span class="epl">Subject:</span> <span id="kcv-preview-subject">Did serving our country count against him?</span></div>
+            </div>
+            <iframe
+              id="kcv-preview-iframe"
+              title="Preview of the email your contacts will receive"
+              sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+              scrolling="yes"
+              class="email-preview-iframe"
+            ></iframe>
+          </div>
+
+          <!-- Status -->
+          <div id="kcv-status" role="status" aria-live="polite" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+          <!-- Action button -->
+          <button id="kcv-send-btn" type="button"
+            class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            <span id="kcv-send-label">Have us send it</span>
+          </button>
+
+          <p class="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+            We send a campaign-branded email on your behalf. Recipients are not added to any mailing list.
+          </p>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Full essay -->
+    <article class="bg-wy-bone border-t border-gray-200 py-14 px-4">
+      <div class="max-w-3xl mx-auto">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-8">The message</p>
+
+        <div class="prose-content">
+
+          <h2>Did Serving Our Country Count Against Him?</h2>
+
+          <p>
+            Kevin Christensen recently received notice that the Wyoming Republican Party&#8217;s
+            13-member Candidate Vetting Committee intended to recommend that he
+            <strong>not receive the party&#8217;s endorsement at this time</strong>.
+          </p>
+
+          <p>
+            Kevin answered with respect and precision. He told the committee he is in 100%
+            alignment with the Wyoming Republican Party Platform &#8212; then explained why some
+            of its additional criteria deserve public scrutiny.
+          </p>
+
+          <div class="statute-box">
+            <p class="statute-label">What the committee said it would weigh</p>
+            <p class="statute-text" style="font-style:normal;">
+              Past donations to state or county parties, attendance and involvement in party
+              organizations, past party registration, and legislative scorecards.
+            </p>
+          </div>
+
+          <p>
+            Kevin has no legislative voting record. His record is more than 27 years of military
+            service &#8212; combat leadership in Iraq, command at the company, battalion, and
+            brigade levels, and service on the Joint Staff at the Pentagon.
+          </p>
+
+          <p>
+            During that service, Kevin&#8217;s duty required discipline, professional
+            independence, and at times a nonpartisan posture. He asked the committee to
+            distinguish actual party switching from periods of nonaffiliation connected to
+            national security responsibilities.
+          </p>
+
+          <p>That is a fair request.</p>
+
+          <p>
+            The party&#8217;s executive director replied that Kevin&#8217;s response had been
+            given to the committee for review. The available correspondence contains no final
+            decision and no explanation of how the committee weighed his service.
+          </p>
+
+          <p>I find the process deeply disturbing.</p>
+
+          <p>
+            When donations, organizational attendance, and insider involvement become measures of
+            loyalty, public service can become a disadvantage. A system like that risks rewarding
+            proximity to party power while discounting years spent defending our country.
+          </p>
+
+          <p>
+            Kevin and I are seeking different federal offices. This question reaches beyond
+            either campaign:
+          </p>
+
+          <div class="manifesto">
+            <p>Does this process strengthen the ability of Wyoming citizens to govern ourselves,</p>
+            <p>or does it place more influence into fewer hands?</p>
+          </div>
+
+          <p>
+            Wyoming law currently says political party funds cannot be spent directly or
+            indirectly to help one primary candidate defeat another candidate from the same
+            party. Party leadership has challenged that restriction in federal court. The court
+            will decide the constitutional question. Wyoming voters should still decide our
+            nominees.
+          </p>
+
+          <p class="closing-line">Service should count as service.</p>
+          <p class="closing-line">Let Wyoming voters speak first.</p>
+
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 mt-10">
+          <a href="/donate"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            Support the campaign
+          </a>
+          <a href="/share/kevin-christensen-vetting/sources/"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-wy-charcoal font-bold rounded-lg border-2 border-wy-charcoal hover:bg-wy-charcoal hover:text-wy-bone transition-colors text-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Read the sources
+          </a>
+        </div>
+
+      </div>
+    </article>
+
+    <!-- Bottom share bar -->
+    <div class="bg-wy-charcoal py-14 px-4 text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-widest text-xs mb-3">Spread the Word</p>
+      <p class="text-wy-bone/70 text-sm mb-6 max-w-md mx-auto">
+        One message from someone you know carries more weight than any ad. Share this with Wyoming neighbors.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <button id="footer-copy-link" type="button" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy link
+        </button>
+        <a id="footer-facebook" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+          </svg>
+          Facebook
+        </a>
+        <a id="footer-twitter" href="#" target="_blank" rel="noopener" class="share-btn-outline">
+          <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          X / Twitter
+        </a>
+      </div>
+    </div>
+
+    <!-- Sources -->
+    <section class="bg-wy-bone py-12 px-4">
+      <div class="max-w-3xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1">Sources &amp; Evidence</h2>
+          <p class="text-sm text-gray-600">
+            All claims are documented with publicly available sources.
+          </p>
+        </div>
+        <a href="/share/kevin-christensen-vetting/sources/"
+           class="inline-flex items-center gap-2 px-5 py-2.5 bg-wy-charcoal text-wy-bone font-bold rounded-lg hover:bg-wy-ember transition-colors text-sm shrink-0">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          View all sources
+        </a>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c68a4a;
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 52ch;
+  }
+
+  .social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: #2b2b2b;
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.15s;
+  }
+  .social-btn:hover { background: #b22234; }
+  .social-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: transparent;
+    color: #2b2b2b;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 2px solid #2b2b2b;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .social-btn-outline:hover { background: #2b2b2b; color: #f1ece1; }
+
+  .video-credit-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: #fef9f0;
+    border-left: 4px solid #c68a4a;
+    border-radius: 0 10px 10px 0;
+    color: #2b2b2b;
+    text-decoration: none;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    transition: background-color 0.15s;
+  }
+  .video-credit-badge:hover { background: #fbecd3; }
+  .video-credit-badge svg:first-child { color: #b22234; }
+  .video-credit-badge strong { color: #8b1a26; }
+  .video-credit-badge em { font-style: italic; }
+
+  .share-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border: 2px solid rgba(241, 236, 225, 0.45);
+    color: #f1ece1;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    background: transparent;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+  .share-btn-outline:hover {
+    background-color: rgba(241, 236, 225, 0.1);
+    border-color: #f1ece1;
+  }
+
+  .email-preview-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .email-preview-header {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .epf { font-size: 0.8125rem; color: #374151; line-height: 1.6; }
+  .epl { font-weight: 700; color: #6b7280; margin-right: 4px; }
+  .email-preview-iframe { display: block; width: 100%; height: 460px; border: none; }
+
+  #kcv-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .kcv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1ece1;
+    border: 1px solid #c68a4a33;
+    color: #2b2b2b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 8px 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+  .kcv-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .kcv-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: #c68a4a55;
+    color: #2b2b2b;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .kcv-chip button:hover { background: #b22234; color: #fff; }
+
+  kbd {
+    padding: 1px 5px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    color: #6b7280;
+  }
+
+  /* Essay typography */
+  .prose-content { line-height: 1.8; color: #2b2b2b; }
+  .prose-content h2 {
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin: 0 0 1.25rem;
+    color: #2b2b2b;
+  }
+  .prose-content p { margin-bottom: 1.25rem; font-size: 1.0625rem; }
+
+  /* Statute-style callout, reused for the committee-criteria box */
+  .statute-box {
+    border-left: 4px solid #c68a4a;
+    background: #fef9f0;
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 0 0 1.5rem;
+  }
+  .statute-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8b1a26;
+    margin: 0 0 8px;
+  }
+  .statute-text {
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: #2b2b2b;
+    margin: 0;
+  }
+
+  /* Manifesto pull-quote */
+  .manifesto {
+    border-top: 2px solid #2b2b2b;
+    border-bottom: 2px solid #2b2b2b;
+    padding: 18px 0;
+    margin: 2rem 0;
+  }
+  .manifesto p {
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #0f2742;
+    margin: 0 0 4px;
+    line-height: 1.4;
+  }
+  .manifesto p:last-child { margin: 0; }
+
+  .closing-line {
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    font-size: 1.375rem !important;
+    color: #b22234 !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  #kcv-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  #kcv-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  #kcv-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+</style>
+
+<script>
+(function () {
+  const PAGE_URL = 'https://skovgard2026.org/share/kevin-christensen-vetting';
+
+  const TWEET = 'Kevin Christensen served 27 years in the Army, including combat leadership in Iraq. A party vetting committee still recommended withholding its endorsement. Should service count against him? Wyoming voters should decide. #Wyoming #WY2026';
+
+  const fb = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(PAGE_URL);
+  const tw = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(PAGE_URL) +
+    '&text=' + encodeURIComponent(TWEET);
+  ['hero-facebook', 'social-facebook', 'footer-facebook'].forEach(id => { const el = document.getElementById(id); if (el) el.href = fb; });
+  ['hero-twitter',  'social-twitter',  'footer-twitter' ].forEach(id => { const el = document.getElementById(id); if (el) el.href = tw; });
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus('Link copied!', 'success');
+      setTimeout(() => setStatus('', ''), 3000);
+    } catch {
+      setStatus('Could not copy — please copy manually.', 'error');
+    }
+  }
+
+  ['hero-copy-link', 'social-copy-link', 'footer-copy-link']
+    .forEach(id => { const btn = document.getElementById(id); if (btn) btn.addEventListener('click', () => copyText(PAGE_URL)); });
+
+  /* ── WhatsApp + Web Share API ───────────────────────────── */
+  const elWa = document.getElementById('social-whatsapp');
+  if (elWa) elWa.href = 'https://wa.me/?text=' + encodeURIComponent(PAGE_URL);
+
+  const nativeShareBtn = document.getElementById('social-native-share');
+  if (nativeShareBtn && navigator.canShare && navigator.canShare({ url: PAGE_URL })) {
+    nativeShareBtn.hidden = false;
+    nativeShareBtn.addEventListener('click', async () => {
+      try { await navigator.share({ title: document.title, url: PAGE_URL }); }
+      catch (_) {}
+    });
+  }
+
+  /* ── Email state ─────────────────────────────────────────── */
+  const kcvEmails     = [];
+  const KCV_MAX        = 10;
+  const tagBox         = document.getElementById('kcv-tag-box');
+  const emailInput     = document.getElementById('kcv-email-input');
+  const senderInput    = document.getElementById('kcv-sender');
+  const contactsBtn    = document.getElementById('kcv-contacts-btn');
+  const previewIframe  = document.getElementById('kcv-preview-iframe');
+  const previewSubject = document.getElementById('kcv-preview-subject');
+  const sendBtn        = document.getElementById('kcv-send-btn');
+  const sendLabel      = document.getElementById('kcv-send-label');
+  const statusEl       = document.getElementById('kcv-status');
+
+  function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
+
+  function setStatus(msg, type) {
+    if (!msg) { statusEl.classList.add('hidden'); statusEl.textContent = ''; return; }
+    statusEl.className = `mb-4 px-4 py-3 rounded-lg text-sm font-medium status-${type}`;
+    statusEl.textContent = msg;
+    statusEl.classList.remove('hidden');
+  }
+
+  function renderTags() {
+    Array.from(tagBox.querySelectorAll('.kcv-chip')).forEach(c => c.remove());
+    kcvEmails.forEach((email, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'kcv-chip';
+      chip.innerHTML = `<span title="${email}">${email}</span><button type="button" aria-label="Remove ${email}">✕</button>`;
+      chip.querySelector('button').addEventListener('click', () => { kcvEmails.splice(i, 1); setStatus('', ''); renderTags(); });
+      tagBox.insertBefore(chip, emailInput);
+    });
+    updateButtons();
+    schedulePreview();
+  }
+
+  function addEmail(raw) {
+    const e = raw.trim().toLowerCase();
+    if (!e) return;
+    if (!isValidEmail(e)) { setStatus(`"${e}" doesn't look like a valid email address.`, 'error'); return; }
+    if (kcvEmails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
+    if (kcvEmails.length >= KCV_MAX) { setStatus(`Maximum ${KCV_MAX} recipients.`, 'info'); return; }
+    setStatus('', '');
+    kcvEmails.push(e);
+    renderTags();
+  }
+
+  function updateButtons() { sendBtn.disabled = kcvEmails.length === 0 && !isValidEmail(emailInput.value.trim()); }
+
+  emailInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addEmail(emailInput.value); emailInput.value = ''; }
+    else if (e.key === 'Backspace' && emailInput.value === '' && kcvEmails.length > 0) {
+      kcvEmails.splice(kcvEmails.length - 1, 1); setStatus('', ''); renderTags();
+    }
+  });
+  emailInput.addEventListener('blur', () => { if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; } });
+  emailInput.addEventListener('input', updateButtons);
+  emailInput.addEventListener('paste', e => {
+    e.preventDefault();
+    (e.clipboardData || window.clipboardData).getData('text').split(/[,;\s\n]+/).forEach(p => { if (p.trim()) addEmail(p); });
+    emailInput.value = '';
+  });
+  tagBox.addEventListener('click', () => emailInput.focus());
+
+  (async () => {
+    if (!('contacts' in navigator)) return;
+    try {
+      const props = await navigator.contacts.getProperties();
+      if (!props.includes('email')) return;
+      contactsBtn.hidden = false;
+      contactsBtn.addEventListener('click', async () => {
+        try { const picked = await navigator.contacts.select(['name', 'email'], { multiple: true }); picked.forEach(c => (c.email || []).forEach(e => addEmail(e))); } catch (_) {}
+      });
+    } catch (_) {}
+  })();
+
+  /* ── Live email preview ──────────────────────────────────── */
+  let previewTimer = null;
+
+  function buildPreviewUrl() {
+    const name = senderInput.value.trim().slice(0, 80);
+    const params = new URLSearchParams({ slug: 'kevin-christensen-vetting' });
+    if (name) params.set('sender_name', name);
+    return '/api/share/preview?' + params.toString();
+  }
+
+  function updateSubjectLine() {
+    const name = senderInput.value.trim();
+    if (previewSubject) {
+      previewSubject.textContent = name
+        ? `${name} wanted you to see this`
+        : 'Did serving our country count against him?';
+    }
+  }
+
+  async function fetchPreview() {
+    updateSubjectLine();
+    if (!previewIframe) return;
+    try {
+      const resp = await fetch(buildPreviewUrl());
+      if (resp.ok) previewIframe.srcdoc = await resp.text();
+    } catch (_) {}
+  }
+
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(fetchPreview, 300);
+  }
+
+  senderInput.addEventListener('input', schedulePreview);
+
+  /* ── Send via Worker ─────────────────────────────────────── */
+  sendBtn.addEventListener('click', async () => {
+    if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+    if (kcvEmails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
+
+    sendBtn.disabled = true;
+    sendLabel.textContent = 'Sending…';
+    setStatus('', '');
+
+    try {
+      const resp = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message_slug: 'kevin-christensen-vetting',
+          sender_name:  senderInput.value.trim(),
+          recipients:   kcvEmails.slice(),
+          _trap: "",
+          _t:    Date.now(),
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        setStatus(
+          resp.status === 404 && isLocal
+            ? 'Route not found — make sure the Worker is running: cd worker && npx wrangler dev'
+            : resp.status === 503
+            ? 'Share feature is not enabled on this environment yet.'
+            : data.error || 'Something went wrong. Please try again.',
+          'error'
+        );
+      } else {
+        const n = data.sent || kcvEmails.length;
+        setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} accepted for delivery. Thank you for spreading the word.`, 'success');
+        kcvEmails.length = 0;
+        renderTags();
+      }
+    } catch (_) {
+      setStatus(
+        ['localhost', '127.0.0.1'].includes(window.location.hostname)
+          ? 'Worker not reachable. Run `cd worker && npx wrangler dev` in a second terminal.'
+          : 'Network error — please check your connection and try again.',
+        'error'
+      );
+    } finally {
+      sendLabel.textContent = 'Have us send it';
+      updateButtons();
+    }
+  });
+
+  updateButtons();
+  fetchPreview();
+
+  if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    setStatus(
+      'Local dev: "Have us send it" needs the Worker running. ' +
+      'In a second terminal: cd worker && npx wrangler dev.',
+      'info'
+    );
+  }
+})();
+</script>

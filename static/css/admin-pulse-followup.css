@@ -1,0 +1,146 @@
+/* static/css/admin-pulse-followup.css */
+
+#admin-pf-shell .card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: .5rem;
+}
+
+#admin-pf-shell .list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  margin-top: 1rem;
+}
+
+#admin-pf-shell .pf-item {
+  border: 1px solid #e5e7eb;
+  border-radius: .75rem;
+  background: #fff;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+#admin-pf-shell .pf-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+#admin-pf-shell .status-badge {
+  display: inline-block;
+  padding: .15rem .55rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+#admin-pf-shell .status-call-left_voicemail {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+#admin-pf-shell .status-call-reached_confirmed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+#admin-pf-shell .status-call-reached_declined,
+#admin-pf-shell .status-call-bad_number,
+#admin-pf-shell .status-call-do_not_call {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+#admin-pf-shell .status-stale {
+  background: #fecaca;
+  color: #7f1d1d;
+}
+
+#admin-pf-shell .pf-item-resolve {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+#admin-pf-shell .pf-optin-form {
+  border-top: 1px dashed #e5e7eb;
+  padding-top: .75rem;
+  margin-top: .25rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+#admin-pf-shell .pf-optin-consent-email-field {
+  display: flex;
+  align-items: flex-end;
+}
+
+#admin-pf-auth .button-row,
+#admin-pf-shell .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: center;
+}
+
+#admin-pf-auth .button-row button,
+#admin-pf-shell .button-row button,
+#admin-pf-shell .pf-item-resolve button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  min-height: 2.5rem;
+  padding: .5rem 1rem;
+  border: 1px solid #2563eb;
+  border-radius: .7rem;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease;
+}
+
+#admin-pf-auth .button-row button:hover,
+#admin-pf-shell .button-row button:hover,
+#admin-pf-shell .pf-item-resolve button:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+#admin-pf-shell .pf-item-resolve button.secondary,
+#admin-pf-auth .button-row button.secondary,
+#admin-pf-shell .button-row button.secondary {
+  background: #64748b;
+  border-color: #64748b;
+}
+
+#admin-pf-shell .pf-item-resolve button.secondary:hover,
+#admin-pf-auth .button-row button.secondary:hover,
+#admin-pf-shell .button-row button.secondary:hover {
+  background: #475569;
+  border-color: #475569;
+}
+
+#admin-pf-shell .pf-item-resolve select,
+#admin-pf-shell .pf-item-resolve input {
+  min-height: 2.5rem;
+  padding: .4rem .6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: .5rem;
+}
