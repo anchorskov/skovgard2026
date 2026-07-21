@@ -329,10 +329,25 @@ listEl?.addEventListener("click", (event) => {
   }
 });
 
-function showShell() {
-  authForm.hidden = true;
-  shellEl.hidden = false;
-  loadItems();
+async function attemptConnect(key, actorEmail) {
+  setStatus(authStatusEl, "Connecting...");
+  if (connectBtn) connectBtn.disabled = true;
+  try {
+    const data = await api("/api/admin/pulse-abandoned-signups?open=1");
+    currentItems = Array.isArray(data.items) ? data.items : [];
+    localStorage.setItem(STORAGE_KEY, key);
+    if (actorEmail) localStorage.setItem(STORAGE_EMAIL, actorEmail);
+    else localStorage.removeItem(STORAGE_EMAIL);
+    setStatus(authStatusEl, "");
+    authForm.hidden = true;
+    shellEl.hidden = false;
+    renderList();
+  } catch (error) {
+    localStorage.removeItem(STORAGE_KEY);
+    setStatus(authStatusEl, error?.message || "Failed to connect.", true);
+  } finally {
+    if (connectBtn) connectBtn.disabled = false;
+  }
 }
 
 connectBtn?.addEventListener("click", () => {
@@ -341,12 +356,7 @@ connectBtn?.addEventListener("click", () => {
     setStatus(authStatusEl, "Admin key is required.", true);
     return;
   }
-  localStorage.setItem(STORAGE_KEY, key);
-  const actorEmail = getActorEmail();
-  if (actorEmail) localStorage.setItem(STORAGE_EMAIL, actorEmail);
-  else localStorage.removeItem(STORAGE_EMAIL);
-  setStatus(authStatusEl, "");
-  showShell();
+  attemptConnect(key, getActorEmail());
 });
 
 clearBtn?.addEventListener("click", () => {
@@ -366,5 +376,5 @@ const savedEmail = localStorage.getItem(STORAGE_EMAIL);
 if (savedKey) {
   keyInput.value = savedKey;
   if (savedEmail) actorEmailInput.value = savedEmail;
-  showShell();
+  attemptConnect(savedKey, savedEmail || "");
 }
