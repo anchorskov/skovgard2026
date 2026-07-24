@@ -19,17 +19,10 @@ forward. Keep that in mind before assuming a doc will be there after a
 clone, rebase onto a fresh checkout, or when handing this repo to someone
 else — they'll need these files transferred out-of-band.
 
-Because `docs/` is gitignored, a `git diff` will never surface drift between
-a flow doc and the code it describes — the user relies on the agent to keep
-them in sync manually, not on review tooling to catch it. **User preference:
-the user does not want to read or maintain the instruction files themselves**
-(that's explicitly why they're gitignored and kept out of normal review
-flow). So whenever a change touches a workflow that has a doc here — donations,
-Pulse, Blast, CSV import, share messages, etc. — find the matching flow doc in
-this index, review it against the change just made, and update it if it's now
-stale. Then **tell the user what you changed in the doc** (a line or two is
-enough) — don't just silently edit it and don't skip the update because it
-seems minor.
+**Read `docs/management_of_change.md` before and after making any change to
+this project.** It's the canonical method for keeping this repo's
+instruction and workflow docs in sync with reality — required reading since
+`docs/` is gitignored and `git diff` won't catch drift on its own.
 
 Every file in `docs/` (and its subdirectories), one line each. The topic
 sections below also link the relevant doc(s) inline where they're needed —
@@ -40,6 +33,7 @@ is deleted.
 
 | File | What it's for |
 |---|---|
+| `docs/management_of_change.md` | The method for keeping this repo's instruction/workflow docs in sync with reality — read first |
 | `docs/OptinPlan.md` | Opt-in growth plan (email + SMS) — current state, the CSV-import dual-write gap, phased roadmap |
 | `docs/PODCAST_WORKFLOW.md` | Operational how-to: adding a hosted episode, multi-part episodes, campaign videos |
 | `docs/podcast_notes.md` | Podcast flow architecture + known issues (live-vs-dead file trap, caching incident) |
