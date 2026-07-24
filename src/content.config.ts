@@ -17,6 +17,11 @@ const messages = defineCollection({
     draft: z.boolean().default(false),
     tags: z.array(z.string()).default([]),
     thumbnail: z.string().optional(),
+    // Actual pixel dimensions of `thumbnail` — required alongside it so
+    // og:image:width/height are correct. Different thumbnails are not all
+    // the same size (ffmpeg frame grabs vs. existing meme images differ).
+    thumbnailWidth: z.number().optional(),
+    thumbnailHeight: z.number().optional(),
     videoUrl: z.string().optional(),
     duration: z.string().optional(),
     ctaLabel: z.string().default('Read more'),

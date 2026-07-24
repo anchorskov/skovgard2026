@@ -2,3 +2,10 @@
 # /posts was folded into /messages ("Latest From Jimmy") on 2026-07-24.
 /posts              /messages/                301
 /posts/simpson-bowles  /messages/simpson-bowles/  301
+
+# Legacy /share pages converted to /messages ("Latest From Jimmy"), 2026-07-24.
+# Note: /share/wyoming-not-for-sale/sources/ is NOT redirected — that page
+# still lives at its original URL and is linked from the new message body.
+/share/boulder-and-the-weeds      /messages/boulder-and-the-weeds/      301
+/share/town-hall-introduction     /messages/town-hall-introduction/     301
+/share/wyoming-not-for-sale       /messages/wyoming-not-for-sale/       301

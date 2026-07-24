@@ -36,8 +36,8 @@ const hasEmailTemplate = Boolean(msg.data.share?.emailSubject);
   title={`${msg.data.title} — Skovgard 2026`}
   description={msg.data.description ?? msg.data.summary}
   ogImage={msg.data.thumbnail}
-  ogImageWidth={msg.data.thumbnail ? 1200 : undefined}
-  ogImageHeight={msg.data.thumbnail ? 675 : undefined}
+  ogImageWidth={msg.data.thumbnailWidth}
+  ogImageHeight={msg.data.thumbnailHeight}
 >
   <Nav />
   <main class="pt-24 pb-20 px-4 bg-wy-stone min-h-screen">

@@ -6,6 +6,8 @@ summary: "Public office is a public trust. An oath belongs to the Constitution a
 draft: false
 tags: ["constitution", "accountability", "oath of office"]
 thumbnail: "/images/messages/an-oath-is-not-a-loyalty-pledge.jpg"
+thumbnailWidth: 1200
+thumbnailHeight: 675
 videoUrl: "/videos/an-oath-is-not-a-loyalty-pledge.mp4"
 duration: "5:59"
 ctaLabel: "Watch and read"
