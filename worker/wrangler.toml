@@ -86,11 +86,16 @@ database_id         = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"
 # same as the digest cron already does) rather than reintroducing a
 # standalone trigger.
 #
-# The only live cron trigger is the daily Pulse follow-up digest (added
-# 2026-07-19, docs/who_needs_to_know.md §3) -- see runPulseFollowUpDigest
-# in worker/src/index.js.
+# Live cron triggers:
+#  - "0 14 * * *"  daily Pulse follow-up digest (added 2026-07-19,
+#     docs/who_needs_to_know.md §3) -- see runPulseFollowUpDigest.
+#  - "17 * * * *"  hourly stale-pending-donation reconciliation against
+#     Stripe (added 2026-07-22, docs/DonationsFlow.md) -- see
+#     reconcilePendingDonations in worker/src/index.js. Offset :17 past the
+#     hour, same reasoning as the other crons here: avoid stacking on the
+#     top-of-hour/other-cron boundary.
 [env.production.triggers]
-crons = ["0 14 * * *"]
+crons = ["0 14 * * *", "17 * * * *"]
 
 # ---------- Preview environment (Pages preview, etc.) ----------
 [env.preview]

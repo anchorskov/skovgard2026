@@ -11,6 +11,26 @@ If instructions, names, domains, emails, or policies from another project appear
 
 ## Documentation Index
 
+**The entire `docs/` folder is gitignored (as of 2026-07-22)** — every file
+listed below exists only on this machine's working copy, not in git or on
+any remote. A fresh clone of this repo will have an empty (or absent)
+`docs/` folder; none of these are recoverable from git history going
+forward. Keep that in mind before assuming a doc will be there after a
+clone, rebase onto a fresh checkout, or when handing this repo to someone
+else — they'll need these files transferred out-of-band.
+
+Because `docs/` is gitignored, a `git diff` will never surface drift between
+a flow doc and the code it describes — the user relies on the agent to keep
+them in sync manually, not on review tooling to catch it. **User preference:
+the user does not want to read or maintain the instruction files themselves**
+(that's explicitly why they're gitignored and kept out of normal review
+flow). So whenever a change touches a workflow that has a doc here — donations,
+Pulse, Blast, CSV import, share messages, etc. — find the matching flow doc in
+this index, review it against the change just made, and update it if it's now
+stale. Then **tell the user what you changed in the doc** (a line or two is
+enough) — don't just silently edit it and don't skip the update because it
+seems minor.
+
 Every file in `docs/` (and its subdirectories), one line each. The topic
 sections below also link the relevant doc(s) inline where they're needed —
 this table exists so nothing gets orphaned (found 3 unlinked docs on
@@ -25,11 +45,12 @@ is deleted.
 | `docs/podcast_notes.md` | Podcast flow architecture + known issues (live-vs-dead file trap, caching incident) |
 | `docs/UpsertOptinData.md` | CSV signup-sheet import — technical field mapping and script reference |
 | `docs/after_verification.md` | Runbook for after the EmailListVerify queue finishes — poll-audience data-quality phases |
-| `docs/blast_tracking.md` | Email Blast flow debugging notes and incident history (gitignored — may be missing after a fresh clone) |
+| `docs/blast_tracking.md` | Email Blast flow debugging notes and incident history |
 | `docs/cloudflare_workerPlan.md` | Cloudflare Workers account plan tier history and the incident that motivated an upgrade |
-| `docs/conf.md` | Local `.dev.vars` secrets management across `worker/`, `Candidates/`, `Guide/` (gitignored) |
+| `docs/conf.md` | Local `.dev.vars` secrets management across `worker/`, `Candidates/`, `Guide/` |
 | `docs/db/EmailConsolidationPlan.md` | Plan for consolidating ~10 email tables into one canonical `email_contacts` table |
 | `docs/db/README.md` | Full D1 schema and data-flow reference — read before any database-related change |
+| `docs/db/UserInformationResolutionPlan.md` | Discussion draft for project-wide progressive identity, address, geography, district, consent, and contact resolution |
 | `docs/deploy.md` | Cloudflare Pages Git-integration build configuration reference |
 | `docs/email_guide.md` | `voter_emails`/`v_best_email` pipeline — schema, tiering, match/import process |
 | `docs/media/AddCampaignVideo.md` | Adding a campaign video to the site |
@@ -41,6 +62,9 @@ is deleted.
 | `docs/social_media.md` | Open Graph / Twitter card requirements for both `skovgard2026.org` and `candidates.skovgard2026.org` |
 | `docs/test_data.md` | Reusable real (not fake) phone/email identities for end-to-end testing |
 | `docs/update_new_contact_emails_texts.md` | Human-facing operations guide for the CSV contact-import workflow |
+| `docs/ai_philosophy/understanding_agents_start.md` | Starting observations on agent context, working reliability, execution horizon, and drift |
+| `docs/security_notes.md` | Incident log and hard rules for handling secrets in terminal commands — no secret values, key names and lessons only |
+| `docs/DonationsFlow.md` | Stripe donation flow: schema, status lifecycle, the abandoned-checkout reconciliation gap and its fix, admin endpoints |
 
 ## Framework: Astro (not Hugo)
 
@@ -188,6 +212,13 @@ See `docs/conf.md` (gitignored, local only) for how local `.dev.vars` files are 
 across `worker/`, `Candidates/`, and `Guide/`. No secrets discussion belongs in any
 committed file — if you need to explain or change that workflow, edit `docs/conf.md`,
 not this file.
+
+**Never `source` a secrets/env file (`secrets/dev-shared.vars`, any `.dev.vars*`) in a
+shell command.** `source` executes the file as bash, not as a safe key=value parser — a
+line that isn't valid bash gets echoed back on failure (or worse, executed, if a value
+contains shell metacharacters). To use one specific key's value, extract only that line
+with `grep '^KEY_NAME=' file | cut -d'=' -f2-`, and never echo/print the extracted value.
+See `docs/security_notes.md` for the incident that established this rule.
 
 ## Deploy Notes
 

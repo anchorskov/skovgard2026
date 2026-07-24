@@ -15,7 +15,7 @@ dist/
 worker/.dev.vars
 worker/.env
 secrets/
-docs/conf.md
+docs/
 scripts/sync-dev-vars.sh
 scripts/*.state.json
 scripts/verify_hd01_emails_2026-07-09.mjs
@@ -70,8 +70,6 @@ Candidates/data/rubrics/generated/*
 !Guide/src/data/
 Guide/src/data/*
 !Guide/src/data/wy-primary-2026-v1.generated.json
-docs/db/data/
-docs/blast_tracking.md
 exports/
 brand/exports/
 scripts/brand/

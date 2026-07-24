@@ -3192,6 +3192,77 @@ async function createStripePaymentIntent(env, data, metadata = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// Reconcile stale `pending` contributions against Stripe.
+//
+// The /api/donate/webhook handler only ever moves a contribution off
+// "pending" when Stripe delivers payment_intent.succeeded or
+// payment_intent.payment_failed. If a donor abandons checkout (closes the
+// tab, never completes 3DS, etc.) Stripe frequently never fires a failed
+// event at all -- the PaymentIntent just sits in requires_payment_method /
+// requires_action forever, and so does our row. This polls Stripe directly
+// (source of truth) for any contribution still "pending" after a grace
+// window, rather than waiting on a webhook that may never arrive.
+// See docs/DonationsFlow.md.
+// ---------------------------------------------------------------------------
+const DONATION_RECONCILE_GRACE_MINUTES = 60;
+
+function mapStripeStatusToContributionStatus(stripeStatus) {
+  if (stripeStatus === "succeeded") return "succeeded_webhook";
+  if (stripeStatus === "canceled") return "failed";
+  // requires_payment_method after the grace window means the customer
+  // abandoned the checkout without a successful attempt -- treat as failed.
+  if (stripeStatus === "requires_payment_method") return "failed";
+  // requires_action / requires_confirmation / processing: still genuinely
+  // in flight (e.g. slow bank transfer). Leave as pending and re-check later.
+  return null;
+}
+
+async function reconcilePendingDonations(env) {
+  if (!env.DB) return { ran: false, reason: "no_db" };
+  if (!env.STRIPE_SECRET_KEY) return { ran: false, reason: "no_stripe_key" };
+
+  const stale = (await env.DB.prepare(
+    `SELECT id, payment_intent_id
+       FROM contributions
+      WHERE status = 'pending'
+        AND created_at <= datetime('now', ?1)`
+  ).bind(`-${DONATION_RECONCILE_GRACE_MINUTES} minutes`).all())?.results || [];
+
+  let checked = 0;
+  let updated = 0;
+  const errors = [];
+
+  for (const row of stale) {
+    checked += 1;
+    try {
+      const res = await fetch(
+        `https://api.stripe.com/v1/payment_intents/${row.payment_intent_id}`,
+        { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } }
+      );
+      const intent = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        errors.push({ id: row.id, error: intent?.error?.message || "Stripe error" });
+        continue;
+      }
+
+      const newStatus = mapStripeStatusToContributionStatus(intent.status);
+      if (!newStatus) continue;
+
+      await env.DB.prepare(
+        `UPDATE contributions
+            SET status = ?1, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?2 AND status = 'pending'`
+      ).bind(newStatus, row.id).run();
+      updated += 1;
+    } catch (e) {
+      errors.push({ id: row.id, error: e.message });
+    }
+  }
+
+  return { ran: true, checked, updated, errors };
+}
+
+// ---------------------------------------------------------------------------
 // Scheduled (Cron Trigger) email verification -- runs unattended on
 // Cloudflare's own infrastructure, not dependent on a local machine/session.
 // Ports the same logic as scripts/verify_district_emails.mjs (status
@@ -3826,6 +3897,19 @@ export default {
         await maybeSendWelcomeText(env.DB, env, phone);
 
         return json(req, env, { ok: true });
+      }
+
+      // POST /api/admin/donations/reconcile
+      // Manually runs the same stale-pending-vs-Stripe reconciliation as the
+      // hourly cron (see reconcilePendingDonations, docs/DonationsFlow.md).
+      // Lets an admin re-check immediately instead of waiting for the next tick.
+      if (req.method === "POST" && path === "/api/admin/donations/reconcile") {
+        if (!env.DB) return json(req, env, { error: "Database not configured." }, 500);
+        const auth = await mustBeAdmin(req, env, url);
+        if (!auth.ok) return auth.response;
+
+        const result = await reconcilePendingDonations(env);
+        return json(req, env, result);
       }
 
       if (req.method === "POST" && path === "/api/donate/webhook") {
@@ -8571,6 +8655,14 @@ export default {
       ctx.waitUntil(
         runPulseFollowUpDigest(env).catch((e) => {
           console.error("scheduled pulse follow-up digest failed:", e);
+        })
+      );
+      return;
+    }
+    if (controller.cron === "17 * * * *") {
+      ctx.waitUntil(
+        reconcilePendingDonations(env).catch((e) => {
+          console.error("scheduled donation reconciliation failed:", e);
         })
       );
       return;
