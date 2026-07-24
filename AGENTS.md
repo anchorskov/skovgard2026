@@ -217,6 +217,8 @@ See `docs/security_notes.md` for the incident that established this rule.
 ## Deploy Notes
 
 - `scripts/deploy_cf.sh` is a site deploy helper for Cloudflare Pages. For the Astro frontend it should deploy `dist/`, not `public/`.
+- **Default invocation (no flags) does not itself deploy** — it builds locally as a verification step, then pushes to `origin/main`; actual deployment happens via Cloudflare Pages Git integration. This is the normal path — prefer it.
+- `DIRECT=1 ./scripts/deploy_cf.sh` bypasses that and uploads the local `dist/` straight to Cloudflare via `wrangler pages deploy`. It's noticeably faster (no remote build queue, reuses local `node_modules`), but what goes live was built on this machine rather than verified by Cloudflare's own clean `npm ci` build from `origin/main` — reserve it for when the Git-integration build is stuck/misconfigured or an urgent deploy can't wait, not as the default path.
 - That script does not publish the Worker in `worker/`.
 - Cloudflare Pages Git builds for the Astro site must use Node `22.12.0` or newer. If dashboard settings still reference Hugo or `public/`, correct them before debugging app code.
 - `scripts/deploy_worker.sh` is the canonical production Worker deploy helper. It runs `npx wrangler deploy --env production --name skovgard2026-api` from `worker/` so Wrangler does not drift to `skovgard2026-api-production`.
@@ -232,9 +234,10 @@ When asked whether localhost, the repo, or production are in sync — or before 
 3. **Check unpushed commits**: `git log origin/<branch>..HEAD` — any output means commits exist locally that have not been pushed
 
 **If the current branch is `main`:**
-- Production mirrors `origin/main`. If `git log origin/main..HEAD` is empty and the deploy scripts were run after the last push, production is current.
-- There is **no automated CD** — pushing to `origin/main` alone does not update production. Both `scripts/deploy_cf.sh` (Astro Pages) and `scripts/deploy_worker.sh` (API Worker) must be run explicitly after each push.
-- If it is unclear whether the deploy scripts were run since the last push, ask the user rather than assuming production is current.
+- Production mirrors `origin/main`, but the two deploy targets are not symmetric:
+  - **Astro Pages site** — confirmed 2026-07-24: Cloudflare Pages Git integration rebuilds and redeploys automatically on every push to `origin/main`. If `git log origin/main..HEAD` is empty, the Pages site is current or will be shortly (Cloudflare's own build time).
+  - **API Worker** — **no automated CD**. Pushing to `origin/main` never deploys it. `scripts/deploy_worker.sh` must be run explicitly after any push touching `worker/`.
+- If it is unclear whether the Worker deploy script was run since the last push, ask the user rather than assuming production is current.
 
 **If the current branch is anything other than `main`:**
 - Do **not** check or reference production — production only mirrors `main`.
@@ -256,7 +259,7 @@ When creating audio/video files with `ffmpeg`, review `instructions/how_to_mp4.m
 
 ### Podcast — Two Content Streams
 
-The podcast page and landing page "On the Record" section pull from two independent sources. **Neither requires code changes when new content is added.**
+The podcast page and the homepage's "Latest From Jimmy" section pull from two independent sources.
 
 | Stream | Source | Endpoint | Maintenance |
 |---|---|---|---|
@@ -277,7 +280,7 @@ Key rules for hosted episodes:
 - `r2_key` in D1 has **no** leading slash; public URL = `${MEDIA_BASE_URL}/${r2_key}`
 - Campaign videos use `guest_slug = 'campaign'` and keys like `videos/{name}.mp4`
 - `summary` column is JSON: `{"title":"...","slug":"share-slug-or-null","duration":"M:SS"}`
-- After inserting a D1 row, the site updates automatically — no deploy needed
+- After inserting a D1 row, it appears automatically in the homepage's "More to hear" row — but *featuring* a video (the large embedded player) is always a manual edit to `src/pages/index.astro` plus a deploy; see `docs/media/AddCampaignVideo.md`
 - Use `INSERT OR IGNORE` — never UPDATE or DELETE rows except via an approved migration
 
 Do NOT follow `docs/PODCAST_WORKFLOW.md` instructions that reference Hugo, `media.this-is-us.org`, shortcodes, or `content/podcast.md` — those sections are outdated. The file has been rewritten for the current Astro architecture.

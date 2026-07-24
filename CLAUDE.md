@@ -67,6 +67,11 @@ This project migrated from Hugo to Astro in early April 2026. **All code changes
   - `worker/wrangler.toml`
   - the actual public `curl -I` response for the final URL
 
+## Astro Pages Deploy
+
+- `scripts/deploy_cf.sh` with no flags builds locally as a verification step, then pushes to `origin/main` — it does not itself deploy. Cloudflare Pages Git integration rebuilds and redeploys automatically from that push. This is the normal path.
+- `DIRECT=1 ./scripts/deploy_cf.sh` bypasses Git integration and uploads the local `dist/` directly via `wrangler pages deploy`. Faster (no remote build queue), but what's live was built on this machine, not verified by Cloudflare's own clean `npm ci` build. Reserve it for when the Git-integration build is stuck or an urgent deploy can't wait.
+
 ## Worker Deploy
 
 - Use `./scripts/deploy_worker.sh` for production Worker deploys.
@@ -123,9 +128,10 @@ When asked whether localhost, the repo, or production are in sync — or before 
 3. **Check unpushed commits**: `git log origin/<branch>..HEAD` — any output means commits exist locally that have not been pushed
 
 **If the current branch is `main`:**
-- Production mirrors `origin/main`. If `git log origin/main..HEAD` is empty and the deploy scripts were run after the last push, production is current.
-- There is **no automated CD** — pushing to `origin/main` alone does not update production. Both `scripts/deploy_cf.sh` (Astro Pages) and `scripts/deploy_worker.sh` (API Worker) must be run explicitly after each push.
-- If it is unclear whether the deploy scripts were run since the last push, ask the user rather than assuming production is current.
+- Production mirrors `origin/main`, but the two deploy targets are not symmetric:
+  - **Astro Pages site** — confirmed 2026-07-24: Cloudflare Pages Git integration rebuilds and redeploys automatically on every push to `origin/main`. If `git log origin/main..HEAD` is empty, the Pages site is current or will be shortly (Cloudflare's own build time).
+  - **API Worker** — **no automated CD**. Pushing to `origin/main` never deploys it. `scripts/deploy_worker.sh` must be run explicitly after any push touching `worker/`.
+- If it is unclear whether the Worker deploy script was run since the last push, ask the user rather than assuming production is current.
 
 **If the current branch is anything other than `main`:**
 - Do **not** check or reference production — production only mirrors `main`.
