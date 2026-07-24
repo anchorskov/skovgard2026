@@ -4,8 +4,12 @@
 /posts/simpson-bowles  /messages/simpson-bowles/  301
 
 # Legacy /share pages converted to /messages ("Latest From Jimmy"), 2026-07-24.
-# Note: /share/wyoming-not-for-sale/sources/ is NOT redirected — that page
-# still lives at its original URL and is linked from the new message body.
-/share/boulder-and-the-weeds      /messages/boulder-and-the-weeds/      301
-/share/town-hall-introduction     /messages/town-hall-introduction/     301
-/share/wyoming-not-for-sale       /messages/wyoming-not-for-sale/       301
+# Note: /share/wyoming-not-for-sale/sources/ and /share/wyoming-family-economy/
+# sources/ are NOT redirected — those pages still live at their original URLs
+# and are linked from the new message bodies.
+/share/boulder-and-the-weeds            /messages/boulder-and-the-weeds/            301
+/share/town-hall-introduction           /messages/town-hall-introduction/           301
+/share/wyoming-not-for-sale             /messages/wyoming-not-for-sale/             301
+/share/higher-prices-washington-debt    /messages/higher-prices-washington-debt/    301
+/share/citizens-defend-the-constitution /messages/citizens-defend-the-constitution/ 301
+/share/wyoming-family-economy           /messages/wyoming-family-economy/           301

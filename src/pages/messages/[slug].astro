@@ -56,6 +56,9 @@ const hasEmailTemplate = Boolean(msg.data.share?.emailSubject);
         <div class="w-full rounded-xl overflow-hidden shadow-lg mb-10" style="background:#000;">
           <video controls preload="metadata" class="w-full block" style="max-height:480px;">
             <source src={`${MEDIA_BASE_URL}${msg.data.videoUrl}`} type="video/mp4" />
+            {msg.data.captionsUrl && (
+              <track kind="captions" src={`${MEDIA_BASE_URL}${msg.data.captionsUrl}`} srclang="en" label="English" default />
+            )}
             Your browser does not support the video tag.
           </video>
         </div>

@@ -23,6 +23,9 @@ const messages = defineCollection({
     thumbnailWidth: z.number().optional(),
     thumbnailHeight: z.number().optional(),
     videoUrl: z.string().optional(),
+    // WebVTT captions track for videoUrl, e.g. "/videos/<slug>.vtt". Only a
+    // few legacy videos have one — omit unless the file actually exists.
+    captionsUrl: z.string().optional(),
     duration: z.string().optional(),
     ctaLabel: z.string().default('Read more'),
     // Old /share/<slug> this message replaces, so a redirect can be wired up.
