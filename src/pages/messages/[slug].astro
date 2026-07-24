@@ -26,7 +26,9 @@ const TYPE_LABELS = {
   tool: 'Voter Tool',
 };
 
-const dateLabel = msg.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+// timeZone: 'UTC' pins this to the calendar date in frontmatter — see the
+// same note in MessageCard.astro.
+const dateLabel = msg.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 const canonicalUrl = `https://skovgard2026.org/messages/${msg.id}/`;
 const hasEmailTemplate = Boolean(msg.data.share?.emailSubject);
 ---
@@ -34,6 +36,8 @@ const hasEmailTemplate = Boolean(msg.data.share?.emailSubject);
   title={`${msg.data.title} — Skovgard 2026`}
   description={msg.data.description ?? msg.data.summary}
   ogImage={msg.data.thumbnail}
+  ogImageWidth={msg.data.thumbnail ? 1200 : undefined}
+  ogImageHeight={msg.data.thumbnail ? 675 : undefined}
 >
   <Nav />
   <main class="pt-24 pb-20 px-4 bg-wy-stone min-h-screen">

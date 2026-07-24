@@ -7,7 +7,10 @@ interface Props {
   typeLabel: string;
 }
 const { msg, typeLabel } = Astro.props;
-const dateLabel = msg.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+// timeZone: 'UTC' pins this to the calendar date in frontmatter — without it,
+// a build machine west of UTC rolls the date back a day (coerced dates are
+// midnight UTC, and toLocaleDateString defaults to local time).
+const dateLabel = msg.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 ---
 <a href={`/messages/${msg.id}/`} class="message-card">
   <div
