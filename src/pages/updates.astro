@@ -1,0 +1,27 @@
+---
+// src/pages/updates.astro
+import PulseOptInForm from '../components/PulseOptInForm.astro';
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+<Base
+  title="Get Updates — Skovgard 2026"
+  description="Get Wyoming campaign updates by text and email from Jimmy Skovgard for U.S. Senate."
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4 bg-wy-stone min-h-screen">
+    <div class="max-w-xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Stay Connected</p>
+      <h1 class="text-4xl font-serif font-bold text-wy-navy mb-2">Get Updates</h1>
+      <p class="text-gray-600 mb-8">Campaign news, events, and where to find Jimmy — straight to your phone or inbox.</p>
+
+      <PulseOptInForm variant="updates" showPrivacyNote={false} />
+
+      <p class="text-gray-400 text-xs text-center mt-5">
+        We never sell your information. Reply STOP to opt out at any time.
+      </p>
+    </div>
+  </main>
+  <Footer />
+</Base>

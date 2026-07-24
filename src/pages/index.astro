@@ -3,7 +3,7 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import { CANDIDATES_BASE_URL, MEDIA_BASE_URL } from '../constants';
+import { MEDIA_BASE_URL } from '../constants';
 ---
 <Base
   title="Jimmy Skovgard — U.S. Senate 2026"
@@ -37,11 +37,8 @@ import { CANDIDATES_BASE_URL, MEDIA_BASE_URL } from '../constants';
         <a href="/donate" class="border-2 border-wy-ember bg-wy-ember/10 text-wy-ember font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember/20 transition-colors">
           Support Jimmy
         </a>
-        <a href="/volunteer" class="border-2 border-wy-bone bg-wy-bone/10 text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-bone/20 transition-colors">
-          Volunteer
-        </a>
-        <a href={CANDIDATES_BASE_URL} data-candidates-link target="_blank" rel="noopener" class="border-2 border-wy-rust bg-transparent text-wy-rust font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-rust/10 transition-colors">
-          My Ballot
+        <a href="/updates" class="border-2 border-wy-bone bg-wy-bone/10 text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-bone/20 transition-colors">
+          Get Updates
         </a>
       </div>
     </div>
@@ -87,10 +84,10 @@ import { CANDIDATES_BASE_URL, MEDIA_BASE_URL } from '../constants';
     </div>
   </section>
 
-  <!-- FEATURED MESSAGE VIDEO -->
+  <!-- LATEST FROM JIMMY — featured video + more to hear, one consolidated section -->
   <section class="bg-wy-navy py-20 px-4">
     <div class="max-w-5xl mx-auto">
-      <p class="text-wy-sandstone font-semibold uppercase tracking-wider text-sm mb-3">Latest Message</p>
+      <p class="text-wy-sandstone font-semibold uppercase tracking-wider text-sm mb-3">Latest From Jimmy</p>
       <h2 class="text-4xl font-serif font-bold text-white mb-4">The Boulder and the Weeds</h2>
       <p class="text-white/70 text-lg mb-10 max-w-2xl">
         Truth is the boulder — stoic and enduring. Fear and outrage are the weeds looking for a crack to grow in. One honest conversation at a time, we return to the truth.
@@ -107,53 +104,51 @@ import { CANDIDATES_BASE_URL, MEDIA_BASE_URL } from '../constants';
         </video>
       </div>
       <!-- Meta + context + CTA -->
-      <div class="flex flex-col md:flex-row gap-10 items-start">
+      <div class="flex flex-col md:flex-row gap-10 items-start mb-12">
         <div class="flex-1">
           <p class="text-wy-sandstone font-bold text-sm uppercase tracking-[0.18em] mb-2">July 2026 · Video</p>
           <h3 class="text-2xl font-serif font-extrabold text-wy-bone mb-3">The Boulder and the Weeds</h3>
           <p class="text-wy-bone/70 text-lg leading-relaxed mb-8">
             A political machine runs on money and outrage. Truth doesn't need an advertising budget — it only needs one honest conversation to take root.
           </p>
-          <div class="flex flex-col sm:flex-row gap-4">
-            <a href="/share/boulder-and-the-weeds" class="inline-block bg-wy-ember text-wy-bone font-bold px-6 py-3 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
-              Watch &amp; Share →
-            </a>
-            <a href="/share" class="inline-block border-2 border-wy-bone/40 text-wy-bone font-bold px-6 py-3 rounded-sm hover:border-wy-bone transition-colors">
-              Choose another message
-            </a>
-          </div>
+          <a href="/share/boulder-and-the-weeds" class="inline-block bg-wy-ember text-wy-bone font-bold px-6 py-3 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
+            Watch &amp; Share →
+          </a>
         </div>
+      </div>
+
+      <!-- More to hear — populated client-side from /api/podcast-feed + /api/podcasts -->
+      <div class="pt-8 border-t border-wy-bone/10">
+        <p class="text-xs text-wy-bone/40 uppercase tracking-widest mb-4 font-semibold">More to hear</p>
+        <div id="otr-grid" class="flex flex-wrap gap-3">
+          <!-- skeleton chips while feed loads -->
+          <div class="h-14 w-48 bg-wy-bone/10 rounded-sm animate-pulse"></div>
+          <div class="h-14 w-48 bg-wy-bone/10 rounded-sm animate-pulse"></div>
+        </div>
+      </div>
+
+      <div class="mt-8 text-center">
+        <a href="/podcast" class="text-wy-bone font-semibold border-b-2 border-wy-ember pb-1 hover:text-wy-sandstone transition-colors">
+          All Episodes →
+        </a>
       </div>
     </div>
   </section>
 
-  <!-- LATEST PODCAST — populated client-side from /api/podcast-feed -->
-  <section class="bg-wy-stone py-20 px-4">
-    <div class="max-w-5xl mx-auto">
-      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-3">On the Record</p>
-      <h2 class="text-4xl font-serif font-bold text-wy-navy mb-10">Listen to Jimmy</h2>
-      <div id="otr-grid" class="grid md:grid-cols-2 gap-6">
-        <!-- skeleton cards while feed loads -->
-        <div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust animate-pulse">
-          <div class="h-3 bg-wy-dust/50 rounded w-1/3 mb-3"></div>
-          <div class="h-5 bg-wy-dust/50 rounded w-3/4 mb-2"></div>
-          <div class="h-4 bg-wy-dust/30 rounded w-full mb-1"></div>
-          <div class="h-4 bg-wy-dust/30 rounded w-5/6"></div>
-        </div>
-        <div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust animate-pulse">
-          <div class="h-3 bg-wy-dust/50 rounded w-1/3 mb-3"></div>
-          <div class="h-5 bg-wy-dust/50 rounded w-3/4 mb-2"></div>
-          <div class="h-4 bg-wy-dust/30 rounded w-full mb-1"></div>
-          <div class="h-4 bg-wy-dust/30 rounded w-5/6"></div>
-        </div>
-      </div>
-      <div id="otr-older-row" class="mt-6 hidden">
-        <p class="text-xs text-wy-charcoal/50 uppercase tracking-widest mb-3 font-semibold">Older Videos</p>
-        <div id="otr-older-chips" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div class="mt-8 text-center">
-        <a href="/podcast" class="text-wy-charcoal font-semibold border-b-2 border-wy-ember pb-1 hover:text-wy-ember transition-colors">
-          All Episodes →
+  <!-- CLOSING CTA -->
+  <section class="bg-wy-bone border-t border-wy-dust py-20 px-4 text-center">
+    <div class="max-w-xl mx-auto">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">Ready to help?</p>
+      <h2 class="text-3xl sm:text-4xl font-serif font-extrabold text-wy-charcoal mb-4">One campaign, one Wyoming.</h2>
+      <p class="text-wy-charcoal/70 text-lg mb-8">
+        Every dollar and every hour goes straight to reaching voters — no machine, no mega-donors, just neighbors talking to neighbors.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/donate" class="bg-wy-ember text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
+          Support Jimmy
+        </a>
+        <a href="/volunteer" class="border-2 border-wy-charcoal text-wy-charcoal font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-charcoal hover:text-wy-bone transition-colors">
+          Volunteer Instead
         </a>
       </div>
     </div>
@@ -166,71 +161,38 @@ import { CANDIDATES_BASE_URL, MEDIA_BASE_URL } from '../constants';
 <script>
 (function () {
   const grid = document.getElementById('otr-grid');
-  const olderRow = document.getElementById('otr-older-row');
-  const olderChips = document.getElementById('otr-older-chips');
   if (!grid) return;
-
-  function fmtDate(rfc) {
-    try { return new Date(rfc).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
-    catch (_) { return rfc || ''; }
-  }
-
-  function fmtISODate(iso) {
-    try { return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
-    catch (_) { return iso || ''; }
-  }
 
   function parseMeta(summary) {
     try { return typeof summary === 'string' && summary.startsWith('{') ? JSON.parse(summary) : { title: summary, slug: null, duration: null }; }
     catch (_) { return { title: summary, slug: null, duration: null }; }
   }
 
-  function substackCard(ep) {
-    const isAudio = ep.audio && !ep.audio.endsWith('.mp4');
+  const chipClasses = 'flex flex-col gap-0.5 bg-white rounded-sm border border-wy-dust px-4 py-3 min-w-[12rem] flex-1 hover:border-wy-ember transition-colors';
+
+  function substackChip(ep) {
+    const d = ep.date ? new Date(ep.date) : null;
+    const dateLabel = d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
     return `
-      <div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust flex flex-col justify-between">
-        <div>
-          <p class="text-sm text-wy-charcoal/50 mb-2">${fmtDate(ep.date)}${ep.duration ? ' · ' + ep.duration : ''}</p>
-          <h3 class="font-serif font-extrabold text-wy-charcoal text-xl mb-3">
-            <a href="${ep.link}" target="_blank" rel="noopener" class="hover:text-wy-ember transition-colors">${ep.title}</a>
-          </h3>
-          ${ep.description ? `<p class="text-wy-charcoal/70 mb-4 text-sm">${ep.description}</p>` : ''}
-        </div>
-        ${isAudio ? `<audio controls class="w-full rounded mt-2" preload="none"><source src="${ep.audio}" type="audio/mpeg" /></audio>` : ''}
-        <a href="${ep.link}" target="_blank" rel="noopener"
-           class="mt-4 inline-block text-sm font-semibold text-wy-sandstone hover:text-wy-ember hover:underline">
-          Listen on Substack →
-        </a>
-      </div>`;
+      <a href="${ep.link}" target="_blank" rel="noopener" class="${chipClasses}">
+        <span class="text-xs text-wy-sandstone font-semibold">${dateLabel} · Substack</span>
+        <span class="text-sm font-semibold text-wy-charcoal">${ep.title}</span>
+      </a>`;
   }
 
-  function campaignCard(ep) {
+  function campaignChip(ep) {
     const meta = parseMeta(ep.summary);
     const title = meta.title || ep.guest_slug;
-    const slug = meta.slug;
-    const dur = meta.duration;
-    return `
-      <div id="otr-campaign-card" class="bg-white rounded-sm shadow-md border border-wy-dust flex flex-col overflow-hidden">
-        <video controls preload="none" class="w-full block bg-black" style="max-height:280px">
-          <source src="${ep.url}" type="video/mp4" />
-        </video>
-        <div class="p-5 flex flex-col flex-1 justify-between">
-          <div>
-            <p class="text-xs text-wy-charcoal/50 mb-1">${fmtISODate(ep.episode_date)}${dur ? ' · ' + dur : ''} · Campaign</p>
-            <h3 class="font-serif font-extrabold text-wy-charcoal text-lg mb-2 leading-snug">${title}</h3>
-          </div>
-          ${slug ? `<a href="/share/${slug}" class="mt-2 inline-block text-sm font-semibold text-wy-sandstone hover:text-wy-ember hover:underline">Watch &amp; Share →</a>` : ''}
-        </div>
-      </div>`;
-  }
-
-  function chipLabel(ep) {
-    const meta = parseMeta(ep.summary);
-    const title = meta.title || ep.guest_slug;
-    const dur = meta.duration;
     const d = new Date(ep.episode_date + 'T12:00:00Z');
-    const shortDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `${shortDate} · ${title}${dur ? ' (' + dur + ')' : ''}`;
+    const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    // Links to /podcast rather than /share/<slug> — this row is pulled live from
+    // the API, so we can't assume a hand-built /share page exists for every video
+    // (only the featured one above is curated to guarantee a matching share page).
+    return `
+      <a href="/podcast" class="${chipClasses}">
+        <span class="text-xs text-wy-sandstone font-semibold">${dateLabel}${meta.duration ? ' · ' + meta.duration : ''} · Campaign</span>
+        <span class="text-sm font-semibold text-wy-charcoal">${title}</span>
+      </a>`;
   }
 
   Promise.all([
@@ -239,43 +201,21 @@ import { CANDIDATES_BASE_URL, MEDIA_BASE_URL } from '../constants';
   ]).then(([feedData, podcastData]) => {
     const substackEp = (feedData.episodes || [])[0];
     const campaignVids = (podcastData.episodes || []).filter(e => e.guest_slug === 'campaign');
-    // campaignVids[0] is already shown in the Featured Message Video section above — skip it
-    const slotVids = campaignVids.slice(1);
-    const featured = slotVids[0];
-    const older = slotVids.slice(1);
+    // campaignVids[0] is already shown in the featured video above — skip it
+    const rest = campaignVids.slice(1);
 
-    const slot1 = substackEp
-      ? substackCard(substackEp)
-      : '<div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust"><p class="text-wy-charcoal/50 text-sm">No recent posts.</p></div>';
+    const chips = [];
+    if (substackEp) chips.push(substackChip(substackEp));
+    rest.forEach(ep => chips.push(campaignChip(ep)));
 
-    grid.innerHTML = slot1 + (featured ? campaignCard(featured) : '');
-
-    if (older.length > 0 && olderRow && olderChips) {
-      olderChips.innerHTML = older.map((v, i) =>
-        `<button class="text-xs px-3 py-1.5 rounded border border-wy-dust bg-white text-wy-charcoal/70 hover:border-wy-ember hover:text-wy-ember transition-colors font-semibold whitespace-nowrap" data-idx="${i}">${chipLabel(v)}</button>`
-      ).join('');
-      olderRow.classList.remove('hidden');
-
-      olderChips.addEventListener('click', function (e) {
-        const btn = e.target.closest('button[data-idx]');
-        if (!btn) return;
-        const ep = older[parseInt(btn.dataset.idx, 10)];
-        if (!ep) return;
-        const card = document.getElementById('otr-campaign-card');
-        if (card) {
-          const tmp = document.createElement('div');
-          tmp.innerHTML = campaignCard(ep);
-          card.parentNode.replaceChild(tmp.firstElementChild, card);
-        }
-      });
-    }
+    grid.innerHTML = chips.length
+      ? chips.join('')
+      : '<p class="text-wy-bone/50 text-sm">No additional episodes yet.</p>';
   }).catch(() => {
     grid.innerHTML = `
-      <div class="bg-white rounded-sm p-6 shadow-md border border-wy-dust col-span-2 text-center">
-        <p class="text-wy-charcoal/60 mb-3">Visit Substack for the latest episodes.</p>
-        <a href="https://jimskovgard.substack.com/" target="_blank" rel="noopener"
-           class="text-wy-ember font-semibold hover:underline">Open Substack →</a>
-      </div>`;
+      <a href="https://jimskovgard.substack.com/" target="_blank" rel="noopener" class="${chipClasses}">
+        <span class="text-sm font-semibold text-wy-charcoal">Visit Substack for the latest episodes →</span>
+      </a>`;
   });
 })();
 </script>

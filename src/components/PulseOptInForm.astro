@@ -2,11 +2,17 @@
 // src/components/PulseOptInForm.astro
 interface Props {
   showPrivacyNote?: boolean;
+  /** 'full' shows the two-step Citizen Poll flow (used on /pulse). 'updates' trims
+   * the form to contact info + SMS/email consent only — same submit path as the
+   * existing "Join updates without voting" shortcut, just without the poll upsell. */
+  variant?: 'full' | 'updates';
 }
 
 const {
   showPrivacyNote = true,
+  variant = 'full',
 } = Astro.props;
+const isUpdatesOnly = variant === 'updates';
 ---
 <div class="pulse-optin-surface">
   <noscript>
@@ -19,22 +25,30 @@ const {
 
   <form id="optin-form" class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-gray-100" method="post" novalidate>
 
-    <ol class="pulse-step-indicator" aria-label="Signup progress">
-      <li id="pulse-step-indicator-1" class="is-active" aria-current="step">
-        <span>1</span>
-        <strong>Contact &amp; consent</strong>
-      </li>
-      <li id="pulse-step-indicator-2">
-        <span>2</span>
-        <strong>Citizen Poll</strong>
-      </li>
-    </ol>
+    {!isUpdatesOnly && (
+      <ol class="pulse-step-indicator" aria-label="Signup progress">
+        <li id="pulse-step-indicator-1" class="is-active" aria-current="step">
+          <span>1</span>
+          <strong>Contact &amp; consent</strong>
+        </li>
+        <li id="pulse-step-indicator-2">
+          <span>2</span>
+          <strong>Citizen Poll</strong>
+        </li>
+      </ol>
+    )}
 
     <section id="pulse-step-1" class="pulse-form-step space-y-5" aria-labelledby="pulse-step-1-title">
       <div>
-        <p class="text-xs font-bold uppercase tracking-widest text-wy-rust mb-1">Step 1 of 2</p>
-        <h2 id="pulse-step-1-title" class="text-2xl font-serif font-bold text-wy-charcoal">Join the Pulse</h2>
-        <p class="text-sm text-gray-600 mt-1">Enter your contact information and choose how you want to hear from us.</p>
+        {!isUpdatesOnly && <p class="text-xs font-bold uppercase tracking-widest text-wy-rust mb-1">Step 1 of 2</p>}
+        <h2 id="pulse-step-1-title" class="text-2xl font-serif font-bold text-wy-charcoal">
+          {isUpdatesOnly ? 'Get Updates' : 'Join the Pulse'}
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">
+          {isUpdatesOnly
+            ? 'Enter your contact information to receive campaign updates by text and email.'
+            : 'Enter your contact information and choose how you want to hear from us.'}
+        </p>
       </div>
 
       <!-- Name -->
@@ -82,7 +96,7 @@ const {
       <!-- Email (required for poll, optional for updates) -->
       <div>
         <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-          Email address <span class="text-gray-400 font-normal text-xs">(required for the Citizen Poll)</span>
+          Email address {!isUpdatesOnly && <span class="text-gray-400 font-normal text-xs">(required for the Citizen Poll)</span>}
         </label>
         <input
           id="email"
@@ -93,7 +107,11 @@ const {
           placeholder="you@example.com"
           class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
         />
-        <p class="text-xs text-gray-400 mt-1">We use your email to deliver your district's poll ballot. It is optional if you only want text updates.</p>
+        <p class="text-xs text-gray-400 mt-1">
+          {isUpdatesOnly
+            ? 'Optional — add it if you\'d also like updates by email.'
+            : "We use your email to deliver your district's poll ballot. It is optional if you only want text updates."}
+        </p>
       </div>
 
       <!-- SMS consent (required) -->
@@ -139,86 +157,94 @@ const {
         </label>
       </div>
 
-      <div class="pulse-poll-card">
-        <p class="text-xs font-bold uppercase tracking-widest text-wy-rust mb-1">Next: Citizen Poll</p>
-        <h3 class="text-xl font-serif font-bold text-wy-charcoal">Vote in your district's poll</h3>
-        <p class="text-sm text-gray-600 mt-1 mb-4">Continue to verify your Wyoming voter registration and receive the correct ballot.</p>
-        <button type="button" id="pulse-continue-poll" class="pulse-primary-action">
-          Continue to Citizen Poll
+      {isUpdatesOnly ? (
+        <button type="button" id="pulse-updates-only" class="pulse-primary-action">
+          Get Updates
         </button>
-        <button type="button" id="pulse-updates-only" class="pulse-secondary-action">
-          Join updates without voting
-        </button>
-        <p class="text-xs text-gray-400 mt-2">
-          Tip: adding your city and ZIP on the next screen helps us confirm your voter registration for the Citizen Poll.
-        </p>
-      </div>
+      ) : (
+        <div class="pulse-poll-card">
+          <p class="text-xs font-bold uppercase tracking-widest text-wy-rust mb-1">Next: Citizen Poll</p>
+          <h3 class="text-xl font-serif font-bold text-wy-charcoal">Vote in your district's poll</h3>
+          <p class="text-sm text-gray-600 mt-1 mb-4">Continue to verify your Wyoming voter registration and receive the correct ballot.</p>
+          <button type="button" id="pulse-continue-poll" class="pulse-primary-action">
+            Continue to Citizen Poll
+          </button>
+          <button type="button" id="pulse-updates-only" class="pulse-secondary-action">
+            Join updates without voting
+          </button>
+          <p class="text-xs text-gray-400 mt-2">
+            Tip: adding your city and ZIP on the next screen helps us confirm your voter registration for the Citizen Poll.
+          </p>
+        </div>
+      )}
     </section>
 
-    <section id="pulse-step-2" class="pulse-form-step space-y-5" aria-labelledby="pulse-step-2-title" hidden>
-      <div tabindex="-1" id="pulse-step-2-heading">
-        <p class="text-xs font-bold uppercase tracking-widest text-wy-rust mb-1">Step 2 of 2</p>
-        <h2 id="pulse-step-2-title" class="text-2xl font-serif font-bold text-wy-charcoal">Get your Citizen Poll ballot</h2>
-        <p class="text-sm text-gray-600 mt-1">
-          We check your name, city, and ZIP against the Wyoming voter roll so we can send the ballot for your district.
+    {!isUpdatesOnly && (
+      <section id="pulse-step-2" class="pulse-form-step space-y-5" aria-labelledby="pulse-step-2-title" hidden>
+        <div tabindex="-1" id="pulse-step-2-heading">
+          <p class="text-xs font-bold uppercase tracking-widest text-wy-rust mb-1">Step 2 of 2</p>
+          <h2 id="pulse-step-2-title" class="text-2xl font-serif font-bold text-wy-charcoal">Get your Citizen Poll ballot</h2>
+          <p class="text-sm text-gray-600 mt-1">
+            We check your name, city, and ZIP against the Wyoming voter roll so we can send the ballot for your district.
+          </p>
+        </div>
+
+        <div class="rounded-xl border border-wy-dust bg-wy-bone/50 px-4 py-4 space-y-4">
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
+              <input
+                id="city"
+                name="city"
+                type="text"
+                autocomplete="address-level2"
+                placeholder="Casper"
+                aria-required="true"
+                class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
+              />
+            </div>
+            <div>
+              <label for="zip" class="block text-sm font-medium text-gray-700 mb-1">ZIP code <span class="text-red-500">*</span></label>
+              <input
+                id="zip"
+                name="zip"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]{5}"
+                placeholder="82601"
+                aria-required="true"
+                class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
+              />
+            </div>
+          </div>
+          <div>
+            <label for="address1" class="block text-sm font-medium text-gray-700 mb-1">
+              Street address <span class="text-gray-400 font-normal text-xs">(optional)</span>
+            </label>
+            <input
+              id="address1"
+              name="address1"
+              type="text"
+              autocomplete="address-line1"
+              placeholder="123 Main St"
+              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
+            />
+            <p class="text-xs text-gray-400 mt-1">Adding your street address improves matching when names are similar.</p>
+          </div>
+        </div>
+
+        <p class="text-xs text-gray-500">
+          Voter verification is required for the Citizen Poll, but you can go back and join campaign updates without voting.
         </p>
-      </div>
 
-      <div class="rounded-xl border border-wy-dust bg-wy-bone/50 px-4 py-4 space-y-4">
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
-            <input
-              id="city"
-              name="city"
-              type="text"
-              autocomplete="address-level2"
-              placeholder="Casper"
-              aria-required="true"
-              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
-            />
-          </div>
-          <div>
-            <label for="zip" class="block text-sm font-medium text-gray-700 mb-1">ZIP code <span class="text-red-500">*</span></label>
-            <input
-              id="zip"
-              name="zip"
-              type="text"
-              inputmode="numeric"
-              pattern="[0-9]{5}"
-              placeholder="82601"
-              aria-required="true"
-              class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
-            />
-          </div>
-        </div>
-        <div>
-          <label for="address1" class="block text-sm font-medium text-gray-700 mb-1">
-            Street address <span class="text-gray-400 font-normal text-xs">(optional)</span>
-          </label>
-          <input
-            id="address1"
-            name="address1"
-            type="text"
-            autocomplete="address-line1"
-            placeholder="123 Main St"
-            class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
-          />
-          <p class="text-xs text-gray-400 mt-1">Adding your street address improves matching when names are similar.</p>
-        </div>
-      </div>
-
-      <p class="text-xs text-gray-500">
-        Voter verification is required for the Citizen Poll, but you can go back and join campaign updates without voting.
-      </p>
-
-      <button type="submit" id="optin-submit" class="pulse-primary-action">
-        Verify me and get my ballot
-      </button>
-      <button type="button" id="pulse-back" class="pulse-secondary-action">
-        Back to contact information
-      </button>
-    </section>
+        <button type="submit" id="optin-submit" class="pulse-primary-action">
+          Verify me and get my ballot
+        </button>
+        <button type="button" id="pulse-back" class="pulse-secondary-action">
+          Back to contact information
+        </button>
+      </section>
+    )}
 
     <!-- Hidden fields -->
     <input id="state" name="state" type="hidden" value="WY" />
