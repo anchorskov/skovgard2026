@@ -47,7 +47,8 @@ is deleted.
 | `docs/db/UserInformationResolutionPlan.md` | Discussion draft for project-wide progressive identity, address, geography, district, consent, and contact resolution |
 | `docs/deploy.md` | Cloudflare Pages Git-integration build configuration reference |
 | `docs/email_guide.md` | `voter_emails`/`v_best_email` pipeline — schema, tiering, match/import process |
-| `docs/media/AddCampaignVideo.md` | Adding a campaign video to the site |
+| `docs/media/AddCampaignVideo.md` | Adding a campaign video to the site (R2 + D1 mechanics) |
+| `docs/media/AddMessage.md` | Canonical process for adding a new video/essay/survey/tool to /messages — includes the required-inputs checklist for asking the user for missing content |
 | `docs/polling/AddPollingLocations.md` | Adding polling locations for a new Wyoming county |
 | `docs/pulse_flow.md` | `/pulse` opt-in + Citizen Poll flow architecture, data model, and the open unmatched-voter design gap |
 | `docs/who_needs_to_know.md` | Inventory of every staff/donor notification trigger site-wide — recipient, condition, and known gaps (start here before assuming who gets emailed when) |
@@ -272,14 +273,30 @@ covers the live-vs-dead `index.js`/`router.js` trap, why `cf: { cacheEverything:
 must never be added to the Substack upstream fetch (real recurring incident,
 use `cacheTtlByStatus` instead), and other known gaps.
 
-**Adding a campaign video to the site:** `docs/media/AddCampaignVideo.md`
+**Adding a campaign video to the site:** `docs/media/AddCampaignVideo.md` covers the R2 upload + D1 registration mechanics (still current).
 
-Key rules for hosted episodes:
+**Adding a new video/essay/survey/tool to /messages ("Latest From Jimmy"):**
+`docs/media/AddMessage.md` — the canonical process, launched 2026-07-24 alongside
+the content-first `/messages` redesign. **Requires both** an R2 upload + D1
+row (per `AddCampaignVideo.md`, feeds the homepage's "More to hear" row and
+`/podcast`) **and** a `src/content/messages/<slug>.md` entry (feeds
+`/messages` itself) — the two systems are independent; registering in only
+one leaves the video missing from the other's surface.
+
+**Hard rule: do not invent campaign message content.** The user uploads
+videos often and expects to supply (or explicitly approve) the substantive
+copy. If asked to add a message and given a video plus only a short
+summary, ask for the body/explanation content — or explicit permission to
+draft it for review — before publishing. A summary is not license to
+write the rest yourself. Full checklist of what to ask for is in
+`docs/media/AddMessage.md`.
+
+Key rules for hosted episodes (D1 side):
 - R2 bucket is `podcasts`; CDN host is `https://media.skovgard2026.org`
 - `r2_key` in D1 has **no** leading slash; public URL = `${MEDIA_BASE_URL}/${r2_key}`
 - Campaign videos use `guest_slug = 'campaign'` and keys like `videos/{name}.mp4`
 - `summary` column is JSON: `{"title":"...","slug":"share-slug-or-null","duration":"M:SS"}`
-- After inserting a D1 row, it appears automatically in the homepage's "More to hear" row — but *featuring* a video (the large embedded player) is always a manual edit to `src/pages/index.astro` plus a deploy; see `docs/media/AddCampaignVideo.md`
+- After inserting a D1 row, it appears automatically in the homepage's "More to hear" row — but *featuring* a video (the large embedded player) is always a manual edit to `src/pages/index.astro` plus a deploy
 - Use `INSERT OR IGNORE` — never UPDATE or DELETE rows except via an approved migration
 
 Do NOT follow `docs/PODCAST_WORKFLOW.md` instructions that reference Hugo, `media.this-is-us.org`, shortcodes, or `content/podcast.md` — those sections are outdated. The file has been rewritten for the current Astro architecture.
@@ -467,11 +484,19 @@ To check active GIS counties, query `county_gis` in `WY_DB`; do not hard-code a 
 
 ## Share Message Workflow
 
-To add a new shareable message at `/share/<slug>`, follow the step-by-step checklist in:
+**New messages go to `/messages`, not `/share`.** As of 2026-07-24, new
+content (video, essay, survey, tool) is added via the content-first
+`/messages` hub — see "Adding a new video/essay/survey/tool to /messages"
+under Media Workflow above and `docs/media/AddMessage.md`. The process
+below governs the ~27 pre-existing `/share/<slug>` pages only, until each
+is gradually converted (see `docs/share/AddShareMessage.md`'s transition
+notice for the conversion path).
+
+To add a new shareable message at `/share/<slug>` (legacy pages only), follow the step-by-step checklist in:
 
 - [docs/share/AddShareMessage.md](/home/anchor/projects/skovgard2026/docs/share/AddShareMessage.md)
 
-Key files involved: `worker/src/email-template.js` (SHARE_MESSAGES registry), `src/pages/share/index.astro` (card grid), and a new `src/pages/share/<slug>.astro` detail page. No D1 migration is needed for a new message.
+Key files involved: `worker/src/email-template.js` (SHARE_MESSAGES registry), `src/components/ShareListing.astro` (card grid), and a new `src/pages/share/<slug>.astro` detail page. No D1 migration is needed for a new message.
 
 - If a share email makes verifiable public claims, create `src/pages/share/<slug>/sources.astro` and point the email CTA (`body_html` link in `SHARE_MESSAGES`) to `https://skovgard2026.org/share/<slug>/sources/` — not back to the share page itself.
 

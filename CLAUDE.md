@@ -97,13 +97,32 @@ The voter guide lives in `Candidates/` — a standalone Astro 6 SSR project depl
 - All 10 enrichment batches (rows 1–200) are complete in `Candidates/db/seed/`.
 - **Deploy:** use `./scripts/deploy_candidates.sh` from the repo root. Do NOT run `npx wrangler deploy --env production` directly — there is no `[env.production]` block and Wrangler may deploy as `skovgard-candidates-production`.
 
-## Share Message Workflow
+## Messages Workflow ("Latest From Jimmy")
 
-To add a new shareable message at `/share/<slug>`, follow the checklist in
-`docs/share/AddShareMessage.md`. Key files: `worker/src/email-template.js`
-(SHARE_MESSAGES registry + plain-text builder), `src/pages/share/index.astro`
-(card grid), and a new `src/pages/share/<slug>.astro` detail page.
-No D1 migration is needed for a new message.
+**New messages (video, essay, survey, tool) go to `/messages`, not
+`/share`.** Canonical process, including the required-inputs checklist:
+`docs/media/AddMessage.md`. Every new video needs **both** an R2 upload +
+D1 `podcast_uploads` row (`docs/media/AddCampaignVideo.md` — feeds the
+homepage's "More to hear" row and `/podcast`) **and** a
+`src/content/messages/<slug>.md` entry (feeds `/messages` itself); the two
+are independent systems.
+
+**Hard rule: do not invent campaign message content.** If given a video or
+topic with only a short summary and no body/explanation text, ask for it —
+or explicit permission to draft it for the user's review — before
+publishing. Don't write Jimmy's substantive message copy from a one-line
+prompt.
+
+## Share Message Workflow (legacy `/share/<slug>` pages only)
+
+The ~27 pre-existing `/share/<slug>` pages are unaffected by the above and
+still use the old flow until each is gradually converted — see
+`docs/share/AddShareMessage.md`'s transition notice. To add a new page in
+this legacy system, follow the checklist in `docs/share/AddShareMessage.md`.
+Key files: `worker/src/email-template.js` (SHARE_MESSAGES registry +
+plain-text builder), `src/components/ShareListing.astro` (card grid), and a
+new `src/pages/share/<slug>.astro` detail page. No D1 migration is needed
+for a new message.
 
 - If the share email makes verifiable public claims, create `src/pages/share/<slug>/sources.astro` and point the email CTA in `body_html` to `https://skovgard2026.org/share/<slug>/sources/` — never back to the share page itself.
 
