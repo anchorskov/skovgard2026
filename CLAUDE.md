@@ -69,8 +69,8 @@ This project migrated from Hugo to Astro in early April 2026. **All code changes
 
 ## Astro Pages Deploy
 
-- `scripts/deploy_cf.sh` with no flags builds locally as a verification step, then pushes to `origin/main` — it does not itself deploy. Cloudflare Pages Git integration rebuilds and redeploys automatically from that push. This is the normal path.
-- `DIRECT=1 ./scripts/deploy_cf.sh` bypasses Git integration and uploads the local `dist/` directly via `wrangler pages deploy`. Faster (no remote build queue), but what's live was built on this machine, not verified by Cloudflare's own clean `npm ci` build. Reserve it for when the Git-integration build is stuck or an urgent deploy can't wait.
+- **`DIRECT=1 ./scripts/deploy_cf.sh` is the deploy path — always use it.** Policy as of 2026-07-24: this machine is the source of truth for what's live, not `origin/main`. Cloudflare Pages Git integration is being disconnected specifically so a push never triggers its own deploy — see `docs/deploy.md` for the manual dashboard steps and current status.
+- Plain `./scripts/deploy_cf.sh` (no flags) only builds and pushes as a verification/version-control step — it does not deploy and should not be treated as one.
 
 ## Worker Deploy
 
@@ -128,10 +128,9 @@ When asked whether localhost, the repo, or production are in sync — or before 
 3. **Check unpushed commits**: `git log origin/<branch>..HEAD` — any output means commits exist locally that have not been pushed
 
 **If the current branch is `main`:**
-- Production mirrors `origin/main`, but the two deploy targets are not symmetric:
-  - **Astro Pages site** — confirmed 2026-07-24: Cloudflare Pages Git integration rebuilds and redeploys automatically on every push to `origin/main`. If `git log origin/main..HEAD` is empty, the Pages site is current or will be shortly (Cloudflare's own build time).
-  - **API Worker** — **no automated CD**. Pushing to `origin/main` never deploys it. `scripts/deploy_worker.sh` must be run explicitly after any push touching `worker/`.
-- If it is unclear whether the Worker deploy script was run since the last push, ask the user rather than assuming production is current.
+- **This machine is the source of truth for what's live, not `origin/main`.** A clean `git log origin/main..HEAD` means the repo is in sync — it says nothing about whether production has actually been redeployed since. Never treat a push, by itself, as a deploy.
+- Neither deploy target has automated CD: `DIRECT=1 ./scripts/deploy_cf.sh` (Astro Pages) and `scripts/deploy_worker.sh` (API Worker) must both be run explicitly from this machine. (Cloudflare Pages Git integration is being disconnected as of 2026-07-24 specifically to remove its own auto-deploy — see `docs/deploy.md` for status; until confirmed disconnected, treat a bare push as *also* possibly triggering a Cloudflare rebuild in the background, which can race with a manual `DIRECT=1` deploy.)
+- If it is unclear whether either deploy script has been run since the last local change, ask the user rather than assuming production is current.
 
 **If the current branch is anything other than `main`:**
 - Do **not** check or reference production — production only mirrors `main`.
