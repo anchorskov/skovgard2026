@@ -1,9 +1,11 @@
 ---
 title: "Simpson-Bowles: What Happened and Why It Matters"
 date: 2025-11-01
-description: "A deep dive into the Simpson-Bowles fiscal commission: what it proposed, why it failed, and what that tells us about the political will needed for real reform."
+type: essay
+summary: "A deep dive into the Simpson-Bowles fiscal commission: what it proposed, why it failed, and what that tells us about the political will needed for real reform."
 draft: false
 tags: ["fiscal policy", "federal budget", "leadership"]
+ctaLabel: "Read the analysis"
 ---
 
 In this conversation we walked through Simpson-Bowles as a case study in serious fiscal reform that nearly worked, then stalled in the gears of politics. We traced how many times our country has tried to get honest about the budget, named the real hurdles to fiscal responsibility, and ended with a clear conviction: if we want long-term stewardship, the "boss" must step forward. That boss is us, acting together, with term limits, constitutional guardrails, and daily choices that line up with the legacy we want to leave.

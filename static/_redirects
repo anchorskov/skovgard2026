@@ -1,0 +1,4 @@
+# Cloudflare Pages redirects — see docs/deploy.md and docs/management_of_change.md
+# /posts was folded into /messages ("Latest From Jimmy") on 2026-07-24.
+/posts              /messages/                301
+/posts/simpson-bowles  /messages/simpson-bowles/  301

@@ -1,0 +1,342 @@
+---
+// src/components/messages/SendByEmailForm.astro
+// The campaign's "have us send it" email-blast form, extracted from what was
+// previously duplicated inline on every /share/<slug>.astro page. Rendered
+// collapsed by default (<details>) — a secondary option, not the page's
+// centerpiece. Posts to the same /api/share + /api/share/preview endpoints,
+// keyed by `slug` against SHARE_MESSAGES in worker/src/email-template.js.
+interface Props {
+  slug: string;
+  title: string;
+}
+const { slug, title } = Astro.props;
+---
+
+<details class="send-email-details">
+  <summary class="send-email-summary">Send this by email instead</summary>
+
+  <div class="send-email-body" data-slug={slug} data-title={title}>
+    <div class="mb-5">
+      <label for={`share-sender-${slug}`} class="block text-sm font-semibold text-gray-700 mb-1">
+        Your name <span class="font-normal text-gray-400">(optional — personalises the message)</span>
+      </label>
+      <input
+        id={`share-sender-${slug}`}
+        type="text"
+        autocomplete="given-name"
+        placeholder="e.g. Sarah"
+        maxlength="80"
+        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-wy-ember focus:border-wy-ember send-email-sender"
+      />
+    </div>
+
+    <div class="mb-5">
+      <label class="block text-sm font-semibold text-gray-700 mb-1">Friends' email addresses</label>
+      <div
+        class="send-email-tagbox min-h-[48px] w-full px-2 py-1.5 border border-gray-300 rounded-lg bg-white cursor-text flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-wy-ember focus-within:border-wy-ember"
+        aria-label="Email address list"
+      >
+        <input
+          type="email"
+          inputmode="email"
+          autocomplete="off"
+          autocapitalize="off"
+          placeholder="Type an address and press Enter"
+          class="send-email-input flex-1 min-w-[180px] border-0 outline-none text-sm py-1 px-1 bg-transparent"
+        />
+      </div>
+      <p class="text-xs text-gray-400 mt-1.5">
+        Press <kbd>Enter</kbd> or <kbd>,</kbd> after each address. Paste a comma-separated list to add several at once. Up to 10 recipients.
+      </p>
+    </div>
+
+    <input type="text" autocomplete="off" tabindex="-1" class="send-email-trap"
+      style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" />
+
+    <div class="send-email-preview-wrap mb-5">
+      <div class="send-email-preview-header">
+        <div class="epf"><span class="epl">From:</span> Jimmy Skovgard for Wyoming &lt;support@grassrootsmvt.org&gt;</div>
+        <div class="epf"><span class="epl">Subject:</span> <span class="send-email-subject-line">{title}</span></div>
+      </div>
+      <iframe
+        title="Preview of the email your contacts will receive"
+        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        scrolling="yes"
+        class="send-email-preview-iframe"
+      ></iframe>
+    </div>
+
+    <div class="send-email-status hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium" role="status" aria-live="polite"></div>
+
+    <button type="button" class="send-email-btn flex w-full items-center justify-center gap-2 px-5 py-3 bg-wy-ember text-wy-bone font-bold rounded-lg hover:bg-wy-ember-dark transition-colors text-sm shadow-sm">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+      </svg>
+      <span class="send-email-label">Have us send it</span>
+    </button>
+
+    <p class="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+      We send a campaign-branded email on your behalf. Recipients are not added to any mailing list.
+    </p>
+  </div>
+</details>
+
+<style>
+  .send-email-details {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fbf8f1;
+  }
+  .send-email-summary {
+    cursor: pointer;
+    padding: 1rem 1.25rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #2b2b2b;
+    list-style: none;
+  }
+  .send-email-summary::-webkit-details-marker { display: none; }
+  .send-email-summary::before {
+    content: "▸";
+    display: inline-block;
+    margin-right: 0.5rem;
+    color: #b22234;
+    transition: transform 0.15s;
+  }
+  .send-email-details[open] .send-email-summary::before { transform: rotate(90deg); }
+  .send-email-body { padding: 0 1.25rem 1.25rem; }
+
+  kbd {
+    padding: 1px 5px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    color: #6b7280;
+  }
+  .send-email-preview-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .send-email-preview-header {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .epf { font-size: 0.8125rem; color: #374151; line-height: 1.6; }
+  .epl { font-weight: 700; color: #6b7280; margin-right: 4px; }
+  .send-email-preview-iframe { display: block; width: 100%; height: 420px; border: none; }
+
+  .send-email-status.status-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+  .send-email-status.status-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  .send-email-status.status-info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+  .send-email-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .send-email-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1ece1;
+    border: 1px solid #c68a4a33;
+    color: #2b2b2b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 8px 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+  .send-email-tag span { overflow: hidden; text-overflow: ellipsis; }
+  .send-email-tag button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: #c68a4a55;
+    color: #2b2b2b;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .send-email-tag button:hover { background: #b22234; color: #fff; }
+</style>
+
+<script>
+(function () {
+  document.querySelectorAll('.send-email-body').forEach((root) => {
+    const slug = root.getAttribute('data-slug');
+    const title = root.getAttribute('data-title') || '';
+
+    const emails = [];
+    const MAX = 10;
+
+    const tagBox = root.querySelector('.send-email-tagbox');
+    const emailInput = root.querySelector('.send-email-input');
+    const senderInput = root.querySelector('.send-email-sender');
+    const previewIframe = root.querySelector('.send-email-preview-iframe');
+    const previewSubjectLine = root.querySelector('.send-email-subject-line');
+    const sendBtn = root.querySelector('.send-email-btn');
+    const sendLabel = root.querySelector('.send-email-label');
+    const statusEl = root.querySelector('.send-email-status');
+    const trapInput = root.querySelector('.send-email-trap');
+
+    function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
+
+    function setStatus(msg, type) {
+      if (!msg) { statusEl.classList.add('hidden'); statusEl.textContent = ''; return; }
+      statusEl.className = `send-email-status mb-4 px-4 py-3 rounded-lg text-sm font-medium status-${type}`;
+      statusEl.textContent = msg;
+      statusEl.classList.remove('hidden');
+    }
+
+    function renderTags() {
+      Array.from(tagBox.querySelectorAll('.send-email-tag')).forEach((c) => c.remove());
+      emails.forEach((email, i) => {
+        const chip = document.createElement('span');
+        chip.className = 'send-email-tag';
+        chip.innerHTML = `<span title="${email}">${email}</span><button type="button" aria-label="Remove ${email}">✕</button>`;
+        chip.querySelector('button').addEventListener('click', () => removeEmail(i));
+        tagBox.insertBefore(chip, emailInput);
+      });
+      updateButtons();
+      schedulePreview();
+    }
+
+    function addEmail(raw) {
+      const e = raw.trim().toLowerCase();
+      if (!e) return;
+      if (!isValidEmail(e)) { setStatus(`"${e}" doesn't look like a valid email address.`, 'error'); return; }
+      if (emails.includes(e)) { setStatus(`${e} is already in the list.`, 'info'); return; }
+      if (emails.length >= MAX) { setStatus(`Maximum ${MAX} recipients per send.`, 'info'); return; }
+      setStatus('', '');
+      emails.push(e);
+      renderTags();
+    }
+
+    function removeEmail(index) { emails.splice(index, 1); setStatus('', ''); renderTags(); }
+    function updateButtons() { sendBtn.disabled = emails.length === 0 && !isValidEmail(emailInput.value.trim()); }
+
+    let previewTimer = null;
+    function buildPreviewUrl() {
+      const name = senderInput.value.trim().slice(0, 80);
+      const params = new URLSearchParams({ slug });
+      if (name) params.set('sender_name', name);
+      return '/api/share/preview?' + params.toString();
+    }
+
+    function updateSubjectLine() {
+      const name = senderInput.value.trim();
+      if (previewSubjectLine) {
+        previewSubjectLine.textContent = name ? `${name} wanted you to see this — ${title}` : title;
+      }
+    }
+
+    async function fetchPreview() {
+      updateSubjectLine();
+      if (!previewIframe) return;
+      try {
+        const resp = await fetch(buildPreviewUrl());
+        if (resp.ok) previewIframe.srcdoc = await resp.text();
+      } catch (_) {}
+    }
+
+    function schedulePreview() {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(fetchPreview, 300);
+    }
+
+    senderInput.addEventListener('input', schedulePreview);
+
+    emailInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addEmail(emailInput.value);
+        emailInput.value = '';
+      } else if (e.key === 'Backspace' && emailInput.value === '' && emails.length > 0) {
+        removeEmail(emails.length - 1);
+      }
+    });
+
+    emailInput.addEventListener('blur', () => {
+      if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+    });
+    emailInput.addEventListener('input', updateButtons);
+
+    emailInput.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData('text');
+      pasted.split(/[,;\s\n]+/).forEach((part) => { if (part.trim()) addEmail(part); });
+      emailInput.value = '';
+    });
+
+    tagBox.addEventListener('click', () => emailInput.focus());
+
+    sendBtn.addEventListener('click', async () => {
+      if (emailInput.value.trim()) { addEmail(emailInput.value); emailInput.value = ''; }
+      if (emails.length === 0) { setStatus('Add at least one email address first.', 'error'); return; }
+
+      sendBtn.disabled = true;
+      sendLabel.textContent = 'Sending…';
+      setStatus('', '');
+
+      try {
+        const resp = await fetch('/api/share', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            message_slug: slug,
+            sender_name: senderInput.value.trim(),
+            recipients: emails.slice(),
+            _trap: trapInput ? trapInput.value : '',
+            _t: Date.now(),
+          }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data.ok) {
+          const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+          setStatus(
+            resp.status === 404 && isLocal
+              ? 'Route not found — make sure the Worker is running: cd worker && npx wrangler dev'
+              : resp.status === 503
+              ? 'Share feature is not enabled on this environment yet.'
+              : data.error || 'Something went wrong. Please try again.',
+            'error'
+          );
+        } else {
+          const n = data.sent || emails.length;
+          setStatus(`Sent! ${n} message${n !== 1 ? 's' : ''} accepted for delivery. Thank you for spreading the word.`, 'success');
+          emails.length = 0;
+          renderTags();
+        }
+      } catch (_) {
+        setStatus(
+          ['localhost', '127.0.0.1'].includes(window.location.hostname)
+            ? 'Worker not reachable. Run `cd worker && npx wrangler dev` in a second terminal.'
+            : 'Network error — please check your connection and try again.',
+          'error'
+        );
+      } finally {
+        sendLabel.textContent = 'Have us send it';
+        updateButtons();
+      }
+    });
+
+    updateButtons();
+    fetchPreview();
+
+    if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+      setStatus(
+        'Local dev: "Have us send it" needs the Worker running. In a second terminal: cd worker && npx wrangler dev.',
+        'info'
+      );
+    }
+  });
+})();
+</script>

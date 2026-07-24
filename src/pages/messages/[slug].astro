@@ -1,0 +1,90 @@
+---
+// src/pages/messages/[slug].astro
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import ShareBar from '../../components/messages/ShareBar.astro';
+import SendByEmailForm from '../../components/messages/SendByEmailForm.astro';
+import { MEDIA_BASE_URL } from '../../constants';
+
+export async function getStaticPaths() {
+  const messages = await getCollection('messages', ({ data }) => !data.draft);
+  return messages.map((msg) => ({
+    params: { slug: msg.id },
+    props: { msg },
+  }));
+}
+
+const { msg } = Astro.props;
+const { Content } = await render(msg);
+
+const TYPE_LABELS = {
+  video: 'Video',
+  essay: 'Issue Discussion',
+  survey: 'Survey',
+  tool: 'Voter Tool',
+};
+
+const dateLabel = msg.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+const canonicalUrl = `https://skovgard2026.org/messages/${msg.id}/`;
+const hasEmailTemplate = Boolean(msg.data.share?.emailSubject);
+---
+<Base
+  title={`${msg.data.title} — Skovgard 2026`}
+  description={msg.data.description ?? msg.data.summary}
+  ogImage={msg.data.thumbnail}
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4 bg-wy-stone min-h-screen">
+    <article class="max-w-2xl mx-auto">
+      <a href="/messages/" class="text-wy-gold text-sm font-semibold hover:underline">← Latest From Jimmy</a>
+
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mt-6 mb-2">
+        {TYPE_LABELS[msg.data.type]} · {dateLabel}
+      </p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-bold text-wy-navy mb-5 leading-tight">
+        {msg.data.title}
+      </h1>
+      <p class="text-xl text-gray-600 leading-relaxed mb-8">{msg.data.summary}</p>
+
+      {msg.data.type === 'video' && msg.data.videoUrl ? (
+        <div class="w-full rounded-xl overflow-hidden shadow-lg mb-10" style="background:#000;">
+          <video controls preload="metadata" class="w-full block" style="max-height:480px;">
+            <source src={`${MEDIA_BASE_URL}${msg.data.videoUrl}`} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      ) : msg.data.thumbnail ? (
+        <img src={msg.data.thumbnail} alt={msg.data.title} class="w-full rounded-xl shadow-lg mb-10" />
+      ) : null}
+
+      <div class="prose prose-lg max-w-none prose-headings:font-serif prose-headings:text-wy-navy prose-a:text-wy-gold prose-strong:text-wy-navy mb-12">
+        <Content />
+      </div>
+
+      <div class="mb-6">
+        <ShareBar
+          url={canonicalUrl}
+          title={msg.data.title}
+          tweetText={msg.data.share?.tweetText ?? msg.data.summary}
+        />
+      </div>
+
+      {hasEmailTemplate && (
+        <div class="mb-12">
+          <SendByEmailForm slug={msg.id} title={msg.data.title} />
+        </div>
+      )}
+
+      <div class="bg-wy-charcoal rounded-xl p-8 text-center">
+        <p class="text-wy-bone font-serif font-bold text-xl mb-2">Want more like this?</p>
+        <p class="text-wy-bone/70 mb-5">Get campaign updates by text and email — no spam, unsubscribe anytime.</p>
+        <a href="/updates" class="inline-block bg-wy-ember text-wy-bone font-bold px-6 py-3 rounded-sm hover:bg-wy-ember-dark transition-colors">
+          Get Updates
+        </a>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Base>

@@ -1684,6 +1684,38 @@ const BOULDER_AND_THE_WEEDS_BODY_HTML = `
   </p>
 `;
 
+const AN_OATH_IS_NOT_A_LOYALTY_PLEDGE_BODY_HTML = `
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Every federal officeholder swears the same oath: to support and defend the Constitution. Not a
+    party platform. Not a donor's agenda. Not a president, a Speaker, or a committee chair. The
+    Constitution &#8212; and, through it, the citizens who consented to be governed by it.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="margin:22px 0;border-left:5px solid #b22234;background:#fbf8f1;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0;font-size:16px;line-height:1.65;color:#111827;">
+          An oath that bends to whichever pressure is loudest that week was never really an oath
+          &#8212; it was a loyalty pledge wearing the oath's language.
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#111827;">
+    Representing Wyoming means exercising judgment, not just relaying instructions &#8212; weighing
+    the evidence, weighing the Constitution, and casting the vote he can defend to the people who
+    hired him. Oversight only works if someone is willing to ask the uncomfortable question, of a
+    president from either party, a party leadership structure, or a donor network expecting a
+    return on its investment.
+  </p>
+  <p style="margin:0 0 8px;font-size:16px;line-height:1.65;color:#111827;font-weight:700;">
+    Wyoming deserves a senator whose first loyalty is legible: the Constitution, and the citizens
+    it answers to. Everything else is negotiable. That isn't.
+  </p>
+`;
+
 const QUESTIONNAIRE_CHALLENGE_QUESTIONS_HTML = `
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
   <tr>
@@ -2385,6 +2417,21 @@ export const SHARE_MESSAGES = {
     intro(n) {
       return n
         ? `${n} wanted to share this reflection with you.`
+        : "A Wyoming neighbor wanted to share this with you.";
+    },
+  },
+  "an-oath-is-not-a-loyalty-pledge": {
+    title:        "An Oath Is Not a Loyalty Pledge",
+    body_html:    AN_OATH_IS_NOT_A_LOYALTY_PLEDGE_BODY_HTML,
+    preview_text: "The oath belongs to the Constitution and the citizens — not a machine, a donor, or a president.",
+    subject(n) {
+      return n
+        ? `${n} wanted you to see this — An Oath Is Not a Loyalty Pledge`
+        : "An Oath Is Not a Loyalty Pledge";
+    },
+    intro(n) {
+      return n
+        ? `${n} wanted to share this message with you.`
         : "A Wyoming neighbor wanted to share this with you.";
     },
   },
@@ -3402,6 +3449,28 @@ export function buildShareEmailText({ sender_name = "", sender_intro, slug = "" 
           "Read the full essay, \"The Boulder and the Weeds\":",
           "https://skovgard2026.org/files/truth-and-weeds-essay.pdf",
         ]
+      : slug === "an-oath-is-not-a-loyalty-pledge"
+        ? [
+            "Every federal officeholder swears the same oath: to support and defend the",
+            "Constitution. Not a party platform. Not a donor's agenda. Not a president, a",
+            "Speaker, or a committee chair. The Constitution — and, through it, the citizens",
+            "who consented to be governed by it.",
+            "",
+            "An oath that bends to whichever pressure is loudest that week was never really",
+            "an oath — it was a loyalty pledge wearing the oath's language.",
+            "",
+            "Representing Wyoming means exercising judgment, not just relaying instructions —",
+            "weighing the evidence, weighing the Constitution, and casting the vote he can",
+            "defend to the people who hired him. Oversight only works if someone is willing",
+            "to ask the uncomfortable question, of a president from either party, a party",
+            "leadership structure, or a donor network expecting a return on its investment.",
+            "",
+            "Wyoming deserves a senator whose first loyalty is legible: the Constitution,",
+            "and the citizens it answers to. Everything else is negotiable. That isn't.",
+            "",
+            "Watch and read the full message:",
+            "https://skovgard2026.org/messages/an-oath-is-not-a-loyalty-pledge/",
+          ]
       : [
           "This campaign is built around two simple beliefs.",
           "",

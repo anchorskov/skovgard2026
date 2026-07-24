@@ -1,0 +1,70 @@
+---
+// src/pages/messages/index.astro
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import MessageCard from '../../components/messages/MessageCard.astro';
+
+const allMessages = await getCollection('messages', ({ data }) => !data.draft);
+const sorted = allMessages.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const LATEST_COUNT = 6;
+const latest = sorted.slice(0, LATEST_COUNT);
+const more = sorted.slice(LATEST_COUNT);
+
+const TYPE_LABELS = {
+  video: 'Video',
+  essay: 'Issue Discussion',
+  survey: 'Survey',
+  tool: 'Voter Tool',
+};
+---
+<Base
+  title="Latest From Jimmy — Skovgard 2026"
+  description="Videos, issue discussions, campaign news, and straight answers from Jimmy."
+>
+  <Nav />
+  <main class="pt-24 pb-20 px-4 bg-wy-stone min-h-screen">
+    <div class="max-w-4xl mx-auto">
+      <p class="text-wy-gold font-semibold uppercase tracking-wider text-sm mb-2">Latest From Jimmy</p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-bold text-wy-navy mb-4">Latest From Jimmy</h1>
+      <p class="text-gray-600 text-lg mb-12 max-w-2xl">
+        Videos, issue discussions, campaign news, and straight answers from Jimmy.
+      </p>
+
+      {latest.length === 0 ? (
+        <p class="text-gray-500">Nothing posted yet. Check back soon.</p>
+      ) : (
+        <div class="message-grid">
+          {latest.map((msg) => (
+            <MessageCard msg={msg} typeLabel={TYPE_LABELS[msg.data.type]} />
+          ))}
+        </div>
+      )}
+
+      {more.length > 0 && (
+        <div class="mt-16">
+          <h2 class="text-2xl font-serif font-bold text-wy-navy mb-6">More From Jimmy</h2>
+          <div class="message-grid">
+            {more.map((msg) => (
+              <MessageCard msg={msg} typeLabel={TYPE_LABELS[msg.data.type]} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .message-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.75rem;
+  }
+  @media (max-width: 640px) {
+    .message-grid { grid-template-columns: 1fr; }
+  }
+</style>

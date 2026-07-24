@@ -103,18 +103,14 @@ import { MEDIA_BASE_URL } from '../constants';
           <source src={`${MEDIA_BASE_URL}/videos/an-oath-is-not-a-loyalty-pledge.mp4`} type="video/mp4" />
         </video>
       </div>
-      <!-- Meta + context + CTA -->
-      <div class="flex flex-col md:flex-row gap-10 items-start mb-12">
-        <div class="flex-1">
-          <p class="text-wy-sandstone font-bold text-sm uppercase tracking-[0.18em] mb-2">July 2026 · Video</p>
-          <h3 class="text-2xl font-serif font-extrabold text-wy-bone mb-3">An Oath Is Not a Loyalty Pledge</h3>
-          <p class="text-wy-bone/70 text-lg leading-relaxed mb-8">
-            Jimmy explains why independent judgment, honest oversight, and the courage to question power still matter.
-          </p>
-          <a href="/updates" class="inline-block bg-wy-ember text-wy-bone font-bold px-6 py-3 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
-            Get Updates Like This →
-          </a>
-        </div>
+      <!-- CTA — content-first: one primary action into the full message, one small secondary link -->
+      <div class="flex flex-col sm:flex-row items-center gap-5 mb-12">
+        <a href="/messages/an-oath-is-not-a-loyalty-pledge/" class="inline-block bg-wy-ember text-wy-bone font-bold px-6 py-3 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
+          Watch and read more →
+        </a>
+        <a href="/updates" class="text-wy-bone/60 text-sm font-semibold hover:text-wy-bone transition-colors">
+          Get updates
+        </a>
       </div>
 
       <!-- More to hear — populated client-side from /api/podcast-feed + /api/podcasts -->
@@ -127,8 +123,11 @@ import { MEDIA_BASE_URL } from '../constants';
         </div>
       </div>
 
-      <div class="mt-8 text-center">
-        <a href="/podcast" class="text-wy-bone font-semibold border-b-2 border-wy-ember pb-1 hover:text-wy-sandstone transition-colors">
+      <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2">
+        <a href="/messages/" class="text-wy-bone font-semibold border-b-2 border-wy-ember pb-1 hover:text-wy-sandstone transition-colors">
+          Latest From Jimmy →
+        </a>
+        <a href="/podcast" class="text-wy-bone/60 font-semibold hover:text-wy-bone transition-colors">
           All Episodes →
         </a>
       </div>
