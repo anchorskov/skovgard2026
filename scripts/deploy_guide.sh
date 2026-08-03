@@ -73,8 +73,10 @@ fi
 # ── deploy ────────────────────────────────────────────────────────────────────
 # --project-name is explicit so a wrangler.toml change cannot silently retarget
 # a different Pages project.
+[[ -x "node_modules/.bin/wrangler" ]] \
+  || fail "project-local Wrangler not installed; run without SKIP_BUILD=1 first"
 status "Deploying Pages project '${EXPECTED_PAGES_PROJECT}' from dist/client/"
-npx wrangler pages deploy ./dist/client \
+npx --no-install wrangler pages deploy ./dist/client \
   --project-name="${EXPECTED_PAGES_PROJECT}" \
   "$@"
 

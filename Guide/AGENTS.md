@@ -196,8 +196,8 @@ What the script does:
 1. Validates `Guide/wrangler.toml` names `skovgard-guide` (fails if mismatched).
 2. Guards against an `[env.production]` block (would silently retarget `skovgard-guide-production`).
 3. Validates `Guide/scripts/postbuild-pages.mjs` exists (generates `_worker.js` shim for Pages SSR).
-4. Runs `npm ci` (or `npm install`) + `npm run build` (which runs `astro build` then `postbuild-pages.mjs`).
-5. Deploys with `npx wrangler pages deploy ./dist/client --project-name skovgard-guide`.
+4. Runs `npm ci` + `npm run build` (which runs `astro build` then `postbuild-pages.mjs`).
+5. Requires the project-local pinned CLI and deploys with `npx --no-install wrangler pages deploy ./dist/client --project-name skovgard-guide`.
 
 Do NOT:
 - Run `npx wrangler pages deploy` directly — no project-name guard.

@@ -12,12 +12,17 @@ Usage:
     [--crop-x 0] \
     [--crop-y 0] \
     [--prepared-image /path/to/prepared.png] \
+    [--plan /path/to/episode-render.json] \
     [--review-only]
 
 Defaults:
   --size 1280x720
   --crop-x center
   --crop-y center
+
+--plan takes the <name>-render.json written by the Grassroots Video Builder and
+cross-fades each meme over the cover at the moment it came from. Without it the
+build behaves exactly as it always has.
 
 Examples:
   scripts/build_still_video.sh \
@@ -46,6 +51,7 @@ size="1280x720"
 crop_x="center"
 crop_y="center"
 prepared_image=""
+plan=""
 review_only="false"
 
 while [[ $# -gt 0 ]]; do
@@ -76,6 +82,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --prepared-image)
       prepared_image="${2:-}"
+      shift 2
+      ;;
+    --plan)
+      plan="${2:-}"
       shift 2
       ;;
     --review-only)
@@ -118,6 +128,11 @@ fi
 
 if [[ -n "$prepared_image" && ! -f "$prepared_image" ]]; then
   echo "Prepared image not found: $prepared_image" >&2
+  exit 1
+fi
+
+if [[ -n "$plan" && ! -f "$plan" ]]; then
+  echo "Meme plan not found: $plan" >&2
   exit 1
 fi
 
@@ -168,21 +183,70 @@ fi
 
 mkdir -p "$(dirname "$output")"
 
+# Build the overlay arguments before touching ffmpeg, so a malformed plan stops
+# the build instead of quietly producing a video with the memes missing.
+plan_inputs=()
+plan_filter=""
+if [[ -n "$plan" ]]; then
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  plan_helper="$script_dir/meme_plan_args.py"
+
+  if [[ ! -f "$plan_helper" ]]; then
+    echo "Meme plan given but $plan_helper is missing" >&2
+    exit 1
+  fi
+
+  # The cover is input 0 and the audio is input 1, so the memes start at 2.
+  mapfile -t plan_lines < <(python3 "$plan_helper" "$plan" \
+      --first-index 2 --base-label "0:v" --out-label vout --size "$size" --fps 30)
+
+  if [[ ${#plan_lines[@]} -eq 0 ]]; then
+    echo "Meme plan could not be turned into filters: $plan" >&2
+    exit 1
+  fi
+
+  plan_filter="${plan_lines[0]}"
+  plan_inputs=("${plan_lines[@]:1}")
+  echo "Meme plan: $(( ${#plan_inputs[@]} / 6 )) overlays from $(basename "$plan")"
+fi
+
 echo "Building MP4: $output"
-ffmpeg -y \
-  -loop 1 \
-  -framerate 30 \
-  -i "$image_input" \
-  -i "$audio" \
-  -c:v libx264 \
-  -tune stillimage \
-  -pix_fmt yuv420p \
-  -r 30 \
-  -g 300 \
-  -c:a aac \
-  -b:a 128k \
-  -movflags +faststart \
-  -shortest \
-  "$output"
+if [[ -n "$plan_filter" ]]; then
+  ffmpeg -y \
+    -loop 1 \
+    -framerate 30 \
+    -i "$image_input" \
+    -i "$audio" \
+    "${plan_inputs[@]}" \
+    -filter_complex "$plan_filter" \
+    -map "[vout]" \
+    -map 1:a \
+    -c:v libx264 \
+    -tune stillimage \
+    -pix_fmt yuv420p \
+    -r 30 \
+    -g 300 \
+    -c:a aac \
+    -b:a 128k \
+    -movflags +faststart \
+    -shortest \
+    "$output"
+else
+  ffmpeg -y \
+    -loop 1 \
+    -framerate 30 \
+    -i "$image_input" \
+    -i "$audio" \
+    -c:v libx264 \
+    -tune stillimage \
+    -pix_fmt yuv420p \
+    -r 30 \
+    -g 300 \
+    -c:a aac \
+    -b:a 128k \
+    -movflags +faststart \
+    -shortest \
+    "$output"
+fi
 
 echo "Output video: $output"

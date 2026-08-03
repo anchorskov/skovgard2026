@@ -15,6 +15,25 @@ if (!office) {
   return Astro.redirect('/races');
 }
 
+const seatsAvailable = Math.max(1, Number(office.seats_available ?? 1));
+
+// §9 UI contract: a verified verbatim ballot instruction must be shown as-is
+// instead of a generated "Select up to N" string. offices.seats_available is
+// the resolved numeric cap only — the instruction text itself lives in
+// multi_seat_race_sources (see docs/multi_selection.md §10/Step B), reached
+// here by office_id. Only queried when it could matter (seats_available > 1)
+// — single-choice races render no limit text either way (§9 table).
+let instructionText: string | null = null;
+if (seatsAvailable > 1) {
+  const instructionRow = await env.WY_DB.prepare(
+    `SELECT ui_instruction FROM multi_seat_race_sources
+      WHERE office_id = ?1 AND source_status = 'verified'
+        AND ui_instruction IS NOT NULL AND TRIM(ui_instruction) != ''
+      LIMIT 1`
+  ).bind(id).first();
+  instructionText = instructionRow?.ui_instruction ? String(instructionRow.ui_instruction).trim() : null;
+}
+
 const { results: candidates } = await env.WY_DB.prepare(`
   SELECT id, slug, full_name, party, summary,
          website_url, photo_url, email, phone,
@@ -72,6 +91,21 @@ function isAbsoluteUrl(url: string | null): boolean {
     <p class="candidate-count">
       {candidates.length} filed {candidates.length === 1 ? 'candidate' : 'candidates'}
     </p>
+    {seatsAvailable > 1 && (
+      <div
+        class="race-selection-status"
+        id="race-selection-status"
+        role="status"
+        aria-live="polite"
+      >
+        <p class="race-selection-status__instruction" id="race-selection-instruction">
+          {instructionText || `Select up to ${seatsAvailable} candidates.`}
+        </p>
+        <p class="race-selection-status__count" id="race-selection-count">
+          0 of {seatsAvailable} selected
+        </p>
+      </div>
+    )}
   </div>
 
   {candidates.length === 0 ? (
@@ -141,10 +175,27 @@ function isAbsoluteUrl(url: string | null): boolean {
   )}
 
   {candidates.length > 0 && (
+    <section class="race-progress-section" id="race-progress-section" aria-labelledby="race-progress-label">
+      <div class="race-progress" id="race-progress">
+        <div>
+          <p class="race-progress__label" id="race-progress-label">Continue through your ballot</p>
+          <p class="race-progress__note" id="race-progress-note"></p>
+        </div>
+        <a class="race-progress__next" id="next-race-link" href="/" hidden>Next undecided race →</a>
+        <div class="race-progress__jump" id="race-progress-jump" hidden>
+          <label for="race-jump-select">Jump to a race</label>
+          <select id="race-jump-select"></select>
+          <button type="button" id="race-jump-button">Go</button>
+        </div>
+      </div>
+    </section>
+  )}
+
+  {candidates.length > 0 && (
     <section
       class="choice-list"
       id="my-choice-list"
-      data-seats-available={String(office.seats_available ?? 1)}
+      data-seats-available={String(seatsAvailable)}
       aria-labelledby="choice-list-title"
     >
       <div class="choice-list__heading">
@@ -157,25 +208,16 @@ function isAbsoluteUrl(url: string | null): boolean {
       <p class="choice-list__intro">
         Your choices stay in this browser. They are not votes and are not sent to us.
       </p>
-      <div id="choice-list-items"></div>
-      <div class="choice-list__actions" id="choice-list-actions" hidden>
-        <button type="button" id="copy-choice-list">Copy list</button>
-        <a id="email-choice-list" href="#">Email to myself</a>
-        <button type="button" class="choice-list__clear" id="clear-choice-list">Clear list</button>
-      </div>
+      <details class="choice-list__details" id="choice-list-details">
+        <summary class="choice-list__summary" id="choice-list-summary">Review saved choices</summary>
+        <div id="choice-list-items"></div>
+        <div class="choice-list__actions" id="choice-list-actions" hidden>
+          <button type="button" id="copy-choice-list">Copy list</button>
+          <a id="email-choice-list" href="#">Email to myself</a>
+          <button type="button" class="choice-list__clear" id="clear-choice-list">Clear list</button>
+        </div>
+      </details>
       <p class="choice-list__status" id="choice-list-status" aria-live="polite"></p>
-      <div class="race-progress" id="race-progress">
-        <div>
-          <p class="race-progress__label">Continue through your ballot</p>
-          <p class="race-progress__note" id="race-progress-note"></p>
-        </div>
-        <a class="race-progress__next" id="next-race-link" href="/" hidden>Next undecided race →</a>
-        <div class="race-progress__jump" id="race-progress-jump" hidden>
-          <label for="race-jump-select">Jump to a race</label>
-          <select id="race-jump-select"></select>
-          <button type="button" id="race-jump-button">Go</button>
-        </div>
-      </div>
     </section>
   )}
 
@@ -221,6 +263,27 @@ function isAbsoluteUrl(url: string | null): boolean {
     font-weight: 700;
   }
 
+  .race-selection-status {
+    margin: 14px 0 0;
+    padding: 12px 16px;
+    border: 1.5px solid var(--sandstone);
+    border-left: 4px solid var(--sandstone);
+    background: color-mix(in srgb, var(--sandstone) 8%, var(--bone));
+  }
+
+  .race-selection-status__instruction {
+    margin: 0;
+    color: var(--charcoal);
+    font-weight: 800;
+  }
+
+  .race-selection-status__count {
+    margin: 4px 0 0;
+    color: var(--rust);
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+
   .empty-note {
     padding: 32px;
     border: 1px solid var(--dust);
@@ -247,13 +310,14 @@ function isAbsoluteUrl(url: string | null): boolean {
     border-top: 4px solid var(--ember);
     background: var(--bone);
     box-shadow: 0 6px 0 var(--dust);
+    cursor: pointer;
   }
 
   .candidate-card__header {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding-right: 118px;
+    padding-right: 132px;
   }
 
   .candidate-card__badges {
@@ -279,10 +343,10 @@ function isAbsoluteUrl(url: string | null): boolean {
 
   .choice-pill {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    min-height: 34px;
-    padding: 6px 14px;
+    top: 16px;
+    right: 16px;
+    min-height: 44px;
+    padding: 10px 22px;
     border: 1.5px solid var(--ember);
     border-radius: 999px;
     background: transparent;
@@ -293,10 +357,16 @@ function isAbsoluteUrl(url: string | null): boolean {
     cursor: pointer;
   }
 
-  .choice-pill:hover,
+  .choice-pill:hover {
+    background: var(--ember);
+    color: var(--bone);
+  }
+
   .choice-pill:focus-visible {
     background: var(--ember);
     color: var(--bone);
+    outline: 3px solid var(--charcoal);
+    outline-offset: 2px;
   }
 
   .choice-pill[aria-pressed="true"] {
@@ -304,8 +374,42 @@ function isAbsoluteUrl(url: string | null): boolean {
     color: var(--bone);
   }
 
+  /* At the selection limit: unselected pills disable rather than silently
+     drop or replace an earlier choice (§9). Comes after :hover/:focus-visible
+     so it wins the cascade even when a disabled pill is still under the
+     pointer. */
+  .choice-pill:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: transparent;
+    border-color: var(--dust);
+    color: var(--rust);
+  }
+
+  .choice-pill:disabled:hover {
+    background: transparent;
+    color: var(--rust);
+  }
+
   .candidate-card:has(.choice-pill[aria-pressed="true"]) {
     border-color: var(--ember);
+    background: color-mix(in srgb, var(--ember) 7%, var(--bone));
+    box-shadow: 0 6px 0 var(--ember-dark);
+  }
+
+  :global(.candidate-card__next-hint) {
+    margin: 0;
+    padding: 8px 10px;
+    border-left: 3px solid var(--ember);
+    background: color-mix(in srgb, var(--ember) 10%, var(--bone));
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--charcoal);
+  }
+
+  :global(.candidate-card__next-hint a) {
+    font-weight: 800;
+    color: var(--ember-dark);
   }
 
   .candidate-card__links {
@@ -366,12 +470,41 @@ function isAbsoluteUrl(url: string | null): boolean {
     color: var(--rust);
   }
 
-  .choice-list {
+  .race-progress-section {
     margin-top: 48px;
+    padding: 24px;
+    border: 1px solid var(--dust);
+    border-top: 4px solid var(--ember);
+    background: var(--bone);
+  }
+
+  .choice-list {
+    margin-top: 24px;
     padding: 24px;
     border: 1px solid var(--dust);
     border-top: 4px solid var(--sandstone);
     background: var(--bone);
+  }
+
+  .choice-list__details {
+    margin-top: 16px;
+  }
+
+  .choice-list__summary {
+    cursor: pointer;
+    padding: 10px 4px;
+    color: var(--charcoal);
+    font-weight: 800;
+    list-style-position: outside;
+  }
+
+  .choice-list__summary:hover,
+  .choice-list__summary:focus-visible {
+    color: var(--ember);
+  }
+
+  .choice-list__details[open] .choice-list__summary {
+    margin-bottom: 6px;
   }
 
   .choice-list__heading {
@@ -421,11 +554,10 @@ function isAbsoluteUrl(url: string | null): boolean {
     list-style: none;
   }
 
+  /* One .choice-list__item per OFFICE, not per candidate — §9 requires
+     multiple candidates for one contest to group under a single office
+     heading rather than repeating it once per pick. */
   :global(.choice-list__item) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px 16px;
-    align-items: center;
     padding: 12px 14px;
     border-left: 4px solid var(--ember);
     background: color-mix(in srgb, var(--dust) 20%, var(--bone));
@@ -433,6 +565,7 @@ function isAbsoluteUrl(url: string | null): boolean {
 
   :global(.choice-list__office) {
     display: block;
+    margin-bottom: 8px;
     font-size: 0.78rem;
     font-weight: 800;
     color: var(--rust);
@@ -440,9 +573,28 @@ function isAbsoluteUrl(url: string | null): boolean {
     letter-spacing: 0.04em;
   }
 
+  :global(.choice-list__candidates) {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  :global(.choice-list__candidate-row) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 16px;
+    align-items: center;
+  }
+
+  :global(.choice-list__candidate-row + .choice-list__candidate-row) {
+    padding-top: 8px;
+    border-top: 1px solid var(--dust);
+  }
+
   :global(.choice-list__candidate) {
     display: block;
-    margin-top: 2px;
     font-weight: 800;
   }
 
@@ -518,9 +670,6 @@ function isAbsoluteUrl(url: string | null): boolean {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 14px 24px;
     align-items: end;
-    margin-top: 22px;
-    padding-top: 20px;
-    border-top: 1px solid var(--dust);
   }
 
   .race-progress__label {
@@ -634,14 +783,19 @@ function isAbsoluteUrl(url: string | null): boolean {
 </style>
 
 <script>
+  import { rankMapFromOrder, sortByRankMap } from '../../lib/race-order';
+  import { validateSelectionWrite } from '../../lib/selection-limit';
+
   const STORAGE_KEY = 'wyoming-2026-my-candidate-list-v1';
   const AVAILABLE_RACES_STORAGE_KEY = 'wyoming-2026-my-available-races-v1';
   const choiceList = document.querySelector<HTMLElement>('#my-choice-list');
+  const candidateGrid = document.querySelector<HTMLElement>('.candidate-grid');
 
   if (choiceList) {
     const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-choice-button]'));
     const itemsRoot = document.querySelector<HTMLElement>('#choice-list-items');
     const countRoot = document.querySelector<HTMLElement>('#choice-list-count');
+    const summary = document.querySelector<HTMLElement>('#choice-list-summary');
     const actions = document.querySelector<HTMLElement>('#choice-list-actions');
     const status = document.querySelector<HTMLElement>('#choice-list-status');
     const copyButton = document.querySelector<HTMLButtonElement>('#copy-choice-list');
@@ -654,6 +808,7 @@ function isAbsoluteUrl(url: string | null): boolean {
     const raceJumpButton = document.querySelector<HTMLButtonElement>('#race-jump-button');
     const seatsAvailable = Math.max(1, Number(choiceList.dataset.seatsAvailable || 1));
     const currentOfficeId = buttons[0]?.dataset.officeId || '';
+    const selectionCount = document.querySelector<HTMLElement>('#race-selection-count');
 
     type Choice = {
       candidateId: string;
@@ -679,8 +834,23 @@ function isAbsoluteUrl(url: string | null): boolean {
       }
     }
 
-    function saveChoices(choices: Choice[]) {
+    // §11: enforce the limit at the actual persistence point, not just in the
+    // UI that normally leads here — a single choke point that a devtools
+    // edit, a future code path, or corrupted state can't bypass the way a
+    // button-level guard alone could. Reject over-limit writes with a clear
+    // error; never truncate silently. validateSelectionWrite is the same
+    // function a future server/API write path would call, so both paths
+    // enforce identically rather than duplicating the rule.
+    function saveChoices(choices: Choice[]): boolean {
+      const officeCount = choices.filter((choice) => choice.officeId === currentOfficeId).length;
+      const contestLabel = buttons[0]?.dataset.officeName || 'this contest';
+      const { valid, error } = validateSelectionWrite(officeCount, seatsAvailable, contestLabel);
+      if (!valid) {
+        setStatus(error || 'Could not save your selection — the limit was exceeded.');
+        return false;
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(choices));
+      return true;
     }
 
     function loadAvailableRaces(): AvailableRace[] {
@@ -703,10 +873,20 @@ function isAbsoluteUrl(url: string | null): boolean {
       };
     }
 
+    // The saved list is appended in pick order, which can jump around the
+    // ballot (races can be reached via the jump-select or Browse races in any
+    // sequence). loadAvailableRaces() already reflects the canonical ballot
+    // order established on the homepage (see sortRaces in src/lib/race-order),
+    // so project that same order onto the saved choices rather than deriving
+    // a second ordering here — this keeps the list, "Jump to a race", and the
+    // homepage ballot panel from ever drifting apart.
+    function canonicalOrder(choices: Choice[]): Choice[] {
+      const rank = rankMapFromOrder(loadAvailableRaces(), (race) => race.id);
+      return sortByRankMap(choices, rank, (choice) => choice.officeId, (choice) => choice.officeName);
+    }
+
     function formatChoices(choices: Choice[]) {
-      const sorted = [...choices].sort((a, b) =>
-        a.officeName.localeCompare(b.officeName) || a.candidateName.localeCompare(b.candidateName)
-      );
+      const sorted = canonicalOrder(choices);
       return [
         'My Wyoming 2026 candidate choices',
         '',
@@ -767,15 +947,32 @@ function isAbsoluteUrl(url: string | null): boolean {
     function render() {
       const choices = loadChoices();
       const selectedIds = new Set(choices.map((choice) => choice.candidateId));
+      const officeChoiceCount = choices.filter((choice) => choice.officeId === currentOfficeId).length;
+      const atMax = seatsAvailable > 1 && officeChoiceCount >= seatsAvailable;
 
       for (const button of buttons) {
         const selected = selectedIds.has(button.dataset.candidateId || '');
         button.setAttribute('aria-pressed', selected ? 'true' : 'false');
         button.textContent = selected ? '✓ My choice' : 'My choice';
+        // §9: at the maximum, disable unselected options rather than letting a
+        // click silently drop or replace an earlier choice. Already-selected
+        // pills stay enabled so they can be deselected to free a slot.
+        button.disabled = atMax && !selected;
+      }
+
+      if (selectionCount) {
+        selectionCount.textContent = atMax
+          ? `${officeChoiceCount} of ${seatsAvailable} selected — remove one to choose someone else.`
+          : `${officeChoiceCount} of ${seatsAvailable} selected`;
       }
 
       if (countRoot) {
         countRoot.textContent = `${choices.length} ${choices.length === 1 ? 'choice' : 'choices'}`;
+      }
+      if (summary) {
+        summary.textContent = choices.length === 0
+          ? 'Review saved choices'
+          : `${choices.length} ${choices.length === 1 ? 'choice' : 'choices'} — review list`;
       }
       if (actions) actions.hidden = choices.length === 0;
 
@@ -795,59 +992,149 @@ function isAbsoluteUrl(url: string | null): boolean {
 
       const list = document.createElement('ul');
       list.className = 'choice-list__items';
-      for (const choice of choices) {
+      // §9: multiple candidates for one contest group under a single office
+      // heading, in ballot order. canonicalOrder() already keeps same-office
+      // choices adjacent (they share one rank), so a linear scan is enough.
+      for (const group of groupByOffice(canonicalOrder(choices))) {
         const item = document.createElement('li');
         item.className = 'choice-list__item';
 
-        const details = document.createElement('div');
         const office = document.createElement('span');
         office.className = 'choice-list__office';
-        office.textContent = choice.officeName;
-        const candidate = document.createElement('span');
-        candidate.className = 'choice-list__candidate';
-        candidate.textContent = choice.candidateName;
-        const party = document.createElement('span');
-        party.className = 'choice-list__party';
-        party.textContent = choice.candidateParty;
-        details.append(office, candidate, party);
+        office.textContent = group.officeName;
+        item.append(office);
 
-        const remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'choice-list__remove';
-        remove.dataset.removeChoice = choice.candidateId;
-        remove.setAttribute('aria-label', `Remove ${choice.candidateName} from my list`);
-        remove.textContent = 'Remove';
-        item.append(details, remove);
+        const candidateList = document.createElement('ul');
+        candidateList.className = 'choice-list__candidates';
+        for (const choice of group.choices) {
+          const row = document.createElement('li');
+          row.className = 'choice-list__candidate-row';
+
+          const details = document.createElement('div');
+          const candidate = document.createElement('span');
+          candidate.className = 'choice-list__candidate';
+          candidate.textContent = choice.candidateName;
+          const party = document.createElement('span');
+          party.className = 'choice-list__party';
+          party.textContent = choice.candidateParty;
+          details.append(candidate, party);
+
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'choice-list__remove';
+          remove.dataset.removeChoice = choice.candidateId;
+          remove.setAttribute('aria-label', `Remove ${choice.candidateName} from my list`);
+          remove.textContent = 'Remove';
+
+          row.append(details, remove);
+          candidateList.append(row);
+        }
+        item.append(candidateList);
         list.append(item);
       }
       itemsRoot.replaceChildren(list);
     }
 
+    function groupByOffice(orderedChoices: Choice[]): { officeId: string; officeName: string; choices: Choice[] }[] {
+      const groups: { officeId: string; officeName: string; choices: Choice[] }[] = [];
+      const byOffice = new Map<string, { officeId: string; officeName: string; choices: Choice[] }>();
+      for (const choice of orderedChoices) {
+        let group = byOffice.get(choice.officeId);
+        if (!group) {
+          group = { officeId: choice.officeId, officeName: choice.officeName, choices: [] };
+          byOffice.set(choice.officeId, group);
+          groups.push(group);
+        }
+        group.choices.push(choice);
+      }
+      return groups;
+    }
+
+    function clearInlineNextHints() {
+      document.querySelectorAll('.candidate-card__next-hint').forEach((el) => el.remove());
+    }
+
+    // Surfaces "Next: <race> →" right on the card the user just selected, so
+    // advancing never requires scrolling past the (unbounded-height) saved
+    // list to reach the "Continue through your ballot" section.
+    function showInlineNextHint(card: HTMLElement) {
+      clearInlineNextHints();
+      const availableRaces = loadAvailableRaces();
+      const decidedOfficeIds = new Set(loadChoices().map((choice) => choice.officeId));
+      const nextRace = availableRaces.find(
+        (race) => race.id !== currentOfficeId && !decidedOfficeIds.has(race.id)
+      );
+      if (!nextRace) return;
+
+      const hint = document.createElement('p');
+      hint.className = 'candidate-card__next-hint';
+      const link = document.createElement('a');
+      link.href = `/race/${encodeURIComponent(nextRace.id)}`;
+      link.textContent = `Next: ${nextRace.name} →`;
+      hint.append('Saved. ', link);
+
+      const links = card.querySelector('.candidate-card__links');
+      if (links) links.before(hint);
+      else card.append(hint);
+    }
+
+    function toggleChoice(button: HTMLButtonElement, card: HTMLElement | null) {
+      // Single guard point regardless of entry path (pill click, whole-card
+      // click delegation, or keyboard) — a disabled pill must never toggle.
+      if (button.disabled) return;
+
+      const clicked = choiceFromButton(button);
+      let choices = loadChoices();
+      const isSelected = choices.some((choice) => choice.candidateId === clicked.candidateId);
+      let nowSelected = false;
+
+      if (isSelected) {
+        choices = choices.filter((choice) => choice.candidateId !== clicked.candidateId);
+        setStatus(`${clicked.candidateName} removed from your list.`);
+      } else {
+        const officeChoices = choices.filter((choice) => choice.officeId === clicked.officeId);
+        if (seatsAvailable === 1) {
+          choices = choices.filter((choice) => choice.officeId !== clicked.officeId);
+        } else if (officeChoices.length >= seatsAvailable) {
+          setStatus(`You can select up to ${seatsAvailable} candidates for this office.`);
+          return;
+        }
+        choices.push(clicked);
+        setStatus(`${clicked.candidateName} added to your list.`);
+        nowSelected = true;
+      }
+
+      // render() always refreshes from whatever is actually in localStorage,
+      // so a rejected save (saveChoices returns false and never writes)
+      // still leaves the UI showing the real, persisted state rather than
+      // the attempted one.
+      const saved = saveChoices(choices);
+      render();
+
+      if (saved && nowSelected && card) {
+        showInlineNextHint(card);
+      } else {
+        clearInlineNextHints();
+      }
+    }
+
     for (const button of buttons) {
       button.addEventListener('click', () => {
-        const clicked = choiceFromButton(button);
-        let choices = loadChoices();
-        const isSelected = choices.some((choice) => choice.candidateId === clicked.candidateId);
-
-        if (isSelected) {
-          choices = choices.filter((choice) => choice.candidateId !== clicked.candidateId);
-          setStatus(`${clicked.candidateName} removed from your list.`);
-        } else {
-          const officeChoices = choices.filter((choice) => choice.officeId === clicked.officeId);
-          if (seatsAvailable === 1) {
-            choices = choices.filter((choice) => choice.officeId !== clicked.officeId);
-          } else if (officeChoices.length >= seatsAvailable) {
-            setStatus(`You can select up to ${seatsAvailable} candidates for this office.`);
-            return;
-          }
-          choices.push(clicked);
-          setStatus(`${clicked.candidateName} added to your list.`);
-        }
-
-        saveChoices(choices);
-        render();
+        toggleChoice(button, button.closest<HTMLElement>('.candidate-card'));
       });
     }
+
+    // Make the whole card a selection target (BUG 4a) — the pill stays the
+    // visible affordance and the only element with real button semantics.
+    // Links and the pill itself handle their own clicks, so any click that
+    // targets one must not also toggle the card here.
+    candidateGrid?.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest('a, button')) return;
+      const card = target.closest<HTMLElement>('.candidate-card');
+      const button = card?.querySelector<HTMLButtonElement>('[data-choice-button]');
+      if (card && button) toggleChoice(button, card);
+    });
 
     itemsRoot?.addEventListener('click', (event) => {
       const target = event.target as HTMLElement;

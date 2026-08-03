@@ -49,8 +49,8 @@ if [[ -n "${DEPLOY_HOOK_URL:-}" ]]; then
 fi
 
 if [[ "${DIRECT:-0}" == "1" ]]; then
-  if ! command -v wrangler >/dev/null 2>&1; then
-    fail "wrangler not found in PATH (required for DIRECT=1)"
+  if ! command -v npx >/dev/null 2>&1; then
+    fail "npx not found in PATH (required for DIRECT=1)"
   fi
   if [[ "${SKIP_BUILD:-0}" != "1" ]]; then
     if [[ -f "package-lock.json" ]]; then
@@ -66,8 +66,11 @@ if [[ "${DIRECT:-0}" == "1" ]]; then
   if [[ ! -d "${SITE_OUTPUT_DIR}" ]]; then
     fail "build output folder missing: ./${SITE_OUTPUT_DIR}"
   fi
-  status "Deploying directly with wrangler"
-  wrangler pages deploy "${SITE_OUTPUT_DIR}" --project-name skovgard2026 --branch main
+  if [[ ! -x "node_modules/.bin/wrangler" ]]; then
+    fail "project-local Wrangler not installed; run npm ci before using SKIP_BUILD=1"
+  fi
+  status "Deploying directly with project-local wrangler"
+  npx --no-install wrangler pages deploy "${SITE_OUTPUT_DIR}" --project-name skovgard2026 --branch main
   status "Direct deploy completed"
   exit 0
 fi

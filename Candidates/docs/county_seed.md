@@ -259,10 +259,10 @@ Do not commit intermediate working files, raw PDFs, or extracted CSV/TXT artifac
 
 ## 12. Counties already in the database
 
-As of 2026-06-27 (sort_order max = 501):
+_(updated 2026-08-02 — all 23 counties now have county-tagged records and Sweetwater precinct candidates were added; completeness still requires source-by-source verification)_
 
-Albany, Big Horn, Campbell, Carbon, Converse, Crook, Fremont, Goshen, Hot Springs, Johnson, Laramie, Lincoln, Natrona, Niobrara, Park, Platte, Sheridan, Sublette, Sweetwater, Teton, Uinta, Washakie
+All 23 Wyoming counties now have at least some county-tagged candidate data. Do not treat that as proof that every contest type is complete: query the relevant `scope_kind` and compare it with the official county source before calling a county complete.
 
-**Not yet added:** Weston (1 remaining county as of this writing — verify with `SELECT DISTINCT county FROM offices WHERE county IS NOT NULL ORDER BY county` before starting).
+Sweetwater precinct status as of 2026-08-02: 50 `precinct_party_gender` offices and 93 candidates across 26 precinct codes. Richard F. Kaumo (04-4 Committeeman) remains unimported because the official filing source leaves both party and seat count blank; do not infer them.
 
-Next `sort_order` block starts at **502**.
+Always query `MAX(sort_order)` immediately before generating a new seed; never rely on a documented next value.

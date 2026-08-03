@@ -65,8 +65,10 @@ fi
 # ── deploy ────────────────────────────────────────────────────────────────────
 # --name is explicit so future wrangler.toml changes cannot silently rename the Worker.
 # No --env flag: the top-level [vars] block in wrangler.toml IS the production config.
+[[ -x "node_modules/.bin/wrangler" ]] \
+  || fail "project-local Wrangler not installed; run without SKIP_BUILD=1 first"
 status "Deploying Worker '${EXPECTED_WORKER}'"
-npx wrangler deploy --name "${EXPECTED_WORKER}" "$@"
+npx --no-install wrangler deploy --name "${EXPECTED_WORKER}" "$@"
 
 status "Done. Smoke test:"
 status "  curl -s -X POST https://candidates.skovgard2026.org/api/ballot-lookup \\"

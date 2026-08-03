@@ -53,6 +53,8 @@ Run `npm run rubric:build` after editing it; never edit its generated JSON, PDF,
 ## Deploy rules
 
 - **Always use `./scripts/deploy_candidates.sh`** from the repo root.
+- The script requires the project-local pinned Wrangler and deploys through
+  `npx --no-install wrangler`; it must not download a CLI during deployment.
 - Do NOT run `npx wrangler deploy --env production` — there is no `[env.production]` block and Wrangler will deploy as `skovgard-candidates-production`.
 - Do NOT mix this Worker with `skovgard2026-api` or `skovgard-guide`.
 

@@ -1,6 +1,6 @@
 {
   "type": "module",
   "devDependencies": {
-    "wrangler": "^4.106.0"
+    "wrangler": "4.118.0"
   }
 }

@@ -38,5 +38,8 @@ if [[ "${configured_name}" != "${WORKER_NAME}" ]]; then
 fi
 
 cd "${worker_dir}"
+if [[ ! -x "node_modules/.bin/wrangler" ]]; then
+  fail "project-local Wrangler not installed; run npm ci in worker/ before deploying"
+fi
 status "Deploying Worker ${WORKER_NAME} with --env ${WORKER_ENV} and explicit --name"
-npx wrangler deploy --env "${WORKER_ENV}" --name "${WORKER_NAME}" "$@"
+npx --no-install wrangler deploy --env "${WORKER_ENV}" --name "${WORKER_NAME}" "$@"

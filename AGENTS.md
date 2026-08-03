@@ -51,6 +51,7 @@ is deleted.
 | `docs/media/AddMessage.md` | Canonical process for adding a new video/essay/survey/tool to /messages — includes the required-inputs checklist for asking the user for missing content |
 | `docs/polling/AddPollingLocations.md` | Adding polling locations for a new Wyoming county |
 | `docs/pulse_flow.md` | `/pulse` opt-in + Citizen Poll flow architecture, data model, and the open unmatched-voter design gap |
+| `docs/worker_map.md` | Inventory of Cloudflare Workers/Pages deploy targets, Wrangler version ownership, and the safe Wrangler upgrade runbook |
 | `docs/who_needs_to_know.md` | Inventory of every staff/donor notification trigger site-wide — recipient, condition, and known gaps (start here before assuming who gets emailed when) |
 | `docs/share/AddShareMessage.md` | Checklist for adding a new `/share/<slug>` shareable message |
 | `docs/share/show_shares.md` | Tracks `/share` and `/share/more-shares` card display order (array order, not date-sorted) — update after adding or reordering a share card |
@@ -222,7 +223,7 @@ See `docs/security_notes.md` for the incident that established this rule.
 - Plain `./scripts/deploy_cf.sh` (no flags) only builds and pushes as a verification/version-control step — it does not deploy and should not be treated as one.
 - That script does not publish the Worker in `worker/`.
 - Cloudflare Pages Git builds for the Astro site must use Node `22.12.0` or newer. If dashboard settings still reference Hugo or `public/`, correct them before debugging app code.
-- `scripts/deploy_worker.sh` is the canonical production Worker deploy helper. It runs `npx wrangler deploy --env production --name skovgard2026-api` from `worker/` so Wrangler does not drift to `skovgard2026-api-production`.
+- `scripts/deploy_worker.sh` is the canonical production Worker deploy helper. It requires the project-local pinned CLI and runs `npx --no-install wrangler deploy --env production --name skovgard2026-api` from `worker/` so Wrangler cannot download a moving version or drift to `skovgard2026-api-production`.
 - For the production Worker routes currently attached to `skovgard2026-api`, use `./scripts/deploy_worker.sh`.
 - Do not use plain `npx wrangler deploy --env production` for this repo unless the target service name has been reverified; Wrangler may try to publish `skovgard2026-api-production`, which conflicts with the existing routed Worker.
 
@@ -398,7 +399,8 @@ When working on `candidates.skovgard2026.org`, treat the live app as the
 
 The script: validates `Candidates/wrangler.toml` name, guards against an
 accidental `[env.production]` block, builds the Astro site, then deploys with
-`npx wrangler deploy --name skovgard-candidates` (no `--env` flag).
+the project-local pinned CLI via
+`npx --no-install wrangler deploy --name skovgard-candidates` (no `--env` flag).
 
 To redeploy without rebuilding (e.g. after a data-only change):
 ```bash

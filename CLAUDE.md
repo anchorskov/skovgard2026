@@ -75,7 +75,7 @@ This project migrated from Hugo to Astro in early April 2026. **All code changes
 ## Worker Deploy
 
 - Use `./scripts/deploy_worker.sh` for production Worker deploys.
-- That script is the canonical path for this repo. It runs `npx wrangler deploy --env production --name skovgard2026-api` from `worker/` so Wrangler does not create or target `skovgard2026-api-production`.
+- That script is the canonical path for this repo. It requires the project-local pinned CLI and runs `npx --no-install wrangler deploy --env production --name skovgard2026-api` from `worker/` so Wrangler cannot download a moving version or create/target `skovgard2026-api-production`.
 - Do not use plain `npx wrangler deploy --env production` for this repo unless the target Worker name has been reverified in Cloudflare.
 - `scripts/deploy_cf.sh` is for the Astro Pages site only. It does not publish the API Worker.
 

@@ -5,9 +5,9 @@ type: video
 summary: "Public office is a public trust. An oath belongs to the Constitution and the citizens, not a political machine, powerful donor, party leader, or president. Jimmy explains why independent judgment, honest oversight, and the courage to question power still matter."
 draft: false
 tags: ["constitution", "accountability", "oath of office"]
-thumbnail: "/images/messages/an-oath-is-not-a-loyalty-pledge.jpg"
+thumbnail: "/images/messages/an-oath-is-not-a-loyalty-pledge-v3.jpg"
 thumbnailWidth: 1200
-thumbnailHeight: 675
+thumbnailHeight: 630
 videoUrl: "/videos/an-oath-is-not-a-loyalty-pledge.mp4"
 duration: "5:59"
 ctaLabel: "Watch and read"

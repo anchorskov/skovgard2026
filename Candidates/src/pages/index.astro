@@ -248,6 +248,8 @@ const addressFields = [
       window.__TURNSTILE_SITE_KEY__ = turnstileEnabled ? turnstileSiteKey : '';
     </script>
     <script>
+      import { sortRaces } from '../lib/race-order';
+
       const lookupForm = document.querySelector('.address-form');
       const lookupStatus = document.querySelector('#lookup-status');
       const lookupButton = lookupForm?.querySelector('button[type="submit"]');
@@ -261,40 +263,77 @@ const addressFields = [
       let storedGpsLon = null;
 
       // ── Turnstile (invisible) ───────────────────────────────────────────
-      let _tsToken = null;
+      // Each submission needs its own execute() call — Turnstile tokens are
+      // single-use, so a token from a prior lookup must never be replayed.
       let _tsResolve = null;
       let _tsExecuted = false;
 
       window.onTurnstileSuccess = function (token) {
-        _tsToken = token;
         if (_tsResolve) { _tsResolve(token); _tsResolve = null; }
       };
       window.onTurnstileError = function () {
         if (_tsResolve) { _tsResolve(null); _tsResolve = null; }
       };
       window.onTurnstileExpired = function () {
-        _tsToken = null;
         _tsExecuted = false;
         if (window.turnstile) window.turnstile.reset('#ts-widget');
       };
 
+      // The Turnstile <script> tag is async, so on a fresh page load the very
+      // first submit can race the widget's own initialization: calling
+      // execute() before the library (and the implicitly-rendered #ts-widget)
+      // is ready is a silent no-op — no callback ever fires. Every path below
+      // resolves within 12s no matter what, so a submit is never dropped.
+      //
+      // Do NOT call turnstile.ready() here: Cloudflare's own implementation
+      // throws ("Remove async/defer from the Turnstile api.js script tag
+      // before using turnstile.ready()..") whenever the script tag carries
+      // async/defer, which this one does by design (see the <script> tag
+      // above). That throw propagated out of this Promise executor as a
+      // rejection, which the submit handler's try/catch turned into "Lookup
+      // route could not be reached" for every single submission in
+      // production. Plain existence-polling for window.turnstile is enough
+      // to fix the original no-op without needing .ready() at all.
       async function getTurnstileToken() {
-        if (!window.__TURNSTILE_SITE_KEY__ || !window.turnstile) return null;
-        if (_tsToken) {
-          const tok = _tsToken;
-          _tsToken = null;
-          return tok;
-        }
+        if (!window.__TURNSTILE_SITE_KEY__) return null;
+
         return new Promise((resolve) => {
-          if (_tsExecuted) {
-            window.turnstile.reset('#ts-widget');
+          let settled = false;
+          const finish = (token) => {
+            if (settled) return;
+            settled = true;
+            resolve(token);
+          };
+          const ceiling = setTimeout(() => finish(null), 12000);
+
+          function runExecute() {
+            try {
+              if (!window.turnstile) { clearTimeout(ceiling); finish(null); return; }
+              if (_tsExecuted) window.turnstile.reset('#ts-widget');
+              _tsResolve = (token) => { clearTimeout(ceiling); finish(token); };
+              _tsExecuted = true;
+              window.turnstile.execute('#ts-widget');
+            } catch {
+              // Fall back to submitting without a token rather than dropping
+              // the request — the server rejects a missing token cleanly.
+              clearTimeout(ceiling);
+              finish(null);
+            }
           }
-          _tsResolve = resolve;
-          _tsExecuted = true;
-          window.turnstile.execute('#ts-widget');
-          setTimeout(() => {
-            if (_tsResolve) { _tsResolve(null); _tsResolve = null; }
-          }, 12000);
+
+          if (window.turnstile) {
+            runExecute();
+            return;
+          }
+
+          // Script hasn't finished loading yet — poll briefly rather than
+          // giving up immediately (which is what caused the first-submit no-op).
+          const pollStart = Date.now();
+          (function pollForScript() {
+            if (window.turnstile) return runExecute();
+            if (Date.now() - pollStart >= 8000) { clearTimeout(ceiling); finish(null); return; }
+            setTimeout(pollForScript, 100);
+          })();
         });
       }
 
@@ -514,6 +553,16 @@ const addressFields = [
         }
       }
 
+      // Display-only shortening for the tight ballot-results cards — the
+      // full "Representative" is what makes "United States Representative"
+      // the one race name wide enough to overflow its card at 2-column
+      // widths (see BUG 6). This only affects card text; race.name itself
+      // stays full-length everywhere else (localStorage, jump-to-race
+      // select, the race detail page heading).
+      function abbreviateRaceCardName(name) {
+        return String(name || '').replace(/\bRepresentative\b/g, 'Rep');
+      }
+
       function renderRaces(races) {
         if (!lookupResults) return;
         if (!Array.isArray(races) || races.length === 0) {
@@ -533,7 +582,7 @@ const addressFields = [
               return `<li>
                 <a class="race-result-card" href="/race/${escapeHtml(String(race.id))}">
                   <span class="race-result-card__body">
-                    <span class="race-result-card__name">${escapeHtml(race.name)}</span>
+                    <span class="race-result-card__name">${escapeHtml(abbreviateRaceCardName(race.name))}</span>
                     <span class="race-result-card__count">${escapeHtml(countText)}</span>
                   </span>
                   <span class="race-result-card__cta" aria-hidden="true">View candidates →</span>
@@ -569,7 +618,7 @@ const addressFields = [
             return `<li>
               <a class="race-result-card" href="/race/${escapeHtml(String(race.id))}">
                 <span class="race-result-card__body">
-                  <span class="race-result-card__name">${escapeHtml(race.name)}</span>
+                  <span class="race-result-card__name">${escapeHtml(abbreviateRaceCardName(race.name))}</span>
                   <span class="race-result-card__count">${escapeHtml(countText)}</span>
                 </span>
                 <span class="race-result-card__cta" aria-hidden="true">View candidates →</span>
@@ -890,10 +939,17 @@ const addressFields = [
             `${standardizationNote.length > 0 ? `${standardizationNote.join(' ')} ` : ''}${data.message} ${resolvedLabel} ${data.address.combined}`,
             'success'
           );
+          // Establish canonical ballot order once here — the homepage panel,
+          // the "Jump to a race" select (via saveAvailableRaces), and the
+          // saved candidate list on /race/[id] all derive from this same
+          // sorted order so the three surfaces can never drift apart.
+          const orderedRaces = sortRaces(Array.isArray(data.races) ? data.races : []);
+          const orderedLocalRaces = sortRaces(Array.isArray(data.localRaces) ? data.localRaces : []);
+
           renderDistricts(data.districts, data.resolvedPollingPlace);
-          saveAvailableRaces(data.races, data.localRaces);
-          renderRaces(data.races);
-          renderLocalRaces(data.localRaces, data.localMeta);
+          saveAvailableRaces(orderedRaces, orderedLocalRaces);
+          renderRaces(orderedRaces);
+          renderLocalRaces(orderedLocalRaces, data.localMeta);
           renderPollingDetails(data.pollingDetails, data.resolvedPollingPlace);
           renderFallback(data);
         } catch {
@@ -1680,7 +1736,17 @@ const addressFields = [
     font-family: 'Bitter', 'Merriweather', Georgia, serif;
   }
 
-  .race-result-list {
+  /*
+   * :global() is required below: renderRaces()/renderLocalRaces() build this
+   * markup via innerHTML in client JS, not the Astro template, so these
+   * elements never receive Astro's scoped data-astro-cid attribute. Without
+   * :global(), every rule here is dead — confirmed in production, where
+   * .race-result-card computed to the browser default (display:inline,
+   * 0 padding), which is what made each row an unfragmented-touch-target bug
+   * (BUG 6) in the first place. This is the same pattern already used for
+   * the dynamically-built choice list in race/[id].astro.
+   */
+  :global(.race-result-list) {
     display: grid;
     gap: 8px;
     list-style: none;
@@ -1688,52 +1754,90 @@ const addressFields = [
     padding: 0;
   }
 
-  .race-result-card {
+  /* Recovers vertical space lost to taller (44px+) rows — group headings
+     stay full-width since they're siblings of the <ul>, not grid items. */
+  @media (min-width: 768px) {
+    :global(.race-result-list) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 16px;
+    }
+  }
+
+  :global(.race-result-card) {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 11px 14px 11px 12px;
+    min-height: 44px;
+    padding: 12px 14px;
     border: 1px solid var(--dust);
     border-left: 4px solid var(--ember);
     background: var(--bone);
     text-decoration: none;
     color: var(--charcoal);
-    transition: border-color 0.1s, box-shadow 0.1s;
+    transition: border-color 0.1s, box-shadow 0.1s, background 0.1s;
   }
 
-  .race-result-card:hover,
-  .race-result-card:focus-visible {
+  :global(.race-result-card:hover) {
     border-color: var(--ember);
     box-shadow: 0 3px 0 var(--sandstone);
-    outline: none;
   }
 
-  .race-result-card__body {
+  :global(.race-result-card:focus-visible) {
+    border-color: var(--ember);
+    outline: 3px solid var(--charcoal);
+    outline-offset: 2px;
+  }
+
+  :global(.race-result-card:active) {
+    background: color-mix(in srgb, var(--ember) 10%, var(--bone));
+  }
+
+  :global(.race-result-card__body) {
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
   }
 
-  .race-result-card__name {
+  :global(.race-result-card__name) {
     font-weight: 700;
     font-size: 0.97rem;
     line-height: 1.2;
+    overflow-wrap: break-word;
   }
 
-  .race-result-card__count {
+  :global(.race-result-card__count) {
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--rust);
   }
 
-  .race-result-card__cta {
+  :global(.race-result-card__cta) {
     font-size: 0.82rem;
     font-weight: 800;
     color: var(--ember);
     white-space: nowrap;
     flex-shrink: 0;
+  }
+
+  /* Below 480px the full "View candidates →" phrase repeated on every row
+     is what forces long race names to wrap and compete for the line — it's
+     already aria-hidden decoration, so swap it for a chevron rather than
+     stacking, which would grow row height further on the tightest widths. */
+  @media (max-width: 479px) {
+    :global(.race-result-card__cta) {
+      font-size: 0;
+      line-height: 0;
+    }
+
+    :global(.race-result-card__cta)::after {
+      content: '→';
+      display: inline-block;
+      font-size: 1.15rem;
+      line-height: 1;
+      font-weight: 800;
+    }
   }
 
   .polling-section p {

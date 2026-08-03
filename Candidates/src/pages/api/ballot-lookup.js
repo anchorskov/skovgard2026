@@ -1,5 +1,6 @@
 // Candidates/src/pages/api/ballot-lookup.js
 import { env } from 'cloudflare:workers';
+import { normalizeWard, officeMatchesPrecinct } from '../../lib/office-scope.js';
 
 const REQUIRED_FIELDS = [
   ['houseNumber', 'House / Unit Number'],
@@ -732,29 +733,6 @@ function officeAppliesToDistrict(office, districts) {
 const PRECINCT_SCOPES = new Set(['precinct_party', 'precinct_party_gender']);
 const WARD_SCOPES = new Set(['municipal_ward']);
 
-function normalizeWard(value) {
-  const text = value == null ? '' : String(value).trim().replace(/\s+/g, ' ').toUpperCase();
-  if (!text) return '';
-  const match = text.match(/\bWARD\s*(\d+|[A-Z])\b/) || text.match(/\b(\d+|[A-Z])\b/);
-  return match ? `WARD ${match[1]}` : text;
-}
-
-function normalizePrecinctCode(value) {
-  return normalizeText(value)
-    .toUpperCase()
-    .replace(/^PRECINCT\s+/i, '')
-    .replace(/[^\dA-Z]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-function officeMatchesPrecinct(row, precinct) {
-  const precinctKey = normalizePrecinctCode(precinct);
-  if (!precinctKey) return false;
-  if (row.precinct_code && normalizePrecinctCode(row.precinct_code) === precinctKey) return true;
-  const titleKey = normalizeLookupKey(row.title).replace(/\s+/g, ' ');
-  return titleKey.startsWith(`PRECINCT ${precinctKey.replace(/-/g, ' ')} `);
-}
-
 async function getLocalRaces(db, districts, address, precinct = null, ward = null) {
   if (!db || !districts?.county) return { races: [], hasPrecinctRaces: false, hasWardRaces: false, county: null };
   try {
@@ -773,8 +751,10 @@ async function getLocalRaces(db, districts, address, precinct = null, ward = nul
          o.scope_kind,
          o.ward,
          o.precinct_code,
+         GROUP_CONCAT(DISTINCT ops.precinct_code) AS mapped_precinct_codes,
          COUNT(c.id) AS candidate_count
        FROM offices o
+       LEFT JOIN office_precinct_scopes ops ON ops.office_id = o.id
        LEFT JOIN candidates c ON c.office_id = o.id AND c.withdrawn_at IS NULL
        WHERE o.county IS NOT NULL
        GROUP BY o.id
@@ -813,7 +793,9 @@ async function getLocalRaces(db, districts, address, precinct = null, ward = nul
           hasPrecinctRaces = true;
         }
       } else if (WARD_SCOPES.has(scope)) {
-        if (wardKey && normalizeWard(row.ward) === wardKey) {
+        const wardMatches = wardKey && normalizeWard(row.ward) === wardKey;
+        const precinctMatches = precinct && officeMatchesPrecinct(row, precinct);
+        if (wardMatches || precinctMatches) {
           races.push({
             id: String(row.office_id),
             name: row.title,
@@ -822,7 +804,7 @@ async function getLocalRaces(db, districts, address, precinct = null, ward = nul
             scopeKind: row.scope_kind || null,
             candidateCount: Number(row.candidate_count || 0),
           });
-        } else if (!wardKey) {
+        } else if (!wardKey && !precinct) {
           hasWardRaces = true;
         }
       } else {

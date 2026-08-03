@@ -5,15 +5,25 @@ AI agent reference for the `wy` D1 database backing the Wyoming 2026 primary vot
 ## Schema snapshot
 
 ```
-offices (86 rows)
+offices (row count grows as county and precinct rosters are added)
   id           INTEGER PK AUTOINCREMENT
   title        TEXT NOT NULL           -- "U.S. Representative", "Wyoming State Senate"
   level        TEXT NOT NULL           -- federal | statewide | wy_senate | wy_house | county | city
   district     INTEGER NULLABLE        -- NULL for federal/statewide; HD/SD number otherwise
   sort_order   INTEGER DEFAULT 0
   precinct_code TEXT NULLABLE          -- structured precinct code for precinct committee offices
+  scope_kind   TEXT NULLABLE           -- countywide | municipal | municipal_ward | precinct_party_gender | ...
+  ward         TEXT NULLABLE           -- normalized municipal ward label when applicable
 
-candidates (200 rows)
+office_precinct_scopes
+  office_id     INTEGER → offices.id
+  precinct_code TEXT                   -- one row per office/precinct pair
+  source_label  TEXT NULLABLE
+  source_date   TEXT NULLABLE
+  notes         TEXT NULLABLE
+  PRIMARY KEY (office_id, precinct_code)
+
+candidates (row count grows as county and precinct rosters are added)
   id                          INTEGER PK AUTOINCREMENT
   office_id                   INTEGER → offices.id
   party                       TEXT      -- Republican | Democratic | Libertarian
@@ -182,6 +192,8 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/migrations/0011_candidate_email_suppressions.sql` | Adds the candidate bulk-email suppression table |
 | `db/migrations/0019_multi_seat_race_sources.sql` | Creates `multi_seat_race_sources`, the staging table for the multi-seat candidates flow (see below) |
 | `db/migrations/0022_guide_rubric_definitions.sql` | Creates versioned rubric definitions and ordered categories; canonical authoring source is `data/rubrics/wy-primary-2026-v1.md` |
+| `db/migrations/0024_multi_seat_race_sources_selection_limit_fields.sql` | Adds normalized selection-limit fields to multi-seat source records |
+| `db/migrations/0025_office_precinct_scopes.sql` | Creates data-backed many-to-many precinct targeting for municipal wards and other sub-county offices |
 
 **Applying migrations:** the `wy` database is shared with other projects (Guide, and other unrelated features) and their `d1_migrations` bookkeeping rows live in the same table. Candidates' own 0001–0019 migrations have never been recorded in that ledger — they've always been applied by hand. Apply a new migration with `npx wrangler d1 execute wy --remote --file=db/migrations/NNNN_name.sql` from `Candidates/`. Do **not** run `wrangler d1 migrations apply` for this project — it will try to replay the entire untracked history from 0001 and fail (migration 0001's `uq_offices_statewide`/`uq_offices_district` indexes no longer match live data, which now has legitimate duplicate titles across different counties).
 
@@ -195,6 +207,9 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/seed/wy_2026_primary_candidates_enhanced_batch*.csv` | Enrichment batch CSVs (85 columns, all 200 rows per file) |
 | `db/seed/candidate_email_suppressions_*.sql` | Candidate bulk-email unsubscribe/suppression records |
 | `db/seed/guide_rubric_2026_v1.sql` | Generated immutable seed for rubric version `wy-primary-2026-v1`; do not edit directly |
+| `db/seed/sweetwater_precinct_committee_candidates_2026-08-02.sql` | Idempotent Sweetwater precinct roster: 50 party/gender offices and 93 verified candidates from the county CSV/source PDF; one party-unknown filing is held |
+
+`scripts/import_sweetwater_precinct_committee_2026.py` regenerates the Sweetwater precinct seed from the normalized source CSV. It validates the election identity and expected 94-row source, imports 93 fully classified rows, and deliberately rejects the Richard F. Kaumo row until an authoritative party and seat count are available.
 
 ## Enrichment batch workflow
 
@@ -258,3 +273,15 @@ special/community-college districts, which have no seeded offices at all).
 | Production (`--remote`) | `WY_DB` | `wy` (ID: `4b4227f1-bf30-4fcf-8a08-6967b536a5ab`) |
 
 Access the binding in Cloudflare Workers/Pages functions via `env.WY_DB`.
+
+## Address-to-local-race routing
+
+The ballot lookup resolves legislative districts and coordinates from the voter-address lookup or a geocoder. It then resolves an exact precinct from an active county GIS endpoint or the `precinct_polygons` point-in-polygon fallback, and resolves a ward from `municipal_gis` when an active municipal layer exists.
+
+`getLocalRaces` applies `offices.scope_kind` after county/city filtering:
+
+- `precinct_party_gender` matches `offices.precinct_code`.
+- `municipal_ward` first accepts an exact `municipal_gis` ward match and otherwise accepts a D1-backed `office_precinct_scopes` match.
+- Broad `countywide` and `municipal` offices remain visible to all voters in the county or municipality.
+
+Fremont's filed 2026 ballot supplies the Lander and Riverton ward-to-precinct mappings, so those ward offices use `office_precinct_scopes`. Fremont commissioner districts cannot safely use this table alone: the official county district/precinct list shows that some precincts are split across commissioner districts. Exact commissioner routing therefore remains pending an authoritative polygon layer or address-level commissioner split data; do not infer a single commissioner district from those split precinct codes.
