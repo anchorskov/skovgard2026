@@ -11,6 +11,62 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 DATA_BY_MONTH = {
+    "2026-07": {
+        "contributions": [
+            ("2026-07-12", "Susan Lasher", "Campaign Contribution (Stripe)", 100.00),
+            ("2026-07-15", "Mollie Hand", "Campaign Contribution (Stripe)", 100.00),
+            ("2026-07-21", "Jimmy Skovgard", "Candidate Loan", 500.00),
+        ],
+        "expenses": [
+            ("2026-07-02", "Citiwerks Cafe", "Travel - Meal", 6.08),
+            ("2026-07-02", "Campbell County Fair", "Booth Rental (Check 1053)", 75.00),
+            ("2026-07-03", "Citiwerks Cafe", "Travel - Meal", 4.23),
+            ("2026-07-03", "Natrona County Republican Women", "Space Rental (Check 1063)", 50.00),
+            ("2026-07-06", "Night Heron", "Travel - Meal", 4.25),
+            ("2026-07-06", "Citiwerks Cafe", "Travel - Meal", 6.08),
+            ("2026-07-06", "Big D #66", "Travel - Fuel", 13.23),
+            ("2026-07-06", "Walmart #3778", "Campaign Supplies", 19.59),
+            ("2026-07-06", "Tumbleweed Express", "Travel - Fuel", 24.73),
+            ("2026-07-07", "L2 Data", "Voter Data (Candidate Advance)", 2678.00),
+            ("2026-07-08", "EmailListVerify", "Email Verification (Candidate Advance)", 210.00),
+            ("2026-07-08", "Republican Party", "Space Rental (Check 1057)", 30.00),
+            ("2026-07-09", "GotPrint.com", "Campaign Printing", 127.24),
+            ("2026-07-10", "Frosty's Lounge", "Travel - Meal", 22.45),
+            ("2026-07-13", "Sam's Club #6425", "Travel - Fuel", 1.95),
+            ("2026-07-13", "Sam's Club #6425", "Travel - Fuel", 14.98),
+            ("2026-07-13", "Sam's Club #6425", "Travel - Fuel", 31.77),
+            ("2026-07-14", "Big D #18", "Travel - Fuel", 1.46),
+            ("2026-07-14", "Big D #66", "Travel - Fuel", 22.66),
+            ("2026-07-14", "Arrow Service", "Travel - Fuel", 35.07),
+            ("2026-07-14", "Albany County", "Event Space", 105.00),
+            ("2026-07-15", "Google Cloud", "Cloud Services", 10.00),
+            ("2026-07-17", "Big D #66", "Travel - Fuel", 26.94),
+            ("2026-07-17", "Sam's Club #6425", "Travel - Fuel", 39.87),
+            ("2026-07-20", "Fast Stop", "Travel - Fuel", 2.98),
+            ("2026-07-20", "Fast Lane", "Travel - Fuel", 8.01),
+            ("2026-07-20", "Fast Stop", "Travel - Fuel", 22.11),
+            ("2026-07-20", "Maverik #5054", "Travel - Fuel", 27.86),
+            ("2026-07-20", "Sam's Club #6425", "Travel - Fuel", 29.53),
+            ("2026-07-20", "Sam's Club #6425", "Travel - Fuel", 37.62),
+            ("2026-07-20", "Sam's Club #6425", "Travel - Fuel", 38.74),
+            ("2026-07-21", "Albertsons #2061", "Travel - Meal", 11.57),
+            ("2026-07-21", "Big D #66", "Travel - Fuel", 31.31),
+            ("2026-07-23", "Shenhav LLC", "Advertising", 19.90),
+            ("2026-07-24", "Sam's Club #6425", "Travel - Fuel", 1.95),
+            ("2026-07-24", "Sam's Club #6425", "Travel - Fuel", 42.17),
+            ("2026-07-24", "Integrity Project", "Charitable Contribution", 5.00),
+            ("2026-07-27", "Jackalope Trading", "Campaign Supplies", 3.77),
+            ("2026-07-27", "Fast Lane", "Travel - Fuel", 4.17),
+            ("2026-07-27", "Family Dollar", "Campaign Supplies", 10.30),
+            ("2026-07-27", "Super Foods Gas", "Travel - Fuel", 32.02),
+            ("2026-07-27", "Google Cloud", "Cloud Services", 50.00),
+            ("2026-07-28", "Kayb Coffee", "Travel - Meal", 3.84),
+            ("2026-07-28", "Sam's Club #6425", "Travel - Fuel", 45.36),
+            ("2026-07-29", "Sam's Club #6425", "Travel - Fuel", 38.28),
+            ("2026-07-30", "Big D #66", "Travel - Fuel", 39.02),
+            ("2026-07-31", "Stripe", "Processing Fees", 6.40),
+        ],
+    },
     "2026-05": {
         "contributions": [
             ("2026-05-08", "A. Jolley", "Campaign Contribution (Anedot)", 15.00),
@@ -69,7 +125,7 @@ def build_pdf(path, title, headers, rows, total_label, total_amount):
     for row in rows:
         table_data.append([row[0], row[1], row[2], format_currency(row[3])])
 
-    table = Table(table_data, colWidths=[90, 200, 160, 70])
+    table = Table(table_data, colWidths=[90, 200, 160, 70], repeatRows=1)
     table.setStyle(
         TableStyle(
             [

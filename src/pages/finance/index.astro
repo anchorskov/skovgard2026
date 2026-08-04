@@ -4,6 +4,7 @@ import Nav from '../../components/Nav.astro';
 import Footer from '../../components/Footer.astro';
 
 const expensePDFs = [
+  { label: 'July 2026',     path: '/finance/2026-07-Expenses.pdf' },
   { label: 'June 2026',     path: '/finance/2026-06-Expenses.pdf' },
   { label: 'May 2026',      path: '/finance/2026-05-Expenses.pdf' },
   { label: 'April 2026',    path: '/finance/2026-04-Expenses.pdf' },
@@ -19,6 +20,7 @@ const expensePDFs = [
 ];
 
 const contributionPDFs = [
+  { label: 'July 2026',     path: '/finance/contributions/2026-07-Contributions.pdf' },
   { label: 'June 2026',     path: '/finance/contributions/2026-06-Contributions.pdf' },
   { label: 'May 2026',      path: '/finance/contributions/2026-05-Contributions.pdf' },
   { label: 'April 2026',    path: '/finance/contributions/2026-04-Contributions.pdf' },
@@ -46,14 +48,14 @@ const contributionPDFs = [
 
       <!-- Current Month Summary -->
       <section class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-10">
-        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-6">Current Month Summary: June 2026</h2>
+        <h2 class="text-2xl font-serif font-bold text-wy-navy mb-6">Current Month Summary: July 2026</h2>
         <dl class="grid sm:grid-cols-2 gap-4 mb-6">
           {[
-            ['Balance forward (as of Jun 1)',          '$2,637.22'],
-            ['Contributions received in June',        '$2,100.00'],
-            ['Expenditures in June',                   '$1,053.69'],
-            ['Cash on hand at Jun 30',                 '$3,697.63'],
-            ['Debts and obligations',                  '$2,000.00'],
+            ['Combined bank balance (as of Jul 1)',    '$3,727.63'],
+            ['Contributions and loans received in July', '$700.00'],
+            ['Campaign expenses incurred in July',    '$4,072.49'],
+            ['Cash on hand at Jul 31',                 '$3,262.44'],
+            ['Debts and obligations',                  '$5,388.00'],
           ].map(([label, value]) => (
             <div class="bg-wy-stone rounded-lg px-5 py-4">
               <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{label}</dt>
@@ -62,18 +64,16 @@ const contributionPDFs = [
           ))}
         </dl>
         <p class="text-sm text-gray-500 leading-relaxed">
-          June contributions include a $2,000.00 loan from candidate Jimmy Skovgard and $100.00 from Jill Dauster
-          via Stripe. The loan remains outstanding and is reported as a debt/obligation owed by the committee to
-          the candidate (FEC Schedule C) until repaid. WinRed recorded no June donations. The June Wells Fargo
-          deposits also include a $14.10 net Anedot payout tied to a contribution already counted in the May
-          contribution total, which is reflected in cash on hand but not in the June contributions figure.
-          Expenditures include $200.00 to ACRP for a fundraiser fee, $161.00 to State Farm for insurance, $100.00
-          combined to the Natrona County Republican Party for two separate contributions (Checks 1054 and 1060),
-          $50.00 to BHC for a rally entry fee, $50.00 to NCRW for a rally fee, $141.48 in fuel purchases at Sam's
-          Club #6425 (corrected from an earlier campaign-supplies categorization), additional travel fuel and meal
-          costs across several stops, and a $3.20 Stripe processing fee on the Dauster contribution. Check 1058 ($1,000.00) was
-          an internal transfer to the Hilltop account and is not counted as an expenditure. Cash on hand reflects
-          the balance forward plus net contributions, expenditures, and the Anedot timing deposit described above.
+          July receipts include $100.00 contributions from Susan Lasher and Mollie Hand via Stripe and a $500.00
+          candidate loan from Jimmy Skovgard. The candidate also paid $2,678.00 to L2 Data and $210.00 to
+          EmailListVerify for campaign services; those noncash advances are included in July expenses and remain
+          obligations owed by the committee. Cash expenses total $1,184.49, including $613.79 for travel fuel,
+          $58.50 for travel meals, $155.00 for booth and space rentals, $127.24 for printing, $105.00 for event
+          space, $60.00 for cloud services, $33.66 for campaign supplies, $19.90 for advertising, a $5.00
+          charitable contribution to Integrity Project, and $6.40 in Stripe fees. The July 1 bank balance is
+          $30.00 above June's adjusted cash-on-hand figure because Check 1057 was still outstanding at June 30 and
+          cleared in July. Cash on hand also includes a prior-period $14.10 Anedot deposit, $5.00 in card rewards,
+          and a $0.20 account-verification credit; none is counted as a July contribution.
         </p>
       </section>
 
@@ -82,9 +82,9 @@ const contributionPDFs = [
         <h2 class="text-2xl font-serif font-bold mb-6">Campaign Totals</h2>
         <dl class="grid sm:grid-cols-3 gap-6">
           {[
-            ['Total contributions\nthrough Jun 30, 2026', '$11,873.06'],
-            ['Total expenditures\nsince launch 04/24/2025', '$8,189.53'],
-            ['Cash on hand\nas of Jun 30', '$3,697.63'],
+            ['Total contributions and loans\nthrough Jul 31, 2026', '$12,573.06'],
+            ['Total campaign expenses\nsince launch 04/24/2025', '$12,262.02'],
+            ['Cash on hand\nas of Jul 31', '$3,262.44'],
           ].map(([label, value]) => (
             <div>
               <dt class="text-white/50 text-xs font-semibold uppercase tracking-wider mb-1 whitespace-pre-line">{label}</dt>
