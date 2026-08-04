@@ -27,10 +27,10 @@ For detailed line-item contributions and expenses, please see the PDFs posted be
 ---
 
 ## Expense PDFs
-Latest: [July 2026 Expenses](/finance/2026-07-Expenses.pdf)
+Latest: [July 2026 Expenses](/finance/2026-07-Expenses.pdf?v=20260804)
 
 ## Contribution PDFs
-Latest: [July 2026 Contributions](/finance/contributions/2026-07-Contributions.pdf)
+Latest: [July 2026 Contributions](/finance/contributions/2026-07-Contributions.pdf?v=20260804)
 
 ---
 
