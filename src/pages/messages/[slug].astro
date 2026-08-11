@@ -50,7 +50,7 @@ const hasEmailTemplate = Boolean(msg.data.share?.emailSubject);
       <h1 class="text-4xl sm:text-5xl font-serif font-bold text-wy-navy mb-5 leading-tight">
         {msg.data.title}
       </h1>
-      <p class="text-xl text-gray-600 leading-relaxed mb-8">{msg.data.summary}</p>
+      <p class="text-xl text-gray-600 leading-relaxed mb-8 whitespace-pre-line">{msg.data.summary}</p>
 
       {msg.data.type === 'video' && msg.data.videoUrl ? (
         <div class="w-full rounded-xl overflow-hidden shadow-lg mb-10" style="background:#000;">
@@ -86,7 +86,7 @@ const hasEmailTemplate = Boolean(msg.data.share?.emailSubject);
 
       <div class="bg-wy-charcoal rounded-xl p-8 text-center">
         <p class="text-wy-bone font-serif font-bold text-xl mb-2">Want more like this?</p>
-        <p class="text-wy-bone/70 mb-5">Get campaign updates by text and email — no spam, unsubscribe anytime.</p>
+        <p class="text-wy-bone/70 mb-5">Get campaign updates by text and email, no spam, unsubscribe anytime.</p>
         <a href="/updates" class="inline-block bg-wy-ember text-wy-bone font-bold px-6 py-3 rounded-sm hover:bg-wy-ember-dark transition-colors">
           Get Updates
         </a>
