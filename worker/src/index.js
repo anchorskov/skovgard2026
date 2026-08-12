@@ -4767,34 +4767,6 @@ export default {
         return json(req, env, { ok: true });
       }
 
-      // POST /api/pulse/progress/cancel: visitor-initiated removal of their
-      // own pulse_abandoned_signups beacon row (see static/js/pulse-optin.js'
-      // insufficient-data warning modal). Someone who reaches "Join updates
-      // without voting" without enough data to be poll-verified can choose
-      // "cancel and don't save my info" instead of submitting. This
-      // deletes what the progress beacon already captured rather than
-      // leaving it sitting in the staff follow-up queue. Only ever removes a
-      // still-open row (completed_phone_e164 IS NULL); it must never be able
-      // to erase a row that already reflects a real resolved outcome.
-      if (req.method === "POST" && path === "/api/pulse/progress/cancel") {
-        if (!env.DB) return json(req, env, { ok: true });
-
-        const b = await req.json().catch(() => ({}));
-        const phoneE164 = normalizePhoneNumber(b?.phone || "");
-        if (!phoneE164) return json(req, env, { ok: true });
-
-        const ip = req.headers.get("cf-connecting-ip") || "";
-        const ipHash = await sha256Hex(ip);
-        const okRl = await rateLimitOk(env, ipHash, 15, 10);
-        if (!okRl) return json(req, env, { ok: true });
-
-        await env.DB.prepare(
-          `DELETE FROM pulse_abandoned_signups WHERE phone_e164 = ?1 AND completed_phone_e164 IS NULL`
-        ).bind(phoneE164).run().catch(() => null);
-
-        return json(req, env, { ok: true });
-      }
-
       // POST /api/share — visitor-initiated "share with a friend" sends
       if (req.method === "POST" && path === "/api/share") {
         const shareEnabled = String(env.SHARE_ENABLED || "0") === "1";

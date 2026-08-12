@@ -9,16 +9,17 @@ if (form) {
   const consentPanel = $('#consent-panel');
   const consentCheckbox = $('#consent_sms');
   const consentError = $('#consent-error');
-  const stepOne = $('#pulse-step-1');
+  const postJoin = $('#pulse-postjoin');
   const stepTwo = $('#pulse-step-2');
-  const stepOneIndicator = $('#pulse-step-indicator-1');
-  const stepTwoIndicator = $('#pulse-step-indicator-2');
-  const continuePollBtn = $('#pulse-continue-poll');
+  const postJoinHeading = $('#pulse-postjoin-title');
+  const stepTwoHeading = $('#pulse-step-2-heading');
+  const joinBtn = $('#pulse-join-btn');
   const updatesOnlyBtn = $('#pulse-updates-only');
+  const continuePollBtn = $('#pulse-continue-poll');
+  const requestCallbackBtn = $('#pulse-request-callback');
+  const imDoneBtn = $('#pulse-im-done');
   const backBtn = $('#pulse-back');
   const submitBtn = $('#optin-submit');
-  const stepTwoHeading = $('#pulse-step-2-heading');
-  let currentStep = 1;
 
   const msg = document.createElement('div');
   msg.setAttribute('aria-live', 'polite');
@@ -51,11 +52,20 @@ if (form) {
     consentPanel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
+  // Which button is "in flight" for a given submission. Drives disabled
+  // state and the "Validating..."/error label during a POST /api/optin.
+  const activeBtn = () => {
+    const mode = form.dataset.submissionMode;
+    if (mode === 'poll') return submitBtn;
+    if (mode === 'callback') return requestCallbackBtn;
+    return joinBtn || updatesOnlyBtn;
+  };
+
   const setBtn = (txt, { disabled = false, success = false } = {}) => {
-    const btn = form.dataset.submissionMode === 'updates' ? updatesOnlyBtn : submitBtn;
+    const btn = activeBtn();
     if (!btn) return;
     btn.textContent = txt;
-    for (const action of [continuePollBtn, updatesOnlyBtn, backBtn, submitBtn]) {
+    for (const action of [joinBtn, updatesOnlyBtn, continuePollBtn, requestCallbackBtn, imDoneBtn, backBtn, submitBtn]) {
       if (action) action.disabled = disabled;
     }
     if (success) btn.setAttribute('data-success', 'true');
@@ -63,31 +73,30 @@ if (form) {
   };
 
   const resetActionLabels = () => {
-    if (continuePollBtn) continuePollBtn.textContent = 'Continue to Citizen Poll';
-    if (updatesOnlyBtn) updatesOnlyBtn.textContent = 'Join updates without voting';
+    if (joinBtn) joinBtn.textContent = 'Join Pulse';
+    if (updatesOnlyBtn) updatesOnlyBtn.textContent = 'Get Updates';
+    if (requestCallbackBtn) requestCallbackBtn.textContent = 'Please have Jimmy call me back';
     if (submitBtn) submitBtn.textContent = 'Verify me and get my ballot';
   };
 
-  const showStep = (step, { focus = true } = {}) => {
-    currentStep = step === 2 ? 2 : 1;
-    if (stepOne) stepOne.hidden = currentStep !== 1;
-    if (stepTwo) stepTwo.hidden = currentStep !== 2;
-    stepOneIndicator?.classList.toggle('is-active', currentStep === 1);
-    stepTwoIndicator?.classList.toggle('is-active', currentStep === 2);
-    if (currentStep === 1) {
-      stepOneIndicator?.setAttribute('aria-current', 'step');
-      stepTwoIndicator?.removeAttribute('aria-current');
-    } else {
-      stepTwoIndicator?.setAttribute('aria-current', 'step');
-      stepOneIndicator?.removeAttribute('aria-current');
-    }
-    msg.className = '';
-    msg.textContent = '';
-    if (focus) {
-      const target = currentStep === 2 ? stepTwoHeading : continuePollBtn;
-      target?.focus({ preventScroll: true });
-      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+  // Step 1 (contact info) never hides. Email is optional at join time but
+  // required if someone continues to the poll, so it has to stay reachable
+  // and editable rather than locked inside a section that disappears once
+  // they've joined. Only the post-join choice and the poll fields toggle.
+  const revealPostJoin = () => {
+    if (stepTwo) stepTwo.hidden = true;
+    if (postJoin) postJoin.hidden = false;
+    msg.className = ''; msg.textContent = '';
+    postJoinHeading?.focus({ preventScroll: true });
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const revealPollStep = () => {
+    if (postJoin) postJoin.hidden = true;
+    if (stepTwo) stepTwo.hidden = false;
+    msg.className = ''; msg.textContent = '';
+    stepTwoHeading?.focus({ preventScroll: true });
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const normalize10 = (raw) => {
@@ -97,8 +106,8 @@ if (form) {
 
   /* ---------- soft data-quality checks ----------
      Wyoming has a single area code (307) and a contiguous ZIP range. A
-     mismatch here isn't proof of a typo -- real WY voters keep out-of-state
-     cell numbers or list a different mailing ZIP all the time -- so these
+     mismatch here isn't proof of a typo. Real WY voters keep out-of-state
+     cell numbers or list a different mailing ZIP all the time, so these
      never block submission outright. They just require one extra click to
      confirm, the same way a second look catches a "304 instead of 307"
      fat-finger before it ever reaches voter matching. Flags reset whenever
@@ -149,59 +158,6 @@ if (form) {
     };
     return { show };
   })();
-
-  /* ---------- insufficient-data warning modal ----------
-     Shown when someone clicks "Join updates without voting" having neither
-     entered enough info for Citizen Poll matching (that path never collects
-     city/zip, since it's step-2 only) nor asked for a callback. Without this,
-     clicking that button silently forfeits poll access with no signal that
-     anything was skipped. Three ways out: go back and either add info or
-     request a callback; submit the updates-only signup anyway (this path is
-     deliberately low-friction and shouldn't become a dead end); or cancel
-     the whole thing and delete the abandoned-signup beacon row that
-     tracking already captured (see POST /api/pulse/progress/cancel). */
-  const warningModal = (() => {
-    const host = document.createElement('div');
-    host.id = 'optin-warning-modal';
-    host.className = 'optin-modal-backdrop';
-    host.innerHTML = `
-      <div class="optin-dialog" role="dialog" aria-modal="true" aria-labelledby="optin-warning-title">
-        <h2 id="optin-warning-title">Not enough info for the Citizen Poll yet</h2>
-        <p>You haven't added a city/ZIP or asked for a callback, so we won't be able to verify your voter registration or send you a poll ballot.</p>
-        <div class="actions">
-          <button type="button" id="optin-warning-back" class="optin-modal-secondary">Go back and add my info</button>
-          <button type="button" id="optin-warning-continue">Continue without voting</button>
-        </div>
-        <button type="button" id="optin-warning-cancel" class="optin-modal-cancel-link">Cancel and don't save my info</button>
-      </div>`;
-    document.body.appendChild(host);
-    const backBtn = host.querySelector('#optin-warning-back');
-    const continueBtn = host.querySelector('#optin-warning-continue');
-    const cancelBtn = host.querySelector('#optin-warning-cancel');
-    const hide = () => host.classList.remove('show');
-
-    const show = ({ onContinue, onCancel } = {}) => {
-      host.classList.add('show');
-      backBtn.focus();
-      const onKey = (e) => { if (e.key === 'Escape') hide(); };
-      document.addEventListener('keydown', onKey, { once: true });
-      backBtn.onclick = hide;
-      host.onclick = (e) => { if (e.target === host) hide(); };
-      continueBtn.onclick = () => { hide(); onContinue?.(); };
-      cancelBtn.onclick = () => { hide(); onCancel?.(); };
-    };
-    return { show };
-  })();
-
-  const cancelAbandonedSignup = (phone10) => {
-    if (phone10.length !== 10) return;
-    fetch(`${API_URL}/api/pulse/progress/cancel`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      keepalive: true,
-      body: JSON.stringify({ phone: phone10 }),
-    }).catch(() => {});
-  };
 
 /* ---------- Turnstile explicit render ONCE + on-demand token ---------- */
 
@@ -357,7 +313,7 @@ function resetTurnstile() {
   /* ---------- bind + guard initial actions ---------- */
   form.dataset.js = 'ready';
   (() => {
-    const actions = [continuePollBtn, updatesOnlyBtn, submitBtn];
+    const actions = [joinBtn, updatesOnlyBtn];
     for (const action of actions) {
       if (action) action.disabled = true;
     }
@@ -373,9 +329,11 @@ function resetTurnstile() {
      plausible phone number) so staff can follow up if the form is never
      actually submitted. Fire-and-forget: no UI feedback, no blocking, and
      it never sends consent_sms=false, so it can never itself create a
-     phantom opt-in signal server-side. */
+     phantom opt-in signal server-side. No-ops server-side once a real
+     opt-in already exists for the phone, so it's only ever relevant before
+     someone joins. There's nothing further to capture here after that. */
   let progressBeaconTimer = null;
-  const sendProgressBeacon = (stepReached) => {
+  const sendProgressBeacon = () => {
     const phone10 = normalize10($('#phone')?.value || '');
     const consentSms = consentCheckbox?.checked || false;
     if (phone10.length !== 10 || !consentSms) return;
@@ -387,21 +345,21 @@ function resetTurnstile() {
       body: JSON.stringify({
         phone: phone10,
         first_name: firstName,
-        step_reached: stepReached,
+        step_reached: 'consent_checked',
         consent_sms: consentSms,
       }),
     }).catch(() => {});
   };
-  const queueProgressBeacon = (stepReached) => {
+  const queueProgressBeacon = () => {
     clearTimeout(progressBeaconTimer);
-    progressBeaconTimer = setTimeout(() => sendProgressBeacon(stepReached), 600);
+    progressBeaconTimer = setTimeout(sendProgressBeacon, 600);
   };
 
   consentCheckbox?.addEventListener('change', () => {
     if (consentCheckbox.checked) clearConsentError();
-    queueProgressBeacon('consent_checked');
+    queueProgressBeacon();
   });
-  $('#phone')?.addEventListener('input', () => queueProgressBeacon('consent_checked'));
+  $('#phone')?.addEventListener('input', queueProgressBeacon);
 
   /* ---------- show email consent panel only when email is filled ---------- */
   const emailField = $('#email');
@@ -430,7 +388,6 @@ function resetTurnstile() {
     email: ($('#email')?.value || '').trim(),
     consent_sms: $('#consent_sms')?.checked || false,
     consent_email: $('#consent_email')?.checked || false,
-    request_callback: $('#request_callback')?.checked || false,
   });
 
   const fieldError = (field, text) => {
@@ -448,7 +405,7 @@ function resetTurnstile() {
     if (fields.phone10.length !== 10) return fieldError($('#phone'), 'Enter a valid 10-digit mobile number.');
     if (!fields.phone10.startsWith(WY_AREA_CODE) && !phoneAreaConfirmed) {
       phoneAreaConfirmed = true;
-      return fieldError($('#phone'), "That doesn't look like a Wyoming (307) number -- check it, then click again to continue if it's correct.");
+      return fieldError($('#phone'), "That doesn't look like a Wyoming (307) number, so check it, then click again to continue if it's correct.");
     }
     if (!fields.consent_sms) {
       showConsentError();
@@ -472,54 +429,40 @@ function resetTurnstile() {
     if (!/^\d{5}$/.test(fields.zip)) return fieldError($('#zip'), 'Enter a valid 5-digit ZIP code.');
     if (!isWyZip(fields.zip) && !zipRangeConfirmed) {
       zipRangeConfirmed = true;
-      return fieldError($('#zip'), "That ZIP doesn't look like a Wyoming ZIP code -- check it, then click again to continue if it's correct.");
+      return fieldError($('#zip'), "That ZIP doesn't look like a Wyoming ZIP code, so check it, then click again to continue if it's correct.");
     }
     return true;
   };
 
-  continuePollBtn?.addEventListener('click', () => {
-    msg.className = '';
-    msg.textContent = '';
-    if (!validateContactStep({ poll: true })) return;
-    form.dataset.submissionMode = 'poll';
-    showStep(2);
-    sendProgressBeacon('step2_reached');
-  });
-
-  updatesOnlyBtn?.addEventListener('click', () => {
-    msg.className = '';
-    msg.textContent = '';
+  /* ---------- step 1: join (both variants submit the same basic opt-in) ---------- */
+  const handleJoinClick = () => {
+    msg.className = ''; msg.textContent = '';
     if (!validateContactStep()) return;
-
-    // Only the full variant offers the Citizen Poll at all (stepTwo only
-    // renders there). An "updates" variant embed never had poll access to
-    // warn about, so it skips straight to submitting.
-    const fields = readFields();
-    if (stepTwo && !fields.city && !fields.request_callback) {
-      warningModal.show({
-        onContinue: () => {
-          form.dataset.submissionMode = 'updates';
-          form.requestSubmit();
-        },
-        onCancel: () => {
-          cancelAbandonedSignup(fields.phone10);
-          form.reset();
-          updateEmailConsent();
-          resetActionLabels();
-          ok("No problem, we didn't save anything from this form.");
-        },
-      });
-      return;
-    }
-
     form.dataset.submissionMode = 'updates';
     form.requestSubmit();
+  };
+  joinBtn?.addEventListener('click', handleJoinClick);
+  updatesOnlyBtn?.addEventListener('click', handleJoinClick);
+
+  /* ---------- post-join choice (full variant only) ---------- */
+  continuePollBtn?.addEventListener('click', () => {
+    form.dataset.submissionMode = 'poll';
+    revealPollStep();
+  });
+
+  requestCallbackBtn?.addEventListener('click', () => {
+    form.dataset.submissionMode = 'callback';
+    form.requestSubmit();
+  });
+
+  imDoneBtn?.addEventListener('click', () => {
+    modal.show("Thank you for confirming your opt-in. You'll receive updates soon.");
   });
 
   backBtn?.addEventListener('click', () => {
     form.dataset.submissionMode = '';
     resetActionLabels();
-    showStep(1);
+    revealPostJoin();
   });
 
   /* ---------- submit ---------- */
@@ -528,20 +471,9 @@ function resetTurnstile() {
     msg.className = ''; msg.textContent = '';
     clearConsentError();
 
-    let submissionMode = form.dataset.submissionMode || '';
-    if (!submissionMode && currentStep === 1) {
-      if (validateContactStep({ poll: true })) {
-        form.dataset.submissionMode = 'poll';
-        showStep(2);
-      }
-      return;
-    }
-    if (!submissionMode) submissionMode = 'poll';
+    const submissionMode = form.dataset.submissionMode || 'updates';
 
-    if (!validateContactStep({ poll: submissionMode === 'poll' })) {
-      if (currentStep !== 1) showStep(1, { focus: false });
-      return;
-    }
+    if (!validateContactStep({ poll: submissionMode === 'poll' })) return;
     if (submissionMode === 'poll' && !validatePollStep()) return;
 
     // honeypot: silent success
@@ -559,7 +491,7 @@ function resetTurnstile() {
 
     const {
       first_name, last_name, address1, address2, city, state, zip,
-      phone10, email, consent_sms, consent_email, request_callback,
+      phone10, email, consent_sms, consent_email,
     } = readFields();
 
     // token
@@ -592,17 +524,17 @@ function resetTurnstile() {
         body: JSON.stringify({
           first_name,
           last_name,
-          address1,
-          address2: address2 || null,
-          city,
+          address1: submissionMode === 'poll' ? (address1 || null) : null,
+          address2: submissionMode === 'poll' ? (address2 || null) : null,
+          city: submissionMode === 'poll' ? city : '',
           state,
           country: 'US',
-          zip,
+          zip: submissionMode === 'poll' ? zip : '',
           phone: phone10,
           email: email || null,
           consent_sms: !!consent_sms,
           consent_email: !!consent_email,
-          request_callback: submissionMode === 'updates' && !!request_callback,
+          request_callback: submissionMode === 'callback',
           consent_version: 'v3-2026-03-31',
           turnstile_token: tsToken,      // keep for older server code
           ts_start_ms: tsStart,
@@ -617,28 +549,42 @@ function resetTurnstile() {
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 
-      form.reset();
       resetTurnstile();
+      const verificationStatus = data?.verification?.status || 'not_attempted';
+      const isFullVariant = form.dataset.variant !== 'updates';
+
+      if (submissionMode === 'updates' && isFullVariant) {
+        // First join in the full flow: don't end the flow here, reveal the
+        // Citizen Poll / callback / done choice instead.
+        setBtn('Joined!', { disabled: false, success: true });
+        const channels = consent_email ? 'text and email lists' : 'SMS list';
+        ok(`Thanks! You're on our ${channels}. Reply STOP anytime to opt out of texts.`);
+        revealPostJoin();
+        return;
+      }
+
+      // End of the flow: the "updates" variant's Get Updates, a completed
+      // poll step, or a callback request.
+      form.reset();
       setBtn('Opt-In Confirmed', { disabled: true, success: true });
       const channels = consent_email ? 'text and email lists' : 'SMS list';
       const spamNote = consent_email
         ? ' Check your inbox (and spam/junk folder) for a message from pulse@grassrootsmvt.org.'
         : '';
 
-      const verificationStatus = data?.verification?.status || 'not_attempted';
       let verifyNote = '';
       if (verificationStatus === 'matched' && data?.verification?.pollLink) {
-        verifyNote = ' You\'re verified as a Wyoming voter -- your Citizen Poll ballot link is on its way.';
+        verifyNote = " You're verified as a Wyoming voter, and your Citizen Poll ballot link is on its way.";
       } else if (verificationStatus === 'matched') {
-        verifyNote = ' You\'re verified as a Wyoming voter. We could not create your ballot link yet, so we\'ll follow up.';
+        verifyNote = " You're verified as a Wyoming voter. We could not create your ballot link yet, so we'll follow up.";
       } else if (verificationStatus === 'matched_no_email') {
-        verifyNote = ' You\'re verified as a Wyoming voter -- add your email above and resubmit to get your Citizen Poll link.';
+        verifyNote = " You're verified as a Wyoming voter. Add your email above and resubmit to get your Citizen Poll link.";
       } else if (verificationStatus === 'already_sent') {
-        verifyNote = ' You\'re verified as a Wyoming voter -- you already received your Citizen Poll ballot link by text or email.';
+        verifyNote = " You're verified as a Wyoming voter, and you already received your Citizen Poll ballot link by text or email.";
       } else if (verificationStatus === 'ambiguous' || verificationStatus === 'no_match') {
-        verifyNote = ' We couldn\'t automatically verify your voter registration -- we\'ll follow up if we can confirm it.';
+        verifyNote = " We couldn't automatically verify your voter registration, so we'll follow up if we can confirm it.";
       } else if (verificationStatus === 'callback_requested') {
-        verifyNote = ' We got your callback request, and someone from our team will call you back to finish your Citizen Poll verification.';
+        verifyNote = " We got your callback request, and someone from our team will call you back to finish your Citizen Poll verification.";
       }
 
       ok(`Thanks! You're on our ${channels}. Reply STOP anytime to opt out of texts.${spamNote}${verifyNote}`);
@@ -646,21 +592,25 @@ function resetTurnstile() {
         ? verificationStatus === 'matched' && data?.verification?.pollLink
           ? "You're verified. Your Citizen Poll ballot link is on its way by text and email."
           : verificationStatus === 'already_sent'
-            ? "You're verified. You already received your Citizen Poll ballot link -- check your earlier texts or email."
+            ? "You're verified. You already received your Citizen Poll ballot link. Check your earlier texts or email."
             : verificationStatus === 'ambiguous' || verificationStatus === 'no_match'
               ? "Your opt-in is confirmed. We couldn't automatically match your voter registration, so our team will review it."
               : "Your opt-in is confirmed. We'll follow up about your Citizen Poll ballot."
-        : verificationStatus === 'callback_requested'
-          ? "Your opt-in is confirmed. We got your callback request and will call you back to finish your Citizen Poll verification."
+        : submissionMode === 'callback'
+          ? "Your callback request is confirmed. Someone from our team will call you back to finish your Citizen Poll verification."
           : consent_email
             ? "Thank you for confirming your opt-in. Check your inbox and spam or junk folder for our welcome message."
             : "Thank you for confirming your opt-in. You'll receive updates soon.";
       modal.show(modalText);
     } catch (e3) {
       console.error('opt-in error', e3);
-      setBtn(submissionMode === 'poll' ? 'Verify me and get my ballot' : 'Join updates without voting', { disabled: false });
+      const fallbackLabel =
+        submissionMode === 'poll' ? 'Verify me and get my ballot'
+        : submissionMode === 'callback' ? 'Please have Jimmy call me back'
+        : (joinBtn ? 'Join Pulse' : 'Get Updates');
+      setBtn(fallbackLabel, { disabled: false });
       resetActionLabels();
-      err(e3?.message || 'Sorry—something went wrong. Please try again.');
+      err(e3?.message || 'Sorry, something went wrong. Please try again.');
       resetTurnstile(); // never reuse a failed/expired token
     }
   });
