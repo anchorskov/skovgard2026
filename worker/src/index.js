@@ -4271,6 +4271,7 @@ export default {
         const consentSMS = b.consent_sms === true || b.consent === 1;
         const consentEmail = b.consent_email === true;
         const consentVer = String(b.consent_version || "v3-2026-03-31");
+        const requestCallback = b.request_callback === true;
 
         // Token: prefer header (official), fallback to body for older clients
         const tsToken = (
@@ -4550,6 +4551,32 @@ export default {
               `UPDATE consent_status SET wy_voter = ?2, updated_at = datetime('now') WHERE phone_e164 = ?1`
             ).bind(phoneE164, realWyVoter).run();
           }
+        } else if (requestCallback) {
+          // Step-1-only submission ("join updates without voting") where the
+          // submitter checked "call me back ASAP". They still want the
+          // Citizen Poll but don't have their address handy. No `city` means
+          // findUniqueWyTargetMatch was never attempted (§4a requires it), so
+          // this is not a match failure. It's a request for staff to call
+          // and collect the address verbally, same review queue as an
+          // ambiguous/no-match row but with an immediate notify rather than
+          // waiting for the daily digest.
+          const phone10ForFlag = normalizePhone10(phone);
+          const phoneAreaFlag = phone10ForFlag.length === 10 && !isWyAreaCodePhone10(phone10ForFlag);
+          await env.DB.prepare(
+            `INSERT INTO pulse_voter_match_review
+               (phone_e164, submitted_first_name, submitted_last_name, match_mode, phone_area_flag, zip_range_flag)
+             VALUES (?1, ?2, ?3, 'callback_requested_no_address', ?4, 0)`
+          ).bind(phoneE164, firstName, lastName, phoneAreaFlag ? 1 : 0).run();
+
+          verification = { status: "callback_requested" };
+
+          const callbackNeededWork = sendPulseReviewNeededEmail(env, {
+            phoneE164, firstName, lastName, matchMode: "callback_requested_no_address",
+          }).catch((error) => {
+            console.error("[/api/optin] callback-requested email failed", String(error?.message || error));
+          });
+          if (ctx?.waitUntil) ctx.waitUntil(callbackNeededWork);
+          else await callbackNeededWork;
         }
 
         const welcomeConfig = pulseWelcomeConfig(env);
@@ -4736,6 +4763,34 @@ export default {
              step_reached = excluded.step_reached,
              updated_at = datetime('now')`
         ).bind(phoneE164, firstName, stepReached).run().catch(() => null);
+
+        return json(req, env, { ok: true });
+      }
+
+      // POST /api/pulse/progress/cancel: visitor-initiated removal of their
+      // own pulse_abandoned_signups beacon row (see static/js/pulse-optin.js'
+      // insufficient-data warning modal). Someone who reaches "Join updates
+      // without voting" without enough data to be poll-verified can choose
+      // "cancel and don't save my info" instead of submitting. This
+      // deletes what the progress beacon already captured rather than
+      // leaving it sitting in the staff follow-up queue. Only ever removes a
+      // still-open row (completed_phone_e164 IS NULL); it must never be able
+      // to erase a row that already reflects a real resolved outcome.
+      if (req.method === "POST" && path === "/api/pulse/progress/cancel") {
+        if (!env.DB) return json(req, env, { ok: true });
+
+        const b = await req.json().catch(() => ({}));
+        const phoneE164 = normalizePhoneNumber(b?.phone || "");
+        if (!phoneE164) return json(req, env, { ok: true });
+
+        const ip = req.headers.get("cf-connecting-ip") || "";
+        const ipHash = await sha256Hex(ip);
+        const okRl = await rateLimitOk(env, ipHash, 15, 10);
+        if (!okRl) return json(req, env, { ok: true });
+
+        await env.DB.prepare(
+          `DELETE FROM pulse_abandoned_signups WHERE phone_e164 = ?1 AND completed_phone_e164 IS NULL`
+        ).bind(phoneE164).run().catch(() => null);
 
         return json(req, env, { ok: true });
       }

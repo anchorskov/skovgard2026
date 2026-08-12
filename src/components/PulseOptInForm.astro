@@ -172,6 +172,18 @@ const isUpdatesOnly = variant === 'updates';
           <button type="button" id="pulse-updates-only" class="pulse-secondary-action">
             Join updates without voting
           </button>
+          <label class="flex items-start gap-3 cursor-pointer mt-3">
+            <input
+              type="checkbox"
+              id="request_callback"
+              name="request_callback"
+              class="mt-1 w-4 h-4 shrink-0"
+              style="accent-color:#b22234"
+            />
+            <span class="text-sm text-gray-700">
+              I'd still like to vote in the Citizen Poll, but I don't have my address handy, so please call me back ASAP to finish.
+            </span>
+          </label>
           <p class="text-xs text-gray-400 mt-2">
             Tip: adding your city and ZIP on the next screen helps us confirm your voter registration for the Citizen Poll.
           </p>
@@ -272,7 +284,7 @@ const isUpdatesOnly = variant === 'updates';
   )}
 </div>
 
-<script type="module" src="/js/pulse-optin.js?v=10"></script>
+<script type="module" src="/js/pulse-optin.js?v=11"></script>
 
 <style is:global>
   #optin-form .pulse-step-indicator {
@@ -411,7 +423,7 @@ const isUpdatesOnly = variant === 'updates';
     outline-offset: 2px;
   }
 
-  #optin-modal {
+  .optin-modal-backdrop {
     position: fixed;
     inset: 0;
     display: none;
@@ -422,11 +434,11 @@ const isUpdatesOnly = variant === 'updates';
     z-index: 80;
   }
 
-  #optin-modal.show {
+  .optin-modal-backdrop.show {
     display: flex;
   }
 
-  #optin-modal .optin-dialog {
+  .optin-modal-backdrop .optin-dialog {
     width: min(100%, 28rem);
     background: #f1ece1;
     color: #2b2b2b;
@@ -436,24 +448,26 @@ const isUpdatesOnly = variant === 'updates';
     box-shadow: 0 24px 60px rgba(17, 24, 39, 0.22);
   }
 
-  #optin-modal h2 {
+  .optin-modal-backdrop h2 {
     margin: 0 0 0.5rem 0;
     font-size: 1.35rem;
     font-weight: 800;
   }
 
-  #optin-modal p {
+  .optin-modal-backdrop p {
     margin: 0.25rem 0 0;
     line-height: 1.55;
   }
 
-  #optin-modal .actions {
+  .optin-modal-backdrop .actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
+    gap: 0.5rem;
     margin-top: 1rem;
   }
 
-  #optin-modal .actions button {
+  .optin-modal-backdrop .actions button {
     min-height: 2.75rem;
     padding: 0.65rem 1.1rem;
     border: 1px solid #b22234;
@@ -461,6 +475,24 @@ const isUpdatesOnly = variant === 'updates';
     background: #b22234;
     color: #f1ece1;
     font-weight: 700;
+    cursor: pointer;
+  }
+
+  .optin-modal-backdrop .actions button.optin-modal-secondary {
+    background: transparent;
+    color: #b22234;
+  }
+
+  .optin-modal-backdrop .optin-modal-cancel-link {
+    display: block;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #8a3d23;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
     cursor: pointer;
   }
 </style>

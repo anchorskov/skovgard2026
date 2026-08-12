@@ -118,6 +118,7 @@ const MATCH_MODE_LABELS = {
   phone_belongs_to_other_voter: "Clean match, but phone linked to a different voter",
   missing_lookup_fields: "Insufficient data submitted",
   no_match: "No match found",
+  callback_requested_no_address: "Callback requested (no address given)",
 };
 
 function matchModeLabel(mode) {
@@ -135,14 +136,20 @@ function buildReviewNeededEmail(config, profile) {
   const phone = normalizeText(profile.phoneE164 || profile.phone);
   const mode = matchModeLabel(profile.matchMode);
   const address = addressLines(profile).join(", ") || "Not provided";
-  const subject = `Pulse review needed: ${name}`;
+  const isCallbackRequest = profile.matchMode === "callback_requested_no_address";
+  const subject = isCallbackRequest
+    ? `Pulse callback requested ASAP: ${name}`
+    : `Pulse review needed: ${name}`;
+  const intro = isCallbackRequest
+    ? "Someone opted in via /pulse and asked for a callback to finish Citizen Poll verification. They didn't have their address handy when they signed up."
+    : "A /pulse submission needs manual review. It didn't cleanly match a Wyoming voter record.";
 
   return {
     from: config.from,
     to: [config.staffTo],
     subject,
     text: [
-      `A /pulse submission needs manual review -- it didn't cleanly match a Wyoming voter record.`,
+      intro,
       "",
       `Name: ${name}`,
       `Phone: ${phone || "Not provided"}`,
@@ -152,8 +159,8 @@ function buildReviewNeededEmail(config, profile) {
       "Review it: https://www.skovgard2026.org/admin/pulse-voter-review/index.html",
     ].join("\n"),
     html: `
-      <h1>Pulse review needed</h1>
-      <p>A /pulse submission needs manual review -- it didn't cleanly match a Wyoming voter record.</p>
+      <h1>${isCallbackRequest ? "Pulse callback requested" : "Pulse review needed"}</h1>
+      <p>${escapeHtml(intro)}</p>
       <ul>
         <li><strong>Name:</strong> ${escapeHtml(name)}</li>
         <li><strong>Phone:</strong> ${escapeHtml(phone || "Not provided")}</li>

@@ -148,6 +148,7 @@ function matchModeLabel(mode) {
   if (mode === "phone_belongs_to_other_voter") return "Clean match, but phone linked to a different voter";
   if (mode === "missing_lookup_fields") return "Insufficient data submitted";
   if (mode === "no_match") return "No match found";
+  if (mode === "callback_requested_no_address") return "Callback requested, no address given yet";
   // Clean-match tiers below normally auto-accept in the live /pulse flow
   // and never reach the review queue -- they only show up here via
   // "Re-check match" surfacing a single confirmed candidate for staff to

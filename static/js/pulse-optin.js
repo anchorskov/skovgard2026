@@ -128,6 +128,7 @@ if (form) {
   const modal = (() => {
     const host = document.createElement('div');
     host.id = 'optin-modal';
+    host.className = 'optin-modal-backdrop';
     host.innerHTML = `
       <div class="optin-dialog" role="dialog" aria-modal="true" aria-labelledby="optin-modal-title">
         <h2 id="optin-modal-title">Success!</h2>
@@ -148,6 +149,59 @@ if (form) {
     };
     return { show };
   })();
+
+  /* ---------- insufficient-data warning modal ----------
+     Shown when someone clicks "Join updates without voting" having neither
+     entered enough info for Citizen Poll matching (that path never collects
+     city/zip, since it's step-2 only) nor asked for a callback. Without this,
+     clicking that button silently forfeits poll access with no signal that
+     anything was skipped. Three ways out: go back and either add info or
+     request a callback; submit the updates-only signup anyway (this path is
+     deliberately low-friction and shouldn't become a dead end); or cancel
+     the whole thing and delete the abandoned-signup beacon row that
+     tracking already captured (see POST /api/pulse/progress/cancel). */
+  const warningModal = (() => {
+    const host = document.createElement('div');
+    host.id = 'optin-warning-modal';
+    host.className = 'optin-modal-backdrop';
+    host.innerHTML = `
+      <div class="optin-dialog" role="dialog" aria-modal="true" aria-labelledby="optin-warning-title">
+        <h2 id="optin-warning-title">Not enough info for the Citizen Poll yet</h2>
+        <p>You haven't added a city/ZIP or asked for a callback, so we won't be able to verify your voter registration or send you a poll ballot.</p>
+        <div class="actions">
+          <button type="button" id="optin-warning-back" class="optin-modal-secondary">Go back and add my info</button>
+          <button type="button" id="optin-warning-continue">Continue without voting</button>
+        </div>
+        <button type="button" id="optin-warning-cancel" class="optin-modal-cancel-link">Cancel and don't save my info</button>
+      </div>`;
+    document.body.appendChild(host);
+    const backBtn = host.querySelector('#optin-warning-back');
+    const continueBtn = host.querySelector('#optin-warning-continue');
+    const cancelBtn = host.querySelector('#optin-warning-cancel');
+    const hide = () => host.classList.remove('show');
+
+    const show = ({ onContinue, onCancel } = {}) => {
+      host.classList.add('show');
+      backBtn.focus();
+      const onKey = (e) => { if (e.key === 'Escape') hide(); };
+      document.addEventListener('keydown', onKey, { once: true });
+      backBtn.onclick = hide;
+      host.onclick = (e) => { if (e.target === host) hide(); };
+      continueBtn.onclick = () => { hide(); onContinue?.(); };
+      cancelBtn.onclick = () => { hide(); onCancel?.(); };
+    };
+    return { show };
+  })();
+
+  const cancelAbandonedSignup = (phone10) => {
+    if (phone10.length !== 10) return;
+    fetch(`${API_URL}/api/pulse/progress/cancel`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({ phone: phone10 }),
+    }).catch(() => {});
+  };
 
 /* ---------- Turnstile explicit render ONCE + on-demand token ---------- */
 
@@ -376,6 +430,7 @@ function resetTurnstile() {
     email: ($('#email')?.value || '').trim(),
     consent_sms: $('#consent_sms')?.checked || false,
     consent_email: $('#consent_email')?.checked || false,
+    request_callback: $('#request_callback')?.checked || false,
   });
 
   const fieldError = (field, text) => {
@@ -435,6 +490,28 @@ function resetTurnstile() {
     msg.className = '';
     msg.textContent = '';
     if (!validateContactStep()) return;
+
+    // Only the full variant offers the Citizen Poll at all (stepTwo only
+    // renders there). An "updates" variant embed never had poll access to
+    // warn about, so it skips straight to submitting.
+    const fields = readFields();
+    if (stepTwo && !fields.city && !fields.request_callback) {
+      warningModal.show({
+        onContinue: () => {
+          form.dataset.submissionMode = 'updates';
+          form.requestSubmit();
+        },
+        onCancel: () => {
+          cancelAbandonedSignup(fields.phone10);
+          form.reset();
+          updateEmailConsent();
+          resetActionLabels();
+          ok("No problem, we didn't save anything from this form.");
+        },
+      });
+      return;
+    }
+
     form.dataset.submissionMode = 'updates';
     form.requestSubmit();
   });
@@ -482,7 +559,7 @@ function resetTurnstile() {
 
     const {
       first_name, last_name, address1, address2, city, state, zip,
-      phone10, email, consent_sms, consent_email,
+      phone10, email, consent_sms, consent_email, request_callback,
     } = readFields();
 
     // token
@@ -525,6 +602,7 @@ function resetTurnstile() {
           email: email || null,
           consent_sms: !!consent_sms,
           consent_email: !!consent_email,
+          request_callback: submissionMode === 'updates' && !!request_callback,
           consent_version: 'v3-2026-03-31',
           turnstile_token: tsToken,      // keep for older server code
           ts_start_ms: tsStart,
@@ -559,6 +637,8 @@ function resetTurnstile() {
         verifyNote = ' You\'re verified as a Wyoming voter -- you already received your Citizen Poll ballot link by text or email.';
       } else if (verificationStatus === 'ambiguous' || verificationStatus === 'no_match') {
         verifyNote = ' We couldn\'t automatically verify your voter registration -- we\'ll follow up if we can confirm it.';
+      } else if (verificationStatus === 'callback_requested') {
+        verifyNote = ' We got your callback request, and someone from our team will call you back to finish your Citizen Poll verification.';
       }
 
       ok(`Thanks! You're on our ${channels}. Reply STOP anytime to opt out of texts.${spamNote}${verifyNote}`);
@@ -570,9 +650,11 @@ function resetTurnstile() {
             : verificationStatus === 'ambiguous' || verificationStatus === 'no_match'
               ? "Your opt-in is confirmed. We couldn't automatically match your voter registration, so our team will review it."
               : "Your opt-in is confirmed. We'll follow up about your Citizen Poll ballot."
-        : consent_email
-          ? "Thank you for confirming your opt-in. Check your inbox and spam or junk folder for our welcome message."
-          : "Thank you for confirming your opt-in. You'll receive updates soon.";
+        : verificationStatus === 'callback_requested'
+          ? "Your opt-in is confirmed. We got your callback request and will call you back to finish your Citizen Poll verification."
+          : consent_email
+            ? "Thank you for confirming your opt-in. Check your inbox and spam or junk folder for our welcome message."
+            : "Thank you for confirming your opt-in. You'll receive updates soon.";
       modal.show(modalText);
     } catch (e3) {
       console.error('opt-in error', e3);

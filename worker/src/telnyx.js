@@ -722,6 +722,32 @@ export async function upsertConsentStatus(db, input) {
       overwriteProfile
     )
     .run();
+
+  // A phone that reaches a real terminal consent state here, opted in
+  // (self-service /pulse submit, or the admin verbal-completion path) or
+  // opted out (inbound STOP), may still have an open pulse_abandoned_signups
+  // row from an earlier abandoned /pulse attempt (migration 037). That row
+  // otherwise only ever clears via the admin "Complete opt-in verbally"
+  // action, so someone who comes back and finishes the form themselves, or
+  // who opts out by text, sits in the follow-up call queue looking
+  // unresolved forever even though there's nothing left to call about.
+  if (status === "opted_in" || status === "opted_out") {
+    try {
+      await db.prepare(
+        status === "opted_in"
+          ? `UPDATE pulse_abandoned_signups
+                SET completed_phone_e164 = ?1, updated_at = datetime('now')
+              WHERE phone_e164 = ?1 AND completed_phone_e164 IS NULL`
+          : `UPDATE pulse_abandoned_signups
+                SET do_not_call = 1, updated_at = datetime('now')
+              WHERE phone_e164 = ?1 AND do_not_call = 0`
+      ).bind(phoneE164).run();
+    } catch (_) {
+      // pulse_abandoned_signups may not exist in every environment (e.g.
+      // narrower test doubles). Best-effort only, never blocks the real
+      // consent_status write above.
+    }
+  }
 }
 
 export async function updateMessageDeliveryStatus(db, input) {
