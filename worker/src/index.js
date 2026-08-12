@@ -4373,8 +4373,11 @@ export default {
           return json(req, env, { error: msg }, 400);
         }
 
-        // Rate limiting
-        const okRl = await rateLimitOk(env, ipHash, 15, 3);
+        // Rate limiting. Was 3; the redesigned /pulse flow makes two real
+        // calls per legitimate session (join, then poll-or-callback), so 3
+        // left almost no room for a retry. 5 keeps meaningful abuse
+        // protection while covering that plus one retry.
+        const okRl = await rateLimitOk(env, ipHash, 15, 5);
         if (!okRl)
           return json(
             req,
@@ -4746,8 +4749,15 @@ export default {
         }
 
         const ip = req.headers.get("cf-connecting-ip") || "";
-        const ipHash = await sha256Hex(ip);
-        const okRl = await rateLimitOk(env, ipHash, 15, 10);
+        // rl_submissions has no per-endpoint bucket column. rateLimitOk
+        // just counts every row for a given ip_hash regardless of which
+        // endpoint wrote it. Hashing a distinct string here keeps this
+        // beacon's own budget from eating into /api/optin's real-submission
+        // limit below (found after the redesigned /pulse flow, which needs
+        // two real /api/optin calls per session, started tripping that
+        // limit on ordinary use).
+        const progressIpHash = await sha256Hex(`${ip}:pulse-progress`);
+        const okRl = await rateLimitOk(env, progressIpHash, 15, 10);
         if (!okRl) return json(req, env, { ok: true });
 
         const alreadyOptedIn = await env.DB.prepare(
