@@ -408,6 +408,47 @@ async function applyOptinResponse(db, { email, emailNorm, choice }) {
   });
 }
 
+// The "yes" link used to record consent on a bare GET, which is exactly
+// what corporate email security scanners (Microsoft Safe Links, Proofpoint,
+// Mimecast, etc.) do to every link in an incoming email within seconds of
+// delivery to check it isn't malicious, completely independent of whether
+// a human ever opened the email. Found 2026-08-12: 90 of ~100 "yes"
+// responses on one campaign landed within 5 minutes of the link being
+// generated, far too fast and too consistent across 100+ different
+// institutional email domains to be real people. This page requires an
+// actual button click (a real POST) before consent is recorded, so a
+// scanner fetching the link no longer silently opts someone in. "No"
+// deliberately stays a one-click GET below. A false-positive unsubscribe
+// is low-harm and matches normal one-click-unsubscribe UX, unlike a false
+// opt-in, which risks real complaints and sender-reputation damage.
+function optinConfirmPage({ token }) {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confirm your subscription: Skovgard 2026</title>
+</head>
+<body style="margin:0;background:#f1ece1;font-family:Arial,Helvetica,sans-serif;color:#2b2b2b;">
+  <div style="max-width:480px;margin:64px auto;padding:0 20px;text-align:center;">
+    <p style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#b22234;font-weight:700;margin:0 0 12px;">
+      Skovgard for Wyoming
+    </p>
+    <h1 style="font-size:24px;margin:0 0 16px;color:#2b2b2b;">One more step</h1>
+    <p style="font-size:15px;line-height:1.6;color:#4b5563;margin:0 0 24px;">
+      Click below to confirm you would like to keep receiving campaign updates.
+    </p>
+    <form method="post" action="/api/email/optin-response/confirm">
+      <input type="hidden" name="token" value="${escHtml(token)}">
+      <button type="submit" style="background:#b22234;color:#f1ece1;border:none;border-radius:8px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;">
+        Yes, sign me up
+      </button>
+    </form>
+  </div>
+</body>
+</html>`;
+}
+
 function optinResponsePage({ title, message, tone }) {
   const accent = tone === "error" ? "#8b1a26" : "#b22234";
   return `<!doctype html>
@@ -5018,9 +5059,10 @@ export default {
         return json(req, env, { ok: true, sent, failed, failed_emails: failedEmails });
       }
 
-      // GET /api/email/optin-response — public link a recipient clicks from an admin-sent
+      // GET /api/email/optin-response: public link a recipient clicks from an admin-sent
       // email's Yes/No buttons. No admin auth: the unguessable token IS the authorization,
-      // and a click can only ever affect that one token's own email address.
+      // and a click can only ever affect that one token's own email address. "no" acts
+      // immediately here; "yes" only shows a confirmation page (see optinConfirmPage).
       if (req.method === "GET" && path === "/api/email/optin-response") {
         const htmlHeaders = { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" };
         if (!env.DB) {
@@ -5053,6 +5095,13 @@ export default {
           }), { status: 404, headers: htmlHeaders });
         }
 
+        // "yes" no longer records anything on this bare GET (see
+        // optinConfirmPage's comment above). Just show the confirmation
+        // page. A real click on its button is what POSTs to /confirm below.
+        if (choice === "yes") {
+          return new Response(optinConfirmPage({ token }), { headers: htmlHeaders });
+        }
+
         await env.DB.prepare(
           `UPDATE email_optin_tokens SET response = ?2, responded_at = datetime('now') WHERE token = ?1`
         ).bind(token, choice).run();
@@ -5060,17 +5109,65 @@ export default {
         await applyOptinResponse(env.DB, { email: row.email, emailNorm: row.email_norm, choice });
 
         return new Response(
-          choice === "yes"
-            ? optinResponsePage({
-                title: "You're all set!",
-                message: "Thank you — you'll continue to hear occasional campaign updates, candidate information, and ways to take part.",
-                tone: "success",
-              })
-            : optinResponsePage({
-                title: "You've been unsubscribed",
-                message: "You will no longer receive campaign emails. If this was a mistake, you can opt back in anytime from a future email or by contacting the campaign.",
-                tone: "success",
-              }),
+          optinResponsePage({
+            title: "You've been unsubscribed",
+            message: "You will no longer receive campaign emails. If this was a mistake, you can opt back in anytime from a future email or by contacting the campaign.",
+            tone: "success",
+          }),
+          { headers: htmlHeaders }
+        );
+      }
+
+      // POST /api/email/optin-response/confirm: the real "yes" action,
+      // reached only by clicking the button on optinConfirmPage above (a
+      // genuine form POST, not a bare GET), so an email security scanner
+      // pre-fetching the original link can no longer silently record
+      // consent nobody actually gave. Same unguessable-token-is-the-
+      // authorization model as the GET handler.
+      if (req.method === "POST" && path === "/api/email/optin-response/confirm") {
+        const htmlHeaders = { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" };
+        if (!env.DB) {
+          return new Response(optinResponsePage({
+            title: "Not available",
+            message: "This service isn't configured right now. Please try again later.",
+            tone: "error",
+          }), { status: 503, headers: htmlHeaders });
+        }
+
+        const form = await req.formData().catch(() => null);
+        const token = normalizeText(form?.get("token") || "");
+        if (!token) {
+          return new Response(optinResponsePage({
+            title: "Invalid link",
+            message: "This link is missing required information. Please use the link from your email exactly as sent.",
+            tone: "error",
+          }), { status: 400, headers: htmlHeaders });
+        }
+
+        const row = await env.DB.prepare(
+          `SELECT token, email, email_norm FROM email_optin_tokens WHERE token = ?1`
+        ).bind(token).first();
+
+        if (!row) {
+          return new Response(optinResponsePage({
+            title: "Link no longer valid",
+            message: "We couldn't find this confirmation link. It may have already been used or expired.",
+            tone: "error",
+          }), { status: 404, headers: htmlHeaders });
+        }
+
+        await env.DB.prepare(
+          `UPDATE email_optin_tokens SET response = 'yes', responded_at = datetime('now') WHERE token = ?1`
+        ).bind(token).run();
+
+        await applyOptinResponse(env.DB, { email: row.email, emailNorm: row.email_norm, choice: "yes" });
+
+        return new Response(
+          optinResponsePage({
+            title: "You're all set!",
+            message: "Thank you. You'll continue to hear occasional campaign updates, candidate information, and ways to take part.",
+            tone: "success",
+          }),
           { headers: htmlHeaders }
         );
       }
