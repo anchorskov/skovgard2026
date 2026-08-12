@@ -17,21 +17,6 @@ function yesNo(value) {
   return value ? "Yes" : "No";
 }
 
-// This staff email fires on the very first opt-in submission and never
-// again for that contact (see docs/pulse_flow.md), so for the redesigned
-// /pulse flow it's usually built before someone has had a chance to reach
-// the Citizen Poll step at all. No city was ever submitted yet, so
-// matching hasn't been attempted. Reporting that as a flat "No" reads as a
-// confirmed non-match and has confused staff into thinking a real match
-// attempt failed, when the true state is "not tried yet." A later,
-// successful match on a follow-up submission does not re-fire this email
-// to correct it, so the wording has to be honest about that gap up front.
-function wyVoterStatus(profile) {
-  if (profile.wyVoter) return "Yes";
-  if (!normalizeText(profile.city)) return "Not attempted yet (no address submitted on this step)";
-  return "No";
-}
-
 function fullName(profile) {
   const name = [profile.firstName, profile.lastName]
     .map((value) => normalizeText(value))
@@ -57,25 +42,21 @@ function addressLines(profile) {
   ].filter(Boolean);
 }
 
-function districtSummary(profile) {
-  const house = normalizeText(profile.stateHouseDistrict);
-  const senate = normalizeText(profile.stateSenateDistrict);
-  if (!house && !senate) return "Not resolved";
-  if (house && senate) return `House ${house}, Senate ${senate}`;
-  if (house) return `House ${house}`;
-  return `Senate ${senate}`;
-}
-
 function buildStaffEmail(config, profile) {
   const submittedAt = normalizeText(profile.consentedAt || profile.submittedAt || new Date().toISOString());
   const emailDisplay = profile.email
     ? `${profile.email} (${profile.consentEmail ? "email consent" : "no email consent"})`
     : "Not provided";
-  const address = addressLines(profile).join(", ") || "Not provided";
   const name = fullName(profile);
   const phone = normalizeText(profile.phoneE164 || profile.phone);
   const subject = `New Pulse opt-in: ${name}`;
 
+  // This fires on someone's first opt-in submission (see docs/pulse_flow.md),
+  // which in the redesigned /pulse flow is always the join step, before any
+  // address has been collected. Voter/district/address fields are never
+  // populated at this point, so they're left out entirely rather than
+  // reported as "No"/"Not resolved". Reporting no-info as if it were a
+  // real result read as a confirmed non-match to staff.
   return {
     from: config.from,
     to: [config.staffTo],
@@ -89,13 +70,8 @@ function buildStaffEmail(config, profile) {
       `Email: ${emailDisplay}`,
       `SMS consent: ${yesNo(profile.consentSms)}`,
       `Email consent: ${yesNo(profile.consentEmail)}`,
-      `Wyoming voter: ${wyVoterStatus(profile)}`,
-      `Address: ${address}`,
-      `Districts: ${districtSummary(profile)}`,
       `Consent version: ${normalizeText(profile.consentVersion) || "Unknown"}`,
       `Source: ${normalizeText(profile.sourceDetail || profile.source) || "pulse"}`,
-      "",
-      "View unresolved voter matches: https://www.skovgard2026.org/admin/pulse-voter-review/index.html",
     ].join("\n"),
     html: `
       <h1>New Pulse opt-in</h1>
@@ -107,13 +83,9 @@ function buildStaffEmail(config, profile) {
         <li><strong>Email:</strong> ${escapeHtml(emailDisplay)}</li>
         <li><strong>SMS consent:</strong> ${escapeHtml(yesNo(profile.consentSms))}</li>
         <li><strong>Email consent:</strong> ${escapeHtml(yesNo(profile.consentEmail))}</li>
-        <li><strong>Wyoming voter:</strong> ${escapeHtml(wyVoterStatus(profile))}</li>
-        <li><strong>Address:</strong> ${escapeHtml(address)}</li>
-        <li><strong>Districts:</strong> ${escapeHtml(districtSummary(profile))}</li>
         <li><strong>Consent version:</strong> ${escapeHtml(normalizeText(profile.consentVersion) || "Unknown")}</li>
         <li><strong>Source:</strong> ${escapeHtml(normalizeText(profile.sourceDetail || profile.source) || "pulse")}</li>
       </ul>
-      <p><a href="https://www.skovgard2026.org/admin/pulse-voter-review/index.html">View unresolved voter matches</a></p>
     `,
     tags: [
       { name: "source", value: "pulse" },
