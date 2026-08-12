@@ -1,6 +1,6 @@
 ---
 // src/components/Nav.astro
-import { CANDIDATES_BASE_URL } from '../constants';
+import { CANDIDATES_BASE_URL, SURVEYS_URL } from '../constants';
 
 const navLinks = [
   { href: '/about', label: 'About' },
@@ -10,6 +10,7 @@ const navLinks = [
   { href: '/podcast', label: 'Podcast' },
   { href: '/finance', label: 'Finance' },
   { href: CANDIDATES_BASE_URL, label: 'Candidates', external: true, candidateSite: true },
+  { href: SURVEYS_URL, label: 'Surveys', external: true },
 ];
 
 const current = Astro.url.pathname;
