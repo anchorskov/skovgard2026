@@ -160,7 +160,7 @@ const { url, title, tweetText = title } = Astro.props;
         await navigator.clipboard.writeText(url);
         showToast('Copied!');
       } catch {
-        showToast('Could not copy — please copy the URL manually.');
+        showToast('Could not copy. Please copy the URL manually.');
       }
     });
 
