@@ -73,7 +73,7 @@ if (form) {
   };
 
   const resetActionLabels = () => {
-    if (joinBtn) joinBtn.textContent = 'Join Pulse';
+    if (joinBtn) joinBtn.textContent = 'Click to Join';
     if (updatesOnlyBtn) updatesOnlyBtn.textContent = 'Get Updates';
     if (requestCallbackBtn) requestCallbackBtn.textContent = 'Please have Jimmy call me back';
     if (submitBtn) submitBtn.textContent = 'Verify me and get my ballot';
@@ -607,7 +607,7 @@ function resetTurnstile() {
       const fallbackLabel =
         submissionMode === 'poll' ? 'Verify me and get my ballot'
         : submissionMode === 'callback' ? 'Please have Jimmy call me back'
-        : (joinBtn ? 'Join Pulse' : 'Get Updates');
+        : (joinBtn ? 'Click to Join' : 'Get Updates');
       setBtn(fallbackLabel, { disabled: false });
       resetActionLabels();
       err(e3?.message || 'Sorry, something went wrong. Please try again.');

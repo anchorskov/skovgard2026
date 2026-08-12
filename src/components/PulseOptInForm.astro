@@ -114,6 +114,23 @@ const isUpdatesOnly = variant === 'updates';
             I agree to receive campaign text messages from Jimmy Skovgard. <span class="text-red-500">*</span>
           </span>
         </label>
+
+        <!-- Email consent (shown only when email is filled — toggled by JS) -->
+        <div id="email-consent-wrap" style="display:none">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              id="consent_email"
+              name="consent_email"
+              class="mt-0.5 w-4 h-4 shrink-0"
+              style="accent-color:#b22234"
+            />
+            <span class="text-sm text-gray-700">
+              I also agree to receive campaign emails from Jimmy Skovgard.
+            </span>
+          </label>
+        </div>
+
         <p id="consent-copy" class="text-xs leading-5 text-gray-500 pl-7">
           By checking this box and submitting your mobile number, you agree to receive campaign text messages from Skovgard for Senate.
           Message frequency may vary. Message and data rates may apply. Reply STOP to opt out. Reply HELP for help.
@@ -125,24 +142,8 @@ const isUpdatesOnly = variant === 'updates';
         <p id="consent-error" class="hidden pl-7 text-sm font-semibold text-wy-ember-dark" aria-live="polite"></p>
       </div>
 
-      <!-- Email consent (shown only when email is filled — toggled by JS) -->
-      <div id="email-consent-wrap" style="display:none">
-        <label class="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            id="consent_email"
-            name="consent_email"
-            class="mt-0.5 w-4 h-4 shrink-0"
-            style="accent-color:#b22234"
-          />
-          <span class="text-sm text-gray-700">
-            I also agree to receive campaign emails from Jimmy Skovgard.
-          </span>
-        </label>
-      </div>
-
       <button type="button" id={isUpdatesOnly ? "pulse-updates-only" : "pulse-join-btn"} class="pulse-primary-action">
-        {isUpdatesOnly ? 'Get Updates' : 'Join Pulse'}
+        {isUpdatesOnly ? 'Get Updates' : 'Click to Join'}
       </button>
     </section>
 
@@ -253,7 +254,7 @@ const isUpdatesOnly = variant === 'updates';
   )}
 </div>
 
-<script type="module" src="/js/pulse-optin.js?v=12"></script>
+<script type="module" src="/js/pulse-optin.js?v=13"></script>
 
 <style is:global>
   #optin-form .pulse-poll-card {
