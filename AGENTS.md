@@ -9,6 +9,12 @@ This file is repo-local. It applies only inside:
 
 If instructions, names, domains, emails, or policies from another project appear here or in generated work, treat that as drift and do not apply them without explicit user approval.
 
+## Writing Style — hard rule
+
+**Never use an em dash** (`—`, `&#8212;`, or `--` used as a dash) in any
+copy, doc, commit message, or code comment generated for this project. See
+`docs/style.md` for the full rule and how to rewrite around it.
+
 ## Documentation Index
 
 **The entire `docs/` folder is gitignored (as of 2026-07-22)** — every file
@@ -56,6 +62,7 @@ is deleted.
 | `docs/share/AddShareMessage.md` | Checklist for adding a new `/share/<slug>` shareable message |
 | `docs/share/show_shares.md` | Tracks `/share` and `/share/more-shares` card display order (array order, not date-sorted) — update after adding or reordering a share card |
 | `docs/social_media.md` | Open Graph / Twitter card requirements for both `skovgard2026.org` and `candidates.skovgard2026.org` |
+| `docs/style.md` | Jim's personal writing-style rules (hard rule: never use em dashes) — separate from `brand/voice.md`'s tone/word-choice guidance |
 | `docs/test_data.md` | Reusable real (not fake) phone/email identities for end-to-end testing |
 | `docs/update_new_contact_emails_texts.md` | Human-facing operations guide for the CSV contact-import workflow |
 | `docs/ai_philosophy/understanding_agents_start.md` | Starting observations on agent context, working reliability, execution horizon, and drift |
