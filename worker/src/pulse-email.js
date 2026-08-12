@@ -17,6 +17,21 @@ function yesNo(value) {
   return value ? "Yes" : "No";
 }
 
+// This staff email fires on the very first opt-in submission and never
+// again for that contact (see docs/pulse_flow.md), so for the redesigned
+// /pulse flow it's usually built before someone has had a chance to reach
+// the Citizen Poll step at all. No city was ever submitted yet, so
+// matching hasn't been attempted. Reporting that as a flat "No" reads as a
+// confirmed non-match and has confused staff into thinking a real match
+// attempt failed, when the true state is "not tried yet." A later,
+// successful match on a follow-up submission does not re-fire this email
+// to correct it, so the wording has to be honest about that gap up front.
+function wyVoterStatus(profile) {
+  if (profile.wyVoter) return "Yes";
+  if (!normalizeText(profile.city)) return "Not attempted yet (no address submitted on this step)";
+  return "No";
+}
+
 function fullName(profile) {
   const name = [profile.firstName, profile.lastName]
     .map((value) => normalizeText(value))
@@ -74,7 +89,7 @@ function buildStaffEmail(config, profile) {
       `Email: ${emailDisplay}`,
       `SMS consent: ${yesNo(profile.consentSms)}`,
       `Email consent: ${yesNo(profile.consentEmail)}`,
-      `Wyoming voter: ${yesNo(profile.wyVoter)}`,
+      `Wyoming voter: ${wyVoterStatus(profile)}`,
       `Address: ${address}`,
       `Districts: ${districtSummary(profile)}`,
       `Consent version: ${normalizeText(profile.consentVersion) || "Unknown"}`,
@@ -92,7 +107,7 @@ function buildStaffEmail(config, profile) {
         <li><strong>Email:</strong> ${escapeHtml(emailDisplay)}</li>
         <li><strong>SMS consent:</strong> ${escapeHtml(yesNo(profile.consentSms))}</li>
         <li><strong>Email consent:</strong> ${escapeHtml(yesNo(profile.consentEmail))}</li>
-        <li><strong>Wyoming voter:</strong> ${escapeHtml(yesNo(profile.wyVoter))}</li>
+        <li><strong>Wyoming voter:</strong> ${escapeHtml(wyVoterStatus(profile))}</li>
         <li><strong>Address:</strong> ${escapeHtml(address)}</li>
         <li><strong>Districts:</strong> ${escapeHtml(districtSummary(profile))}</li>
         <li><strong>Consent version:</strong> ${escapeHtml(normalizeText(profile.consentVersion) || "Unknown")}</li>
