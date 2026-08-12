@@ -141,7 +141,7 @@ function buildReviewNeededEmail(config, profile) {
     ? `Pulse callback requested ASAP: ${name}`
     : `Pulse review needed: ${name}`;
   const intro = isCallbackRequest
-    ? "Someone opted in via /pulse and asked for a callback to finish Citizen Poll verification. They didn't have their address handy when they signed up."
+    ? "Someone opted in via /pulse and asked for a callback to finish Citizen Poll verification."
     : "A /pulse submission needs manual review. It didn't cleanly match a Wyoming voter record.";
 
   return {
