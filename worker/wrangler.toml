@@ -88,7 +88,10 @@ database_id         = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"
 #
 # Live cron triggers:
 #  - "0 14 * * *"  daily Pulse follow-up digest (added 2026-07-19,
-#     docs/who_needs_to_know.md §3) -- see runPulseFollowUpDigest.
+#     docs/who_needs_to_know.md §3) -- see runPulseFollowUpDigest. Also
+#     fires the email-consent reconciliation check (added 2026-08-10,
+#     docs/db/EmailConsolidationPlan.md Phase 4) -- see
+#     runEmailConsentReconciliation in worker/src/index.js.
 #  - "17 * * * *"  hourly stale-pending-donation reconciliation against
 #     Stripe (added 2026-07-22, docs/DonationsFlow.md) -- see
 #     reconcilePendingDonations in worker/src/index.js. Offset :17 past the

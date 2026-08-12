@@ -342,21 +342,26 @@ async function createEmailOptinToken(db, { email, emailNorm, messageSlug, batchI
 }
 
 // Phase 3 dual-write (docs/db/EmailConsolidationPlan.md): keeps the
-// canonical email_contacts/email_contact_purposes table fresh from the two
-// places an email's consent state genuinely, unambiguously changes --
-// upsertNewsletterSubscriber (below) and applyOptinResponse. Both call this
-// at 'subscriber' purpose, priority 4 (the system max), so this always wins
-// conflicts against lower-priority backfilled data (candidate/voter_file/
-// purged_voter) -- except a sticky opted_out, matching the backfill scripts'
-// rule that an explicit opt-out is never silently overwritten. Errors are
-// swallowed (logged only) so a failure writing to the new table can never
-// break the primary, already-working subscribe/unsubscribe flow.
-async function upsertEmailContactSubscriber(db, { email, emailNorm, consentStatus, source }) {
-  const SUBSCRIBER_PRIORITY = 4;
+// canonical email_contacts/email_contact_purposes table fresh from the
+// places an email's consent state or purpose genuinely, unambiguously
+// changes. `purpose`/`priority` default to 'subscriber'/4 (the system max) --
+// upsertNewsletterSubscriber and applyOptinResponse both call this at those
+// defaults, so it always wins conflicts against lower-priority backfilled
+// data (candidate/voter_file/purged_voter) -- except a sticky opted_out,
+// matching the backfill scripts' rule that an explicit opt-out is never
+// silently overwritten. The live volunteer-toggle dual-write (Phase 4,
+// 2026-08-10) passes purpose='volunteer', priority=3, matching the priority
+// order the Phase 2 backfill already established
+// (scripts/email_contacts_backfill/01_same_db_sources.sql) -- kept below
+// subscriber priority so marking someone a volunteer can never downgrade an
+// existing confirmed newsletter opt-in. Errors are swallowed (logged only)
+// so a failure writing to the new table can never break the primary,
+// already-working flow that triggered it.
+async function upsertEmailContactSubscriber(db, { email, emailNorm, consentStatus, source, purpose = "subscriber", priority = 4 }) {
   try {
     await db.prepare(
       `INSERT INTO email_contacts (email, email_norm, consent_status, source, source_detail, source_priority, first_seen_at, updated_at)
-       VALUES (?1, ?2, ?3, 'email_contacts_dual_write', ?4, ${SUBSCRIBER_PRIORITY}, datetime('now'), datetime('now'))
+       VALUES (?1, ?2, ?3, 'email_contacts_dual_write', ?4, ?5, datetime('now'), datetime('now'))
        ON CONFLICT(email_norm) DO UPDATE SET
          consent_status = CASE
            WHEN email_contacts.consent_status = 'opted_out' THEN 'opted_out'
@@ -368,14 +373,14 @@ async function upsertEmailContactSubscriber(db, { email, emailNorm, consentStatu
          source_detail = CASE WHEN excluded.source_priority >= email_contacts.source_priority THEN excluded.source_detail ELSE email_contacts.source_detail END,
          source_priority = MAX(email_contacts.source_priority, excluded.source_priority),
          updated_at = datetime('now')`
-    ).bind(email, emailNorm, consentStatus, source).run();
+    ).bind(email, emailNorm, consentStatus, source, priority).run();
 
     await db.prepare(
       `INSERT OR IGNORE INTO email_contact_purposes (email_contact_id, purpose, source)
-       SELECT id, 'subscriber', ?2 FROM email_contacts WHERE email_norm = ?1`
-    ).bind(emailNorm, source).run();
+       SELECT id, ?3, ?2 FROM email_contacts WHERE email_norm = ?1`
+    ).bind(emailNorm, source, purpose).run();
   } catch (error) {
-    console.error("upsertEmailContactSubscriber dual-write failed", { emailNorm, error: String(error?.message || error) });
+    console.error("upsertEmailContactSubscriber dual-write failed", { emailNorm, purpose, error: String(error?.message || error) });
   }
 }
 
@@ -3431,6 +3436,102 @@ async function runPulseFollowUpDigest(env) {
   return { ran: true, counts, ...result };
 }
 
+// Daily cron (piggybacked on the same "0 14 * * *" trigger as the Pulse
+// follow-up digest above) -- Phase 4 of docs/db/EmailConsolidationPlan.md,
+// added 2026-08-10 after a real incident: a grassrootsmvt.org DNS/DKIM gap
+// silently blocked every Pulse opt-in email for ~2.5 weeks with nothing to
+// surface it. Two independent, differently-caused checks, both reported in
+// one alert:
+//  (a) Dual-write parity -- newsletter_subscribers rows that never landed as
+//      an opted_in email_contacts row. Catches a *data* gap: a future write
+//      path that sets email consent without reaching the canonical table
+//      (the exact class of bug closed by the 3 dual-write hooks added in
+//      this same pass). This check would NOT have caught the actual 07-21
+//      incident -- consent_status/newsletter_subscribers wrote correctly
+//      the whole time; only the Resend send failed.
+//  (b) Pulse delivery health -- opted-in Pulse signups in the last 24h with
+//      zero matching staff_notification sends. This is the check that
+//      targets the actual incident: a *send* failure downstream of a
+//      correct write.
+// Sent from ADMIN_EMAIL_FROM (the already-verified updates.grassrootsmvt.org
+// subdomain), not PULSE_EMAIL_FROM -- deliberately, so this alert doesn't
+// share a blind spot with the exact outage class it exists to catch: if
+// grassrootsmvt.org's domain verification breaks again, an alert sent from
+// pulse@grassrootsmvt.org would silently fail right alongside the thing it's
+// reporting on.
+async function runEmailConsentReconciliation(env) {
+  if (!env.DB) return { ran: false, reason: "no_db" };
+
+  const dualWriteGapRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS n
+       FROM newsletter_subscribers ns
+      WHERE ns.active = 1 AND ns.consent_email = 1
+        AND ns.updated_at <= datetime('now', '-15 minutes')
+        AND NOT EXISTS (
+          SELECT 1 FROM email_contacts ec
+           WHERE ec.email_norm = ns.email_norm AND ec.consent_status = 'opted_in'
+        )`
+  ).first().catch(() => null);
+
+  const pulseOptinRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS n
+       FROM consent_status
+      WHERE source_detail = 'pulse' AND status = 'opted_in'
+        AND consented_at >= datetime('now', '-24 hours')`
+  ).first().catch(() => null);
+
+  const staffSentRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS n
+       FROM resend_webhook_events
+      WHERE source = 'pulse' AND kind = 'staff_notification' AND event_type = 'email.sent'
+        AND processed_at >= datetime('now', '-24 hours')`
+  ).first().catch(() => null);
+
+  const dualWriteGap = Number(dualWriteGapRow?.n || 0);
+  const pulseOptins = Number(pulseOptinRow?.n || 0);
+  const pulseStaffSent = Number(staffSentRow?.n || 0);
+  const pulseDeliveryGap = pulseOptins > 0 && pulseStaffSent === 0;
+
+  if (dualWriteGap === 0 && !pulseDeliveryGap) {
+    return { ran: true, dualWriteGap, pulseOptins, pulseStaffSent, sent: false, reason: "nothing_to_report" };
+  }
+
+  const config = {
+    enabled: String(env.ADMIN_EMAIL_ENABLED || "0") === "1",
+    apiKey: String(env.RESEND_API_KEY || "").trim(),
+    from: String(env.ADMIN_EMAIL_FROM || "").trim(),
+    to: String(env.PULSE_STAFF_NOTIFY_TO || env.INBOUND_SMS_NOTIFY_TO || "").trim(),
+  };
+  if (!config.enabled || !config.apiKey || !config.from || !config.to) {
+    return { ran: true, dualWriteGap, pulseOptins, pulseStaffSent, sent: false, reason: "disabled_or_missing_config" };
+  }
+
+  const lines = ["Daily email-consent reconciliation check found something to flag.", ""];
+  if (dualWriteGap > 0) {
+    lines.push(`- ${dualWriteGap} newsletter_subscribers row(s) opted in but missing from email_contacts (dual-write gap).`);
+  }
+  if (pulseDeliveryGap) {
+    lines.push(`- ${pulseOptins} Pulse opt-in(s) in the last 24h, but 0 staff_notification emails sent. Check grassrootsmvt.org's domain status in Resend.`);
+  }
+
+  try {
+    const data = await sendResendEmail(config.apiKey, {
+      from: config.from,
+      to: [config.to],
+      subject: "Email consent reconciliation: drift detected",
+      text: lines.join("\n"),
+      tags: [
+        { name: "source", value: "reconciliation" },
+        { name: "kind", value: "drift_alert" },
+      ],
+    });
+    return { ran: true, dualWriteGap, pulseOptins, pulseStaffSent, sent: true, id: data?.id || null };
+  } catch (error) {
+    console.error("runEmailConsentReconciliation: alert send failed", String(error?.message || error));
+    return { ran: true, dualWriteGap, pulseOptins, pulseStaffSent, sent: false, reason: String(error?.message || error) };
+  }
+}
+
 // --- Worker ------------------------------------------------------------------
 export default {
   async fetch(req, env, ctx) {
@@ -5707,6 +5808,27 @@ export default {
           });
         }
 
+        // Phase 4 dual-write (docs/db/EmailConsolidationPlan.md, 2026-08-10):
+        // this toggle was the last live path that set is_volunteer without
+        // ever reaching email_contact_purposes -- only the one-time Phase 2
+        // backfill covered it before. Only fires on the way *in* (matches
+        // the existing purpose-tagging model, which accumulates purposes
+        // rather than removing them); a seed.email-less contact has nothing
+        // to tag.
+        if (isVolunteer && seed.email) {
+          const { raw: volunteerEmailRaw, normalized: volunteerEmailNorm } = normalizeEmailForStorage(seed.email);
+          if (volunteerEmailNorm) {
+            await upsertEmailContactSubscriber(env.DB, {
+              email: volunteerEmailRaw,
+              emailNorm: volunteerEmailNorm,
+              consentStatus: Number(seed.consent_email || 0) === 1 ? "opted_in" : "no_signal",
+              source: "skovgard2026:admin_texting",
+              purpose: "volunteer",
+              priority: 3,
+            });
+          }
+        }
+
         await insertTextingAuditLog(env.DB, {
           actorEmail: actor.actorEmail,
           actorUserId: actor.actorUserId,
@@ -5815,6 +5937,27 @@ export default {
             wyVoter: Number(seed.wy_voter || 0) === 1,
             consentVersion: seed.consent_version,
             source: "skovgard2026:admin_texting",
+          }).catch(() => null);
+        }
+
+        // Phase 4 dual-write (docs/db/EmailConsolidationPlan.md, 2026-08-10):
+        // a corrected email address here previously only reached
+        // consent_status/sms_optins, leaving email_contacts and
+        // newsletter_subscribers pointed at the stale address. Only fires
+        // when there's real email consent on file to correct -- an
+        // address-only edit on a contact with no consent_email isn't a
+        // subscription event, and the old email_contacts row (if any) is
+        // left alone rather than merged/renamed, matching how this repo
+        // already handles corrections (see the phone-typo admin_correction
+        // pattern in consent_status).
+        if ("email" in updates && updates.email && Number(seed.consent_email || 0) === 1) {
+          await upsertNewsletterSubscriber(env.DB, {
+            email: updates.email,
+            consentEmail: true,
+            consentVersion: seed.consent_version,
+            source: "skovgard2026:admin_texting_correction",
+            userAgent: "",
+            ipHash: "",
           }).catch(() => null);
         }
 
@@ -8655,6 +8798,11 @@ export default {
       ctx.waitUntil(
         runPulseFollowUpDigest(env).catch((e) => {
           console.error("scheduled pulse follow-up digest failed:", e);
+        })
+      );
+      ctx.waitUntil(
+        runEmailConsentReconciliation(env).catch((e) => {
+          console.error("scheduled email consent reconciliation failed:", e);
         })
       );
       return;
