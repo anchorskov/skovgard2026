@@ -3,6 +3,8 @@
 import '../styles/global.css';
 import { env } from 'cloudflare:workers';
 import { isGuideEnabled } from '../lib/guide-host';
+import HelpPanel from '../components/HelpPanel.astro';
+import VoiceGuide from '../components/VoiceGuide.astro';
 
 const siteOrigin = Astro.url.origin;
 const electionDate = 'August 18, 2026';
@@ -105,8 +107,14 @@ const addressFields = [
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name"   content="Wyoming 2026 Voter Guide" />
 
-    <!-- Cloudflare Turnstile (production bot protection for ballot lookup) -->
-    {turnstileEnabled && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
+    <!-- Cloudflare Turnstile (production bot protection for ballot lookup).
+         render=explicit: we call turnstile.render() ourselves once the script
+         loads, instead of relying on Cloudflare's own implicit auto-render
+         scan of class="cf-turnstile" elements. That auto-render pass runs on
+         its own internal timing relative to when window.turnstile becomes
+         available, which raced execute() on a fresh page load — see the
+         getTurnstileToken() comment below and docs in AGENTS.md. -->
+    {turnstileEnabled && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>}
 
     <!-- Twitter / X card -->
     <meta name="twitter:card"        content="summary_large_image" />
@@ -115,6 +123,7 @@ const addressFields = [
     <meta name="twitter:image"       content={`${siteOrigin}/og-image.png`} />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
     <main class="page-shell">
       <header class="site-header" aria-label="Candidates voter guide">
         <a class="brand-mark" href="/" aria-label="Candidates home">
@@ -130,8 +139,13 @@ const addressFields = [
           <a href="/races">Browse races</a>
           {guideEnabled && <a href="/guide">Candidate guide</a>}
         </nav>
+        <div class="vg-toolbar" aria-label="Accessibility tools">
+          <VoiceGuide />
+          <HelpPanel />
+        </div>
       </header>
 
+      <div id="main-content">
       {isLocalReview && (
         <aside class="local-review-banner" role="status">
           <strong>Local review mode</strong>
@@ -151,6 +165,10 @@ const addressFields = [
             <a class="button button--primary" href="#address-form-section">Find my ballot</a>
             <a class="button button--secondary" href="/races">Browse all races</a>
           </div>
+          <p class="hero__recover">
+            Already saved a ballot list on another device?
+            <a href="/ballot-recovery/">Recover it here →</a>
+          </p>
         </div>
 
         <aside class="election-card" aria-label="Election snapshot">
@@ -185,6 +203,10 @@ const addressFields = [
           </p>
         </div>
         <form class="address-form" method="get" action="#lookup-status" aria-label="Address lookup preview">
+          <p id="welcome-back-banner" class="welcome-back-banner" hidden>
+            You have a saved ballot from a previous visit —
+            <a id="welcome-back-link" href="/races">continue with your saved list →</a>
+          </p>
           <div class="address-form__grid">
             {addressFields.map((field) => (
               <label for={field.id}>
@@ -222,21 +244,12 @@ const addressFields = [
           <div id="polling-section" class="polling-section" hidden></div>
           <div id="fallback-panel" class="fallback-panel" hidden></div>
           {turnstileEnabled && (
-            <div
-              id="ts-widget"
-              class="cf-turnstile"
-              data-sitekey={turnstileSiteKey}
-              data-size="normal"
-              data-execution="execute"
-              data-appearance="interaction-only"
-              data-callback="onTurnstileSuccess"
-              data-error-callback="onTurnstileError"
-              data-expired-callback="onTurnstileExpired"
-            ></div>
+            <div id="ts-widget"></div>
           )}
           <p class="form-note">Address data is used only for this ballot lookup. GPS coordinates may be logged anonymously to improve district matching.</p>
         </form>
       </section>
+      </div>
 
     </main>
     <footer class="site-footer" aria-label="Campaign disclaimer">
@@ -262,11 +275,37 @@ const addressFields = [
       let storedGpsLat = null;
       let storedGpsLon = null;
 
+      // A returning voter with an intact saved list would otherwise have to
+      // redo the whole address lookup before reaching a race page again,
+      // even though everything needed is already in localStorage from a
+      // prior visit (or a restored ballot-recovery link — see
+      // ballot-recovery/[token].astro, which links straight into a race
+      // page in the common case, but can fall back to "/" when it has no
+      // race id to link to).
+      (function showWelcomeBackBanner() {
+        const banner = document.getElementById('welcome-back-banner');
+        const link = document.getElementById('welcome-back-link');
+        if (!banner || !link) return;
+        try {
+          const races = JSON.parse(localStorage.getItem(availableRacesStorageKey) || '[]');
+          if (!Array.isArray(races) || races.length === 0) return;
+          const first = races[0];
+          if (first?.id) {
+            link.href = `/race/${encodeURIComponent(String(first.id))}`;
+            link.textContent = first.name ? `continue with ${first.name} →` : 'continue with your saved list →';
+          }
+          banner.hidden = false;
+        } catch {
+          // localStorage unavailable or corrupted — just skip the banner.
+        }
+      })();
+
       // ── Turnstile (invisible) ───────────────────────────────────────────
       // Each submission needs its own execute() call — Turnstile tokens are
       // single-use, so a token from a prior lookup must never be replayed.
       let _tsResolve = null;
       let _tsExecuted = false;
+      let _tsWidgetId = null;
 
       window.onTurnstileSuccess = function (token) {
         if (_tsResolve) { _tsResolve(token); _tsResolve = null; }
@@ -276,14 +315,24 @@ const addressFields = [
       };
       window.onTurnstileExpired = function () {
         _tsExecuted = false;
-        if (window.turnstile) window.turnstile.reset('#ts-widget');
+        if (window.turnstile && _tsWidgetId !== null) window.turnstile.reset(_tsWidgetId);
       };
 
-      // The Turnstile <script> tag is async, so on a fresh page load the very
-      // first submit can race the widget's own initialization: calling
-      // execute() before the library (and the implicitly-rendered #ts-widget)
-      // is ready is a silent no-op — no callback ever fires. Every path below
-      // resolves within 12s no matter what, so a submit is never dropped.
+      // Loaded with api.js?render=explicit, so we render the widget ourselves
+      // instead of relying on Cloudflare's implicit auto-render scan of
+      // class="cf-turnstile" elements. That auto-render pass ran on its own
+      // internal timing relative to when window.turnstile became available —
+      // a prior fix here only polled for window.turnstile *existing*, which
+      // isn't the same as this specific #ts-widget div having been converted
+      // into a live widget yet. Calling execute() on an unrendered container
+      // is a silent no-op (no callback, no error), so the first submit after
+      // a fresh page load would time out and post with no token, and the
+      // server correctly rejected it — surfacing "Verification failed" to a
+      // real voter for what was really just a client-side timing gap.
+      // turnstile.render() is the deterministic fix: it returns a widgetId
+      // immediately, and Cloudflare's SDK safely queues execute()/reset()
+      // calls against that ID even before the widget's iframe finishes
+      // loading, so there is no longer a second race to poll around.
       //
       // Do NOT call turnstile.ready() here: Cloudflare's own implementation
       // throws ("Remove async/defer from the Turnstile api.js script tag
@@ -292,8 +341,22 @@ const addressFields = [
       // above). That throw propagated out of this Promise executor as a
       // rejection, which the submit handler's try/catch turned into "Lookup
       // route could not be reached" for every single submission in
-      // production. Plain existence-polling for window.turnstile is enough
-      // to fix the original no-op without needing .ready() at all.
+      // production.
+      function ensureTurnstileWidget() {
+        if (_tsWidgetId !== null) return _tsWidgetId;
+        if (!window.turnstile) return null;
+        _tsWidgetId = window.turnstile.render('#ts-widget', {
+          sitekey: window.__TURNSTILE_SITE_KEY__,
+          size: 'normal',
+          execution: 'execute',
+          appearance: 'interaction-only',
+          callback: window.onTurnstileSuccess,
+          'error-callback': window.onTurnstileError,
+          'expired-callback': window.onTurnstileExpired,
+        });
+        return _tsWidgetId;
+      }
+
       async function getTurnstileToken() {
         if (!window.__TURNSTILE_SITE_KEY__) return null;
 
@@ -308,11 +371,12 @@ const addressFields = [
 
           function runExecute() {
             try {
-              if (!window.turnstile) { clearTimeout(ceiling); finish(null); return; }
-              if (_tsExecuted) window.turnstile.reset('#ts-widget');
+              const widgetId = ensureTurnstileWidget();
+              if (widgetId === null) { clearTimeout(ceiling); finish(null); return; }
+              if (_tsExecuted) window.turnstile.reset(widgetId);
               _tsResolve = (token) => { clearTimeout(ceiling); finish(token); };
               _tsExecuted = true;
-              window.turnstile.execute('#ts-widget');
+              window.turnstile.execute(widgetId);
             } catch {
               // Fall back to submitting without a token rather than dropping
               // the request — the server rejects a missing token cleanly.
@@ -895,17 +959,33 @@ const addressFields = [
         setLookupStatus('Looking up ballot information...', 'loading');
 
         try {
-          const cfToken = await getTurnstileToken();
-          const enrichedPayload = {
+          const buildPayload = (token) => ({
             ...(storedGpsLat != null ? { ...payload, gpsLat: storedGpsLat, gpsLon: storedGpsLon } : payload),
-            ...(cfToken ? { cf_turnstile_response: cfToken } : {}),
-          };
-          const response = await fetch('/api/ballot-lookup', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(enrichedPayload),
+            ...(token ? { cf_turnstile_response: token } : {}),
           });
-          const data = await response.json();
+          const submitLookup = async (token) => {
+            const res = await fetch('/api/ballot-lookup', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(buildPayload(token)),
+            });
+            return { res, body: await res.json() };
+          };
+
+          const cfToken = await getTurnstileToken();
+          let { res: response, body: data } = await submitLookup(cfToken);
+
+          // A 403 here almost always means the Turnstile token didn't arrive
+          // in time (e.g. the widget was still initializing on a genuinely
+          // first page load) rather than a real bot signal — see the
+          // ensureTurnstileWidget()/getTurnstileToken() comments above. Retry
+          // once with a fresh token before showing the user anything; a
+          // voter should never see a raw "Verification failed" message for
+          // what is, from their side, an ordinary first attempt.
+          if (response.status === 403 && !data.success) {
+            const retryToken = await getTurnstileToken();
+            ({ res: response, body: data } = await submitLookup(retryToken));
+          }
 
           if (!response.ok || !data.success) {
             if (data.fieldErrors) {
@@ -1164,6 +1244,23 @@ const addressFields = [
     scroll-behavior: smooth;
   }
 
+  .skip-link {
+    position: absolute;
+    top: -999px;
+    left: 8px;
+    z-index: 2000;
+    padding: 10px 18px;
+    background: var(--charcoal);
+    color: var(--bone);
+    font-weight: 800;
+    text-decoration: none;
+    border-radius: 3px;
+  }
+
+  .skip-link:focus {
+    top: 8px;
+  }
+
   body {
     margin: 0;
     color: var(--charcoal);
@@ -1274,6 +1371,13 @@ const addressFields = [
     text-decoration-color: var(--ember);
   }
 
+  .vg-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   .hero {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
@@ -1314,6 +1418,16 @@ const addressFields = [
     flex-wrap: wrap;
     gap: 12px;
     margin-top: 30px;
+  }
+
+  .hero__recover {
+    margin: 14px 0 0;
+    font-size: 0.9375rem;
+  }
+
+  .hero__recover a {
+    color: var(--ember);
+    font-weight: 700;
   }
 
   .button,
@@ -1602,6 +1716,24 @@ const addressFields = [
     font-weight: 700;
   }
 
+  .welcome-back-banner {
+    margin: 0 0 14px;
+    padding: 10px 14px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--sandstone);
+    background: #faf8f4;
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+
+  .welcome-back-banner[hidden] {
+    display: none;
+  }
+
+  .welcome-back-banner a {
+    color: var(--ember);
+  }
+
   .lookup-status,
   .district-badges,
   .lookup-results,
@@ -1763,11 +1895,21 @@ const addressFields = [
     }
   }
 
+  /* Column, not row: .race-result-card__cta is aria-hidden decoration (the
+     whole card is the real link target), so it must never compete with the
+     race name for horizontal space. A prior row layout gave the nowrap CTA
+     first claim on width and squeezed the name into whatever was left,
+     which broke long office titles mid-word on any sufficiently narrow
+     container — not just small viewports, since some embedded/preview
+     browsers don't report a narrow viewport for a narrow rendering surface,
+     so the viewport-based @media fallback below didn't reliably catch it.
+     Stacking removes the competition instead of trying to detect when it's
+     about to happen. */
   :global(.race-result-card) {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
     min-height: 44px;
     padding: 12px 14px;
     border: 1px solid var(--dust);
@@ -1817,14 +1959,13 @@ const addressFields = [
     font-size: 0.82rem;
     font-weight: 800;
     color: var(--ember);
-    white-space: nowrap;
-    flex-shrink: 0;
   }
 
-  /* Below 480px the full "View candidates →" phrase repeated on every row
-     is what forces long race names to wrap and compete for the line — it's
-     already aria-hidden decoration, so swap it for a chevron rather than
-     stacking, which would grow row height further on the tightest widths. */
+  /* Below 480px, swap the full "View candidates →" phrase for just the
+     chevron to save vertical space — the name/CTA competition this used to
+     guard against is gone now that the CTA always sits on its own line
+     (see .race-result-card above), but the row-height saving on small
+     phones is still worth keeping. */
   @media (max-width: 479px) {
     :global(.race-result-card__cta) {
       font-size: 0;
@@ -2011,11 +2152,19 @@ const addressFields = [
       padding-top: 14px;
     }
 
+    .site-header {
+      flex-wrap: wrap;
+    }
+
     .top-nav {
       width: 100%;
       justify-content: space-between;
       gap: 10px;
       font-size: 0.95rem;
+    }
+
+    .vg-toolbar {
+      width: 100%;
     }
 
     h1 {

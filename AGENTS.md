@@ -65,6 +65,7 @@ is deleted.
 | `docs/style.md` | Jim's personal writing-style rules (hard rule: never use em dashes) — separate from `brand/voice.md`'s tone/word-choice guidance |
 | `docs/test_data.md` | Reusable real (not fake) phone/email identities for end-to-end testing |
 | `docs/update_new_contact_emails_texts.md` | Human-facing operations guide for the CSV contact-import workflow |
+| `docs/voice_industry_standard.md` | Web voice interaction standard, platform integration model, browser settings, implementation review, and release criteria |
 | `docs/ai_philosophy/understanding_agents_start.md` | Starting observations on agent context, working reliability, execution horizon, and drift |
 | `docs/security_notes.md` | Incident log and hard rules for handling secrets in terminal commands — no secret values, key names and lessons only |
 | `docs/DonationsFlow.md` | Stripe donation flow: schema, status lifecycle, the abandoned-checkout reconciliation gap and its fix, admin endpoints |

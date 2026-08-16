@@ -1,0 +1,1657 @@
+---
+// Candidates/src/components/VoiceGuide.astro
+//
+// Optional spoken-navigation control. Progressive enhancement: every
+// function in this panel is a real, clickable native <button> first —
+// speech synthesis and recognition only add narration and a "Speak
+// Command" input on top of the same buttons when the browser supports
+// them. Nothing here is voice-only. See Candidates/docs/voice_guide.md.
+//
+// Dialog focus-trap/Escape/backdrop-click mechanics mirror the existing
+// feedback modal in Base.astro (#fb-modal). Help content is rendered by
+// HelpPanel.astro (via window.__vgHelp) — this component does not build a
+// second help dialog.
+---
+
+<div class="vg-toggle">
+  <input type="checkbox" id="vg-start-toggle" role="switch" class="vg-toggle__input">
+  <label for="vg-start-toggle" class="vg-toggle__control">
+    <span class="vg-toggle__track"><span class="vg-toggle__thumb"></span></span>
+    <span class="vg-toggle__text" id="vg-toggle-text">Voice Guide: Off</span>
+  </label>
+</div>
+
+<div id="vg-panel" class="vg-panel" role="dialog" aria-modal="true" aria-labelledby="vg-panel-title" hidden>
+  <div class="vg-panel__box" tabindex="-1">
+    <div class="vg-panel__head">
+      <h2 id="vg-panel-title">Voice Guide</h2>
+      <button type="button" id="vg-panel-x" class="vg-panel__x" aria-label="Stop Voice Guide">✕</button>
+    </div>
+
+    <p class="vg-privacy-note">
+      Voice commands use your browser's speech-recognition service. Audio processing depends on
+      your browser. This site does not intentionally store audio or voice transcripts.
+    </p>
+
+    <div id="vg-message" class="vg-message" role="status" aria-live="polite"></div>
+
+    <button type="button" id="vg-continue" class="vg-continue-btn" hidden>Continue</button>
+
+    <div class="vg-recognized-row">
+      <label for="vg-recognized-text">What the Voice Guide heard (you can edit this)</label>
+      <input type="text" id="vg-recognized-text" autocomplete="off" />
+    </div>
+
+    <div id="vg-stage-options" class="vg-stage-options" role="group" aria-label="Available options"></div>
+
+    <div class="vg-controls">
+      <button type="button" id="vg-help-trigger">Help</button>
+      <button type="button" id="vg-repeat">Repeat</button>
+      <button type="button" id="vg-pause-resume" hidden>Pause</button>
+      <button type="button" id="vg-slower" hidden>Slower</button>
+      <button type="button" id="vg-stop">Stop Voice Guide</button>
+    </div>
+
+    <p id="vg-unsupported-note" class="vg-unsupported-note" hidden></p>
+  </div>
+</div>
+
+<script>
+  import { matchCommand } from '../lib/voice-guide/commands';
+  import { getHelpTopic, topicIdForPath } from '../lib/voice-guide/help-topics';
+  import { detectCapabilities, mapRecognitionError } from '../lib/voice-guide/capabilities';
+  import { detectBrowserHint, browserGuidanceFor } from '../lib/voice-guide/browser-hints';
+  import { createVoiceSession } from '../lib/voice-guide/voice-session';
+
+  (function () {
+    const startToggle = document.getElementById('vg-start-toggle');
+    const toggleText = document.getElementById('vg-toggle-text');
+    const panel = document.getElementById('vg-panel');
+    const box = panel?.querySelector('.vg-panel__box');
+    const xBtn = document.getElementById('vg-panel-x');
+    const messageEl = document.getElementById('vg-message');
+    const continueBtn = document.getElementById('vg-continue');
+    const recognizedInput = document.getElementById('vg-recognized-text');
+    const stageOptionsEl = document.getElementById('vg-stage-options');
+    const helpBtn = document.getElementById('vg-help-trigger');
+    const repeatBtn = document.getElementById('vg-repeat');
+    const pauseResumeBtn = document.getElementById('vg-pause-resume');
+    const slowerBtn = document.getElementById('vg-slower');
+    const stopBtn = document.getElementById('vg-stop');
+    const unsupportedNote = document.getElementById('vg-unsupported-note');
+
+    if (!startToggle || !toggleText || !panel || !box || !xBtn || !messageEl || !continueBtn || !recognizedInput || !stageOptionsEl
+      || !helpBtn || !repeatBtn || !pauseResumeBtn || !slowerBtn || !stopBtn || !unsupportedNote) return;
+
+    // Shared speak/listen/continue-button engine — see voice-session.ts.
+    // HelpPanel.astro creates its own instance of the same factory rather
+    // than a second, independently-maintained copy of this machinery.
+    const session = createVoiceSession({ messageEl, continueBtn });
+
+    // ── Capability detection ─────────────────────────────────────────────
+    // Passive only — detectCapabilities() never touches the microphone, so
+    // it's safe to call at load and again every time the guide is
+    // activated (browser/OS settings can change between the two). `synth`/
+    // `RecognitionCtor` are the live API references actually used to speak
+    // or listen; `state.capabilities` is the structured, display-facing
+    // result — see Candidates/docs/voice_guide.md.
+    let synth = null;
+    let RecognitionCtor = null;
+
+    function refreshCapabilities() {
+      const caps = detectCapabilities(window);
+      synth = window.speechSynthesis || null;
+      RecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+      state.capabilities = caps;
+      session.setCapabilities({ canSpeak: caps.canSpeak, canListen: caps.canListen, synth, RecognitionCtor });
+      return caps;
+    }
+
+    function effectiveMode() {
+      if (state.capabilities.mode === 'full' && state.runtimeStatus === 'temporarily-unavailable') {
+        return 'temporarily-unavailable';
+      }
+      return state.capabilities.mode;
+    }
+
+    const COMMAND_LABELS = {
+      'find-ballot': 'Find my ballot',
+      'browse-races': 'Browse races',
+      'candidate-guide': 'Candidate guide',
+      'use-location': 'Use my location',
+      'enter-address': 'Enter address',
+      confirm: 'Confirm',
+      'read-page': 'Read this page',
+      'next-item': 'Next item',
+      'previous-item': 'Previous item',
+      'my-choice': 'My choice',
+      'next-race': 'Next race',
+      'begin-review': 'Begin candidate review',
+      'review-choices': 'Review my choices',
+      'jump-to-race': 'Jump to a race',
+      'save-choices': 'Email recovery link',
+      back: 'Back',
+    };
+
+    const PENDING_KEY = 'vg-pending';
+
+    function guideNavEnabled() {
+      return Boolean(document.querySelector('a[href="/guide"]'));
+    }
+
+    // Same localStorage key index.astro's saveAvailableRaces() writes after
+    // a successful lookup, and race/[id].astro's "next race" progress reads
+    // — reading it directly here is what lets the menu stage offer "Next
+    // race" (and drop the generic, unfiltered "Browse races") the instant a
+    // real personalized ballot exists, on any page, not just race-detail.
+    const AVAILABLE_RACES_KEY = 'wyoming-2026-my-available-races-v1';
+
+    function loadAvailableRacesFromStorage() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(AVAILABLE_RACES_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed.filter((r) => r && r.id && r.name) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function hasSavedBallot() {
+      return loadAvailableRacesFromStorage().length > 0;
+    }
+
+    // Single source of truth for what the menu stage offers — used by both
+    // allowedCommandsForStage() and renderStageOptions() so the spoken
+    // grammar and the visible buttons can never drift apart. Once a real
+    // ballot exists, "Browse races" (the generic, unfiltered statewide
+    // list) is dropped in favor of "Begin candidate review" — a single
+    // entry point into the user's own saved races (see navigateToNextRace())
+    // — offering the generic list at that point defeats the purpose of
+    // having just looked up a personalized one.
+    function menuCommandIds() {
+      return hasSavedBallot()
+        ? ['begin-review', 'review-choices', 'find-ballot', 'candidate-guide']
+        : ['find-ballot', 'browse-races', 'candidate-guide'];
+    }
+
+    // Built from the same menuCommandIds()/COMMAND_LABELS the buttons use
+    // (see renderStageOptions()), rather than a second hand-written phrase,
+    // so the spoken menu can never say something the visible buttons don't
+    // actually offer.
+    function menuPromptPhrase() {
+      return menuCommandIds()
+        .filter((id) => id !== 'candidate-guide' || guideNavEnabled())
+        .map((id) => COMMAND_LABELS[id] || id)
+        .join(', ');
+    }
+
+    function pageTopicId() {
+      return topicIdForPath(window.location.pathname);
+    }
+
+    function defaultStageForTopic(topicId) {
+      if (topicId === 'race-detail' || topicId === 'candidate-guide') return 'race-reading';
+      return 'menu';
+    }
+
+    // ── State model ──────────────────────────────────────────────────────
+    const state = {
+      active: false,
+      paused: false,
+      topicId: pageTopicId(),
+      previousTopicId: null,
+      stage: defaultStageForTopic(pageTopicId()),
+      previousStage: null,
+      addressDraft: { houseNumber: '', street: '', city: '', zip: '' },
+      itemCursor: -1,
+      // Capability mode (full/read-only/visual-only) is a property of the
+      // browser and is refreshed on each activation — see refreshCapabilities().
+      // runtimeStatus is separate: it tracks whether a *runtime* recognition
+      // attempt has actually failed (permission/mic/network/etc.) even though
+      // the API exists — see effectiveMode() and mapRecognitionError().
+      capabilities: null,
+      runtimeStatus: 'ready',
+      tempUnavailableReason: null,
+      browserTipShown: false,
+    };
+    refreshCapabilities(); // passive — safe at module init, no mic prompt
+
+    // ── Reload-durable position recovery ─────────────────────────────────
+    // In-memory state (itemCursor included) survives closing/reopening the
+    // panel on the same page load, but not a full reload or an accidental
+    // navigation away and back. This makes a race-reading position survive
+    // that too — restored below, only ever read on a later explicit
+    // "Start Voice Guide" (or resumeIfPending()'s auto-read), never
+    // triggers anything on its own at page load.
+    const RACE_POSITION_KEY = 'vg-race-position';
+
+    function saveRacePosition() {
+      try {
+        sessionStorage.setItem(RACE_POSITION_KEY, JSON.stringify({
+          path: window.location.pathname,
+          itemCursor: state.itemCursor,
+        }));
+      } catch { /* sessionStorage unavailable — position just won't survive a reload */ }
+    }
+
+    (function restoreRacePositionIfMatching() {
+      try {
+        const raw = sessionStorage.getItem(RACE_POSITION_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (saved && saved.path === window.location.pathname && Number.isInteger(saved.itemCursor) && saved.itemCursor >= 0) {
+          state.itemCursor = saved.itemCursor;
+        }
+      } catch { /* corrupted or unavailable — just start fresh */ }
+    })();
+
+    function currentItems() {
+      return Array.from(document.querySelectorAll('[data-voice-item]'));
+    }
+
+    // ── Speech synthesis / listening ──────────────────────────────────────
+    // Thin wrappers around the shared session (voice-session.ts), kept as
+    // same-named local functions so every call site elsewhere in this file
+    // is unchanged — only the underlying implementation moved.
+    function speak(text, onEnd) {
+      session.speak(text, onEnd);
+    }
+
+    function hideContinueButton() {
+      session.hideContinueButton();
+    }
+
+    // Wraps speak() for any prompt that expects a spoken reply next (a
+    // dictation prompt, a stage prompt, an item readback, a retry after a
+    // miss) — re-arms listening via the shared Continue-listening button
+    // once the message finishes, per docs/voice_industry_standard.md §5.
+    function promptAndListen(text) {
+      session.promptAndListen(text, () => {
+        if (!state.active) return; // panel was closed while this was speaking
+        triggerListen();
+      });
+    }
+
+    function bareLastSpokenText(fallback) {
+      return session.bareLastSpokenText(fallback);
+    }
+
+    // Exposed unconditionally (not gated on window.__vgHelp already
+    // existing) — <VoiceGuide /> renders before <HelpPanel /> in
+    // Base.astro, so a push-based registration made here at this
+    // component's own load time would run before HelpPanel's script has
+    // executed and created window.__vgHelp at all, silently never firing.
+    // HelpPanel reads this directly at the moment it actually needs to
+    // speak instead, which is always well after both scripts have run.
+    window.__vgSpeak = speak;
+
+    function abortActiveRecognition() {
+      session.abortActiveRecognition();
+    }
+
+    function listenOnce() {
+      return session.listenOnce();
+    }
+
+    // "My choice" and "Next race" only make sense on race/[id].astro —
+    // the choice-pill and #next-race-link they drive don't exist on a
+    // candidate profile page, which shares the same 'race-reading' stage.
+    function raceReadingCommands() {
+      // 'review-choices'/'save-choices' were previously only offered from
+      // the menu stage — including here is what lets someone jump straight
+      // to reviewing/saving progress from wherever they actually are,
+      // mid-race, rather than backing all the way out first. This also
+      // fixes a real dead end: beginSaveChoices()'s own fallback message
+      // (shown when #sync-list-form isn't on the current page) tells the
+      // user to "Jump to race, then Save my choices from there" — that
+      // instruction was false until 'save-choices' was actually reachable
+      // from race-reading too.
+      const base = ['read-page', 'next-item', 'previous-item', 'review-choices', 'save-choices'];
+      return state.topicId === 'race-detail' ? [...base, 'my-choice', 'next-race'] : base;
+    }
+
+    function allowedCommandsForStage(stage) {
+      const base = {
+        menu: menuCommandIds(),
+        'address-form': ['use-location', 'enter-address'],
+        'address-collect-street': [],
+        'address-collect-citystate': [],
+        'address-confirm': ['confirm'],
+        'race-reading': raceReadingCommands(),
+        'my-choice-confirm': ['confirm'],
+        'post-lookup': ['begin-review', 'find-ballot', 'candidate-guide'],
+        review: ['review-choices', 'jump-to-race', 'save-choices'],
+        'race-jump-select': [],
+        'review-save-intro': ['confirm'],
+        'review-save-email': [],
+        'review-save-confirm': ['confirm'],
+      }[stage] || [];
+      const withBack = stage === 'menu' ? base : [...base, 'back'];
+      return [...withBack, 'help', 'repeat', 'stop', 'pause', 'resume', 'slower'];
+    }
+
+    // ── Panel rendering ──────────────────────────────────────────────────
+    function renderStageOptions() {
+      stageOptionsEl.innerHTML = '';
+      const stageCommandIds = {
+        menu: menuCommandIds(),
+        'address-form': ['use-location', 'enter-address', 'back'],
+        'address-collect-street': ['back'],
+        'address-collect-citystate': ['back'],
+        'address-confirm': ['confirm', 'back'],
+        'race-reading': [...raceReadingCommands(), 'back'],
+        'my-choice-confirm': ['confirm', 'back'],
+        'post-lookup': ['begin-review', 'find-ballot', 'candidate-guide'],
+        review: ['review-choices', 'jump-to-race', 'save-choices', 'back'],
+        'race-jump-select': ['back'],
+        'review-save-intro': ['confirm', 'back'],
+        'review-save-email': ['back'],
+        'review-save-confirm': ['confirm', 'back'],
+      }[state.stage] || ['back'];
+
+      stageCommandIds
+        .filter((id) => id !== 'candidate-guide' || guideNavEnabled())
+        .forEach((id) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = COMMAND_LABELS[id] || id;
+          btn.dataset.vgCmd = id;
+          btn.addEventListener('click', () => handleCommand(id));
+          stageOptionsEl.appendChild(btn);
+        });
+
+      slowerBtn.hidden = !state.capabilities.canSpeak;
+      pauseResumeBtn.hidden = !state.capabilities.canSpeak;
+    }
+
+    // ── Command handling ─────────────────────────────────────────────────
+    function goToMenu() {
+      state.previousStage = state.stage;
+      state.stage = 'menu';
+      state.topicId = pageTopicId() === 'home' ? 'home' : 'general';
+      renderStageOptions();
+      promptAndListen(`Say ${menuPromptPhrase()}.`);
+    }
+
+    function startAddressForm(fromNavigation) {
+      state.stage = 'address-form';
+      state.topicId = 'address-form';
+      renderStageOptions();
+      if (!fromNavigation) {
+        promptAndListen('Say Use my location, or Enter address.');
+      }
+    }
+
+    function navigateWithPending(href, pendingStage) {
+      try {
+        sessionStorage.setItem(PENDING_KEY, JSON.stringify({ stage: pendingStage || null }));
+      } catch { /* sessionStorage unavailable — navigation still proceeds, just without resume */ }
+      window.location.href = href;
+    }
+
+    function announceAddressDictationPrompt() {
+      const prompts = {
+        'address-collect-street': 'What is your house number and street name? For example: 123 Main Street.',
+        'address-collect-citystate': 'What is your city and ZIP Code? For example: Casper, 82601.',
+      };
+      promptAndListen(prompts[state.stage] || '');
+    }
+
+    // Speech recognition rarely transcribes commas, and there's no reliable
+    // word-boundary cue between a street name and a city name in one
+    // utterance (Wyoming has two-word city names — Rock Springs, Green
+    // River, Pine Bluffs), so this never guesses at that split. It only
+    // separates the ZIP Code, which is unambiguous: always a trailing
+    // 5-digit number. House number + street stays one combined utterance
+    // and reuses the same reconciliation ballot-lookup.js already applies
+    // to autofill mashups (reconcileAddressFields) — not reimplemented here.
+    function splitCityZip(raw) {
+      const cleaned = String(raw || '').trim();
+      const match = cleaned.match(/^(.*?)[,\s]+(\d{5})(?:-?\d{4})?\.?\s*$/);
+      if (!match) return { city: cleaned.replace(/\b(wyoming|wy)\.?$/i, '').trim(), zip: '' };
+      const city = match[1].replace(/\b(wyoming|wy)\.?$/i, '').trim().replace(/,\s*$/, '');
+      return { city, zip: match[2] };
+    }
+
+    function assembledAddressText() {
+      const d = state.addressDraft;
+      return [d.houseNumber, d.street].filter(Boolean).join(' ') + (d.city ? `, ${d.city}` : '') + (d.zip ? `, WY ${d.zip}` : '');
+    }
+
+    function readCurrentItem(announcePosition) {
+      const items = currentItems();
+      if (items.length === 0) {
+        promptAndListen('There is nothing to read on this page.');
+        return;
+      }
+      if (state.itemCursor < 0) state.itemCursor = 0;
+      if (state.itemCursor > items.length - 1) state.itemCursor = items.length - 1;
+      saveRacePosition();
+      const el = items[state.itemCursor];
+      const heading = el.querySelector('h1, h2, h3, h4');
+      const label = heading ? heading.textContent.trim() : `Item ${state.itemCursor + 1}`;
+      const body = extractReadableText(el);
+      const prefix = announcePosition ? `Item ${state.itemCursor + 1} of ${items.length}. ` : '';
+      const detail = body.length > 10 ? body : 'Additional detail for this section is shown on screen.';
+      // Factual selection status only — the on-screen pill already shows
+      // "✓ My choice" the same way, so this is reading existing page state
+      // aloud, not adding commentary the Voice Guide isn't allowed to make.
+      const pill = el.querySelector('[data-choice-button]');
+      const choiceNote = pill instanceof HTMLElement && pill.getAttribute('aria-pressed') === 'true'
+        ? ' This is your current choice for this race.'
+        : '';
+      promptAndListen(`${prefix}${label}. ${detail}${choiceNote}`);
+    }
+
+    function extractReadableText(el) {
+      const clone = el.cloneNode(true);
+      clone.querySelectorAll('a, button, svg, script, style, table, [aria-hidden="true"]').forEach((n) => n.remove());
+      const text = (clone.textContent || '').replace(/\s+/g, ' ').trim();
+      return text.length > 700 ? `${text.slice(0, 700)}…` : text;
+    }
+
+    function openHelpForCurrentStage() {
+      // When voice isn't fully working, "Help" is more useful explaining
+      // why than repeating the page's ordinary topic — the page topic is
+      // still one tap away via Repeat/Back once the user understands the mode.
+      const topicId = effectiveMode() !== 'full'
+        ? 'voice-assist-compatibility'
+        : (state.stage.startsWith('address-collect') ? 'address-form' : state.topicId);
+      if (window.__vgHelp) {
+        window.__vgHelp.open(topicId, {
+          returnFocusTo: helpBtn,
+          onReturn: () => {
+            openPanel({ silent: true });
+            box.focus();
+            speakStagePrompt();
+          },
+        });
+      } else {
+        const topic = getHelpTopic(topicId);
+        speak(topic.spokenInstructions.join(' '));
+      }
+    }
+
+    function speakStagePrompt() {
+      if (state.stage.startsWith('address-collect')) { announceAddressDictationPrompt(); return; }
+      if (state.stage === 'address-confirm') { promptAndListen(`Say Confirm to look up ${assembledAddressText()}, or Back to change it.`); return; }
+      if (state.stage === 'address-form') { promptAndListen('Say Use my location, or Enter address.'); return; }
+      if (state.stage === 'race-reading') { readCurrentItem(true); return; }
+      promptAndListen('Say Help to hear what you can do from here.');
+    }
+
+    // Shared by both 'next-race' and 'begin-review' — jumps to the next
+    // undecided race and marks the navigation as pending a race-reading
+    // auto-start (see resumeIfPending() near the bottom of this script),
+    // so the new page begins reading its first candidate immediately
+    // instead of requiring "Read this page" said again after every race.
+    function navigateToNextRace() {
+      // #next-race-link's href/text/hidden state is fully computed already
+      // by renderRaceProgress() in this page's own script — read it rather
+      // than re-deriving "what's next" here.
+      const link = document.getElementById('next-race-link');
+      if (link instanceof HTMLAnchorElement) {
+        const note = document.getElementById('race-progress-note');
+        if (!link.hidden) {
+          speak(`Going to ${link.textContent.replace(/\s*→\s*$/, '').trim()}.`);
+          navigateWithPending(link.href, 'race-reading-auto');
+        } else {
+          // No undecided races left — offer the review entry point rather
+          // than just announcing completion and going quiet.
+          state.previousStage = state.stage;
+          state.stage = 'menu';
+          renderStageOptions();
+          const done = note?.textContent || 'You have a choice recorded for every available race.';
+          promptAndListen(`${done} Say Review my choices to hear them back, or Stop Voice Guide.`);
+        }
+        return;
+      }
+      // No #next-race-link on this page at all — not a race-detail page,
+      // e.g. right after a homepage lookup. Go straight into the user's
+      // own saved ballot instead of the generic statewide list.
+      const races = loadAvailableRacesFromStorage();
+      if (races.length > 0) {
+        speak(`Going to ${races[0].name}.`);
+        navigateWithPending(`/race/${encodeURIComponent(races[0].id)}`, 'race-reading-auto');
+      } else {
+        promptAndListen('Your races are not ready yet. Try Next race again in a moment, or select Stop Voice Guide to check the page.');
+      }
+    }
+
+    // ── Review mode ────────────────────────────────────────────────────
+    // Same localStorage key race/[id].astro's toggleChoice() reads/writes
+    // (STORAGE_KEY there) — read directly rather than re-deriving choices
+    // from the DOM, which isn't available outside a race-detail page.
+    const CHOICES_KEY = 'wyoming-2026-my-candidate-list-v1';
+
+    function loadSavedChoices() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(CHOICES_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed.filter((c) => c && c.candidateId && c.officeId) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    // Speaks a list of short lines one at a time (chained via speak()'s
+    // onEnd), then hands off to promptAndListen() for the trailing "what
+    // next" prompt once the sequence finishes. Mirrors the discipline
+    // extractReadableText()/readCurrentItem() already use — capping what
+    // any single utterance says — rather than concatenating everything
+    // (a full choice list, a full race list) into one long string. A
+    // single very long SpeechSynthesisUtterance is known to behave
+    // unreliably in Chrome/Edge (onend can fire early or inconsistently),
+    // which left too little real listening time after it. Splitting into
+    // several short utterances avoids that regardless of how many races
+    // or choices exist.
+    function speakSequence(lines, trailingPrompt) {
+      let i = 0;
+      function next() {
+        if (i >= lines.length) { promptAndListen(trailingPrompt); return; }
+        speak(lines[i++], next);
+      }
+      next();
+    }
+
+    // Reads every saved choice back, in canonical ballot order (same
+    // sortRaces() order loadAvailableRacesFromStorage() already reflects,
+    // via saveAvailableRaces() in index.astro), then asks whether the user
+    // wants to change anything or save. "Review my choices"/"View my
+    // choices" both call this — re-hearing the list mid-review and
+    // starting review from the menu are the same action.
+    function beginReview() {
+      const choices = loadSavedChoices();
+      state.previousStage = state.stage;
+      state.stage = 'review';
+      renderStageOptions();
+      if (choices.length === 0) {
+        promptAndListen("You haven't made any choices yet. Say Begin candidate review to get started, or Back to return to the menu.");
+        return;
+      }
+      const races = loadAvailableRacesFromStorage();
+      const orderById = new Map(races.map((r, i) => [r.id, i]));
+      const ordered = [...choices].sort((a, b) => (orderById.get(a.officeId) ?? 999) - (orderById.get(b.officeId) ?? 999));
+      const lines = ['Here are your choices.', ...ordered.map((c) => `For ${c.officeName}, your choice is ${c.candidateName}.`)];
+      speakSequence(lines, 'Would you like to make any changes, or save your choices? Say View my choices to hear this again, Jump to race to make a change, Save my choices, or Stop Voice Guide.');
+    }
+
+    // Reads the user's races as a numbered list and waits for a spoken
+    // number — deliberately number-based rather than matching spoken race
+    // names, since race names vary a lot in length and some are easily
+    // confused ("United States Senator" vs "United States Representative")
+    // while a number is unambiguous for speech recognition to get right.
+    function beginRaceJump() {
+      const races = loadAvailableRacesFromStorage();
+      if (races.length === 0) {
+        promptAndListen('Your races are not ready yet. Try again in a moment.');
+        return;
+      }
+      state.previousStage = state.stage;
+      state.stage = 'race-jump-select';
+      renderStageOptions();
+      speakSequence(raceJumpLines(races), 'Say the number of the race you want, or Back to cancel.');
+    }
+
+    function raceJumpLines(races) {
+      return races.map((r, i) => `${i + 1}: ${r.name}.`);
+    }
+
+    const NUMBER_WORDS = {
+      one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+      eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17,
+      eighteen: 18, nineteen: 19, twenty: 20,
+    };
+
+    // Deliberately simple and bounded (digits, or one number word 1–20) —
+    // consistent with commands.ts's "normalization only, never a guess at
+    // intent" philosophy. Returns null rather than guessing on anything
+    // ambiguous.
+    function parseSpokenNumber(raw) {
+      const cleaned = String(raw || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim();
+      const digitMatch = cleaned.match(/\d+/);
+      if (digitMatch) return parseInt(digitMatch[0], 10);
+      for (const word of cleaned.split(/\s+/)) {
+        if (NUMBER_WORDS[word]) return NUMBER_WORDS[word];
+      }
+      return null;
+    }
+
+    // Best-effort normalization for a dictated email address — speech
+    // recognition reliably gets the words but not the punctuation an email
+    // needs. #sync-list-email stays a real, directly-editable input either
+    // way (see review-save-email handling in triggerListen()), so a
+    // misheard result is always correctable, never a dead end.
+    function normalizeSpokenEmail(raw) {
+      let s = String(raw || '').toLowerCase().trim();
+      s = s.replace(/\s+at\s+/g, '@');
+      s = s.replace(/\s+dot\s+/g, '.');
+      s = s.replace(/\s+/g, '');
+      // Spelling an address out letter by letter ("j. o. h. n. at g. m...")
+      // often gets transcribed with a stray period after individual
+      // letters/words, which the plain "dot"-word replacement above
+      // doesn't catch (those periods came from the recognizer, not a
+      // spoken "dot"). Collapse any run of periods this leaves behind,
+      // then drop anything that can't legally be part of an email address
+      // — normalizeSpokenEmail() only ever needs to produce *something*
+      // plausible; isValidEmailShape() below is what actually gates
+      // whether it's trusted enough to submit.
+      s = s.replace(/\.{2,}/g, '.');
+      s = s.replace(/[^a-z0-9@._+-]/g, '');
+      return s;
+    }
+
+    // Deliberately loose (not a full RFC 5322 check) — this only needs to
+    // catch the shapes speech recognition realistically produces (missing
+    // "@", missing a "." in the domain, empty after stripping) before
+    // ever reaching the real #sync-list-email input's native
+    // `type="email" required` validation. That native validation blocks
+    // the form's `submit` event entirely and silently when it fails — the
+    // page's own JS handler (and its e.preventDefault()) never even runs
+    // — so watchSyncStatus() would otherwise wait uselessly for a status
+    // update that can never arrive. Catching it here means a bad address
+    // always loops back to re-entry instead.
+    function isValidEmailShape(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    // "Save my choices" — hands off to the existing ballot-recovery email
+    // flow (#sync-list-form → /api/ballot-recovery/request) rather than
+    // reimplementing it. Only available on a race-detail page, where that
+    // form actually exists.
+    function beginSaveChoices() {
+      if (loadSavedChoices().length === 0) {
+        promptAndListen("You haven't made any choices yet, so there is nothing to save.");
+        return;
+      }
+      const syncForm = document.getElementById('sync-list-form');
+      if (!(syncForm instanceof HTMLFormElement)) {
+        // The recovery-email form only exists in the DOM on a race page
+        // today. Rather than dead-ending here — the previous behavior told
+        // the user to "Jump to race, then say this again," which required
+        // them to manage the navigation themselves — jump there
+        // automatically and resume this exact flow on arrival (see
+        // resumeIfPending()'s 'save-choices-auto' branch). Nothing is
+        // required of the user beyond the command they already gave. See
+        // docs/known_issues.md.
+        const races = loadAvailableRacesFromStorage();
+        if (races.length === 0) {
+          promptAndListen('Saving needs at least one race loaded first. Say Find my ballot.');
+          return;
+        }
+        speak('One moment.');
+        navigateWithPending(`/race/${encodeURIComponent(races[0].id)}`, 'save-choices-auto');
+        return;
+      }
+      if (!state.capabilities.canListen) {
+        speak('Please enter your email address in the Save your list section, then select Send recovery link.');
+        closePanel({ keepSpeaking: true });
+        syncForm.hidden = false;
+        document.getElementById('sync-list-email')?.focus();
+        return;
+      }
+      // Leads with what's already true (choices are saved on this device
+      // the moment My choice is confirmed) before asking about the
+      // separate, optional action this command actually performs —
+      // emailing a recovery link for another device. Without this
+      // distinction, "Save my choices" being blocked on anything read as
+      // "my choices aren't saved," which was never true. See
+      // docs/known_issues.md.
+      state.previousStage = state.stage;
+      state.stage = 'review-save-intro';
+      renderStageOptions();
+      promptAndListen('Your choices are already saved on this device. Would you like me to email you a recovery link for another device? Say Confirm, or Back to cancel.');
+    }
+
+    // Watches the page's own #sync-list-status (role="status", already
+    // updated by the existing submit handler in race/[id].astro) rather
+    // than composing a second, possibly-drifting description of the
+    // outcome — same established pattern as the address-lookup status
+    // bridge (see docs/voice_guide.md). One-shot: disconnects itself once
+    // it sees a change, with a timeout fallback in case the request hangs.
+    function watchSyncStatus() {
+      const statusEl = document.getElementById('sync-list-status');
+      if (!(statusEl instanceof HTMLElement)) {
+        promptAndListen('Say Review my choices to check whether that went through.');
+        return;
+      }
+      let settled = false;
+      const finish = (text) => {
+        if (settled) return;
+        settled = true;
+        observer.disconnect();
+        clearTimeout(timeout);
+        promptAndListen(text || 'Something went wrong sending your recovery link. Say Save my choices to try again, or select Stop Voice Guide to try from the page directly.');
+      };
+      const observer = new MutationObserver(() => {
+        if (statusEl.textContent && statusEl.textContent.trim()) finish(statusEl.textContent.trim());
+      });
+      observer.observe(statusEl, { childList: true, characterData: true, subtree: true });
+      const timeout = setTimeout(() => finish(null), 15000);
+    }
+
+    function handleCommand(id) {
+      switch (id) {
+        case 'find-ballot':
+          if (state.topicId === 'home' || window.location.pathname === '/') {
+            document.getElementById('address-form-section')?.scrollIntoView({ behavior: 'smooth' });
+            startAddressForm(false);
+          } else {
+            speak('Going to the ballot lookup.');
+            navigateWithPending('/#address-form-section', 'address-form');
+          }
+          return;
+        case 'browse-races':
+          speak('Going to Browse races.');
+          navigateWithPending('/races', null);
+          return;
+        case 'candidate-guide':
+          if (!guideNavEnabled()) { promptAndListen('The candidate guide is not available yet.'); return; }
+          speak('Going to the candidate guide.');
+          navigateWithPending('/guide', null);
+          return;
+        case 'use-location': {
+          const gpsBtn = document.getElementById('gps-btn');
+          if (gpsBtn instanceof HTMLButtonElement) {
+            // The real GPS flow surfaces its own on-page confirmation UI
+            // (#gps-confirm) once a location resolves — that UI lives
+            // behind this modal, so hand off to it rather than trap the
+            // user behind an overlay they can no longer act through.
+            speak('Requesting your location. Continue on the page once your location is found.');
+            closePanel({ keepSpeaking: true });
+            gpsBtn.click();
+          } else {
+            promptAndListen('Use my location is not available on this page.');
+          }
+          return;
+        }
+        case 'enter-address':
+          // The dictation sub-flow needs live recognition, which only
+          // exists in 'full' mode. Without it there's no way to provide
+          // per-field dictation, and the modal panel would otherwise block
+          // reaching the real, directly-typable form fields underneath —
+          // so close the panel and hand off to those fields instead of
+          // trapping the user in a stage with no way to advance.
+          if (!state.capabilities.canListen) {
+            speak('Please type your address into the House Number, Street, City, and ZIP Code fields, then select Find My Ballot.');
+            closePanel({ keepSpeaking: true });
+            document.getElementById('house-number')?.focus();
+            return;
+          }
+          state.stage = 'address-collect-street';
+          renderStageOptions();
+          announceAddressDictationPrompt();
+          return;
+        case 'confirm': {
+          if (state.stage === 'review-save-intro') {
+            state.stage = 'review-save-email';
+            renderStageOptions();
+            promptAndListen('What email address should we send your recovery link to? Say it slowly — for example, j smith at gmail dot com.');
+            return;
+          }
+          if (state.stage === 'review-save-confirm') {
+            const syncForm = document.getElementById('sync-list-form');
+            const emailInput = document.getElementById('sync-list-email');
+            const currentEmail = emailInput instanceof HTMLInputElement ? emailInput.value.trim() : '';
+            if (syncForm instanceof HTMLFormElement && isValidEmailShape(currentEmail)) {
+              // Stays open, unlike the GPS/manual-address handoffs — the
+              // common case here is fire-and-forget (submit, then read the
+              // page's own #sync-list-status once it updates, same as
+              // address-lookup). Revealed in case Turnstile ever needs a
+              // visual/interactive challenge to complete, which voice
+              // cannot drive on its own.
+              syncForm.hidden = false;
+              speak('Sending your recovery link now.');
+              syncForm.requestSubmit();
+              state.stage = 'review';
+              renderStageOptions();
+              watchSyncStatus();
+            } else if (syncForm instanceof HTMLFormElement) {
+              // Re-checked here too (not just at dictation time) in case
+              // the real, always-editable field was hand-typed into
+              // something invalid since — loops back to re-entry rather
+              // than calling requestSubmit() on something the field's own
+              // native `type="email" required` validation would silently
+              // block, with no status update ever arriving for
+              // watchSyncStatus() to read.
+              state.stage = 'review-save-email';
+              renderStageOptions();
+              promptAndListen("That doesn't look like a complete email address. Let's try again — say it slowly, for example: j smith at gmail dot com.");
+            } else {
+              state.stage = 'review';
+              renderStageOptions();
+              promptAndListen('Something went wrong. Say Save my choices to try again.');
+            }
+            return;
+          }
+          if (state.stage === 'my-choice-confirm') {
+            // The pending action was already fully described (add/remove +
+            // candidate name) when it was proposed in the 'my-choice' case
+            // below — this just carries it out, per docs/voice_industry_standard.md
+            // §7's "record or change My choice" confirmation-by-consequence rule.
+            const items = currentItems();
+            const card = state.itemCursor >= 0 ? items[state.itemCursor] : null;
+            const pill = card?.querySelector('[data-choice-button]');
+            state.stage = 'race-reading';
+            if (pill instanceof HTMLButtonElement && !pill.disabled) {
+              pill.click();
+              const name = pill.dataset.candidateName || 'This candidate';
+              const nowSelected = pill.getAttribute('aria-pressed') === 'true';
+              renderStageOptions();
+              // "...saved on this device" is deliberate, not filler — the
+              // separate "Save my choices"/"Email recovery link" command
+              // only ever emails a recovery link for *another* device;
+              // without this, that distinction was never stated anywhere
+              // and reasonably read as "my choice isn't saved yet." See
+              // docs/known_issues.md.
+              promptAndListen(nowSelected
+                ? `Added ${name} to your list — saved on this device. Say Next race to continue, or Next item to hear more candidates.`
+                : `Removed ${name} from your list — saved on this device. Say Next race to continue, or Next item to hear more candidates.`);
+            } else {
+              renderStageOptions();
+              promptAndListen('That option is no longer available.');
+            }
+            return;
+          }
+          const form = document.querySelector('.address-form');
+          if (form instanceof HTMLFormElement) {
+            // Results render into the page underneath this modal (and
+            // aren't marked up as data-voice-item, so the guide has no way
+            // to read them back), but voice mode should stay on by default
+            // the same as everywhere else in the flow — closing here was
+            // the one place that silently turned it off after every single
+            // lookup. Submit in the background and hand the user forward
+            // by voice instead; they can still say or select Stop
+            // whenever they actually want to look at the page.
+            form.requestSubmit();
+            state.previousStage = state.stage;
+            // A dedicated stage rather than falling into 'menu' directly —
+            // the ballot's saved races won't be in localStorage until the
+            // in-flight lookup resolves, so menuCommandIds()'s hasSavedBallot()
+            // check would still read the old (possibly empty) state at this
+            // exact instant. "Next race" is offered here unconditionally,
+            // on the trust that it's ready by the time the user actually
+            // acts — its own handler falls back gracefully with "try again
+            // in a moment" on the rare chance it isn't yet.
+            state.stage = 'post-lookup';
+            renderStageOptions();
+            promptAndListen('Looking up your ballot now. Say Begin candidate review to go through your ballot, or Candidate guide to browse profiles, or select Stop Voice Guide to review your races on screen.');
+          } else {
+            goToMenu();
+          }
+          return;
+        }
+        case 'read-page':
+          state.itemCursor = 0;
+          {
+            const h1 = document.querySelector('main h1') || document.querySelector('h1');
+            const intro = h1 ? h1.textContent.trim() : document.title;
+            speak(intro);
+          }
+          readCurrentItem(true);
+          return;
+        case 'next-item':
+          if (state.itemCursor >= currentItems().length - 1) {
+            // 'my-choice'/'next-race' only exist on a race-detail page
+            // (see raceReadingCommands()) — a candidate-profile page is
+            // reading sections, not candidates, and has neither.
+            promptAndListen(state.topicId === 'race-detail'
+              ? "That's the last item. Say Next race to continue, or My choice to select who you are hearing."
+              : "That's the last item.");
+            return;
+          }
+          state.itemCursor += 1;
+          readCurrentItem(true);
+          return;
+        case 'previous-item':
+          if (state.itemCursor <= 0) { promptAndListen("That's the first item."); return; }
+          state.itemCursor -= 1;
+          readCurrentItem(true);
+          return;
+        case 'my-choice': {
+          // Proposes the change and waits for an explicit Confirm before
+          // actually toggling the real choice-pill button — see the
+          // 'confirm' case above, which carries this out and reuses the
+          // pill's own click handler (selection-limit enforcement,
+          // localStorage write, status text) rather than reimplementing
+          // any of it. See src/lib/selection-limit.ts.
+          const items = currentItems();
+          if (items.length === 0 || state.itemCursor < 0) {
+            promptAndListen('Say Read this page first, then My choice to select the candidate you are hearing.');
+            return;
+          }
+          const card = items[state.itemCursor];
+          const pill = card.querySelector('[data-choice-button]');
+          if (!(pill instanceof HTMLButtonElement)) {
+            promptAndListen('This item does not have a My choice option.');
+            return;
+          }
+          if (pill.disabled) {
+            const limitNote = document.getElementById('race-selection-count');
+            promptAndListen(limitNote?.textContent || 'You have reached the selection limit for this race — remove a choice first.');
+            return;
+          }
+          const name = pill.dataset.candidateName || 'This candidate';
+          const willAdd = pill.getAttribute('aria-pressed') !== 'true';
+          state.previousStage = state.stage;
+          state.stage = 'my-choice-confirm';
+          renderStageOptions();
+          promptAndListen(willAdd
+            ? `Add ${name} to your list? Say Confirm, or Back to cancel.`
+            : `Remove ${name} from your list? Say Confirm, or Back to cancel.`);
+          return;
+        }
+        case 'next-race':
+        case 'begin-review':
+          // Same destination either way — "Begin candidate review" is just
+          // the post-lookup entry-point phrasing for the identical action.
+          // See navigateToNextRace(): both auto-start reading on arrival,
+          // so continuing through a whole ballot never needs a separate
+          // "Read this page" after each race.
+          navigateToNextRace();
+          return;
+        case 'review-choices':
+          beginReview();
+          return;
+        case 'jump-to-race':
+          beginRaceJump();
+          return;
+        case 'save-choices':
+          beginSaveChoices();
+          return;
+        case 'back':
+          if (state.stage.startsWith('address-collect')) { state.stage = 'address-form'; renderStageOptions(); speakStagePrompt(); return; }
+          if (state.stage === 'address-confirm') { state.stage = 'address-form'; renderStageOptions(); speakStagePrompt(); return; }
+          if (state.stage === 'my-choice-confirm') { state.stage = 'race-reading'; renderStageOptions(); promptAndListen('Cancelled. No change was made.'); return; }
+          if (state.stage === 'race-jump-select' || state.stage === 'review-save-email' || state.stage === 'review-save-intro') { beginReview(); return; }
+          if (state.stage === 'review-save-confirm') { state.stage = 'review-save-email'; renderStageOptions(); promptAndListen('What email address should we send your recovery link to?'); return; }
+          if (state.stage === 'review') { goToMenu(); return; }
+          goToMenu();
+          return;
+        case 'help':
+          openHelpForCurrentStage();
+          return;
+        case 'repeat':
+          promptAndListen(bareLastSpokenText('Nothing to repeat yet.'));
+          return;
+        case 'stop':
+          closePanel();
+          return;
+        case 'pause':
+          if (state.capabilities.canSpeak) { synth.pause(); state.paused = true; updatePauseResumeButton(); }
+          return;
+        case 'resume':
+          if (state.capabilities.canSpeak) { synth.resume(); state.paused = false; updatePauseResumeButton(); }
+          return;
+        case 'slower':
+          session.setRate(Math.max(0.5, Math.round((session.getRate() - 0.15) * 100) / 100));
+          promptAndListen(bareLastSpokenText('Speaking slower now.'));
+          return;
+        default:
+          return;
+      }
+    }
+
+    function updatePauseResumeButton() {
+      pauseResumeBtn.textContent = state.paused ? 'Resume' : 'Pause';
+    }
+
+    function markRuntimeUnavailable(errorInfo) {
+      state.runtimeStatus = 'temporarily-unavailable';
+      state.tempUnavailableReason = errorInfo.code;
+      renderStageOptions();
+    }
+
+    function clearRuntimeUnavailable() {
+      if (state.runtimeStatus === 'ready') return;
+      state.runtimeStatus = 'ready';
+      state.tempUnavailableReason = null;
+      renderStageOptions();
+    }
+
+    // Browser/platform guidance is advisory only (never gates functionality)
+    // and is shown at most once per session, per §6 — repeating it after
+    // every failed attempt would be noise, not help.
+    function maybeAppendBrowserTip(message) {
+      if (state.browserTipShown) return message;
+      state.browserTipShown = true;
+      const hint = detectBrowserHint(navigator);
+      return `${message} ${browserGuidanceFor(hint)}`;
+    }
+
+    async function triggerListen() {
+      if (!state.capabilities.canListen) return;
+      hideContinueButton(); // defense in depth — never left showing during a live listen
+      // messageEl is role="status"/aria-live="polite" (line 36), so this is
+      // announced the same way spoken prompts are — the only visual/AT
+      // signal that the mic is live now that there's no dedicated button
+      // to carry it (see docs/known_issues.md, "Speak Command removed").
+      messageEl.textContent = 'Listening…';
+      const result = await listenOnce();
+
+      if (!result.ok) {
+        if (result.reason === 'unsupported') {
+          recognizedInput.value = '';
+          speak(maybeAppendBrowserTip(getHelpTopic('unsupported-recognition').spokenInstructions.join(' ')));
+          return;
+        }
+        if (result.reason === 'nomatch') {
+          // Recognition completed with nothing usable — same user-facing
+          // outcome as "heard something but it didn't match a command."
+          recognizedInput.value = '';
+          promptAndListen(getHelpTopic('recognition-failure').spokenInstructions.join(' '));
+          return;
+        }
+        const errorInfo = mapRecognitionError(result.reason);
+        if (!errorInfo.alarming) {
+          // 'aborted' — return to the previous stable state quietly, per §5.
+          return;
+        }
+        if (result.reason === 'not-allowed' || result.reason === 'audio-capture') recognizedInput.value = '';
+        if (errorInfo.temporary) {
+          // A real, possibly-persistent problem (permission/mic/network) —
+          // require a deliberate manual retry via the visible button rather
+          // than auto-arming a keypress that would likely just fail again.
+          markRuntimeUnavailable(errorInfo);
+          speak(maybeAppendBrowserTip(errorInfo.message));
+        } else {
+          // 'no-speech' — nothing wrong, just try again.
+          promptAndListen(errorInfo.message);
+        }
+        return;
+      }
+
+      clearRuntimeUnavailable();
+      const transcripts = result.transcripts;
+      recognizedInput.value = transcripts[0] || '';
+
+      // Dictation stages: an escape command (back/stop) still takes
+      // priority; otherwise the transcript is literal field text, not
+      // matched against the command list.
+      if (state.stage === 'address-collect-street' || state.stage === 'address-collect-citystate') {
+        const escapeMatch = transcripts.map((t) => matchCommand(t, ['back', 'stop'])).find(Boolean);
+        if (escapeMatch) { handleCommand(escapeMatch); return; }
+
+        const raw = transcripts[0] || '';
+
+        if (state.stage === 'address-collect-street') {
+          // Whole utterance goes into the house-number field as-is —
+          // ballot-lookup.js's reconcileAddressFields() already splits a
+          // combined "123 Main Street" shape server-side (the same code
+          // path that handles autofill dropping a full address into one
+          // field), so it isn't reimplemented here.
+          state.addressDraft.houseNumber = raw;
+          state.addressDraft.street = '';
+          const houseInput = document.querySelector('#house-number');
+          const streetInput = document.querySelector('#street-name');
+          if (houseInput instanceof HTMLInputElement) houseInput.value = raw;
+          if (streetInput instanceof HTMLInputElement) streetInput.value = '';
+          state.stage = 'address-collect-citystate';
+          renderStageOptions();
+          speak(`Got it: ${raw}.`);
+          announceAddressDictationPrompt();
+          return;
+        }
+
+        const { city, zip } = splitCityZip(raw);
+        state.addressDraft.city = city;
+        state.addressDraft.zip = zip;
+        const cityInput = document.querySelector('#city');
+        const zipInput = document.querySelector('#zip-code');
+        if (cityInput instanceof HTMLInputElement) cityInput.value = city;
+        if (zipInput instanceof HTMLInputElement) zipInput.value = zip;
+        state.stage = 'address-confirm';
+        renderStageOptions();
+        promptAndListen(`Got it. Your address is ${assembledAddressText()}. Say Confirm to look it up, or Back to change it.`);
+        return;
+      }
+
+      if (state.stage === 'race-jump-select') {
+        const escapeMatch = transcripts.map((t) => matchCommand(t, ['back', 'stop'])).find(Boolean);
+        if (escapeMatch) { handleCommand(escapeMatch); return; }
+
+        const races = loadAvailableRacesFromStorage();
+        const n = transcripts.map(parseSpokenNumber).find((v) => v !== null);
+        if (n && n >= 1 && n <= races.length) {
+          const race = races[n - 1];
+          state.stage = 'race-reading';
+          speak(`Going to ${race.name}.`);
+          navigateWithPending(`/race/${encodeURIComponent(race.id)}`, 'race-reading-auto');
+        } else {
+          speakSequence(["I didn't catch a valid number.", ...raceJumpLines(races)], 'Say the number of the race you want, or Back to cancel.');
+        }
+        return;
+      }
+
+      if (state.stage === 'review-save-email') {
+        const escapeMatch = transcripts.map((t) => matchCommand(t, ['back', 'stop'])).find(Boolean);
+        if (escapeMatch) { handleCommand(escapeMatch); return; }
+
+        const raw = transcripts[0] || '';
+        const email = normalizeSpokenEmail(raw);
+        if (!isValidEmailShape(email)) {
+          // Loops back to this same stage rather than proceeding — never
+          // let an unusable result reach the real field's native
+          // validation, which would silently block submission later with
+          // no way for the voice flow to detect or recover from it.
+          promptAndListen("That didn't sound like a complete email address. Let's try again — say it slowly, for example: j smith at gmail dot com.");
+          return;
+        }
+        const emailInput = document.getElementById('sync-list-email');
+        if (emailInput instanceof HTMLInputElement) emailInput.value = email;
+        state.stage = 'review-save-confirm';
+        renderStageOptions();
+        promptAndListen(`Your email is ${email}. Say Confirm to send your recovery link, or Back to re-enter it.`);
+        return;
+      }
+
+      const allowed = allowedCommandsForStage(state.stage);
+      const matchedId = transcripts.map((t) => matchCommand(t, allowed)).find(Boolean);
+      if (matchedId) {
+        handleCommand(matchedId);
+      } else {
+        const topic = getHelpTopic('recognition-failure');
+        promptAndListen(topic.spokenInstructions.join(' '));
+      }
+    }
+
+    // ── Background inert while a modal dialog is open ───────────────────
+    // docs/voice_industry_standard.md §4: background content must not be
+    // reachable while aria-modal="true" is active — a screen reader's
+    // virtual cursor can otherwise navigate straight through a visually
+    // covered backdrop, since inert (unlike CSS/z-index) actually removes
+    // an element and its descendants from the accessibility tree. A shared
+    // window-level counter lets this panel and HelpPanel.astro's dialog
+    // each acquire/release independently without one closing prematurely
+    // un-inerting content the other dialog still needs blocked.
+    // Guarded so a redundant openPanel()/closePanel() call (e.g. returning
+    // from Help without this panel ever having actually closed) can't
+    // double-acquire or double-release the shared counter.
+    let inertAcquired = false;
+
+    function acquireInert() {
+      if (inertAcquired) return;
+      inertAcquired = true;
+      window.__vgInertCount = (window.__vgInertCount || 0) + 1;
+      document.getElementById('main-content')?.toggleAttribute('inert', true);
+      document.querySelector('.brand-mark')?.toggleAttribute('inert', true);
+      document.querySelector('.top-nav')?.toggleAttribute('inert', true);
+    }
+
+    function releaseInert() {
+      if (!inertAcquired) return;
+      inertAcquired = false;
+      window.__vgInertCount = Math.max(0, (window.__vgInertCount || 0) - 1);
+      if (window.__vgInertCount > 0) return;
+      document.getElementById('main-content')?.removeAttribute('inert');
+      document.querySelector('.brand-mark')?.removeAttribute('inert');
+      document.querySelector('.top-nav')?.removeAttribute('inert');
+    }
+
+    // ── Panel open/close + focus trap (mirrors #fb-modal in Base.astro) ──
+    let lastFocused = null;
+
+    function getFocusable() {
+      return Array.from(panel.querySelectorAll('button, input, a[href], [tabindex]:not([tabindex="-1"])'))
+        .filter((el) => !(el instanceof HTMLButtonElement && el.disabled) && !el.hidden);
+    }
+
+    // No 'full' entry, deliberately — full capability has no limitation to
+    // explain, so it should produce no advisory at all (matching the
+    // visual side, which already does `unsupportedNote.hidden = mode ===
+    // 'full'`). It used to have one ("Select Speak Command when you are
+    // ready"), written before promptAndListen()'s Continue-button flow
+    // existed — once that shipped, the real next step became "wait for
+    // the intro, then select Continue," but this stale line kept being
+    // spoken first regardless, contradicting the correct instruction that
+    // followed it moments later. See docs/known_issues.md.
+    const MODE_MESSAGES = {
+      'read-only': 'Voice commands are not supported in this browser. Read-aloud Help and all standard controls remain available. For spoken commands, use the current version of Google Chrome or Microsoft Edge.',
+      'read-only-insecure': 'Spoken commands require a secure connection. Continue with read-aloud Help or standard controls.',
+      'visual-only': 'Voice output is unavailable in this browser. All standard page controls and visible Help remain available.',
+    };
+
+    function openPanel(opts = {}) {
+      const options = opts;
+      if (!options.silent) lastFocused = document.activeElement;
+      state.active = true;
+
+      // A fresh activation gets a fresh capability read (settings may have
+      // changed since the last time) and a clean session — any earlier
+      // temporarily-unavailable state or one-shot browser tip shouldn't
+      // carry over indefinitely across separate Start Voice Guide sessions.
+      refreshCapabilities();
+      state.runtimeStatus = 'ready';
+      state.tempUnavailableReason = null;
+      state.browserTipShown = false;
+
+      panel.removeAttribute('hidden');
+      syncToggle();
+      acquireInert();
+
+      const mode = state.capabilities.mode;
+      const modeMessage = (mode === 'read-only' && state.capabilities.reason === 'insecure-context')
+        ? MODE_MESSAGES['read-only-insecure']
+        : MODE_MESSAGES[mode] || null;
+      unsupportedNote.hidden = mode === 'full';
+      if (modeMessage) unsupportedNote.textContent = modeMessage;
+
+      renderStageOptions();
+      updatePauseResumeButton();
+      box.focus();
+      if (!options.silent) {
+        // Only the generic welcome when actually at the menu — when
+        // resuming mid-flow (e.g. reopening partway through a ballot
+        // review), speakStagePrompt() below says something specific to
+        // where the user actually is, and speak()'s synth.cancel() would
+        // just interrupt/waste a generic opener that's about to be
+        // superseded anyway.
+        if (state.stage === 'menu') {
+          // Same long-utterance-reliability reasoning as beginReview()/
+          // beginRaceJump() (see docs/known_issues.md) — this message grew
+          // to include the full, ballot-aware menu list (now up to four
+          // items), which is exactly the shape that broke before: several
+          // clauses concatenated into one SpeechSynthesisUtterance. Spoken
+          // as separate lines instead of one long string, regardless of
+          // how many menu items menuCommandIds() currently returns.
+          const menuPhrase = `${menuPromptPhrase()}, Help, Repeat, or Stop voice guide`;
+          const lines = [];
+          if (modeMessage) lines.push(modeMessage);
+          lines.push('Welcome to the Wyoming Primary Voter Guide.');
+          lines.push(mode === 'full' ? `You can say: ${menuPhrase}.` : `Select ${menuPhrase}.`);
+          speakSequence(lines, '');
+        } else {
+          // modeMessage (read-only/visual-only advisory) is already shown
+          // visually via unsupportedNote — not spoken here too, since
+          // speakStagePrompt() right below would just cancel it anyway
+          // (same reasoning as skipping the generic opener above).
+          speakStagePrompt();
+        }
+      }
+    }
+
+    function closePanel(opts = {}) {
+      state.active = false;
+      hideContinueButton();
+      abortActiveRecognition(); // never leave a recognition session running past close
+      // keepSpeaking: a caller that just queued a message the user needs to
+      // hear (e.g. handing off to the real form fields) shouldn't have it
+      // cut off by the same close call that hands off to them.
+      if (!opts.keepSpeaking && state.capabilities.canSpeak) synth.cancel();
+      panel.setAttribute('hidden', '');
+      syncToggle();
+      releaseInert();
+      if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    }
+
+    // Single source of truth for the toggle's visual/textual on-off state —
+    // called from both openPanel() and closePanel() so every path that
+    // starts or stops the guide (the toggle itself, the X button, Stop
+    // Voice Guide, Escape, or a backdrop click) keeps it in sync, not just
+    // the one that happens to be clicked.
+    function syncToggle() {
+      startToggle.checked = state.active;
+      toggleText.textContent = state.active ? 'Voice Guide: On' : 'Voice Guide: Off';
+    }
+
+    startToggle.addEventListener('change', () => {
+      if (startToggle.checked) openPanel();
+      else closePanel();
+    });
+    xBtn.addEventListener('click', () => handleCommand('stop'));
+    stopBtn.addEventListener('click', () => handleCommand('stop'));
+    helpBtn.addEventListener('click', () => handleCommand('help'));
+    repeatBtn.addEventListener('click', () => handleCommand('repeat'));
+    pauseResumeBtn.addEventListener('click', () => handleCommand(state.paused ? 'resume' : 'pause'));
+    slowerBtn.addEventListener('click', () => handleCommand('slower'));
+    // continueBtn's click is handled entirely inside voice-session.ts's
+    // createVoiceSession() (it calls the onContinue callback passed to
+    // promptAndListen(), which is triggerListen() — see promptAndListen()
+    // above). A second listener registered here duplicated that: every
+    // Continue click started two SpeechRecognition instances almost
+    // simultaneously, which interfered with each other and surfaced as
+    // "no speech detected" immediately, regardless of message length or
+    // `continuous`. See docs/known_issues.md.
+
+    // Deliberately no backdrop-click-to-close. This panel (unlike the
+    // simple feedback modal it otherwise mirrors) can hold real in-progress
+    // state — a partly-entered address, a position partway through a
+    // ballot — and a stray click on the backdrop (easy to trigger by
+    // accident, e.g. while trying to drag/reposition a dialog that was
+    // never meant to move) shouldn't be able to discard it. Escape and the
+    // always-visible Stop Voice Guide button remain the deliberate ways to
+    // close — that satisfies docs/voice_industry_standard.md §4 on its own.
+
+    document.addEventListener('keydown', (e) => {
+      if (panel.hidden) return;
+      if (e.key === 'Escape') { handleCommand('stop'); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    // Stop listening/speaking if the page is hidden or navigation begins —
+    // never leave synthesis or an in-flight recognition session running
+    // against a page the user has left.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (state.capabilities.canSpeak) synth.cancel();
+        abortActiveRecognition();
+      }
+    });
+    window.addEventListener('pagehide', () => {
+      if (state.capabilities.canSpeak) synth.cancel();
+      abortActiveRecognition();
+    });
+
+    // ── Resume across a same-site navigation triggered by this guide ────
+    (function resumeIfPending() {
+      let pending = null;
+      try {
+        const raw = sessionStorage.getItem(PENDING_KEY);
+        if (raw) {
+          sessionStorage.removeItem(PENDING_KEY);
+          pending = JSON.parse(raw);
+        }
+      } catch { /* sessionStorage unavailable — just start fresh */ }
+      if (!pending) return;
+      if (pending.stage === 'address-form') {
+        document.getElementById('address-form-section')?.scrollIntoView({ behavior: 'auto' });
+        openPanel({ silent: true });
+        startAddressForm(true);
+        promptAndListen('Say Use my location, or Enter address.');
+      } else if (pending.stage === 'race-reading-auto') {
+        // state.stage/topicId already resolved to 'race-reading'/'race-detail'
+        // at module init above (defaultStageForTopic() for this fresh page
+        // load) — just open silently and start reading immediately, so a
+        // guided review never needs "Read this page" said again per race.
+        openPanel({ silent: true });
+        renderStageOptions();
+        handleCommand('read-page');
+      } else if (pending.stage === 'save-choices-auto') {
+        // beginSaveChoices() sent us here specifically because
+        // #sync-list-form didn't exist on the previous page — it now
+        // does, so simply calling it again completes the save flow
+        // automatically, with nothing further required of the user.
+        openPanel({ silent: true });
+        state.previousStage = state.stage;
+        state.stage = 'review';
+        renderStageOptions();
+        beginSaveChoices();
+      } else {
+        openPanel();
+      }
+    })();
+  })();
+</script>
+
+<style is:global>
+  .vg-toggle {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 8px;
+  }
+
+  /* Visually hidden but still focusable/keyboard-operable — the label is
+     the visual control; the checkbox is the real, native switch state. */
+  .vg-toggle__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .vg-toggle__control {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 4px;
+    cursor: pointer;
+  }
+
+  .vg-toggle__track {
+    flex-shrink: 0;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    border: 2px solid var(--charcoal);
+    border-radius: 999px;
+    background: var(--bone);
+    position: relative;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .vg-toggle__thumb {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--charcoal);
+    transition: transform 0.15s ease, background-color 0.15s ease;
+  }
+
+  .vg-toggle__input:checked + .vg-toggle__control .vg-toggle__track {
+    border-color: var(--ember);
+    background: var(--ember);
+  }
+
+  .vg-toggle__input:checked + .vg-toggle__control .vg-toggle__thumb {
+    background: var(--bone);
+    transform: translateX(20px);
+  }
+
+  .vg-toggle__text {
+    font-weight: 800;
+    font-size: 0.92rem;
+    color: var(--charcoal);
+  }
+
+  .vg-toggle__input:checked + .vg-toggle__control .vg-toggle__text {
+    color: var(--ember);
+  }
+
+  .vg-toggle__control:hover .vg-toggle__track {
+    border-color: var(--ember);
+  }
+
+  .vg-toggle__input:focus-visible + .vg-toggle__control .vg-toggle__track {
+    outline: 3px solid var(--charcoal);
+    outline-offset: 2px;
+  }
+
+  .vg-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(43, 43, 43, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .vg-panel[hidden] { display: none; }
+
+  .vg-panel__box {
+    width: min(560px, 100%);
+    max-height: min(85vh, 760px);
+    overflow-y: auto;
+    background: var(--bone);
+    border-top: 4px solid var(--ember);
+    padding: 28px 28px 24px;
+  }
+
+  .vg-panel__box:focus,
+  .vg-panel__box:focus-visible {
+    outline: none;
+  }
+
+  .vg-panel__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .vg-panel__head h2 {
+    margin: 0;
+    font-size: 1.3rem;
+  }
+
+  .vg-panel__x {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    color: var(--rust);
+    cursor: pointer;
+    border-radius: 3px;
+  }
+
+  .vg-panel__x:hover { background: var(--dust); }
+  .vg-panel__x:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 1px; }
+
+  .vg-privacy-note {
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--sage);
+    background: #fff;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--charcoal);
+  }
+
+  .vg-message {
+    margin: 0 0 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--dust);
+    background: #fff;
+    min-height: 1.4em;
+    font-weight: 700;
+  }
+
+  .vg-continue-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    margin-bottom: 16px;
+    padding: 0 16px;
+    border: 2px solid var(--ember);
+    border-radius: 4px;
+    background: var(--ember);
+    color: var(--bone);
+    font-weight: 800;
+    font-size: 0.92rem;
+    cursor: pointer;
+  }
+
+  .vg-continue-btn:hover { background: var(--ember-dark); border-color: var(--ember-dark); }
+  .vg-continue-btn:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 2px; }
+  .vg-continue-btn[hidden] { display: none; }
+
+  .vg-recognized-row {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .vg-recognized-row label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--rust);
+  }
+
+  .vg-recognized-row input {
+    padding: 8px 10px;
+    border: 1.5px solid var(--dust);
+    background: #fff;
+    font-size: 0.92rem;
+    border-radius: 3px;
+  }
+
+  .vg-recognized-row input:focus-visible {
+    outline: 3px solid var(--charcoal);
+    outline-offset: 1px;
+    border-color: var(--ember);
+  }
+
+  .vg-stage-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .vg-stage-options button {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 2px solid var(--ember);
+    border-radius: 4px;
+    background: var(--ember);
+    color: var(--bone);
+    font-weight: 800;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .vg-stage-options button:hover { background: var(--ember-dark); border-color: var(--ember-dark); }
+  .vg-stage-options button:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 2px; }
+
+  .vg-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--dust);
+  }
+
+  .vg-controls button {
+    min-height: 44px;
+    padding: 0 14px;
+    border: 2px solid var(--charcoal);
+    border-radius: 4px;
+    background: var(--bone);
+    color: var(--charcoal);
+    font-weight: 800;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .vg-controls button:hover { border-color: var(--ember); color: var(--ember); }
+  .vg-controls button:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 2px; }
+  .vg-controls button:disabled { opacity: 0.6; cursor: default; }
+
+  #vg-stop {
+    border-color: var(--ember);
+    background: var(--ember);
+    color: var(--bone);
+  }
+  #vg-stop:hover { border-color: var(--ember-dark); background: var(--ember-dark); color: var(--bone); }
+
+  .vg-unsupported-note {
+    margin: 14px 0 0;
+    font-size: 0.82rem;
+    color: var(--rust);
+  }
+</style>

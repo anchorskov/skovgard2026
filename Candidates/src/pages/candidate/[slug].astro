@@ -159,7 +159,7 @@ const hasResponses = (qResponses as any[]).length > 0;
     )}
 
     {!hasResponses && (
-      <section class="questionnaire-request" aria-labelledby="qr-title">
+      <section class="questionnaire-request" aria-labelledby="qr-title" data-voice-item>
         <h2 id="qr-title">Are you {candRow.full_name}?</h2>
         <p>
           Enter the email address on file with your candidate filing and we'll send a private link
@@ -200,7 +200,7 @@ const hasResponses = (qResponses as any[]).length > 0;
 
     <!-- Endorsement block -->
     {isEndorsed && endorsement.endorsement_reasoning && (
-      <section class="endorsement-block" aria-labelledby="endorsement-title">
+      <section class="endorsement-block" aria-labelledby="endorsement-title" data-voice-item>
         <h2 id="endorsement-title">Jimmy's endorsement</h2>
         <blockquote class="endorsement-quote">
           {endorsement.endorsement_reasoning}
@@ -213,7 +213,7 @@ const hasResponses = (qResponses as any[]).length > 0;
 
     <!-- Rubric table -->
     {(scores as any[]).length > 0 && (
-      <section class="rubric-section" aria-labelledby="rubric-title">
+      <section class="rubric-section" aria-labelledby="rubric-title" data-voice-item>
         <h2 id="rubric-title">Rubric scores</h2>
         <div class="rubric-table-wrap">
           <table class="rubric-table">
@@ -276,7 +276,7 @@ const hasResponses = (qResponses as any[]).length > 0;
 
     <!-- Questionnaire responses -->
     {(qResponses as any[]).length > 0 && (
-      <section class="questionnaire-section" aria-labelledby="q-title">
+      <section class="questionnaire-section" aria-labelledby="q-title" data-voice-item>
         <h2 id="q-title">Candidate questionnaire responses</h2>
         <p class="q-note">Responses submitted directly by the candidate via the guide questionnaire. Published verbatim.</p>
         <p id="edit-answers-link" class="edit-answers-link" hidden></p>
@@ -296,7 +296,7 @@ const hasResponses = (qResponses as any[]).length > 0;
 
     <!-- Public corrections log -->
     {(corrections as any[]).length > 0 && (
-      <section class="corrections-section" aria-labelledby="corrections-title">
+      <section class="corrections-section" aria-labelledby="corrections-title" data-voice-item>
         <h2 id="corrections-title">Correction log</h2>
         <p>All submitted corrections and their resolution are shown here. Nothing is removed.</p>
         <div class="corrections-list">
@@ -326,7 +326,7 @@ const hasResponses = (qResponses as any[]).length > 0;
 
     <!-- Sources -->
     {(sources as any[]).length > 0 && (
-      <section class="sources-section" aria-labelledby="sources-title">
+      <section class="sources-section" aria-labelledby="sources-title" data-voice-item>
         <h2 id="sources-title">Sources</h2>
         <ol class="source-list">
           {(sources as any[]).map((s: any) => (
@@ -343,7 +343,7 @@ const hasResponses = (qResponses as any[]).length > 0;
     )}
 
     <!-- Submit correction CTA -->
-    <section class="correction-cta" aria-labelledby="cta-title">
+    <section class="correction-cta" aria-labelledby="cta-title" data-voice-item>
       <h2 id="cta-title">Something wrong?</h2>
       <p>
         If you are this candidate or a member of the public with documented evidence that a score or fact is incorrect,
@@ -513,16 +513,6 @@ const hasResponses = (qResponses as any[]).length > 0;
     background: var(--bone);
     margin-bottom: 28px;
     font-size: 0.95rem;
-  }
-
-  .sr-only {
-    position: absolute;
-    width: 1px; height: 1px;
-    padding: 0; margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
   }
 
   .questionnaire-request {

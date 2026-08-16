@@ -1,0 +1,28 @@
+# Candidates/cron/wrangler.toml
+#
+# Cron-only Worker. Purges ballot-recovery data past its retention window
+# from the same `wy` D1 database the skovgard-candidates Worker uses.
+#
+# This is a SEPARATE Worker from skovgard-candidates, deliberately. Astro's
+# Cloudflare adapter (@astrojs/cloudflare) generates a Worker entry that only
+# exports `fetch` — verified by building Candidates/ and inspecting
+# dist/server/entry.mjs directly, not assumed. There is no supported way to
+# add a scheduled() export to that generated file without patching build
+# output on every deploy, which would silently break on an Astro/adapter
+# upgrade. A standalone Worker sidesteps that entirely. See
+# Candidates/docs/ballot_recovery.md for the full reasoning.
+#
+# This Worker owns no public routes and serves no site traffic.
+
+name = "skovgard-candidates-cron"
+account_id = "8bfd3f60fbdcc89183e9e312fb03e86e"
+compatibility_date = "2025-09-30"
+main = "src/index.js"
+
+[triggers]
+crons = ["0 10 * * *"]
+
+[[d1_databases]]
+binding = "WY_DB"
+database_name = "wy"
+database_id = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"

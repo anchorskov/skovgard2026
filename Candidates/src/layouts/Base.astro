@@ -2,6 +2,8 @@
 // Candidates/src/layouts/Base.astro
 import '../styles/global.css';
 import { isGuideEnabled } from '../lib/guide-host';
+import HelpPanel from '../components/HelpPanel.astro';
+import VoiceGuide from '../components/VoiceGuide.astro';
 
 interface Props {
   title?: string;
@@ -56,6 +58,7 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
     <meta name="twitter:image"       content={resolvedOgImage} />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="page-shell">
       <header class="site-header" aria-label="Candidates voter guide">
         <a class="brand-mark" href="/" aria-label="Candidates home">
@@ -73,8 +76,12 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
             <a href="/guide" class:list={[{ active: currentPath.startsWith('/guide') || currentPath.startsWith('/candidate/') || currentPath.startsWith('/endorsements') }]}>Candidate guide</a>
           )}
         </nav>
+        <div class="vg-toolbar" aria-label="Accessibility tools">
+          <VoiceGuide />
+          <HelpPanel />
+        </div>
       </header>
-      <main>
+      <main id="main-content">
         <slot />
       </main>
       <footer class="site-footer" aria-label="Campaign disclaimer">
@@ -114,6 +121,11 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
         const form  = document.getElementById('fb-form');
         if (!btn || !modal || !close || !form) return;
 
+        function getFocusable() {
+          return Array.from(modal.querySelectorAll('button, input, textarea, a[href]'))
+            .filter(function (el) { return !el.disabled && el.tabIndex !== -1; });
+        }
+
         function open() {
           modal.removeAttribute('hidden');
           btn.setAttribute('aria-expanded', 'true');
@@ -129,7 +141,26 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
         btn.addEventListener('click', open);
         close.addEventListener('click', shut);
         modal.addEventListener('click', function (e) { if (e.target === modal) shut(); });
-        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) shut(); });
+        document.addEventListener('keydown', function (e) {
+          if (modal.hidden) return;
+          if (e.key === 'Escape') { shut(); return; }
+          // Trap Tab/Shift+Tab inside the dialog while it's open, per WAI-ARIA
+          // modal dialog pattern — aria-modal alone tells assistive tech to
+          // treat the rest of the page as inert, but sighted keyboard users
+          // can still tab focus behind the overlay without this.
+          if (e.key !== 'Tab') return;
+          const focusable = getFocusable();
+          if (focusable.length === 0) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        });
 
         form.addEventListener('submit', function (e) {
           e.preventDefault();
@@ -160,6 +191,23 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
 
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
+
+  .skip-link {
+    position: absolute;
+    top: -999px;
+    left: 8px;
+    z-index: 2000;
+    padding: 10px 18px;
+    background: var(--charcoal);
+    color: var(--bone);
+    font-weight: 800;
+    text-decoration: none;
+    border-radius: 3px;
+  }
+
+  .skip-link:focus {
+    top: 8px;
+  }
 
   body {
     margin: 0;
@@ -248,6 +296,13 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
     text-decoration-line: underline;
   }
 
+  .vg-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   .eyebrow {
     margin: 0 0 12px;
     color: var(--rust);
@@ -270,7 +325,7 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
 
   .badge--incumbent {
     background: var(--sandstone);
-    color: var(--bone);
+    color: var(--charcoal);
   }
 
   .badge--party-r {
@@ -285,7 +340,7 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
 
   .badge--party-l {
     background: var(--sandstone);
-    color: var(--bone);
+    color: var(--charcoal);
   }
 
   .badge--party-other {
@@ -328,11 +383,16 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
 
     .site-header {
       align-items: flex-start;
+      flex-wrap: wrap;
     }
 
     .top-nav {
       gap: 12px;
       font-size: 0.95rem;
+    }
+
+    .vg-toolbar {
+      width: 100%;
     }
   }
 
@@ -357,10 +417,14 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
     transition: background 0.1s;
   }
 
-  .fb-trigger:hover,
+  .fb-trigger:hover {
+    background: var(--ember-dark);
+  }
+
   .fb-trigger:focus-visible {
     background: var(--ember-dark);
-    outline: none;
+    outline: 3px solid var(--charcoal);
+    outline-offset: 2px;
   }
 
   .fb-overlay {
@@ -445,9 +509,10 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
     font-family: inherit;
   }
 
-  .fb-panel__input:focus,
-  .fb-panel__textarea:focus {
-    outline: none;
+  .fb-panel__input:focus-visible,
+  .fb-panel__textarea:focus-visible {
+    outline: 3px solid var(--charcoal);
+    outline-offset: 1px;
     border-color: var(--ember);
   }
 

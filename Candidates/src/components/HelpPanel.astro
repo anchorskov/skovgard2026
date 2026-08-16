@@ -1,0 +1,511 @@
+---
+// Candidates/src/components/HelpPanel.astro
+//
+// Accessible, standalone Help dialog. Works with zero speech APIs — every
+// function here is reachable with keyboard, mouse, or touchscreen alone,
+// per the "Help must be accessible without speech, hearing, or a
+// microphone" requirement in Candidates/docs/voice_guide.md. VoiceGuide.astro
+// opens this same panel (via window.__vgHelp) rather than building its own
+// second dialog.
+//
+// Focus-trap/Escape/backdrop-click mechanics mirror the existing feedback
+// modal in Base.astro (#fb-modal) rather than inventing a new pattern.
+---
+
+<button
+  type="button"
+  id="vg-help-btn"
+  class="vg-help-btn"
+  aria-haspopup="dialog"
+  aria-controls="vg-help-panel"
+  aria-expanded="false"
+>
+  Help
+</button>
+
+<div id="vg-help-panel" class="vg-help-panel" role="dialog" aria-modal="true" aria-labelledby="vg-help-title" hidden>
+  <div class="vg-help-panel__box" tabindex="-1">
+    <div class="vg-help-panel__head">
+      <h2 id="vg-help-title">Help</h2>
+      <button type="button" id="vg-help-x" class="vg-help-panel__x" aria-label="Close Help">✕</button>
+    </div>
+    <p id="vg-help-voice-note" class="vg-help-voice-note" hidden>
+      Voice commands use your browser's speech-recognition service. Audio processing depends on
+      your browser. This site does not intentionally store audio or voice transcripts.
+    </p>
+    <div id="vg-help-status" class="vg-help-status" role="status" aria-live="polite"></div>
+    <button type="button" id="vg-help-continue" class="vg-help-continue-btn" hidden>Continue</button>
+    <p id="vg-help-summary" class="vg-help-summary"></p>
+    <ul id="vg-help-list" class="vg-help-list"></ul>
+    <p id="vg-help-commands-label" class="vg-help-commands-label" hidden>Available right now:</p>
+    <ul id="vg-help-commands" class="vg-help-commands"></ul>
+    <div class="vg-help-actions">
+      <button type="button" id="vg-help-repeat">Repeat Help</button>
+      <button type="button" id="vg-help-return">Return</button>
+      <button type="button" id="vg-help-close">Close Help</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { getHelpTopic, topicIdForPath } from '../lib/voice-guide/help-topics';
+  import { detectCapabilities } from '../lib/voice-guide/capabilities';
+  import { matchCommand } from '../lib/voice-guide/commands';
+  import { createVoiceSession } from '../lib/voice-guide/voice-session';
+
+  (function () {
+    const btn = document.getElementById('vg-help-btn');
+    const panel = document.getElementById('vg-help-panel');
+    const box = panel?.querySelector('.vg-help-panel__box');
+    const xBtn = document.getElementById('vg-help-x');
+    const closeBtn = document.getElementById('vg-help-close');
+    const returnBtn = document.getElementById('vg-help-return');
+    const repeatBtn = document.getElementById('vg-help-repeat');
+    const continueBtn = document.getElementById('vg-help-continue');
+    const voiceNote = document.getElementById('vg-help-voice-note');
+    const statusEl = document.getElementById('vg-help-status');
+    const titleEl = document.getElementById('vg-help-title');
+    const summaryEl = document.getElementById('vg-help-summary');
+    const listEl = document.getElementById('vg-help-list');
+    const cmdLabelEl = document.getElementById('vg-help-commands-label');
+    const cmdListEl = document.getElementById('vg-help-commands');
+    if (!btn || !panel || !box || !xBtn || !closeBtn || !returnBtn || !repeatBtn || !continueBtn
+      || !voiceNote || !statusEl || !titleEl || !summaryEl || !listEl || !cmdLabelEl || !cmdListEl) return;
+
+    // Own instance of the same shared engine VoiceGuide.astro uses (see
+    // voice-session.ts) — this is what makes Help genuinely voice-operable
+    // (Repeat/Return/Close by speech, not just click) rather than a second,
+    // independently-maintained copy of that machinery.
+    const session = createVoiceSession({ messageEl: statusEl, continueBtn });
+    let canListen = false;
+
+    function refreshCapabilities() {
+      const caps = detectCapabilities(window);
+      const synth = window.speechSynthesis || null;
+      const RecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+      canListen = caps.canListen;
+      session.setCapabilities({ canSpeak: caps.canSpeak, canListen: caps.canListen, synth, RecognitionCtor });
+      voiceNote.hidden = !(caps.canSpeak || caps.canListen);
+    }
+
+    /** @type {HTMLElement | null} */
+    let lastFocused = null;
+    let currentTopicId = 'general';
+    /** @type {(() => void) | null} */
+    let onReturnCallback = null;
+
+    function getFocusable() {
+      return Array.from(panel.querySelectorAll('button, a[href], input, [tabindex]:not([tabindex="-1"])'))
+        .filter((el) => !(el instanceof HTMLButtonElement && el.disabled));
+    }
+
+    function renderTopic(topicId) {
+      const topic = getHelpTopic(topicId);
+      currentTopicId = topic.id;
+      titleEl.textContent = topic.title;
+      summaryEl.textContent = topic.summary;
+      listEl.innerHTML = '';
+      topic.visibleInstructions.forEach((line) => {
+        const li = document.createElement('li');
+        li.textContent = line;
+        listEl.appendChild(li);
+      });
+      cmdListEl.innerHTML = '';
+      if (topic.availableCommands.length > 0) {
+        cmdLabelEl.hidden = false;
+        topic.availableCommands.forEach((cmd) => {
+          const li = document.createElement('li');
+          li.textContent = cmd;
+          cmdListEl.appendChild(li);
+        });
+      } else {
+        cmdLabelEl.hidden = true;
+      }
+      return topic;
+    }
+
+    // Reads the topic aloud and — when this browser can listen — re-arms
+    // listening afterward via the shared Continue-listening button, the
+    // same pattern VoiceGuide.astro's main panel uses (see promptAndListenHelp()
+    // below). Repeat Help reuses this directly, so it gets the same
+    // re-arming for free rather than a plain one-off speak().
+    // Speaks each spokenInstructions entry as its own utterance, chained
+    // via speak()'s onEnd, rather than joining them into one long string —
+    // see docs/known_issues.md's long-utterance entry. Most topics only
+    // have one entry (harmless either way), but this must not silently
+    // regress the moment a topic (e.g. "voice-assist-compatibility") gets
+    // a longer or multi-entry one.
+    function speakTopic(topic) {
+      const lines = topic.spokenInstructions;
+      if (lines.length === 0) return;
+      let i = 0;
+      function next() {
+        if (i >= lines.length) {
+          if (canListen) promptAndListenHelp('');
+          return;
+        }
+        session.speak(lines[i++], next);
+      }
+      next();
+    }
+
+    function promptAndListenHelp(text) {
+      session.promptAndListen(text, () => {
+        if (panel.hidden) return; // dialog was closed while this was speaking
+        triggerListenHelp();
+      });
+    }
+
+    async function triggerListenHelp() {
+      if (!canListen) return;
+      session.hideContinueButton();
+      // statusEl is role="status"/aria-live="polite" — same signal path
+      // spoken prompts already use. See VoiceGuide.astro's triggerListen()
+      // for the matching change and docs/known_issues.md.
+      statusEl.textContent = 'Listening…';
+      const result = await session.listenOnce();
+
+      if (!result.ok) {
+        // 'aborted' (dialog closed/navigated away mid-listen) returns
+        // quietly, same as VoiceGuide's main panel — everything else
+        // (unsupported, nomatch, no-speech, a real recognition error)
+        // just re-offers the same three fixed options rather than a
+        // separate error-handling path, since Help's vocabulary never
+        // changes by stage the way the main panel's does.
+        if (result.reason !== 'aborted') {
+          promptAndListenHelp("I didn't understand that. Say Repeat Help, Return, or Close Help.");
+        }
+        return;
+      }
+
+      const transcript = result.transcripts[0] || '';
+      // Reuses the existing 'repeat'/'back'/'stop' command ids from
+      // commands.ts rather than inventing Help-only phrases — Help's
+      // voice vocabulary is small and fixed regardless of which topic is
+      // showing, unlike the main panel's stage-dependent allowed list.
+      const matched = matchCommand(transcript, ['repeat', 'back', 'stop']);
+      if (matched === 'repeat') { speakTopic(getHelpTopic(currentTopicId)); return; }
+      if (matched === 'back') { returnBtn.click(); return; }
+      if (matched === 'stop') { closeBtn.click(); return; }
+      promptAndListenHelp("I didn't understand that. Say Repeat Help, Return, or Close Help.");
+    }
+
+    /**
+     * @param {string} topicId
+     * @param {{ returnFocusTo?: HTMLElement, onReturn?: () => void }} [opts]
+     */
+    // Shares a window-level counter with VoiceGuide.astro's acquireInert()/
+    // releaseInert() so background content stays inert (per
+    // docs/voice_industry_standard.md §4) whether this dialog is opened on
+    // its own or stacked on top of the Voice Guide panel, and only becomes
+    // reachable again once every open modal has released it. Guarded so a
+    // redundant open()/shut() pair can't double-acquire or double-release.
+    let inertAcquired = false;
+
+    function acquireInert() {
+      if (inertAcquired) return;
+      inertAcquired = true;
+      window.__vgInertCount = (window.__vgInertCount || 0) + 1;
+      document.getElementById('main-content')?.toggleAttribute('inert', true);
+      document.querySelector('.brand-mark')?.toggleAttribute('inert', true);
+      document.querySelector('.top-nav')?.toggleAttribute('inert', true);
+    }
+
+    function releaseInert() {
+      if (!inertAcquired) return;
+      inertAcquired = false;
+      window.__vgInertCount = Math.max(0, (window.__vgInertCount || 0) - 1);
+      if (window.__vgInertCount > 0) return;
+      document.getElementById('main-content')?.removeAttribute('inert');
+      document.querySelector('.brand-mark')?.removeAttribute('inert');
+      document.querySelector('.top-nav')?.removeAttribute('inert');
+    }
+
+    function open(topicId, opts) {
+      const options = opts || {};
+      lastFocused = options.returnFocusTo instanceof HTMLElement ? options.returnFocusTo : /** @type {HTMLElement} */ (document.activeElement);
+      onReturnCallback = typeof options.onReturn === 'function' ? options.onReturn : null;
+      refreshCapabilities(); // fresh read each activation — settings may have changed since last time
+      const topic = renderTopic(topicId);
+      panel.removeAttribute('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+      acquireInert();
+      box.focus();
+      speakTopic(topic);
+    }
+
+    function shut(restoreFocus) {
+      session.hideContinueButton();
+      session.abortActiveRecognition(); // never leave a recognition session running past close
+      panel.setAttribute('hidden', '');
+      btn.setAttribute('aria-expanded', 'false');
+      releaseInert();
+      if (restoreFocus !== false && lastFocused && typeof lastFocused.focus === 'function') {
+        lastFocused.focus();
+      }
+    }
+
+    btn.addEventListener('click', () => {
+      open(topicIdForPath(window.location.pathname), { returnFocusTo: btn });
+    });
+    xBtn.addEventListener('click', () => shut(true));
+    closeBtn.addEventListener('click', () => shut(true));
+    returnBtn.addEventListener('click', () => {
+      const cb = onReturnCallback;
+      shut(!cb);
+      if (cb) cb();
+    });
+    repeatBtn.addEventListener('click', () => speakTopic(getHelpTopic(currentTopicId)));
+
+    // Stop listening/speaking if the page is hidden or navigation begins —
+    // mirrors VoiceGuide.astro's own cleanup, now meaningful here too since
+    // this dialog can run its own live recognition session.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        session.cancelSpeech();
+        session.abortActiveRecognition();
+      }
+    });
+    window.addEventListener('pagehide', () => {
+      session.cancelSpeech();
+      session.abortActiveRecognition();
+    });
+
+    panel.addEventListener('click', (e) => { if (e.target === panel) shut(true); });
+
+    document.addEventListener('keydown', (e) => {
+      if (panel.hidden) return;
+      if (e.key === 'Escape') { shut(true); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    // Exposed for VoiceGuide.astro — it opens this exact panel rather than
+    // building a second dialog. Speech itself comes from window.__vgSpeak
+    // (VoiceGuide's speechSynthesis wrapper — rate, cancellation,
+    // availability checks all live there), read lazily in speakTopic()
+    // above rather than pushed in through this object.
+    window.__vgHelp = {
+      open,
+      close: () => shut(true),
+    };
+  })();
+</script>
+
+<style is:global>
+  .vg-help-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 18px;
+    border: 2px solid var(--charcoal);
+    border-radius: 4px;
+    background: var(--bone);
+    color: var(--charcoal);
+    font-weight: 800;
+    font-size: 0.92rem;
+    cursor: pointer;
+  }
+
+  .vg-help-btn:hover {
+    border-color: var(--ember);
+    color: var(--ember);
+  }
+
+  .vg-help-btn:focus-visible {
+    outline: 3px solid var(--charcoal);
+    outline-offset: 2px;
+  }
+
+  .vg-help-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(43, 43, 43, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .vg-help-panel[hidden] { display: none; }
+
+  .vg-help-panel__box {
+    width: min(560px, 100%);
+    max-height: min(80vh, 720px);
+    overflow-y: auto;
+    background: var(--bone);
+    border-top: 4px solid var(--ember);
+    padding: 28px 28px 24px;
+  }
+
+  .vg-help-panel__box:focus-visible,
+  .vg-help-panel__box:focus {
+    outline: none;
+  }
+
+  .vg-help-panel__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .vg-help-panel__head h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    line-height: 1.15;
+  }
+
+  .vg-help-panel__x {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    color: var(--rust);
+    cursor: pointer;
+    border-radius: 3px;
+  }
+
+  .vg-help-panel__x:hover { background: var(--dust); }
+  .vg-help-panel__x:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 1px; }
+
+  .vg-help-voice-note {
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--sage);
+    background: #fff;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--charcoal);
+  }
+
+  .vg-help-status {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--dust);
+    background: #fff;
+    min-height: 1.3em;
+    font-weight: 700;
+  }
+
+  .vg-help-status:empty { display: none; }
+
+  .vg-help-continue-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    margin-bottom: 16px;
+    padding: 0 16px;
+    border: 2px solid var(--ember);
+    border-radius: 4px;
+    background: var(--ember);
+    color: var(--bone);
+    font-weight: 800;
+    font-size: 0.92rem;
+    cursor: pointer;
+  }
+
+  .vg-help-continue-btn:hover { background: var(--ember-dark); border-color: var(--ember-dark); }
+  .vg-help-continue-btn:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 2px; }
+  .vg-help-continue-btn[hidden] { display: none; }
+
+  .vg-help-summary {
+    margin: 0 0 16px;
+    font-weight: 700;
+    color: var(--rust);
+  }
+
+  .vg-help-list {
+    margin: 0 0 18px;
+    padding-left: 20px;
+    display: grid;
+    gap: 10px;
+    line-height: 1.55;
+  }
+
+  .vg-help-commands-label {
+    margin: 0 0 8px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--rust);
+  }
+
+  .vg-help-commands {
+    margin: 0 0 20px;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .vg-help-commands li {
+    padding: 4px 10px;
+    border: 1px solid var(--dust);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    background: #fff;
+  }
+
+  .vg-help-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .vg-help-actions button {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 2px solid var(--charcoal);
+    border-radius: 4px;
+    background: var(--bone);
+    color: var(--charcoal);
+    font-weight: 800;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+
+  .vg-help-actions button:hover {
+    border-color: var(--ember);
+    color: var(--ember);
+  }
+
+  .vg-help-actions button:focus-visible {
+    outline: 3px solid var(--charcoal);
+    outline-offset: 2px;
+  }
+
+  #vg-help-close {
+    border-color: var(--ember);
+    background: var(--ember);
+    color: var(--bone);
+  }
+
+  #vg-help-close:hover {
+    border-color: var(--ember-dark);
+    background: var(--ember-dark);
+    color: var(--bone);
+  }
+</style>

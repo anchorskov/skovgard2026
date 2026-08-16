@@ -7,6 +7,10 @@ import { isGuideEnabled } from '../../lib/guide-host';
 const { id } = Astro.params;
 const guideEnabled = isGuideEnabled(Astro.url.hostname);
 
+const turnstileSiteKey = (env as any)?.TURNSTILE_SITE_KEY || '';
+const isLocalReview = import.meta.env.DEV;
+const turnstileEnabled = Boolean(turnstileSiteKey && !isLocalReview);
+
 const office = await env.WY_DB.prepare(
   'SELECT id, title, level, district, seats_available FROM offices WHERE id = ?1'
 ).bind(id).first();
@@ -113,13 +117,13 @@ function isAbsoluteUrl(url: string | null): boolean {
   ) : (
     <ul class="candidate-grid" role="list">
       {candidates.map((c) => (
-        <li class="candidate-card" data-candidate-card={String(c.id)}>
+        <li class="candidate-card" data-candidate-card={String(c.id)} data-voice-item>
           <div class="candidate-card__header">
             <div class="candidate-card__badges">
               {String(c.incumbency_status).toLowerCase() === 'incumbent' ? <span class="badge badge--incumbent">Incumbent</span> : null}
               {c.party ? <span class={`badge ${partyBadgeClass(String(c.party))}`}>{partyLabel(String(c.party))}</span> : null}
             </div>
-            <h2 class="candidate-card__name">{c.full_name}</h2>
+            <h3 class="candidate-card__name">{c.full_name}</h3>
           </div>
 
           {c.summary ? (
@@ -206,7 +210,9 @@ function isAbsoluteUrl(url: string | null): boolean {
         <span class="choice-list__count" id="choice-list-count">0 choices</span>
       </div>
       <p class="choice-list__intro">
-        Your choices stay in this browser. They are not votes and are not sent to us.
+        Your choices stay in this browser unless you choose to email yourself a device-sync link below.
+        They are not votes. Saving again later — after you change a pick — updates the same saved list
+        under that email; it doesn't create a second copy.
       </p>
       <details class="choice-list__details" id="choice-list-details">
         <summary class="choice-list__summary" id="choice-list-summary">Review saved choices</summary>
@@ -214,8 +220,32 @@ function isAbsoluteUrl(url: string | null): boolean {
         <div class="choice-list__actions" id="choice-list-actions" hidden>
           <button type="button" id="copy-choice-list">Copy list</button>
           <a id="email-choice-list" href="#">Email to myself</a>
+          <button type="button" id="sync-list-remote">Sync to another device</button>
           <button type="button" class="choice-list__clear" id="clear-choice-list">Clear list</button>
         </div>
+        <form id="sync-list-form" class="sync-list-form" hidden>
+          <label for="sync-list-email" class="sr-only">Email address to send the recovery link to</label>
+          <p class="sync-list-form__intro">
+            Email yourself a link to restore this saved list on another device. The link expires in 24
+            hours, but your saved list itself stays available — if you forget or lose that link, use
+            <a href="/ballot-recovery/">Recover my ballot</a> with the same email any time before the
+            election.
+          </p>
+          <div class="sync-list-row">
+            <input id="sync-list-email" name="email" type="email" placeholder="you@example.com" required />
+            <button type="submit">Send my link</button>
+          </div>
+          {turnstileEnabled && (
+            <div
+              id="sync-ts-widget"
+              class="cf-turnstile"
+              data-sitekey={turnstileSiteKey}
+              data-size="normal"
+              data-appearance="interaction-only"
+            ></div>
+          )}
+          <p id="sync-list-status" role="status"></p>
+        </form>
       </details>
       <p class="choice-list__status" id="choice-list-status" aria-live="polite"></p>
     </section>
@@ -228,6 +258,8 @@ function isAbsoluteUrl(url: string | null): boolean {
     </p>
   </div>
 </Base>
+
+{turnstileEnabled && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
 
 <style>
   .race-header {
@@ -665,6 +697,54 @@ function isAbsoluteUrl(url: string | null): boolean {
     font-weight: 700;
   }
 
+  .sync-list-form {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--dust);
+    border-left: 4px solid var(--sandstone);
+    background: var(--bone);
+  }
+
+  .sync-list-form[hidden] {
+    display: none;
+  }
+
+  .sync-list-form__intro {
+    margin: 0 0 10px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .sync-list-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .sync-list-row input[type="email"] {
+    flex: 1 1 220px;
+    padding: 8px 10px;
+    border: 1px solid var(--dust);
+    font-size: 0.9rem;
+    background: #fff;
+  }
+
+  .sync-list-row button[type="submit"] {
+    background: var(--ember);
+    color: var(--bone);
+    font-weight: 800;
+    padding: 8px 16px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .sync-list-row button[type="submit"]:hover { background: #8b1a26; }
+  .sync-list-row button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  #sync-list-status { margin: 10px 0 0; font-weight: 700; font-size: 0.85rem; }
+  #sync-list-status.sync-list-status--ok { color: var(--sage); }
+  #sync-list-status.sync-list-status--error { color: var(--ember); }
+
   .race-progress {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -801,6 +881,10 @@ function isAbsoluteUrl(url: string | null): boolean {
     const copyButton = document.querySelector<HTMLButtonElement>('#copy-choice-list');
     const emailLink = document.querySelector<HTMLAnchorElement>('#email-choice-list');
     const clearButton = document.querySelector<HTMLButtonElement>('#clear-choice-list');
+    const syncButton = document.querySelector<HTMLButtonElement>('#sync-list-remote');
+    const syncForm = document.querySelector<HTMLFormElement>('#sync-list-form');
+    const syncStatus = document.querySelector<HTMLElement>('#sync-list-status');
+    const choiceListDetails = document.querySelector<HTMLDetailsElement>('#choice-list-details');
     const progressNote = document.querySelector<HTMLElement>('#race-progress-note');
     const nextRaceLink = document.querySelector<HTMLAnchorElement>('#next-race-link');
     const raceJump = document.querySelector<HTMLElement>('#race-progress-jump');
@@ -1175,6 +1259,57 @@ function isAbsoluteUrl(url: string | null): boolean {
       if (raceId) window.location.href = `/race/${encodeURIComponent(raceId)}`;
     });
 
+    syncButton?.addEventListener('click', () => {
+      if (syncForm) syncForm.hidden = !syncForm.hidden;
+    });
+
+    syncForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitButton = syncForm.querySelector<HTMLButtonElement>('button[type="submit"]');
+      if (submitButton) submitButton.disabled = true;
+      if (syncStatus) { syncStatus.textContent = ''; syncStatus.className = ''; }
+
+      const email = (syncForm.querySelector<HTMLInputElement>('#sync-list-email'))?.value?.trim();
+      const cfTurnstileResponse = window.turnstile
+        ? window.turnstile.getResponse('#sync-ts-widget')
+        : undefined;
+
+      try {
+        const res = await fetch('/api/ballot-recovery/request', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            availableRaces: loadAvailableRaces(),
+            choices: loadChoices(),
+            cf_turnstile_response: cfTurnstileResponse,
+          }),
+        });
+        const data = await res.json();
+        if (syncStatus) {
+          syncStatus.textContent = data.message || 'Something went wrong.';
+          syncStatus.className = data.success ? 'sync-list-status--ok' : 'sync-list-status--error';
+        }
+      } catch {
+        if (syncStatus) {
+          syncStatus.textContent = 'Network error — please try again.';
+          syncStatus.className = 'sync-list-status--error';
+        }
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+        if (window.turnstile) window.turnstile.reset('#sync-ts-widget');
+      }
+    });
+
     render();
+
+    // Consume a ballot-recovery redemption: strip the marker so a refresh
+    // doesn't re-show the message, and surface confirmation via the same
+    // status line/details element the rest of this panel already uses.
+    if (new URLSearchParams(location.search).get('restored') === '1') {
+      setStatus('Your saved list was restored on this device.');
+      if (choiceListDetails) choiceListDetails.open = true;
+      history.replaceState(null, '', location.pathname);
+    }
   }
 </script>

@@ -15,7 +15,7 @@ dist/
 worker/.dev.vars
 worker/.env
 secrets/
-docs/
+**/docs/
 scripts/sync-dev-vars.sh
 scripts/*.state.json
 scripts/verify_hd01_emails_2026-07-09.mjs

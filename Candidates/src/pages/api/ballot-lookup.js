@@ -1,6 +1,7 @@
 // Candidates/src/pages/api/ballot-lookup.js
 import { env } from 'cloudflare:workers';
 import { normalizeWard, officeMatchesPrecinct } from '../../lib/office-scope.js';
+import { verifyTurnstile } from '../../lib/turnstile';
 
 const REQUIRED_FIELDS = [
   ['houseNumber', 'House / Unit Number'],
@@ -1065,28 +1066,6 @@ function resolvePollingPlace(gis, polygon, d1Rows) {
   return null;
 }
 
-async function verifyTurnstile(token) {
-  if (import.meta.env.DEV) return true;
-
-  const secret = env.TURNSTILE_SECRET_KEY;
-  if (!secret) return true; // not configured — skip in local dev
-
-  if (!token) return false;
-
-  try {
-    const resp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ secret, response: token }),
-    });
-    if (!resp.ok) return false;
-    const data = await resp.json();
-    return data.success === true;
-  } catch {
-    return false;
-  }
-}
-
 export async function POST({ request }) {
   let payload;
   try {
@@ -1101,7 +1080,7 @@ export async function POST({ request }) {
     );
   }
 
-  const turnstileOk = await verifyTurnstile(payload?.cf_turnstile_response);
+  const turnstileOk = await verifyTurnstile(env, payload?.cf_turnstile_response);
   if (!turnstileOk) {
     return json(
       {

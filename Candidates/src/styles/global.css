@@ -17,6 +17,18 @@
   --color-wy-sky: #7A8A6B;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 body {
   background-color: var(--color-wy-bone);
   background-image:

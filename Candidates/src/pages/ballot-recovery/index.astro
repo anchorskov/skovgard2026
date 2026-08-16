@@ -1,0 +1,127 @@
+---
+// Candidates/src/pages/ballot-recovery/index.astro
+// Cold-start entry point: a voter who has no local list on this device and
+// no unexpired link in hand, but remembers an email they saved under. Posts
+// to /api/ballot-recovery/recover.js (email-only, non-enumerating). This is
+// distinct from [token].astro, which redeems an already-issued link. See
+// docs/ballot_recovery.md.
+import Base from '../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+
+const turnstileSiteKey = (env as any)?.TURNSTILE_SITE_KEY || '';
+const isLocalReview = import.meta.env.DEV;
+const turnstileEnabled = Boolean(turnstileSiteKey && !isLocalReview);
+---
+
+<Base
+  title="Recover your saved ballot"
+  description="Wyoming 2026 Primary Voter Guide — recover a ballot list you saved under your email on another device."
+  currentPath="/ballot-recovery/"
+>
+  <div class="br-shell">
+    <h1>Recover your saved ballot</h1>
+    <p class="br-intro">
+      If you've saved a ballot list under your email before, enter it below and we'll send a
+      link to restore that list on this device. This does not need to be a link you already
+      have — just the address you used when you saved.
+    </p>
+
+    <form id="recover-form" class="recover-form">
+      <label for="recover-email" class="sr-only">Email address</label>
+      <div class="recover-form__row">
+        <input id="recover-email" name="email" type="email" placeholder="you@example.com" required />
+        <button type="submit">Send my link</button>
+      </div>
+      {turnstileEnabled && (
+        <div
+          id="recover-ts-widget"
+          class="cf-turnstile"
+          data-sitekey={turnstileSiteKey}
+          data-size="normal"
+          data-appearance="interaction-only"
+        ></div>
+      )}
+      <p id="recover-status" role="status"></p>
+    </form>
+
+    <p class="br-footer"><a href="/" class="guide-link">Back to the voter guide</a></p>
+  </div>
+</Base>
+
+{turnstileEnabled && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
+
+<style>
+  .br-shell { padding: 24px 0 64px; max-width: 620px; }
+  h1 { margin: 0 0 12px; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+  .br-intro { margin: 0 0 20px; line-height: 1.6; }
+  .guide-link { color: var(--ember); font-weight: 700; }
+
+  .recover-form__row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .recover-form__row input {
+    flex: 1 1 240px;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #9ca3af;
+    border-radius: 7px;
+    font-size: 0.9375rem;
+  }
+  .recover-form__row button {
+    padding: 0.55rem 1.2rem;
+    border-radius: 7px;
+    border: 1px solid var(--ember);
+    background: var(--ember);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .recover-form__row button:hover { opacity: 0.88; }
+  .recover-form__row button:disabled { opacity: 0.6; cursor: default; }
+
+  #recover-status { margin: 10px 0 0; font-weight: 700; }
+  #recover-status.recover-status--ok { color: #2f6f3e; }
+  #recover-status.recover-status--error { color: var(--ember); }
+
+  .br-footer { margin-top: 28px; }
+</style>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#recover-form');
+  const status = document.querySelector<HTMLElement>('#recover-status');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitButton = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    if (status) { status.textContent = ''; status.className = ''; }
+
+    const email = (form.querySelector<HTMLInputElement>('#recover-email'))?.value?.trim();
+    const cfTurnstileResponse = window.turnstile
+      ? window.turnstile.getResponse('#recover-ts-widget')
+      : undefined;
+
+    try {
+      const res = await fetch('/api/ballot-recovery/recover', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, cf_turnstile_response: cfTurnstileResponse }),
+      });
+      const data = await res.json();
+      if (status) {
+        status.textContent = data.message || 'Something went wrong.';
+        status.className = data.success ? 'recover-status--ok' : 'recover-status--error';
+      }
+    } catch {
+      if (status) {
+        status.textContent = 'Network error — please try again.';
+        status.className = 'recover-status--error';
+      }
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+      if (window.turnstile) window.turnstile.reset('#recover-ts-widget');
+    }
+  });
+</script>

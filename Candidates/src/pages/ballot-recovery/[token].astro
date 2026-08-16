@@ -1,0 +1,195 @@
+---
+// Candidates/src/pages/ballot-recovery/[token].astro
+import Base from '../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+
+const { token } = Astro.params;
+if (!token) return Astro.redirect('/');
+
+type D1Env = { WY_DB: D1Database };
+const db = (env as unknown as D1Env)?.WY_DB;
+if (!db) return Astro.redirect('/');
+
+// expires_at is checked in the query itself — a missing row and an expired
+// row collapse into the same "not valid" state, since there's nothing more
+// specific to tell the voter either way.
+const tokenRow = await db.prepare(`
+  SELECT payload_json FROM ballot_recovery_tokens
+  WHERE token = ?1 AND expires_at > datetime('now')
+`).bind(token).first() as any;
+
+const isValid = Boolean(tokenRow);
+let payload: { availableRaces: any[]; choices: any[] } = { availableRaces: [], choices: [] };
+if (isValid) {
+  try {
+    const parsed = JSON.parse(tokenRow.payload_json);
+    payload = {
+      availableRaces: Array.isArray(parsed?.availableRaces) ? parsed.availableRaces : [],
+      choices: Array.isArray(parsed?.choices) ? parsed.choices : [],
+    };
+  } catch {
+    payload = { availableRaces: [], choices: [] };
+  }
+}
+---
+
+<Base
+  title="Restore your saved ballot list"
+  description="Wyoming 2026 Primary Voter Guide — restore your saved races and candidate picks on this device."
+  currentPath={`/ballot-recovery/${token}`}
+>
+  <div class="br-shell">
+    {!isValid && (
+      <div class="br-error">
+        <h1>This link isn't valid</h1>
+        <p>
+          This recovery link is unrecognized or has expired — links are only valid for
+          24 hours. Request a new one from the "My candidate list" panel on any race page.
+        </p>
+        <p><a href="/" class="guide-link">Back to the voter guide</a></p>
+      </div>
+    )}
+
+    {isValid && (
+      <>
+        <h1>Restore your saved ballot list</h1>
+        <p class="br-intro">This link can restore the races and candidate picks you saved from another device.</p>
+
+        <div id="br-status" class="br-status" role="status" hidden></div>
+
+        <div id="br-confirm" class="gps-confirm-panel" hidden>
+          <p class="gps-confirm-address">
+            You already have a saved list on this device. Replacing it will overwrite it with the list from your email link.
+          </p>
+          <div class="gps-confirm-actions">
+            <button type="button" id="br-confirm-replace">Replace the list on this device</button>
+            <button type="button" id="br-confirm-keep">Keep what's here</button>
+          </div>
+        </div>
+
+        <p id="br-continue" class="br-continue" hidden>
+          <a id="br-continue-link" href="/" class="guide-link">Continue to my ballot →</a>
+        </p>
+      </>
+    )}
+  </div>
+</Base>
+
+<style>
+  .br-shell { padding: 24px 0 64px; max-width: 620px; }
+  h1 { margin: 0 0 12px; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+  .br-intro { margin: 0 0 20px; line-height: 1.6; }
+  .guide-link { color: var(--ember); font-weight: 700; }
+
+  .br-error { padding: 24px; border: 1px solid var(--dust); border-left: 4px solid var(--ember); background: var(--bone); }
+  .br-error p:last-child { margin-top: 16px; }
+
+  .br-status {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--dust);
+    background: var(--bone);
+    font-weight: 700;
+  }
+
+  .br-continue { margin-top: 16px; font-weight: 800; font-size: 1.05rem; }
+
+  .gps-confirm-panel {
+    border: 1px solid #d1d5db;
+    border-left: 3px solid var(--sandstone);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 12px;
+    background: #fff;
+  }
+  .gps-confirm-address {
+    font-size: 0.9375rem;
+    color: var(--charcoal);
+    margin: 0 0 12px;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+  .gps-confirm-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .gps-confirm-actions button {
+    min-height: 2.5rem;
+    padding: 0.45rem 1.1rem;
+    border-radius: 7px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--ember);
+    background: var(--ember);
+    color: #fff;
+  }
+  .gps-confirm-actions button:last-child {
+    background: transparent;
+    color: var(--charcoal);
+    border-color: #9ca3af;
+  }
+  .gps-confirm-actions button:hover { opacity: 0.88; }
+</style>
+
+<script define:vars={{ availableRaces: payload.availableRaces, choices: payload.choices }}>
+  const AVAILABLE_RACES_STORAGE_KEY = 'wyoming-2026-my-available-races-v1';
+  const CHOICES_STORAGE_KEY = 'wyoming-2026-my-candidate-list-v1';
+
+  const statusEl = document.getElementById('br-status');
+  const confirmPanel = document.getElementById('br-confirm');
+  const continueEl = document.getElementById('br-continue');
+  const continueLink = document.getElementById('br-continue-link');
+
+  function hasExistingList() {
+    try {
+      const races = JSON.parse(localStorage.getItem(AVAILABLE_RACES_STORAGE_KEY) || '[]');
+      const choices = JSON.parse(localStorage.getItem(CHOICES_STORAGE_KEY) || '[]');
+      return (Array.isArray(races) && races.length > 0) || (Array.isArray(choices) && choices.length > 0);
+    } catch {
+      return false;
+    }
+  }
+
+  function writeRestoredList() {
+    try {
+      localStorage.setItem(AVAILABLE_RACES_STORAGE_KEY, JSON.stringify(availableRaces));
+      localStorage.setItem(CHOICES_STORAGE_KEY, JSON.stringify(choices));
+    } catch {
+      if (statusEl) {
+        statusEl.textContent = 'Could not save to this browser (private browsing or storage may be disabled).';
+        statusEl.hidden = false;
+      }
+      return false;
+    }
+    return true;
+  }
+
+  function showContinue() {
+    const firstId = availableRaces?.[0]?.id;
+    if (continueLink) {
+      continueLink.href = firstId ? `/race/${encodeURIComponent(String(firstId))}?restored=1` : '/?restored=1';
+    }
+    if (continueEl) continueEl.hidden = false;
+  }
+
+  // Only relevant if the redemption page itself ever runs client-side more
+  // than once per load — it doesn't, but the elements below are only
+  // present when a valid token was found server-side.
+  if (statusEl || confirmPanel || continueEl) {
+    if (hasExistingList()) {
+      if (confirmPanel) confirmPanel.hidden = false;
+      document.getElementById('br-confirm-replace')?.addEventListener('click', () => {
+        if (confirmPanel) confirmPanel.hidden = true;
+        if (writeRestoredList()) showContinue();
+      });
+      document.getElementById('br-confirm-keep')?.addEventListener('click', () => {
+        if (confirmPanel) confirmPanel.hidden = true;
+        showContinue();
+      });
+    } else {
+      if (writeRestoredList()) showContinue();
+    }
+  }
+</script>

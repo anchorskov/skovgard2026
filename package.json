@@ -30,7 +30,7 @@
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "unocss": "^66.3.3",
-    "wrangler": "4.118.0"
+    "wrangler": "4.123.0"
   },
   "engines": {
     "node": ">=22.12.0"

@@ -24,6 +24,46 @@ specific to `Candidates/`. For campaign-wide rules see the root `AGENTS.md`.
 - **`Candidates/candidate_data.md`** — full D1 schema for `offices` and `candidates`, field definitions, enrichment batch workflow, migration history. Read this before any database work.
 - **`Candidates/docs/county_seed.md`** — step-by-step guide for adding a new county's candidates. Read this before writing any county seed SQL.
 - **`Candidates/docs/rubrics/README.md`** — canonical rubric authoring, generated artifacts, D1 runtime loading, and versioning workflow.
+- **`Candidates/docs/multi_selection.md`** — domain spec for multi-candidate-selection contests (rules, UI contract, safety constraints). Read before touching `src/lib/selection-limit.ts`, the multi-select UI in `race/[id].astro`, or `multi_seat_race_sources`. `Candidates/candidate_data.md`'s "Multi-candidate selection" section is the shorter pointer.
+- **`Candidates/docs/voice_guide.md`** — architecture for the optional Voice Guide / spoken-navigation feature (command grammar, help-topic registry, state model, address-lookup integration). Read before touching `src/components/VoiceGuide.astro`, `src/components/HelpPanel.astro`, or `src/lib/voice-guide/`.
+
+---
+
+## Turnstile on the ballot lookup form (`src/pages/index.astro`)
+
+The address-lookup form (`#address-form-section`) uses an **invisible, execution-mode**
+Turnstile widget (`#ts-widget`) to gate `POST /api/ballot-lookup`. It is disabled entirely
+in local dev (`isLocalReview = import.meta.env.DEV`) — `verifyTurnstile()` in
+`src/pages/api/ballot-lookup.js` also short-circuits to `true` when `import.meta.env.DEV`,
+so **this flow cannot be exercised against a real widget in `npm run dev`; it only runs for
+real against the production site key.** Test it in production (or a preview deploy with
+`TURNSTILE_SITE_KEY` set) after any change here, not just via `astro build`/`astro check`.
+
+**Explicit render, not implicit auto-render.** The script tag loads
+`api.js?render=explicit`, and JS calls `turnstile.render('#ts-widget', {...})` itself
+(`ensureTurnstileWidget()`) the first time `window.turnstile` becomes available, keeping the
+returned `widgetId` for all later `execute()`/`reset()` calls. Do **not** revert this to the
+implicit pattern (`class="cf-turnstile"` + `data-sitekey`/`data-callback` attributes +
+plain `api.js`) — that was the actual bug fixed 2026-08-03: Cloudflare's implicit auto-render
+scan runs on its own timing relative to when `window.turnstile` appears, so `execute('#ts-widget')`
+could silently no-op on a genuinely first page load (no error, no callback — the 12s ceiling in
+`getTurnstileToken()` just ran out and the request posted with no token), producing a real,
+user-visible "Verification failed. Please reload the page and try again." on the *first* attempt
+only, working fine on every retry. `render()` returning a widgetId synchronously is what removes
+that race, not more polling.
+
+**Never surface "Verification failed" to a voter.** The submit handler retries once, silently,
+with a fresh token whenever the server returns 403 before showing the user anything — see the
+comment above the `response.status === 403` check in the submit handler. If you see this message
+reappear (even rarely) in production logs/reports, treat it as drift in this widget-readiness
+logic first, not a real bot-detection event — re-read this section and the comments in
+`ensureTurnstileWidget()`/`getTurnstileToken()` before changing anything.
+
+`src/pages/candidate/[slug].astro` also embeds a Turnstile widget (`#qr-ts-widget`, for the
+questionnaire-request form) but it's a **visible, managed checkbox widget** using
+`getResponse()`, not `execute()` — a different, still-implicit-render pattern with different
+(and so far unreported) failure characteristics. It was not touched by the 2026-08-03 fix; don't
+assume the two widgets share state or behavior.
 
 ---
 

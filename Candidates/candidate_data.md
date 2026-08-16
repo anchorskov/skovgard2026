@@ -192,8 +192,10 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/migrations/0011_candidate_email_suppressions.sql` | Adds the candidate bulk-email suppression table |
 | `db/migrations/0019_multi_seat_race_sources.sql` | Creates `multi_seat_race_sources`, the staging table for the multi-seat candidates flow (see below) |
 | `db/migrations/0022_guide_rubric_definitions.sql` | Creates versioned rubric definitions and ordered categories; canonical authoring source is `data/rubrics/wy-primary-2026-v1.md` |
-| `db/migrations/0024_multi_seat_race_sources_selection_limit_fields.sql` | Adds normalized selection-limit fields to multi-seat source records |
+| `db/migrations/0024_multi_seat_race_sources_selection_limit_fields.sql` | Additive columns on `multi_seat_race_sources` for the `docs/multi_selection.md` §10 CSV fields not already present: `ward`, `board_size`, `verified_date`, `source_page_or_section`. Local only as of 2026-08-02 — not yet applied to production D1. Does not touch `offices`; see "Multi-candidate selection" below |
 | `db/migrations/0025_office_precinct_scopes.sql` | Creates data-backed many-to-many precinct targeting for municipal wards and other sub-county offices |
+| `db/migrations/0026_ballot_recovery_tokens.sql` | Creates `ballot_recovery_tokens`, the 24h-TTL magic-link table for cross-device ballot recovery; applied to production D1 2026-08-04. See "Ballot recovery / cross-device sync" below and `docs/ballot_recovery.md` |
+| `db/migrations/0027_ballot_saves.sql` | Creates `ballot_saves`, the durable email-keyed saved-ballot table purged one day after the 2026 primary by the separate `skovgard-candidates-cron` Worker; applied to production D1 2026-08-04 |
 
 **Applying migrations:** the `wy` database is shared with other projects (Guide, and other unrelated features) and their `d1_migrations` bookkeeping rows live in the same table. Candidates' own 0001–0019 migrations have never been recorded in that ledger — they've always been applied by hand. Apply a new migration with `npx wrangler d1 execute wy --remote --file=db/migrations/NNNN_name.sql` from `Candidates/`. Do **not** run `wrangler d1 migrations apply` for this project — it will try to replay the entire untracked history from 0001 and fail (migration 0001's `uq_offices_statewide`/`uq_offices_district` indexes no longer match live data, which now has legitimate duplicate titles across different counties).
 
@@ -285,3 +287,27 @@ The ballot lookup resolves legislative districts and coordinates from the voter-
 - Broad `countywide` and `municipal` offices remain visible to all voters in the county or municipality.
 
 Fremont's filed 2026 ballot supplies the Lander and Riverton ward-to-precinct mappings, so those ward offices use `office_precinct_scopes`. Fremont commissioner districts cannot safely use this table alone: the official county district/precinct list shows that some precincts are split across commissioner districts. Exact commissioner routing therefore remains pending an authoritative polygon layer or address-level commissioner split data; do not infer a single commissioner district from those split precinct codes.
+
+## Ballot recovery / cross-device sync
+
+Full design, table lifetimes, and security properties:
+`docs/ballot_recovery.md`. Short version: a voter's saved list on `/race/[id]`
+lives only in `localStorage`; `ballot_saves` (0027) is the durable
+email-keyed copy and `ballot_recovery_tokens` (0026) is the 24h magic link
+that restores it elsewhere. `Candidates/cron/` is a separate
+`skovgard-candidates-cron` Worker (own `wrangler.toml`, deployed via
+`scripts/deploy_candidates_cron.sh`) that purges both past retention — it
+exists only because the Astro Cloudflare adapter's generated Worker entry
+has no `scheduled()` export to hang a cron trigger off of.
+
+## Multi-candidate selection
+
+Full rules, UI contract, and safety constraints: `docs/multi_selection.md` (gitignored, local only — see `Candidates/AGENTS.md`). This section is the pointer other agents need before touching any of it.
+
+**`offices.seats_available` is still the only field the client reads** — race/[id].astro's `data-seats-available` — unchanged by this work. `src/lib/selection-limit.ts` exports `resolveSelectionLimit()`, the §3 jurisdiction rule table, and the ballot-instruction parser; it's the framework for *computing* what should go into `seats_available`, not a replacement for that column. Nothing currently calls it automatically — an importer that walks `multi_seat_race_sources` and writes the resolved limit into `offices.seats_available` is not yet built (spec §10, Step E).
+
+One domain fact worth flagging here specifically because it was wrong in an earlier draft of the spec and is the single most common error in this area: **nonpartisan municipal primaries do NOT double the vote-for number.** W.S. 22-23-303 sets `max_selections = seats_to_elect`; W.S. 22-23-307(a) separately doubles that for how many *advance* to the general (`number_nominated`) — a different question that must never reach the UI. `resolveSelectionLimit`'s jurisdiction table is deliberately kept as a table rather than collapsed into a formula so this warning has somewhere to live in code, not just in the doc.
+
+`multi_seat_race_sources` (0019, extended by 0024) already covers most of §10's CSV contract under different column names — notably `ui_instruction` (≈ `ballot_instruction`, populated on most rows already) and `source_status` (≈ `verification_status`, richer than the spec's simple verified/not gate). race/[id].astro's server code reads `ui_instruction` directly (gated on `source_status = 'verified'`) to show the real ballot text instead of a generated "Select up to N" string, but only queries it when `seats_available > 1` — single-choice races show no limit text either way.
+
+`src/lib/race-order.ts`'s `sortRaces()` is the one place canonical ballot order (federal → statewide → wy_senate → wy_house → county → city, precinct sorted last via `scope_kind`) is decided — the homepage results panel, "Jump to a race," and the saved candidate list on race/[id].astro all derive from it rather than each inventing their own order. Do not add a second ordering anywhere; project this one via `rankMapFromOrder`/`sortByRankMap` instead (see how race/[id].astro's saved-list grouping does it).

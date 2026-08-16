@@ -1,7 +1,7 @@
 // Candidates/src/lib/questionnaire-email.ts
 import { sendResendEmail } from './resend';
 
-const DEFAULT_FROM = 'profile@grassrootsmvt.org';
+const DEFAULT_FROM = 'profile@updates.grassrootsmvt.org';
 
 export async function sendQuestionnaireInviteEmail(
   env: any,
