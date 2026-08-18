@@ -19,15 +19,29 @@ if (!office) {
   return Astro.redirect('/races');
 }
 
-// 2026 results, matched structurally (level + district + county) against
-// election_contests. office_id there is unpopulated until a real
-// candidate/office matching pass runs, so this is a Phase 1 runtime
-// match, not a stored FK join. Symmetric NULL handling on both sides
-// (district and county) covers all four office shapes: federal/statewide
-// (both NULL), legislative (district set, county NULL), county/city
-// (district NULL, county set). Returns nothing today since no 2026
-// election_contests rows exist yet, that's the correct, expected state
-// before polls close and real data is ingested, not a bug.
+// 2026 results, matched structurally against election_contests. office_id
+// there is unpopulated until a real candidate/office matching pass runs,
+// so this is a Phase 1 runtime match, not a stored FK join.
+//
+// level + district + county alone is NOT sufficient to disambiguate every
+// office shape, confirmed by a real QA test, not assumed: Wyoming's
+// federal offices (US Senate, US House) and statewide offices (Governor,
+// Secretary of State, etc.) all share level='federal'/'statewide' with
+// district=NULL and county=NULL, so that trio alone matched candidates
+// from multiple different offices into one contest. The same collision
+// applies to county offices sharing one county (Commissioner, Assessor,
+// Clerk, ...) with no other office in that county to disambiguate against.
+// Fixed with a level-dependent third condition:
+//   - wy_senate/wy_house: district alone is already unique, no title
+//     check needed (two different districts always have different
+//     numbers).
+//   - federal/statewide: contest_name_normalized must equal office.title
+//     exactly (both literally say "United States Senator", "Governor",
+//     etc. in both this table and the ingestion pipelines).
+//   - county/city: office.title includes the county name as a prefix
+//     ("Natrona County Commissioner") while contest_name_normalized does
+//     not ("County Commissioner"), so this is a suffix match, not
+//     equality.
 const { results: matchedContests } = await env.WY_DB.prepare(
   `SELECT ec.id AS contest_id
      FROM election_contests ec
@@ -35,8 +49,13 @@ const { results: matchedContests } = await env.WY_DB.prepare(
     WHERE ee.election_key = 'wy-2026-primary'
       AND ec.level = ?1
       AND (ec.district = ?2 OR (ec.district IS NULL AND ?2 IS NULL))
-      AND (ec.county = ?3 OR (ec.county IS NULL AND ?3 IS NULL))`
-).bind(office.level, office.district ?? null, office.county ?? null).all();
+      AND (ec.county = ?3 OR (ec.county IS NULL AND ?3 IS NULL))
+      AND (
+        ec.level IN ('wy_senate', 'wy_house')
+        OR ec.contest_name_normalized = ?4
+        OR (ec.level IN ('county', 'city') AND ?4 LIKE '%' || ec.contest_name_normalized)
+      )`
+).bind(office.level, office.district ?? null, office.county ?? null, office.title).all();
 
 type CandidateResult = { votes: number; pct: number; isLeading: boolean; isUnofficial: boolean };
 const resultsByName = new Map<string, CandidateResult>();
