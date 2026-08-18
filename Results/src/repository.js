@@ -68,11 +68,24 @@ export async function insertSourceCheck(db, sourceId, check) {
 
 export async function insertDiscoveries(db, sourceId, checkId, discoveries) {
   if (!checkId || discoveries.length === 0) return 0;
+  // A landing page's link set is almost always identical poll to poll (only
+  // the PDFs behind the links change, not the page's own HTML structure),
+  // and a source is re-checked every 2 minutes for up to ~19 hours during
+  // the election window. Deduping only within one check's own insert batch
+  // (the old UNIQUE(check_id, discovered_url) behavior) meant the same
+  // links were re-recorded as "new" on every single poll, growing without
+  // bound. A URL is a discovery once, from a given source, ever, so this
+  // checks across ALL of that source's prior checks, not just this one.
   const statements = discoveries.map((discovery) => db.prepare(`
-    INSERT OR IGNORE INTO election_source_discoveries (
+    INSERT INTO election_source_discoveries (
       check_id, source_id, discovered_url, link_text, classification,
       discovery_reason
-    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+    )
+    SELECT ?1, ?2, ?3, ?4, ?5, ?6
+    WHERE NOT EXISTS (
+      SELECT 1 FROM election_source_discoveries
+      WHERE source_id = ?2 AND discovered_url = ?3
+    )
   `).bind(
     checkId,
     sourceId,
