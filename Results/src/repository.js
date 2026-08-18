@@ -66,26 +66,47 @@ export async function insertSourceCheck(db, sourceId, check) {
   return Number(result.meta?.last_row_id);
 }
 
-export async function insertDiscoveries(db, sourceId, checkId, discoveries) {
-  if (!checkId || discoveries.length === 0) return 0;
-  // A landing page's link set is almost always identical poll to poll (only
-  // the PDFs behind the links change, not the page's own HTML structure),
-  // and a source is re-checked every 2 minutes for up to ~19 hours during
-  // the election window. Deduping only within one check's own insert batch
-  // (the old UNIQUE(check_id, discovered_url) behavior) meant the same
-  // links were re-recorded as "new" on every single poll, growing without
-  // bound. A URL is a discovery once, from a given source, ever, so this
-  // checks across ALL of that source's prior checks, not just this one.
-  const statements = discoveries.map((discovery) => db.prepare(`
-    INSERT INTO election_source_discoveries (
+// A landing page's link set is almost always identical poll to poll (only
+// the PDFs behind the links change, not the page's own HTML structure), and
+// a source is re-checked every 2 minutes for up to ~19 hours during the
+// election window. Recording every link on every poll, even with dedup,
+// meant one existing-URL check per candidate link, every run, for as long
+// as the election window stays open, which can exceed D1's per-invocation
+// query budget once several sources each surface 50-100 links. This does
+// one lookup for the source's entire known-URL set, filters and caps in
+// JavaScript, and returns how many were deferred so a source with a burst
+// of new links (e.g. the first time a results archive appears) drains over
+// several runs instead of being silently truncated with no record of it.
+export async function insertDiscoveries(db, sourceId, checkId, discoveries, maxPerRun) {
+  if (!checkId || discoveries.length === 0) return { inserted: 0, deferred: 0 };
+
+  const seenInBatch = new Set();
+  const uniqueIncoming = discoveries.filter((discovery) => {
+    if (seenInBatch.has(discovery.url)) return false;
+    seenInBatch.add(discovery.url);
+    return true;
+  });
+
+  const { results: known } = await db.prepare(
+    `SELECT discovered_url FROM election_source_discoveries WHERE source_id = ?1`,
+  ).bind(sourceId).all();
+  const knownUrls = new Set(known.map((row) => row.discovered_url));
+
+  const newLinks = uniqueIncoming.filter((discovery) => !knownUrls.has(discovery.url));
+  const toInsert = newLinks.slice(0, maxPerRun);
+  const deferred = newLinks.length - toInsert.length;
+  if (toInsert.length === 0) return { inserted: 0, deferred };
+
+  // The unique index added in 0033_election_source_discoveries_unique_index.sql
+  // is the actual guarantee against a duplicate row; the lookup above only
+  // avoids wasted write statements in the common case. INSERT OR IGNORE
+  // relies on that index so two overlapping runs racing on the same source
+  // still cannot double-insert the same link.
+  const statements = toInsert.map((discovery) => db.prepare(`
+    INSERT OR IGNORE INTO election_source_discoveries (
       check_id, source_id, discovered_url, link_text, classification,
       discovery_reason
-    )
-    SELECT ?1, ?2, ?3, ?4, ?5, ?6
-    WHERE NOT EXISTS (
-      SELECT 1 FROM election_source_discoveries
-      WHERE source_id = ?2 AND discovered_url = ?3
-    )
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
   `).bind(
     checkId,
     sourceId,
@@ -95,7 +116,8 @@ export async function insertDiscoveries(db, sourceId, checkId, discoveries) {
     discovery.reason,
   ));
   const results = await db.batch(statements);
-  return results.reduce((total, result) => total + Number(result.meta?.changes || 0), 0);
+  const inserted = results.reduce((total, result) => total + Number(result.meta?.changes || 0), 0);
+  return { inserted, deferred };
 }
 
 export async function statusSummary(db, electionKey) {

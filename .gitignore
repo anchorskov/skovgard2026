@@ -29,6 +29,10 @@ scripts/verify_hd01_emails_2026-07-09.mjs
 *.sqlite-shm
 *.db
 
+# Python
+__pycache__/
+*.pyc
+
 # OS / editor artifacts
 .DS_Store
 Thumbs.db

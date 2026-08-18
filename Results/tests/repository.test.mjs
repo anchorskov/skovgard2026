@@ -1,10 +1,9 @@
 // Results/tests/repository.test.mjs
 //
 // Exercises repository.js against a real in-memory SQLite database built
-// from the actual migration files (0028, 0032), through a thin shim that
-// implements the slice of the D1 prepared-statement API this module uses
-// (prepare().bind().run()/.all()/.first(), db.batch()). No live county
-// requests are made; nothing here touches the real local wy database.
+// from the actual migration files (0028, 0032, 0033), through the shared
+// D1 shim. No live county requests are made; nothing here touches the real
+// local wy database.
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -12,44 +11,22 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { wrapD1 } from './helpers/d1-shim.mjs';
 import { insertDiscoveries, insertSourceCheck } from '../src/repository.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.join(__dirname, '..', '..', 'Candidates', 'db', 'migrations');
 
-function wrapD1(sqliteDb) {
-  function bound(sql, args) {
-    return {
-      async run() {
-        const info = sqliteDb.prepare(sql).run(...args);
-        return { meta: { last_row_id: Number(info.lastInsertRowid), changes: Number(info.changes) } };
-      },
-      async all() {
-        return { results: sqliteDb.prepare(sql).all(...args) };
-      },
-      async first() {
-        return sqliteDb.prepare(sql).get(...args) ?? null;
-      },
-    };
-  }
-  return {
-    prepare(sql) {
-      return { bind: (...args) => bound(sql, args) };
-    },
-    async batch(statements) {
-      const results = [];
-      for (const statement of statements) results.push(await statement.run());
-      return results;
-    },
-  };
-}
-
-function freshDb() {
+function freshDb({ onQuery } = {}) {
   const sqliteDb = new DatabaseSync(':memory:');
-  for (const file of ['0028_election_results.sql', '0032_election_source_discoveries.sql']) {
+  for (const file of [
+    '0028_election_results.sql',
+    '0032_election_source_discoveries.sql',
+    '0033_election_source_discoveries_unique_index.sql',
+  ]) {
     sqliteDb.exec(readFileSync(path.join(migrationsDir, file), 'utf8'));
   }
-  return wrapD1(sqliteDb);
+  return wrapD1(sqliteDb, { onQuery });
 }
 
 async function seedSource(db, key) {
@@ -81,18 +58,24 @@ async function seedCheck(db, sourceId) {
   });
 }
 
+function link(n) {
+  return { url: `https://county.gov/results-${n}.pdf`, linkText: `Results ${n}`, classification: 'candidate_result', reason: 'test' };
+}
+
 test('the same link discovered on a repeat poll of the same source is not re-inserted', async () => {
   const db = freshDb();
   const sourceId = await seedSource(db, 'wy|test|wy-2026-primary|landing_page');
-  const discovery = { url: 'https://county.gov/results.pdf', linkText: 'Results', classification: 'candidate_result', reason: 'test' };
+  const discovery = link(1);
 
   const firstCheck = await seedCheck(db, sourceId);
-  const firstInsertCount = await insertDiscoveries(db, sourceId, firstCheck, [discovery]);
-  assert.equal(firstInsertCount, 1);
+  const first = await insertDiscoveries(db, sourceId, firstCheck, [discovery], 20);
+  assert.equal(first.inserted, 1);
+  assert.equal(first.deferred, 0);
 
   const secondCheck = await seedCheck(db, sourceId);
-  const secondInsertCount = await insertDiscoveries(db, sourceId, secondCheck, [discovery]);
-  assert.equal(secondInsertCount, 0);
+  const second = await insertDiscoveries(db, sourceId, secondCheck, [discovery], 20);
+  assert.equal(second.inserted, 0);
+  assert.equal(second.deferred, 0);
 
   const total = await db.prepare('SELECT COUNT(*) AS n FROM election_source_discoveries').bind().first();
   assert.equal(total.n, 1);
@@ -101,15 +84,15 @@ test('the same link discovered on a repeat poll of the same source is not re-ins
 test('a genuinely new link on a later poll is still inserted', async () => {
   const db = freshDb();
   const sourceId = await seedSource(db, 'wy|test|wy-2026-primary|landing_page');
-  const first = { url: 'https://county.gov/results.pdf', linkText: 'Results', classification: 'candidate_result', reason: 'test' };
-  const second = { url: 'https://county.gov/results-updated.pdf', linkText: 'Updated Results', classification: 'candidate_result', reason: 'test' };
+  const first = link(1);
+  const second = link(2);
 
   const firstCheck = await seedCheck(db, sourceId);
-  await insertDiscoveries(db, sourceId, firstCheck, [first]);
+  await insertDiscoveries(db, sourceId, firstCheck, [first], 20);
 
   const secondCheck = await seedCheck(db, sourceId);
-  const secondInsertCount = await insertDiscoveries(db, sourceId, secondCheck, [first, second]);
-  assert.equal(secondInsertCount, 1);
+  const result = await insertDiscoveries(db, sourceId, secondCheck, [first, second], 20);
+  assert.equal(result.inserted, 1);
 
   const total = await db.prepare('SELECT COUNT(*) AS n FROM election_source_discoveries').bind().first();
   assert.equal(total.n, 2);
@@ -122,11 +105,93 @@ test('the same URL discovered from two different sources is recorded for each', 
   const discovery = { url: 'https://sos.wyo.gov/results.pdf', linkText: 'Results', classification: 'candidate_result', reason: 'test' };
 
   const checkA = await seedCheck(db, sourceA);
-  await insertDiscoveries(db, sourceA, checkA, [discovery]);
+  await insertDiscoveries(db, sourceA, checkA, [discovery], 20);
   const checkB = await seedCheck(db, sourceB);
-  const insertedForB = await insertDiscoveries(db, sourceB, checkB, [discovery]);
-  assert.equal(insertedForB, 1);
+  const forB = await insertDiscoveries(db, sourceB, checkB, [discovery], 20);
+  assert.equal(forB.inserted, 1);
 
   const total = await db.prepare('SELECT COUNT(*) AS n FROM election_source_discoveries').bind().first();
   assert.equal(total.n, 2);
+});
+
+test('duplicate URLs inside one incoming discovery array produce one row', async () => {
+  const db = freshDb();
+  const sourceId = await seedSource(db, 'wy|test|wy-2026-primary|landing_page');
+  const discovery = link(1);
+  const checkId = await seedCheck(db, sourceId);
+
+  const result = await insertDiscoveries(db, sourceId, checkId, [discovery, { ...discovery }, { ...discovery }], 20);
+  assert.equal(result.inserted, 1);
+  assert.equal(result.deferred, 0);
+
+  const total = await db.prepare('SELECT COUNT(*) AS n FROM election_source_discoveries').bind().first();
+  assert.equal(total.n, 1);
+});
+
+test('a source with 100 new links inserts only the configured per-run limit', async () => {
+  const db = freshDb();
+  const sourceId = await seedSource(db, 'wy|test|wy-2026-primary|landing_page');
+  const checkId = await seedCheck(db, sourceId);
+  const links = Array.from({ length: 100 }, (_, i) => link(i));
+
+  const result = await insertDiscoveries(db, sourceId, checkId, links, 20);
+  assert.equal(result.inserted, 20);
+  assert.equal(result.deferred, 80);
+
+  const total = await db.prepare('SELECT COUNT(*) AS n FROM election_source_discoveries').bind().first();
+  assert.equal(total.n, 20);
+});
+
+test('later calls drain the links deferred by an earlier run', async () => {
+  const db = freshDb();
+  const sourceId = await seedSource(db, 'wy|test|wy-2026-primary|landing_page');
+  const links = Array.from({ length: 45 }, (_, i) => link(i));
+
+  const check1 = await seedCheck(db, sourceId);
+  const run1 = await insertDiscoveries(db, sourceId, check1, links, 20);
+  assert.equal(run1.inserted, 20);
+  assert.equal(run1.deferred, 25);
+
+  const check2 = await seedCheck(db, sourceId);
+  const run2 = await insertDiscoveries(db, sourceId, check2, links, 20);
+  assert.equal(run2.inserted, 20);
+  assert.equal(run2.deferred, 5);
+
+  const check3 = await seedCheck(db, sourceId);
+  const run3 = await insertDiscoveries(db, sourceId, check3, links, 20);
+  assert.equal(run3.inserted, 5);
+  assert.equal(run3.deferred, 0);
+
+  const total = await db.prepare('SELECT COUNT(*) AS n FROM election_source_discoveries').bind().first();
+  assert.equal(total.n, 45);
+});
+
+test('one existing-URL lookup is performed rather than one query per known link', async () => {
+  const queries = [];
+  const db = freshDb({ onQuery: (sql) => queries.push(sql) });
+  const sourceId = await seedSource(db, 'wy|test|wy-2026-primary|landing_page');
+  const checkId = await seedCheck(db, sourceId);
+  const links = Array.from({ length: 30 }, (_, i) => link(i));
+
+  queries.length = 0;
+  await insertDiscoveries(db, sourceId, checkId, links, 20);
+
+  const lookups = queries.filter((sql) => sql.includes('SELECT discovered_url FROM election_source_discoveries'));
+  assert.equal(lookups.length, 1);
+});
+
+test('the unique index rejects a duplicate insert attempted outside the app-level check', async () => {
+  const db = freshDb();
+  const sourceId = await seedSource(db, 'wy|test|wy-2026-primary|landing_page');
+  const checkId = await seedCheck(db, sourceId);
+  await insertDiscoveries(db, sourceId, checkId, [link(1)], 20);
+
+  const result = await db.prepare(`
+    INSERT OR IGNORE INTO election_source_discoveries (check_id, source_id, discovered_url, link_text, classification)
+    VALUES (?1, ?2, ?3, 'dup', 'candidate_result')
+  `).bind(checkId, sourceId, link(1).url).run();
+  assert.equal(result.meta.changes, 0);
+
+  const total = await db.prepare('SELECT COUNT(*) AS n FROM election_source_discoveries').bind().first();
+  assert.equal(total.n, 1);
 });

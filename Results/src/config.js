@@ -16,6 +16,7 @@ export function loadConfig(env = {}) {
     maxResponseBytes: numberFromEnv(env, "MAX_RESPONSE_BYTES", 10 * 1024 * 1024),
     fetchTimeoutMs: numberFromEnv(env, "FETCH_TIMEOUT_MS", 12_000),
     maxSourcesPerRun: numberFromEnv(env, "MAX_SOURCES_PER_RUN", 24),
+    maxDiscoveriesPerSourcePerRun: numberFromEnv(env, "MAX_DISCOVERIES_PER_SOURCE_PER_RUN", 20),
     maxConcurrency: numberFromEnv(env, "MAX_CONCURRENCY", 4),
     fastWindowBeforeMinutes: numberFromEnv(env, "FAST_WINDOW_BEFORE_MINUTES", 60),
     fastWindowAfterMinutes: numberFromEnv(env, "FAST_WINDOW_AFTER_MINUTES", 18 * 60),
