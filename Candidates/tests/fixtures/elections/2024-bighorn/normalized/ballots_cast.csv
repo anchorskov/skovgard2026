@@ -1,0 +1,14 @@
+precinct,republican_ballots,democratic_ballots,nonpartisan_ballots,total_ballots,county,election_date,source_url,retrieved_at_utc
+01-01,434,26,6,466,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+02-01,140,1,2,143,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+03-01,52,1,0,53,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+05-01,31,0,0,31,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+06-01,64,0,0,64,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+08-01,85,2,5,92,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+11-01,475,26,14,515,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+16-01,122,8,0,130,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+20-01,629,20,8,657,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+22-01,240,9,2,251,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+23-01,133,4,9,146,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+25-01,36,4,1,41,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z
+26-01,48,4,3,55,Big Horn,2024-08-20,https://sos.wyo.gov/Elections/Docs/2024/Results/Primary/2024_Wyoming_Primary_Results.zip,2026-08-18T18:00:00Z

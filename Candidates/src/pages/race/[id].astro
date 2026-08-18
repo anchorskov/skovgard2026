@@ -12,11 +12,66 @@ const isLocalReview = import.meta.env.DEV;
 const turnstileEnabled = Boolean(turnstileSiteKey && !isLocalReview);
 
 const office = await env.WY_DB.prepare(
-  'SELECT id, title, level, district, seats_available FROM offices WHERE id = ?1'
+  'SELECT id, title, level, district, county, seats_available FROM offices WHERE id = ?1'
 ).bind(id).first();
 
 if (!office) {
   return Astro.redirect('/races');
+}
+
+// 2026 results, matched structurally (level + district + county) against
+// election_contests. office_id there is unpopulated until a real
+// candidate/office matching pass runs, so this is a Phase 1 runtime
+// match, not a stored FK join. Symmetric NULL handling on both sides
+// (district and county) covers all four office shapes: federal/statewide
+// (both NULL), legislative (district set, county NULL), county/city
+// (district NULL, county set). Returns nothing today since no 2026
+// election_contests rows exist yet, that's the correct, expected state
+// before polls close and real data is ingested, not a bug.
+const { results: matchedContests } = await env.WY_DB.prepare(
+  `SELECT ec.id AS contest_id
+     FROM election_contests ec
+     JOIN election_events ee ON ee.id = ec.election_id
+    WHERE ee.election_key = 'wy-2026-primary'
+      AND ec.level = ?1
+      AND (ec.district = ?2 OR (ec.district IS NULL AND ?2 IS NULL))
+      AND (ec.county = ?3 OR (ec.county IS NULL AND ?3 IS NULL))`
+).bind(office.level, office.district ?? null, office.county ?? null).all();
+
+type CandidateResult = { votes: number; pct: number; isLeading: boolean; isUnofficial: boolean };
+const resultsByName = new Map<string, CandidateResult>();
+
+if (matchedContests.length > 0) {
+  const contestIds = matchedContests.map((c) => c.contest_id);
+  const placeholders = contestIds.map((_, i) => `?${i + 1}`).join(', ');
+  const { results: rows } = await env.WY_DB.prepare(
+    `SELECT contest_id, candidate_name_raw, SUM(votes) AS votes, MAX(is_unofficial) AS is_unofficial
+       FROM v_election_current_results
+      WHERE contest_id IN (${placeholders})
+        AND row_type = 'candidate'
+        AND precinct_code IS NULL
+      GROUP BY contest_id, candidate_name_raw`
+  ).bind(...contestIds).all();
+
+  const byContest = new Map<number, { name: string; votes: number; isUnofficial: boolean }[]>();
+  for (const r of rows as any[]) {
+    const list = byContest.get(r.contest_id) || [];
+    list.push({ name: String(r.candidate_name_raw), votes: Number(r.votes), isUnofficial: Boolean(r.is_unofficial) });
+    byContest.set(r.contest_id, list);
+  }
+
+  for (const [, candidatesInContest] of byContest) {
+    const total = candidatesInContest.reduce((sum, c) => sum + c.votes, 0);
+    const maxVotes = Math.max(...candidatesInContest.map((c) => c.votes));
+    for (const c of candidatesInContest) {
+      resultsByName.set(c.name.trim().toUpperCase(), {
+        votes: c.votes,
+        pct: total > 0 ? (c.votes / total) * 100 : 0,
+        isLeading: c.votes === maxVotes && candidatesInContest.length > 1,
+        isUnofficial: c.isUnofficial,
+      });
+    }
+  }
 }
 
 const seatsAvailable = Math.max(1, Number(office.seats_available ?? 1));
@@ -116,15 +171,25 @@ function isAbsoluteUrl(url: string | null): boolean {
     <p class="empty-note">No candidates on file for this race yet.</p>
   ) : (
     <ul class="candidate-grid" role="list">
-      {candidates.map((c) => (
-        <li class="candidate-card" data-candidate-card={String(c.id)} data-voice-item>
+      {candidates.map((c) => {
+        const result = resultsByName.get(String(c.full_name).trim().toUpperCase());
+        return (
+        <li class={`candidate-card${result?.isLeading ? ' candidate-card--leading' : ''}`} data-candidate-card={String(c.id)} data-voice-item>
           <div class="candidate-card__header">
             <div class="candidate-card__badges">
               {String(c.incumbency_status).toLowerCase() === 'incumbent' ? <span class="badge badge--incumbent">Incumbent</span> : null}
               {c.party ? <span class={`badge ${partyBadgeClass(String(c.party))}`}>{partyLabel(String(c.party))}</span> : null}
+              {result?.isLeading ? <span class="badge badge--leading">Leading</span> : null}
             </div>
             <h3 class="candidate-card__name">{c.full_name}</h3>
           </div>
+
+          {result ? (
+            <p class="candidate-card__results">
+              {result.votes.toLocaleString()} votes, {result.pct.toFixed(1)}%
+              <span class="candidate-card__results-label">{result.isUnofficial ? 'Unofficial' : 'Certified'}</span>
+            </p>
+          ) : null}
 
           {c.summary ? (
             <p class="candidate-card__summary">{c.summary}</p>
@@ -174,7 +239,8 @@ function isAbsoluteUrl(url: string | null): boolean {
             ) : null}
           </div>
         </li>
-      ))}
+        );
+      })}
     </ul>
   )}
 
@@ -427,6 +493,37 @@ function isAbsoluteUrl(url: string | null): boolean {
     border-color: var(--ember);
     background: color-mix(in srgb, var(--ember) 7%, var(--bone));
     box-shadow: 0 6px 0 var(--ember-dark);
+  }
+
+  /* Winner/leading highlight, sage per brand-lock (no true green in
+     brand/palette.json, see palette "new-colors" rule). Kept as a
+     border + tinted background, not a full-color fill, so it stays a
+     highlight rather than overriding the party-accent top border. */
+  .candidate-card--leading {
+    border-color: var(--sage);
+    background: color-mix(in srgb, var(--sage) 12%, var(--bone));
+    box-shadow: 0 6px 0 var(--sage);
+  }
+
+  .candidate-card__results {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--charcoal);
+  }
+
+  .candidate-card__results-label {
+    padding: 1px 7px;
+    border-radius: 3px;
+    background: var(--dust);
+    color: var(--charcoal);
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
 
   :global(.candidate-card__next-hint) {

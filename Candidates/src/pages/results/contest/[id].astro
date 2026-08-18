@@ -1,0 +1,267 @@
+---
+// Candidates/src/pages/results/contest/[id].astro
+import Base from '../../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+
+const { id } = Astro.params;
+
+interface ContestMeta {
+  contest_id: number;
+  contest_name_normalized: string;
+  contest_name_raw: string;
+  level: string;
+  district: number | null;
+  ballot_party: string | null;
+  reporting_scope: string;
+  election_name: string;
+  election_date: string;
+}
+
+const contest = await env.WY_DB.prepare(
+  `SELECT c.id AS contest_id, c.contest_name_normalized, c.contest_name_raw, c.level, c.district,
+          c.ballot_party, c.reporting_scope, ee.election_name, ee.election_date
+     FROM election_contests c
+     JOIN election_events ee ON ee.id = c.election_id
+    WHERE c.id = ?1`
+).bind(id).first<ContestMeta>();
+
+if (!contest) {
+  return Astro.redirect('/results');
+}
+
+interface ResultRow {
+  county: string;
+  precinct_code: string | null;
+  row_type: string;
+  candidate_name_raw: string | null;
+  candidate_id: number | null;
+  votes: number;
+  precincts_reporting: number;
+  precincts_total: number;
+  reporting_status: string;
+  is_unofficial: number;
+  verification_status: string;
+  retrieved_at: string;
+  source_url: string | null;
+}
+
+const { results: allRows } = await env.WY_DB.prepare(
+  `SELECT county, precinct_code, row_type, candidate_name_raw, candidate_id, votes,
+          precincts_reporting, precincts_total, reporting_status, is_unofficial,
+          verification_status, retrieved_at, source_url
+     FROM v_election_current_results
+    WHERE contest_id = ?1
+    ORDER BY county, precinct_code IS NULL DESC, precinct_code, votes DESC`
+).bind(id).all<ResultRow>();
+
+const countyRollups = allRows.filter((r) => r.precinct_code === null);
+const precinctRows = allRows.filter((r) => r.precinct_code !== null);
+
+// Aggregate candidate totals across all reporting counties -- summed from
+// each county's own rollup row (precinct_code IS NULL), never from
+// precinct rows, so nothing is double-counted.
+//
+// Grouping key preference order:
+//   1. Confirmed candidate_id, when a human or a high-confidence match
+//      has actually set it. This is the only grouping that is genuinely
+//      known-correct rather than inferred.
+//   2. A case-normalized name key, as a fallback for the common case
+//      (matching has not run yet on this data -- candidate_id is NULL
+//      for effectively all rows today). Different source tracks case
+//      names differently (the SOS xlsx track yields "John Barrasso"; the
+//      county-hosted PDF track yields "JOHN BARRASSO", all caps, straight
+//      from the report) -- confirmed as a real bug during the first
+//      mixed-source test: grouping on the raw string split one real
+//      candidate's statewide total into two rows.
+// Rows merged only via the case-normalized fallback are marked
+// `resolved: false` and flagged in the UI -- two different real people
+// sharing a normalized name is rare but not impossible, and this must
+// never be silently presented as equivalent to a confirmed match.
+function nameKey(name: string) {
+  return name.trim().toUpperCase();
+}
+const aggregateByCandidate = new Map<string, { votes: number; display: string; resolved: boolean }>();
+let aggregateTotal = 0;
+for (const r of countyRollups) {
+  if (r.row_type !== 'candidate' || !r.candidate_name_raw) continue;
+  const key = r.candidate_id != null ? `id:${r.candidate_id}` : `name:${nameKey(r.candidate_name_raw)}`;
+  const existing = aggregateByCandidate.get(key);
+  const preferNewDisplay = !existing || (existing.display === existing.display.toUpperCase() && r.candidate_name_raw !== r.candidate_name_raw.toUpperCase());
+  aggregateByCandidate.set(key, {
+    votes: (existing?.votes || 0) + r.votes,
+    display: preferNewDisplay ? r.candidate_name_raw : existing!.display,
+    resolved: r.candidate_id != null,
+  });
+  aggregateTotal += r.votes;
+}
+const aggregateSorted = [...aggregateByCandidate.entries()]
+  .map(([, v]) => [v.display, v.votes, v.resolved] as [string, number, boolean])
+  .sort((a, b) => b[1] - a[1]);
+
+const counties = [...new Set(countyRollups.map((r) => r.county))].sort();
+const anyUnofficial = countyRollups.some((r) => r.is_unofficial);
+
+function countyCandidates(county: string) {
+  return countyRollups
+    .filter((r) => r.county === county && r.row_type === 'candidate')
+    .sort((a, b) => b.votes - a.votes);
+}
+function countyMeta(county: string) {
+  return countyRollups.find((r) => r.county === county);
+}
+function countyPrecincts(county: string) {
+  const byPrecinct = new Map<string, ResultRow[]>();
+  for (const r of precinctRows) {
+    if (r.county !== county || r.row_type !== 'candidate') continue;
+    const list = byPrecinct.get(r.precinct_code!) || [];
+    list.push(r);
+    byPrecinct.set(r.precinct_code!, list);
+  }
+  return [...byPrecinct.entries()].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+const PARTY_LABELS: Record<string, string> = { REP: 'Republican', DEM: 'Democrat', LIB: 'Libertarian', NP: 'No party' };
+---
+
+<Base title={contest.contest_name_normalized} currentPath="/results">
+  <div class="contest-detail">
+    <a href="/results" class="back-link">&larr; All results</a>
+    <p class="eyebrow">{contest.election_name}, {contest.election_date}</p>
+    <h1>
+      {contest.contest_name_normalized}{contest.district ? `, District ${contest.district}` : ''}
+    </h1>
+    {contest.ballot_party && <p class="party-line">{PARTY_LABELS[contest.ballot_party] ?? contest.ballot_party} Primary</p>}
+    <p class="unofficial-label">{anyUnofficial ? 'Unofficial results' : 'Certified results'}</p>
+
+    {aggregateSorted.length === 0 ? (
+      <p class="empty-note">No results reported yet for this contest.</p>
+    ) : (
+      <section class="aggregate-panel" aria-label="Aggregate totals across all reporting counties">
+        <h2>Aggregate ({counties.length} {counties.length === 1 ? 'county' : 'counties'} reporting)</h2>
+        <ul class="candidate-bars" role="list">
+          {aggregateSorted.map(([name, votes, resolved]) => {
+            const pct = aggregateTotal > 0 ? (votes / aggregateTotal) * 100 : 0;
+            return (
+              <li class="candidate-bar-row">
+                <div class="candidate-bar-row__label">
+                  <span class="candidate-bar-row__name">
+                    {name}
+                    {!resolved && (
+                      <span class="unresolved-badge" title="Candidate identity matched by name only, not a confirmed record. Two different people could share this normalized name.">
+                        name match, unconfirmed
+                      </span>
+                    )}
+                  </span>
+                  <span class="candidate-bar-row__stats">{votes.toLocaleString()} votes &middot; {pct.toFixed(1)}%</span>
+                </div>
+                <div class="candidate-bar-track" role="img" aria-label={`${name}: ${pct.toFixed(1)} percent`}>
+                  <div class="candidate-bar-fill" style={`width:${pct}%`}></div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )}
+
+    {counties.length > 0 && (
+      <section class="county-breakdown">
+        <h2>County breakdown</h2>
+        <div class="county-table-wrap">
+          {counties.map((county) => {
+            const meta = countyMeta(county);
+            const cands = countyCandidates(county);
+            const precincts = countyPrecincts(county);
+            return (
+              <details class="county-block">
+                <summary>
+                  <span class="county-block__name">{county}</span>
+                  <span class="county-block__status">
+                    {meta?.reporting_status?.replace(/_/g, ' ')}
+                    {meta?.precincts_reporting != null && meta?.precincts_total != null && (
+                      <> &middot; {meta.precincts_reporting}/{meta.precincts_total} precincts</>
+                    )}
+                    {meta?.is_unofficial ? ' · Unofficial' : ' · Certified'}
+                  </span>
+                </summary>
+                <table class="county-cand-table">
+                  <thead>
+                    <tr><th scope="col">Candidate</th><th scope="col">Votes</th></tr>
+                  </thead>
+                  <tbody>
+                    {cands.map((c) => (
+                      <tr><td>{c.candidate_name_raw}</td><td>{c.votes.toLocaleString()}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p class="county-block__meta">
+                  Last updated {meta?.retrieved_at ? new Date(meta.retrieved_at).toLocaleString('en-US', { timeZone: 'America/Denver', dateStyle: 'medium', timeStyle: 'short' }) : 'unknown'} MT
+                  {meta?.source_url && (
+                    <> &middot; <a href={meta.source_url} rel="noopener noreferrer" target="_blank">Official source &rarr;</a></>
+                  )}
+                </p>
+
+                {precincts.length > 0 && (
+                  <details class="precinct-block">
+                    <summary>Precinct-level detail ({precincts.length} precincts)</summary>
+                    <table class="precinct-table">
+                      <thead>
+                        <tr><th scope="col">Precinct</th>{cands.map((c) => <th scope="col">{c.candidate_name_raw}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {precincts.map(([code, rows]) => (
+                          <tr>
+                            <td>{code}</td>
+                            {cands.map((c) => {
+                              const match = rows.find((r) => r.candidate_name_raw === c.candidate_name_raw);
+                              return <td>{match ? match.votes.toLocaleString() : 'n/a'}</td>;
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </details>
+                )}
+              </details>
+            );
+          })}
+        </div>
+      </section>
+    )}
+  </div>
+</Base>
+
+<style>
+  .contest-detail { padding: 28px 0 56px; }
+  .back-link { display: inline-block; margin-bottom: 16px; color: #8A3D23; font-weight: 700; text-decoration: none; }
+  .back-link:hover { text-decoration: underline; }
+  .eyebrow { margin: 0 0 6px; color: #8A3D23; font-weight: 800; text-transform: uppercase; font-size: .8rem; }
+  h1 { margin: 0 0 6px; font-family: 'Bitter', 'Merriweather', Georgia, serif; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+  .party-line { margin: 0 0 4px; font-weight: 700; }
+  .unofficial-label { margin: 0 0 24px; font-weight: 700; color: #8A3D23; }
+  .empty-note { padding: 24px 0; }
+  h2 { font-family: 'Bitter', 'Merriweather', Georgia, serif; font-size: 1.3rem; margin: 0 0 14px; }
+  .aggregate-panel { margin-bottom: 36px; }
+  .candidate-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .candidate-bar-row__label { display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: 700; }
+  .unresolved-badge {
+    display: inline-block; margin-left: 8px; padding: .1rem .4rem; border-radius: 3px;
+    background: #7A8A6B; color: #F1ECE1; font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    vertical-align: middle;
+  }
+  .candidate-bar-row__stats { font-weight: 500; opacity: .8; }
+  .candidate-bar-track { height: 14px; background: #E5DECB; border-radius: 3px; overflow: hidden; }
+  .candidate-bar-fill { height: 100%; background: #B22234; }
+  .county-block { border: 1px solid #B7A88A; border-radius: 4px; margin-bottom: 10px; padding: 10px 14px; background: #F1ECE1; }
+  .county-block summary { cursor: pointer; display: flex; justify-content: space-between; gap: 12px; font-weight: 800; padding: 4px 0; }
+  .county-block__status { font-weight: 500; font-size: .85rem; opacity: .8; text-transform: capitalize; }
+  .county-cand-table, .precinct-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: .92rem; }
+  .county-cand-table th, .county-cand-table td, .precinct-table th, .precinct-table td {
+    text-align: left; padding: 4px 8px; border-bottom: 1px solid #E5DECB;
+  }
+  .county-block__meta { margin: 10px 0 0; font-size: .82rem; opacity: .75; }
+  .county-block__meta a { color: #B22234; font-weight: 700; }
+  .precinct-block { margin-top: 12px; }
+  .precinct-block summary { cursor: pointer; font-weight: 700; font-size: .88rem; }
+  .precinct-table { overflow-x: auto; display: block; }
+</style>
