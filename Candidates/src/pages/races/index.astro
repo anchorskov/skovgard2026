@@ -37,6 +37,19 @@ type LeadingResult = { name: string; pct: number; party: string | null };
 // per-office, to avoid one query per race on a page listing hundreds.
 const leadingByOffice = new Map<number, LeadingResult[]>();
 
+// Same election_key this page's own results query already hardcodes below
+// (and race/[id].astro's does too). An is_active_cycle flag on
+// election_events would let this generalize to future cycles without a
+// code change, but that's a real follow-up, not needed to ship this banner.
+let pollsCloseAt: Date | null = null;
+if (env.WY_DB) {
+  const cycle = await env.WY_DB.prepare(
+    `SELECT polls_close_at FROM election_events WHERE election_key = 'wy-2026-primary'`
+  ).first<{ polls_close_at: string }>();
+  if (cycle?.polls_close_at) pollsCloseAt = new Date(cycle.polls_close_at);
+}
+const pollsHaveClosed = pollsCloseAt ? new Date() >= pollsCloseAt : false;
+
 if (env.WY_DB) {
   try {
     const { results } = await env.WY_DB.prepare(`
@@ -174,6 +187,14 @@ function candidateLabel(n: number): string {
     <p class="error-note">Race data could not be loaded. Please try again.</p>
   )}
 
+  {leadingByOffice.size === 0 && (
+    <p class="results-note" role="status">
+      {pollsHaveClosed
+        ? 'Polls have closed. Results will appear on each race below as county data is collected, this can take time on election night.'
+        : `Results will appear on each race below after polls close${pollsCloseAt ? ` at ${pollsCloseAt.toLocaleString('en-US', { timeZone: 'America/Denver', dateStyle: 'long', timeStyle: 'short' })} Mountain Time` : ''}, and will keep updating as county data is collected.`}
+    </p>
+  )}
+
   {STATE_LEVEL_ORDER.filter((level) => stateGroups[level]?.length > 0).map((level) => (
     <section class="level-group" aria-labelledby={`level-${level}`}>
       <h2 id={`level-${level}`} class="level-heading">{STATE_LEVEL_LABELS[level]}</h2>
@@ -275,6 +296,17 @@ function candidateLabel(n: number): string {
     border: 1px solid var(--ember);
     color: var(--ember-dark);
     font-weight: 700;
+  }
+
+  .results-note {
+    margin: 0 0 32px;
+    padding: 14px 20px;
+    border: 1.5px solid var(--dust);
+    border-left: 4px solid var(--sandstone);
+    background: color-mix(in srgb, var(--sandstone) 8%, var(--bone));
+    color: var(--charcoal);
+    font-size: 0.95rem;
+    line-height: 1.5;
   }
 
   .level-group {
