@@ -14,6 +14,24 @@ const isLocalReview = import.meta.env.DEV;
 const turnstileEnabled = Boolean(turnstileSiteKey && !isLocalReview);
 const guideEnabled = isGuideEnabled(Astro.url.hostname);
 
+// Same election_key races/index.astro's own results query hardcodes, see
+// that file's comment on why (an is_active_cycle flag would generalize
+// this to future cycles, real follow-up, not needed to ship this banner).
+let pollsCloseAt: Date | null = null;
+let hasAnyResults = false;
+if (env?.WY_DB) {
+  const cycle = await env.WY_DB.prepare(
+    `SELECT polls_close_at FROM election_events WHERE election_key = 'wy-2026-primary'`
+  ).first<{ polls_close_at: string }>();
+  if (cycle?.polls_close_at) pollsCloseAt = new Date(cycle.polls_close_at);
+  const resultCount = await env.WY_DB.prepare(
+    `SELECT COUNT(*) AS n FROM election_contests
+      WHERE election_id = (SELECT id FROM election_events WHERE election_key = 'wy-2026-primary')`
+  ).first<{ n: number }>();
+  hasAnyResults = Number(resultCount?.n ?? 0) > 0;
+}
+const pollsHaveClosed = pollsCloseAt ? new Date() >= pollsCloseAt : false;
+
 let guideStats = [
   { value: '1016', label: 'races tracked' },
   { value: '1878', label: 'filed candidates' },
@@ -150,6 +168,14 @@ const addressFields = [
         <aside class="local-review-banner" role="status">
           <strong>Local review mode</strong>
           <span>Turnstile is disabled. Ballot lookups use the local development bindings.</span>
+        </aside>
+      )}
+
+      {!hasAnyResults && (
+        <aside class="results-status-banner" role="status">
+          {pollsHaveClosed
+            ? 'Polls have closed. Election results will appear on each race page as county data is collected, this can take time on election night.'
+            : `Election results will appear on each race page after polls close${pollsCloseAt ? ` at ${pollsCloseAt.toLocaleString('en-US', { timeZone: 'America/Denver', dateStyle: 'long', timeStyle: 'short' })} Mountain Time` : ''}, and will keep updating as county data is collected.`}
         </aside>
       )}
 
@@ -1306,6 +1332,18 @@ const addressFields = [
 
   .local-review-banner strong {
     color: var(--rust);
+  }
+
+  .results-status-banner {
+    margin: 14px 0 0;
+    padding: 16px 20px;
+    border: 2px solid var(--ember);
+    border-left: 8px solid var(--ember);
+    background: color-mix(in srgb, var(--ember) 10%, var(--bone));
+    color: var(--charcoal);
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.4;
   }
 
   .brand-mark {
