@@ -1,6 +1,6 @@
 # Candidates Sub-project — Agent Instructions
 
-Voter guide for the Wyoming 2026 primary. Lives at `guide.skovgard2026.org`,
+Voter guide for the Wyoming 2026 primary. Lives at `candidates.skovgard2026.org`,
 served by the `skovgard-candidates` Worker. This file covers everything
 specific to `Candidates/`. For campaign-wide rules see the root `AGENTS.md`.
 
@@ -13,7 +13,7 @@ specific to `Candidates/`. For campaign-wide rules see the root `AGENTS.md`.
 | Worker name | `skovgard-candidates` |
 | D1 binding | `WY_DB` → database `wy` (ID `4b4227f1-bf30-4fcf-8a08-6967b536a5ab`) |
 | Secondary D1 | `LOOKUP_DB` → `ballot_sources` |
-| ALLOW_ORIGIN | `https://guide.skovgard2026.org` |
+| ALLOW_ORIGIN | `https://candidates.skovgard2026.org` (defined in `wrangler.toml`, not currently read by any runtime code) |
 | Deploy script | `./scripts/deploy_candidates.sh` from repo root |
 | Data-only redeploy | `SKIP_BUILD=1 ./scripts/deploy_candidates.sh` |
 
