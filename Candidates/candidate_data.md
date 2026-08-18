@@ -196,10 +196,11 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/migrations/0025_office_precinct_scopes.sql` | Creates data-backed many-to-many precinct targeting for municipal wards and other sub-county offices |
 | `db/migrations/0026_ballot_recovery_tokens.sql` | Creates `ballot_recovery_tokens`, the 24h-TTL magic-link table for cross-device ballot recovery; applied to production D1 2026-08-04. See "Ballot recovery / cross-device sync" below and `docs/ballot_recovery.md` |
 | `db/migrations/0027_ballot_saves.sql` | Creates `ballot_saves`, the durable email-keyed saved-ballot table purged one day after the 2026 primary by the separate `skovgard-candidates-cron` Worker; applied to production D1 2026-08-04 |
-| `db/migrations/0028_election_results.sql` | Creates the 8-table election-results schema (`election_events`, `election_sources`, `election_source_checks`, `election_source_snapshots`, `election_contests`, `election_snapshot_contests`, `election_results_rows`, `election_candidate_aliases`), append-only by design, joined to `offices`/`candidates` via nullable guess/confirmed FK pairs. Local only as of 2026-08-18, not yet applied to production D1. See `docs/election_results_schema.md` |
-| `db/migrations/0029_election_results_views.sql` | Adds `v_election_latest_snapshots` and `v_election_current_results`, the first pass at latest-snapshot resolution. Superseded in behavior by 0031 (verified-only selection); kept as-is since 0031 is additive and localhost already had data seeded on top of these view names. Local only, not yet applied to production D1 |
-| `db/migrations/0030_election_source_precedence.sql` | Adds `v_election_contest_county_sources` and `v_election_winning_source_per_contest_county`, resolving which source wins per (contest, county) when two independent sources report the same real-world contest. Local only, not yet applied to production D1 |
-| `db/migrations/0031_election_results_integrity.sql` | Additive fix migration: (1) redefines `v_election_latest_snapshots` to require `verification_status='verified'`, so a newer failed or unreviewed snapshot can never displace a good one; (2) adds `v_election_selected_snapshot_contests`, the correct one-row-per-(contest,county) grain for precinct-count aggregation, fixing a real bug where summing over the result-row grain multiplied precinct counts by however many candidate/writein/overvote/undervote rows a county contributed; (3) adds `source_contest_name_raw` and four sibling columns to `election_snapshot_contests` so a second source reporting a canonical contest under different wording has somewhere to record its own raw text; (4) adds integrity triggers (SQLite has no `ALTER TABLE ADD CONSTRAINT`, so these substitute for CHECK constraints on the existing tables) and a `UNIQUE(source_id, snapshot_seq)` index. Local only, not yet applied to production D1. See `docs/election_results_schema.md` |
+| `db/migrations/0028_election_results.sql` | Creates the 8-table election-results schema (`election_events`, `election_sources`, `election_source_checks`, `election_source_snapshots`, `election_contests`, `election_snapshot_contests`, `election_results_rows`, `election_candidate_aliases`), append-only by design, joined to `offices`/`candidates` via nullable guess/confirmed FK pairs. Applied to production D1 2026-08-18. See `docs/election_results_schema.md` |
+| `db/migrations/0029_election_results_views.sql` | Adds `v_election_latest_snapshots` and `v_election_current_results`, the first pass at latest-snapshot resolution. Superseded in behavior by 0031 (verified-only selection); kept as-is since 0031 is additive and localhost already had data seeded on top of these view names. Applied to production D1 2026-08-18 |
+| `db/migrations/0030_election_source_precedence.sql` | Adds `v_election_contest_county_sources` and `v_election_winning_source_per_contest_county`, resolving which source wins per (contest, county) when two independent sources report the same real-world contest. Applied to production D1 2026-08-18 |
+| `db/migrations/0031_election_results_integrity.sql` | Additive fix migration: (1) redefines `v_election_latest_snapshots` to require `verification_status='verified'`, so a newer failed or unreviewed snapshot can never displace a good one; (2) adds `v_election_selected_snapshot_contests`, the correct one-row-per-(contest,county) grain for precinct-count aggregation, fixing a real bug where summing over the result-row grain multiplied precinct counts by however many candidate/writein/overvote/undervote rows a county contributed; (3) adds `source_contest_name_raw` and four sibling columns to `election_snapshot_contests` so a second source reporting a canonical contest under different wording has somewhere to record its own raw text; (4) adds integrity triggers (SQLite has no `ALTER TABLE ADD CONSTRAINT`, so these substitute for CHECK constraints on the existing tables) and a `UNIQUE(source_id, snapshot_seq)` index. Applied to production D1 2026-08-18. See `docs/election_results_schema.md` |
+| `db/migrations/0032_election_source_discoveries.sql` | Creates the append-only discovery queue written by the standalone `Results/` Worker. Candidate links, other-year links, and rejected test/sample material remain review evidence and are never promoted automatically. Applied locally and to production D1 2026-08-18. |
 
 **Applying migrations:** the `wy` database is shared with other projects (Guide, and other unrelated features) and their `d1_migrations` bookkeeping rows live in the same table. Candidates' own 0001–0019 migrations have never been recorded in that ledger — they've always been applied by hand. Apply a new migration with `npx wrangler d1 execute wy --remote --file=db/migrations/NNNN_name.sql` from `Candidates/`. Do **not** run `wrangler d1 migrations apply` for this project — it will try to replay the entire untracked history from 0001 and fail (migration 0001's `uq_offices_statewide`/`uq_offices_district` indexes no longer match live data, which now has legitimate duplicate titles across different counties).
 
@@ -214,6 +215,12 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/seed/candidate_email_suppressions_*.sql` | Candidate bulk-email unsubscribe/suppression records |
 | `db/seed/guide_rubric_2026_v1.sql` | Generated immutable seed for rubric version `wy-primary-2026-v1`; do not edit directly |
 | `db/seed/sweetwater_precinct_committee_candidates_2026-08-02.sql` | Idempotent Sweetwater precinct roster: 50 party/gender offices and 93 verified candidates from the county CSV/source PDF; one party-unknown filing is held |
+| `db/seed/election_events_wy_2026_primary.sql` | `INSERT OR IGNORE` for the single `election_events` row for `wy-2026-primary` (`polls_close_at='2026-08-18T19:00:00-06:00'`). Deliberately does not seed a `wy-2024-primary` row. The 2024 data is used only as offline test fixtures (`tests/fixtures/elections/`), never loaded into this environment's `election_events`. Applied to production D1 2026-08-18 |
+
+`scripts/seed_election_source_registry.py --scope 2026-primary` generates the
+23-county pending landing-page registry plus the statewide Secretary of State
+archive, without requiring a 2024 election row.
+That registry was applied to production D1 on 2026-08-18 for the Results Worker.
 
 `scripts/import_sweetwater_precinct_committee_2026.py` regenerates the Sweetwater precinct seed from the normalized source CSV. It validates the election identity and expected 94-row source, imports 93 fully classified rows, and deliberately rejects the Richard F. Kaumo row until an authoritative party and seat count are available.
 
@@ -270,6 +277,51 @@ State as of 2026-07-02: 367 rows imported (353 races + 14 manual-review
 placeholders for counties with no extractable source yet); 154 applied
 exact matches, 25 ambiguous, 174 no matching office yet (mostly school/
 special/community-college districts, which have no seeded offices at all).
+
+## Election results flow
+
+Full schema reference (table relationships, append-only vs. mutable-control-data
+boundaries, source-precedence rule): `docs/election_results_schema.md`.
+Election-night ingestion operational reference: `docs/election_results_2026_path_forward.md`.
+Both are gitignored (`Candidates/docs/**`), so they carry no git safety net.
+treat them as accurate as of their own "updated" markers, not as version-controlled history.
+
+There is no standalone results page. Results ride the existing candidate-guide
+flow rather than duplicating its filtering logic:
+
+- **`src/pages/race/[id].astro`**: for each candidate on the ballot, a
+  structural match against `election_contests` (by level, district, county,
+  and title/suffix disambiguation, hardcoded to `election_key = 'wy-2026-primary'`)
+  adds a vote/percentage line and a "Leading" badge (`.candidate-card--leading`,
+  `var(--sage)`) to that candidate's card, plus a "Full county breakdown"
+  link to the contest's deep-dive page.
+- **`src/pages/races/index.astro`**: one "Leading: PARTY (pct%)" chip per
+  party per race card (a primary runs separate REP/DEM contests for the same
+  office, so this is an array per office, never a single winner). Shows a
+  bold ember results-timing banner (`.results-note`) whenever no results
+  exist yet for any race, keyed off `election_events.polls_close_at`;
+  disappears automatically once any result exists.
+- **`src/pages/index.astro`**: the same polls-close/results-status banner,
+  placed immediately after the "Local review mode" banner.
+- **`src/pages/results/contest/[id].astro`**: the deep-dive view (aggregate
+  totals, county-by-county breakdown, precinct-level detail where available)
+  that "Full county breakdown" links to. Not reachable by browsing; only
+  linked from a race card that already has a result.
+
+A prior standalone `src/pages/results/index.astro` (browse every contest,
+unfiltered) was built, then deleted. It surfaced clutter irrelevant to a
+given voter (e.g. a Mills precinct race shown to a Sundance address) and was
+redundant with the address-filtered flow above.
+
+Migrations 0028-0032, the `wy-2026-primary` event seed, and the county plus
+statewide pending source registry are
+applied to production D1 and deployed as of 2026-08-18 (see the Migrations
+and Seed files tables above). The standalone `skovgard-results` Worker is also
+deployed with source-check and discovery-only write access. No real 2026 result
+data has been ingested yet. Production has no vote counts.
+`docs/election_results_2026_path_forward.md` covers the
+ingestion pipeline and what remains unbuilt for actually loading 2026 results
+when they become available.
 
 ## Database bindings
 

@@ -1,0 +1,47 @@
+# Results/wrangler.toml
+# Local and production configuration for the standalone election-source
+# polling Worker. This Worker writes only election source checks and discovered
+# links. It does not publish parsed vote totals.
+
+name = "skovgard-results-local"
+account_id = "8bfd3f60fbdcc89183e9e312fb03e86e"
+compatibility_date = "2025-09-30"
+main = "src/index.js"
+
+[vars]
+ENVIRONMENT = "local"
+TARGET_ELECTION_KEY = "wy-2026-primary"
+RESULTS_USER_AGENT = "skovgard-results/1.0 (candidates.skovgard2026.org)"
+MAX_RESPONSE_BYTES = "10485760"
+FETCH_TIMEOUT_MS = "12000"
+MAX_SOURCES_PER_RUN = "24"
+MAX_CONCURRENCY = "4"
+FAST_WINDOW_BEFORE_MINUTES = "60"
+FAST_WINDOW_AFTER_MINUTES = "1080"
+
+[[d1_databases]]
+binding = "WY_DB"
+database_name = "wy"
+database_id = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"
+
+[env.production]
+name = "skovgard-results"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+TARGET_ELECTION_KEY = "wy-2026-primary"
+RESULTS_USER_AGENT = "skovgard-results/1.0 (candidates.skovgard2026.org)"
+MAX_RESPONSE_BYTES = "10485760"
+FETCH_TIMEOUT_MS = "12000"
+MAX_SOURCES_PER_RUN = "24"
+MAX_CONCURRENCY = "4"
+FAST_WINDOW_BEFORE_MINUTES = "60"
+FAST_WINDOW_AFTER_MINUTES = "1080"
+
+[env.production.triggers]
+crons = ["*/2 * * * *", "17 */6 * * *"]
+
+[[env.production.d1_databases]]
+binding = "WY_DB"
+database_name = "wy"
+database_id = "4b4227f1-bf30-4fcf-8a08-6967b536a5ab"

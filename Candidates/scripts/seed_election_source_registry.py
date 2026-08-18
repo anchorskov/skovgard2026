@@ -76,6 +76,8 @@ COUNTIES = [
      "https://www.westongov.com/county-clerk/elections/election-results/", "static_html"),
 ]
 
+SOS_2026_RESULTS_ARCHIVE = "https://sos.wyo.gov/elections/electionresults.aspx"
+
 
 def sql_str(v):
     if v is None:
@@ -90,6 +92,12 @@ def slugify(county):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--out", required=True)
+    p.add_argument(
+        "--scope",
+        choices=("all", "2026-primary"),
+        default="all",
+        help="Limit output to the 2026 primary landing-page registry when needed.",
+    )
     args = p.parse_args()
 
     out = [
@@ -98,6 +106,16 @@ def main():
         "-- Registry only, no result data. See file header for status semantics.",
         "",
     ]
+
+    out.append(
+        "INSERT OR IGNORE INTO election_sources "
+        "(source_key, election_id, county, county_fips, source_role, source_type, landing_page_url, endpoint_url, status, notes) "
+        "SELECT 'wy|statewide|wy-2026-primary|landing_page', "
+        "(SELECT id FROM election_events WHERE election_key = 'wy-2026-primary'), "
+        "NULL, NULL, 'landing_page', 'static_html', "
+        f"{sql_str(SOS_2026_RESULTS_ARCHIVE)}, {sql_str(SOS_2026_RESULTS_ARCHIVE)}, 'pending', "
+        "'Official Wyoming Secretary of State election-results archive monitoring page.';"
+    )
 
     for county, fips, landing_2026, hosted_2024, fmt in COUNTIES:
         slug = slugify(county)
@@ -113,7 +131,7 @@ def main():
             f"'Official monitoring page for 2026 primary results. No 2026 result file published as of research cutoff 2026-08-18 13:11 MDT.';"
         )
 
-        if hosted_2024:
+        if hosted_2024 and args.scope == "all":
             out.append(
                 "INSERT OR IGNORE INTO election_sources "
                 "(source_key, election_id, county, county_fips, source_role, source_type, landing_page_url, endpoint_url, status, notes) "
@@ -130,10 +148,12 @@ def main():
         f.write("\n".join(out) + "\n")
 
     n_2026 = len(COUNTIES)
-    n_2024_hosted = sum(1 for c in COUNTIES if c[3])
+    n_2024_hosted = sum(1 for c in COUNTIES if c[3]) if args.scope == "all" else 0
     print(f"OK: wrote {args.out}")
-    print(f"    {n_2026} landing_page rows (2026), {n_2024_hosted} county_local_summary rows (2024)")
-    print(f"    {n_2026 - n_2024_hosted} counties have NO verified county-hosted 2024 source (SOS fallback only)")
+    print(f"    {n_2026} county landing_page rows plus 1 statewide landing_page row (2026)")
+    print(f"    {n_2024_hosted} county_local_summary rows (2024)")
+    if args.scope == "all":
+        print(f"    {n_2026 - n_2024_hosted} counties have NO verified county-hosted 2024 source (SOS fallback only)")
 
 
 if __name__ == "__main__":

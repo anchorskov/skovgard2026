@@ -427,6 +427,19 @@ Notes:
 - Do not deploy through the main `skovgard2026` Pages project or `skovgard2026-api` Worker.
 - The canonical config is `Candidates/wrangler.toml`.
 
+## Results Sub-project (Election Source Monitoring)
+
+The standalone `Results/` Worker polls official election source pages and
+records append-only source checks and discovered links. It does not parse or
+publish vote totals. Read `Results/AGENTS.md` and
+`Results/docs/architecture.md` before changing this flow.
+
+- Production Worker: `skovgard-results`
+- Database binding: `WY_DB` to the existing `wy` D1
+- Canonical deploy: `./scripts/deploy_results.sh`
+- Election schema and migrations remain owned by `Candidates/db/migrations/`
+- Local development persists into `Candidates/.wrangler/state`
+
 ## Guide Sub-project (Voter Guide Admin)
 
 **Sub-project agent instructions:** `Guide/AGENTS.md` — read this file first when doing any work inside `Guide/`. It covers the Cloudflare Pages project name, WY_DB bindings, migration steps, deploy rules, and guide table descriptions.
