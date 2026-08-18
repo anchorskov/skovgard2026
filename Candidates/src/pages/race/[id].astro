@@ -57,7 +57,7 @@ const { results: matchedContests } = await env.WY_DB.prepare(
       )`
 ).bind(office.level, office.district ?? null, office.county ?? null, office.title).all();
 
-type CandidateResult = { votes: number; pct: number; isLeading: boolean; isUnofficial: boolean };
+type CandidateResult = { votes: number; pct: number; isLeading: boolean; isUnofficial: boolean; contestId: number };
 const resultsByName = new Map<string, CandidateResult>();
 
 if (matchedContests.length > 0) {
@@ -79,7 +79,7 @@ if (matchedContests.length > 0) {
     byContest.set(r.contest_id, list);
   }
 
-  for (const [, candidatesInContest] of byContest) {
+  for (const [contestId, candidatesInContest] of byContest) {
     const total = candidatesInContest.reduce((sum, c) => sum + c.votes, 0);
     const maxVotes = Math.max(...candidatesInContest.map((c) => c.votes));
     for (const c of candidatesInContest) {
@@ -88,6 +88,7 @@ if (matchedContests.length > 0) {
         pct: total > 0 ? (c.votes / total) * 100 : 0,
         isLeading: c.votes === maxVotes && candidatesInContest.length > 1,
         isUnofficial: c.isUnofficial,
+        contestId,
       });
     }
   }
@@ -207,6 +208,7 @@ function isAbsoluteUrl(url: string | null): boolean {
             <p class="candidate-card__results">
               {result.votes.toLocaleString()} votes, {result.pct.toFixed(1)}%
               <span class="candidate-card__results-label">{result.isUnofficial ? 'Unofficial' : 'Certified'}</span>
+              <a href={`/results/contest/${result.contestId}`} class="candidate-card__results-link">Full county breakdown &rarr;</a>
             </p>
           ) : null}
 
@@ -526,12 +528,28 @@ function isAbsoluteUrl(url: string | null): boolean {
 
   .candidate-card__results {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 6px 8px;
     margin: 0;
     font-size: 0.95rem;
     font-weight: 800;
     color: var(--charcoal);
+  }
+
+  .candidate-card__results-link {
+    margin-left: auto;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--ember);
+    text-decoration: none;
+    text-underline-offset: 0.2em;
+  }
+
+  .candidate-card__results-link:hover,
+  .candidate-card__results-link:focus-visible {
+    text-decoration-line: underline;
+    color: var(--ember-dark);
   }
 
   .candidate-card__results-label {

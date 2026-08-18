@@ -26,7 +26,7 @@ const contest = await env.WY_DB.prepare(
 ).bind(id).first<ContestMeta>();
 
 if (!contest) {
-  return Astro.redirect('/results');
+  return Astro.redirect('/races');
 }
 
 interface ResultRow {
@@ -123,9 +123,9 @@ function countyPrecincts(county: string) {
 const PARTY_LABELS: Record<string, string> = { REP: 'Republican', DEM: 'Democrat', LIB: 'Libertarian', NP: 'No party' };
 ---
 
-<Base title={contest.contest_name_normalized} currentPath="/results">
+<Base title={contest.contest_name_normalized} currentPath="/races">
   <div class="contest-detail">
-    <a href="/results" class="back-link">&larr; All results</a>
+    <a href="/races" class="back-link">&larr; Browse races</a>
     <p class="eyebrow">{contest.election_name}, {contest.election_date}</p>
     <h1>
       {contest.contest_name_normalized}{contest.district ? `, District ${contest.district}` : ''}

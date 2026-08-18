@@ -72,7 +72,6 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
         <nav class="top-nav" aria-label="Guide sections">
           <a href="/" class:list={[{ active: currentPath === '/' }]}>Find ballot</a>
           <a href="/races" class:list={[{ active: currentPath.startsWith('/races') || currentPath.startsWith('/race/') }]}>Browse races</a>
-          <a href="/results" class:list={[{ active: currentPath.startsWith('/results') }]}>Results</a>
           {guideEnabled && (
             <a href="/guide" class:list={[{ active: currentPath.startsWith('/guide') || currentPath.startsWith('/candidate/') || currentPath.startsWith('/endorsements') }]}>Candidate guide</a>
           )}
