@@ -607,7 +607,7 @@ function resetTurnstile() {
       const fallbackLabel =
         submissionMode === 'poll' ? 'Verify me and get my ballot'
         : submissionMode === 'callback' ? 'Please have Jimmy call me back'
-        : (joinBtn ? 'Click to Join' : 'Get Updates');
+        : 'Join the Effort';
       setBtn(fallbackLabel, { disabled: false });
       resetActionLabels();
       err(e3?.message || 'Sorry, something went wrong. Please try again.');
