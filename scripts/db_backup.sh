@@ -10,7 +10,9 @@
 
 set -euo pipefail
 
-BACKUP_DIR="$(git rev-parse --show-toplevel)/backups"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+BACKUP_DIR="${REPO_ROOT}/backups"
+WRANGLER_DIR="${REPO_ROOT}/worker"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
 mkdir -p "$BACKUP_DIR"
@@ -19,7 +21,10 @@ backup_db() {
   local db_name="$1"
   local out_file="${BACKUP_DIR}/${db_name}_${TIMESTAMP}.sql"
   echo "[$(date +%H:%M:%S)] Exporting ${db_name} → ${out_file}"
-  npx wrangler d1 export "${db_name}" --remote --output "${out_file}" --skip-confirmation
+  (
+    cd "$WRANGLER_DIR"
+    npx --no-install wrangler d1 export "${db_name}" --remote --output "${out_file}" --skip-confirmation
+  )
   echo "[$(date +%H:%M:%S)] Done. $(wc -c < "${out_file}" | xargs) bytes written."
 }
 

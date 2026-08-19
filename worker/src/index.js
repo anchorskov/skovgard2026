@@ -296,20 +296,10 @@ function normalizeEmailForStorage(email) {
 // Email opt-in/opt-out confirmation links (Yes/No buttons in admin-sent emails)
 // ---------------------------------------------------------------------------
 const OPTIN_PLACEHOLDER_RE = /\{optin_yes_url\}|\{optin_no_url\}/;
-const FIRST_NAME_PLACEHOLDER_RE = /\{first_name\}/i;
+const FIRST_NAME_PLACEHOLDER_RE = /\{first(?:_|\s+)name\}/i;
 
 function bodyNeedsOptinPlaceholders(bodyHtml) {
   return OPTIN_PLACEHOLDER_RE.test(String(bodyHtml || ""));
-}
-
-// Used by the admin Blast/send-test paths only (sendOneAdminEmail and
-// /api/admin/emails/send-test below) -- NOT bodyNeedsOptinPlaceholders, which
-// /api/share also calls and which must keep gating strictly on the optin
-// Yes/No buttons for that unrelated flow. This one additionally covers a
-// body that only needs {first_name} substitution, with no optin ask.
-function bodyNeedsPersonalization(bodyHtml) {
-  const html = String(bodyHtml || "");
-  return OPTIN_PLACEHOLDER_RE.test(html) || FIRST_NAME_PLACEHOLDER_RE.test(html);
 }
 
 // Voter-file-sourced first names arrive ALL CAPS ("TYLER"); title-case them
@@ -317,14 +307,42 @@ function bodyNeedsPersonalization(bodyHtml) {
 // No "there"/generic fallback when a contact has no name on file -- the
 // template's ", {first_name}" is dropped entirely (via the first .replace
 // below) so a blank name reads as "Hi," instead of "Hi, ," or "Hi, there,".
-function substitutePersonalization(text, { firstName = "", optinYesUrl = "", optinNoUrl = "", pollLink = "" } = {}) {
+export function substitutePersonalization(text, { firstName = "", optinYesUrl = "", optinNoUrl = "", pollLink = "" } = {}) {
   const name = titleCase(String(firstName || "").trim());
   return String(text || "")
-    .replace(/,(\s*)\{first_name\}/gi, name ? `,$1${name}` : "")
-    .replace(/\{first_name\}/gi, name)
+    .replace(/\{first(?:_|\s+)name\}(\s*),/gi, name ? `${name}$1,` : "")
+    .replace(/,(\s*)\{first(?:_|\s+)name\}/gi, name ? `,$1${name}` : "")
+    .replace(/\{first(?:_|\s+)name\}/gi, name)
     .replace(/\{optin_yes_url\}/g, optinYesUrl)
     .replace(/\{optin_no_url\}/g, optinNoUrl)
     .replace(/\{poll_link\}/g, pollLink);
+}
+
+async function lookupAdminEmailFirstName(db, emailNorm) {
+  try {
+    const row = await db.prepare(
+      `SELECT first_name
+         FROM (
+           SELECT first_name, 1 AS priority
+             FROM email_contacts
+            WHERE email_norm = ?1 AND TRIM(COALESCE(first_name, '')) <> ''
+           UNION ALL
+           SELECT first_name, 2 AS priority
+             FROM consent_status
+            WHERE LOWER(TRIM(COALESCE(email, ''))) = ?1 AND TRIM(COALESCE(first_name, '')) <> ''
+           UNION ALL
+           SELECT first_name, 3 AS priority
+             FROM sms_optins
+            WHERE LOWER(TRIM(COALESCE(email, ''))) = ?1 AND TRIM(COALESCE(first_name, '')) <> ''
+         )
+        ORDER BY priority
+        LIMIT 1`
+    ).bind(emailNorm).first();
+    return normalizeText(row?.first_name || "");
+  } catch (error) {
+    console.error("lookupAdminEmailFirstName failed", String(error?.message || error));
+    return "";
+  }
 }
 
 async function createEmailOptinToken(db, { email, emailNorm, messageSlug, batchId }) {
@@ -2953,6 +2971,8 @@ async function sendOneAdminEmail(env, {
   // a fresh token (and thus a fresh unsubscribe link) on every attempt.
   const recipientEmail = normalizeText(recipient?.email || recipient);
   const recipientEmailNorm = recipient?.email_norm || recipientEmail.toLowerCase();
+  const recipientFirstName = recipient?.first_name || "";
+  const personalizedSubject = substitutePersonalization(subject, { firstName: recipientFirstName });
   const optinToken = await createEmailOptinToken(env.DB, {
     email: recipientEmail,
     emailNorm: recipientEmailNorm,
@@ -2998,22 +3018,21 @@ async function sendOneAdminEmail(env, {
         });
         let finalHtmlBody = htmlBody;
 
-        if (bodyNeedsPersonalization(shareMsg.body_html)) {
-          const personalize = (text) => substitutePersonalization(text, {
-            firstName: recipient?.first_name || "",
-            optinYesUrl: optinToken.yesUrl,
-            optinNoUrl: optinToken.noUrl,
-          });
-          finalHtmlBody = personalize(finalHtmlBody);
-          textBody = personalize(textBody);
-        }
+        const personalize = (text) => substitutePersonalization(text, {
+          firstName: recipientFirstName,
+          optinYesUrl: optinToken.yesUrl,
+          optinNoUrl: optinToken.noUrl,
+        });
+        finalHtmlBody = personalize(finalHtmlBody);
+        textBody = personalize(textBody);
+        const personalizedShareIntroText = personalize(shareIntroText);
 
         const shareMessage = {
           from: emailConfig.from,
           to: [recipientEmail],
           reply_to: emailConfig.from,
-          subject,
-          text: shareIntroText ? `${shareIntroText}\n\n---\n\n${textBody}` : textBody,
+          subject: personalizedSubject,
+          text: personalizedShareIntroText ? `${personalizedShareIntroText}\n\n---\n\n${textBody}` : textBody,
           html: finalHtmlBody,
           headers: listUnsubscribeHeaders,
           tags: [
@@ -3026,17 +3045,16 @@ async function sendOneAdminEmail(env, {
         const resendResult = await sendResendEmail(emailConfig.apiKey, shareMessage, idempotencyKey);
         result = { sent: true, id: resendResult?.id || null, to: recipientEmail };
       } else {
-        // poll_invite_2026 attaches recipient.poll_link during mint (see
-        // mintPollInviteLinksForChunk); every other custom-mode send has no
-        // poll_link, so this is a no-op for them (the {poll_link} regex simply
-        // finds nothing to replace).
-        const personalizedBody = recipient?.poll_link
-          ? substitutePersonalization(messageBody, { pollLink: recipient.poll_link })
-          : messageBody;
+        const personalizedBody = substitutePersonalization(messageBody, {
+          firstName: recipientFirstName,
+          optinYesUrl: optinToken.yesUrl,
+          optinNoUrl: optinToken.noUrl,
+          pollLink: recipient?.poll_link || "",
+        });
         result = await sendAdminOutreachEmail(
           env,
           recipient,
-          subject,
+          personalizedSubject,
           personalizedBody,
           {
             batchId,
@@ -3483,59 +3501,23 @@ async function runPulseFollowUpDigest(env) {
 // silently blocked every Pulse opt-in email for ~2.5 weeks with nothing to
 // surface it. Two independent, differently-caused checks, both reported in
 // one alert:
-//  (a) Dual-write parity -- newsletter_subscribers rows that never landed as
-//      an opted_in email_contacts row. Catches a *data* gap: a future write
-//      path that sets email consent without reaching the canonical table
-//      (the exact class of bug closed by the 3 dual-write hooks added in
-//      this same pass). This check would NOT have caught the actual 07-21
-//      incident -- consent_status/newsletter_subscribers wrote correctly
-//      the whole time; only the Resend send failed.
-//  (b) Pulse delivery health -- opted-in Pulse signups in the last 24h with
-//      zero matching staff_notification sends. This is the check that
-//      targets the actual incident: a *send* failure downstream of a
-//      correct write.
+//  (a) Canonical parity: newsletter_subscribers rows with no email_contacts
+//      row are reported separately from rows whose canonical consent status
+//      conflicts. The latter must be reviewed rather than auto-repaired.
+//  (b) Pulse delivery health: mature new Pulse contacts in the last 24 hours
+//      are compared with matching staff_notification sends. Using created_at
+//      avoids treating a repeat submission from an already opted-in contact
+//      as a newly expected staff notification.
+// Query failures are never converted to zero counts. They produce a generic
+// failure alert without contact details and are written to Worker error logs.
 // Sent from ADMIN_EMAIL_FROM (the already-verified updates.grassrootsmvt.org
-// subdomain), not PULSE_EMAIL_FROM -- deliberately, so this alert doesn't
-// share a blind spot with the exact outage class it exists to catch: if
+// subdomain), not PULSE_EMAIL_FROM. This prevents the alert from sharing
+// a blind spot with the exact outage class it exists to catch: if
 // grassrootsmvt.org's domain verification breaks again, an alert sent from
 // pulse@grassrootsmvt.org would silently fail right alongside the thing it's
 // reporting on.
-async function runEmailConsentReconciliation(env) {
+export async function runEmailConsentReconciliation(env) {
   if (!env.DB) return { ran: false, reason: "no_db" };
-
-  const dualWriteGapRow = await env.DB.prepare(
-    `SELECT COUNT(*) AS n
-       FROM newsletter_subscribers ns
-      WHERE ns.active = 1 AND ns.consent_email = 1
-        AND ns.updated_at <= datetime('now', '-15 minutes')
-        AND NOT EXISTS (
-          SELECT 1 FROM email_contacts ec
-           WHERE ec.email_norm = ns.email_norm AND ec.consent_status = 'opted_in'
-        )`
-  ).first().catch(() => null);
-
-  const pulseOptinRow = await env.DB.prepare(
-    `SELECT COUNT(*) AS n
-       FROM consent_status
-      WHERE source_detail = 'pulse' AND status = 'opted_in'
-        AND consented_at >= datetime('now', '-24 hours')`
-  ).first().catch(() => null);
-
-  const staffSentRow = await env.DB.prepare(
-    `SELECT COUNT(*) AS n
-       FROM resend_webhook_events
-      WHERE source = 'pulse' AND kind = 'staff_notification' AND event_type = 'email.sent'
-        AND processed_at >= datetime('now', '-24 hours')`
-  ).first().catch(() => null);
-
-  const dualWriteGap = Number(dualWriteGapRow?.n || 0);
-  const pulseOptins = Number(pulseOptinRow?.n || 0);
-  const pulseStaffSent = Number(staffSentRow?.n || 0);
-  const pulseDeliveryGap = pulseOptins > 0 && pulseStaffSent === 0;
-
-  if (dualWriteGap === 0 && !pulseDeliveryGap) {
-    return { ran: true, dualWriteGap, pulseOptins, pulseStaffSent, sent: false, reason: "nothing_to_report" };
-  }
 
   const config = {
     enabled: String(env.ADMIN_EMAIL_ENABLED || "0") === "1",
@@ -3543,16 +3525,100 @@ async function runEmailConsentReconciliation(env) {
     from: String(env.ADMIN_EMAIL_FROM || "").trim(),
     to: String(env.PULSE_STAFF_NOTIFY_TO || env.INBOUND_SMS_NOTIFY_TO || "").trim(),
   };
+
+  let missingContactRow;
+  let statusConflictRow;
+  let pulseNewContactRow;
+  let staffSentRow;
+  try {
+    [missingContactRow, statusConflictRow, pulseNewContactRow, staffSentRow] = await Promise.all([
+      env.DB.prepare(
+        `SELECT COUNT(*) AS n
+           FROM newsletter_subscribers ns
+          WHERE ns.active = 1 AND ns.consent_email = 1
+            AND ns.updated_at <= datetime('now', '-15 minutes')
+            AND NOT EXISTS (
+              SELECT 1 FROM email_contacts ec WHERE ec.email_norm = ns.email_norm
+            )`
+      ).first(),
+      env.DB.prepare(
+        `SELECT COUNT(*) AS n,
+                SUM(CASE WHEN ec.consent_status = 'no_signal' THEN 1 ELSE 0 END) AS no_signal,
+                SUM(CASE WHEN ec.consent_status = 'opted_out' THEN 1 ELSE 0 END) AS opted_out,
+                SUM(CASE WHEN ec.consent_status NOT IN ('no_signal', 'opted_out', 'opted_in') THEN 1 ELSE 0 END) AS other
+           FROM newsletter_subscribers ns
+           JOIN email_contacts ec ON ec.email_norm = ns.email_norm
+          WHERE ns.active = 1 AND ns.consent_email = 1
+            AND ns.updated_at <= datetime('now', '-15 minutes')
+            AND ec.consent_status <> 'opted_in'`
+      ).first(),
+      env.DB.prepare(
+        `SELECT COUNT(*) AS n
+           FROM consent_status
+          WHERE source_detail = 'pulse' AND status = 'opted_in'
+            AND created_at >= datetime('now', '-24 hours')
+            AND created_at <= datetime('now', '-15 minutes')`
+      ).first(),
+      env.DB.prepare(
+        `SELECT COUNT(*) AS n
+           FROM resend_webhook_events
+          WHERE source = 'pulse' AND kind = 'staff_notification' AND event_type = 'email.sent'
+            AND processed_at >= datetime('now', '-24 hours')`
+      ).first(),
+    ]);
+  } catch (error) {
+    const reason = String(error?.message || error);
+    console.error("runEmailConsentReconciliation: query failed", reason);
+
+    if (!config.enabled || !config.apiKey || !config.from || !config.to) {
+      throw error;
+    }
+
+    try {
+      const data = await sendResendEmail(config.apiKey, {
+        from: config.from,
+        to: [config.to],
+        subject: "Email consent reconciliation: check failed",
+        text: "The daily email-consent reconciliation queries failed. Review the skovgard2026-api Worker logs before treating email consent or Pulse delivery as healthy.",
+        tags: [
+          { name: "source", value: "reconciliation" },
+          { name: "kind", value: "check_failure" },
+        ],
+      });
+      return { ran: false, sent: true, reason: "query_failed", id: data?.id || null };
+    } catch (alertError) {
+      console.error("runEmailConsentReconciliation: query-failure alert failed", String(alertError?.message || alertError));
+      throw error;
+    }
+  }
+
+  const missingContacts = Number(missingContactRow?.n || 0);
+  const statusConflicts = Number(statusConflictRow?.n || 0);
+  const statusConflictNoSignal = Number(statusConflictRow?.no_signal || 0);
+  const statusConflictOptedOut = Number(statusConflictRow?.opted_out || 0);
+  const statusConflictOther = Number(statusConflictRow?.other || 0);
+  const dualWriteGap = missingContacts + statusConflicts;
+  const pulseNewContacts = Number(pulseNewContactRow?.n || 0);
+  const pulseStaffSent = Number(staffSentRow?.n || 0);
+  const pulseDeliveryGap = pulseStaffSent < pulseNewContacts;
+
+  if (dualWriteGap === 0 && !pulseDeliveryGap) {
+    return { ran: true, dualWriteGap, missingContacts, statusConflicts, pulseNewContacts, pulseStaffSent, sent: false, reason: "nothing_to_report" };
+  }
+
   if (!config.enabled || !config.apiKey || !config.from || !config.to) {
-    return { ran: true, dualWriteGap, pulseOptins, pulseStaffSent, sent: false, reason: "disabled_or_missing_config" };
+    return { ran: true, dualWriteGap, missingContacts, statusConflicts, pulseNewContacts, pulseStaffSent, sent: false, reason: "disabled_or_missing_config" };
   }
 
   const lines = ["Daily email-consent reconciliation check found something to flag.", ""];
-  if (dualWriteGap > 0) {
-    lines.push(`- ${dualWriteGap} newsletter_subscribers row(s) opted in but missing from email_contacts (dual-write gap).`);
+  if (missingContacts > 0) {
+    lines.push(`- ${missingContacts} active newsletter subscriber(s) have no email_contacts row (missing dual-write).`);
+  }
+  if (statusConflicts > 0) {
+    lines.push(`- ${statusConflicts} active newsletter subscriber(s) have a non-opted-in email_contacts status (${statusConflictNoSignal} no_signal, ${statusConflictOptedOut} opted_out, ${statusConflictOther} other). Review the consent evidence; do not auto-repair.`);
   }
   if (pulseDeliveryGap) {
-    lines.push(`- ${pulseOptins} Pulse opt-in(s) in the last 24h, but 0 staff_notification emails sent. Check grassrootsmvt.org's domain status in Resend.`);
+    lines.push(`- ${pulseNewContacts} new Pulse contact(s) in the last 24h were old enough to expect a staff notification, but only ${pulseStaffSent} staff_notification email(s) were sent. Check grassrootsmvt.org's domain status in Resend and review Worker logs.`);
   }
 
   try {
@@ -3566,10 +3632,10 @@ async function runEmailConsentReconciliation(env) {
         { name: "kind", value: "drift_alert" },
       ],
     });
-    return { ran: true, dualWriteGap, pulseOptins, pulseStaffSent, sent: true, id: data?.id || null };
+    return { ran: true, dualWriteGap, missingContacts, statusConflicts, pulseNewContacts, pulseStaffSent, sent: true, id: data?.id || null };
   } catch (error) {
     console.error("runEmailConsentReconciliation: alert send failed", String(error?.message || error));
-    return { ran: true, dualWriteGap, pulseOptins, pulseStaffSent, sent: false, reason: String(error?.message || error) };
+    return { ran: true, dualWriteGap, missingContacts, statusConflicts, pulseNewContacts, pulseStaffSent, sent: false, reason: String(error?.message || error) };
   }
 }
 
@@ -7746,7 +7812,12 @@ export default {
           if (shareIntroText.length > 5000) return json(req, env, { error: "Custom intro text too long" }, 400);
         }
 
-        const testSubject = `[TEST] ${subject}`;
+        const testPersonalizationSource = emailMode === "custom"
+          ? `${subject}\n${messageBody}`
+          : `${subject}\n${shareIntroText}\n${SHARE_MESSAGES[shareSlug]?.body_html || ""}`;
+        const testFirstName = FIRST_NAME_PLACEHOLDER_RE.test(testPersonalizationSource)
+          ? await lookupAdminEmailFirstName(env.DB, to)
+          : "";
 
         // Test sends carry the same List-Unsubscribe headers as a real blast so
         // this endpoint doubles as a safe way to verify the header actually
@@ -7762,6 +7833,12 @@ export default {
           "List-Unsubscribe": `<${testOptinToken.noUrl}>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
         };
+        const personalizeTest = (text) => substitutePersonalization(text, {
+          firstName: testFirstName,
+          optinYesUrl: testOptinToken.yesUrl,
+          optinNoUrl: testOptinToken.noUrl,
+        });
+        const testSubject = `[TEST] ${personalizeTest(subject)}`;
 
         try {
           let result;
@@ -7782,26 +7859,15 @@ export default {
               sender_intro: shareMsg.intro(),
               slug: shareSlug,
             });
-            // Test sends have no real contact behind `to`, so this mirrors what
-            // an actual recipient with no name on file would see -- a blank
-            // {first_name} (see substitutePersonalization), not a fake preview
-            // name that wouldn't match production. bodyNeedsPersonalization
-            // covers messages that only use {first_name} with no optin ask too.
-            if (bodyNeedsPersonalization(shareMsg.body_html)) {
-              const personalize = (text) => substitutePersonalization(text, {
-                firstName: "",
-                optinYesUrl: testOptinToken.yesUrl,
-                optinNoUrl: testOptinToken.noUrl,
-              });
-              htmlBody = personalize(htmlBody);
-              textBody = personalize(textBody);
-            }
+            htmlBody = personalizeTest(htmlBody);
+            textBody = personalizeTest(textBody);
+            const personalizedShareIntroText = personalizeTest(shareIntroText);
             const resendResult = await sendResendEmail(emailConfig.apiKey, {
               from: emailConfig.from,
               to: [to],
               reply_to: emailConfig.from,
               subject: testSubject,
-              text: textBody,
+              text: personalizedShareIntroText ? `${personalizedShareIntroText}\n\n${textBody}` : textBody,
               html: htmlBody,
               headers: testListUnsubscribeHeaders,
               tags: [{ name: "source", value: "admin_emails" }, { name: "kind", value: "admin_test" }],
@@ -7810,9 +7876,9 @@ export default {
           } else {
             result = await sendAdminOutreachEmail(
               env,
-              { email: to },
+              { email: to, email_norm: to, first_name: testFirstName },
               testSubject,
-              messageBody,
+              personalizeTest(messageBody),
               { batchId: "test", replyTo: emailConfig.from, headers: testListUnsubscribeHeaders }
             );
           }
