@@ -1,0 +1,414 @@
+---
+// src/pages/the-record/harriet-hageman.astro
+//
+// Factual authority: static/documents/harriet-hageman-research-and-sources.pdf.
+// That packet's "Language to avoid" list governs this page. In particular it
+// forbids: describing Hageman's vote as a separate vote on Section 10, saying
+// H.Res. 672 tabled H.R. 4405 or H.Res. 581, saying Hageman alone caused the
+// 76-day interval, attributing the July Rules Committee vote to Hageman,
+// calling H.Res. 589 the Epstein Files Transparency Act, attributing the whole
+// $40 trillion debt to Hageman, and omitting her final yes vote on H.R. 4405.
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+
+const RESEARCH_PDF = '/documents/harriet-hageman-research-and-sources.pdf';
+
+const MEASURES = [
+  { id: 'H.Res. 581', role: 'Floor-forcing vehicle', note: 'Massie, with Khanna. The special rule designed to bring the transparency text before the House. Later the subject of the discharge petition.', src: 1 },
+  { id: 'H.R. 4405', role: 'The binding bill', note: 'Khanna, for himself and Massie. The Epstein Files Transparency Act that became Public Law 119-38.', src: 2 },
+  { id: 'H.Res. 589', role: 'Separate nonbinding route', note: 'Called for release within 30 days. Not the Massie-Khanna act.', src: 3 },
+  { id: 'H.Res. 598', role: 'One-sentence procedural measure', note: 'Would have deemed H.Res. 589 adopted.', src: 4 },
+  { id: 'H.Res. 672', role: 'Large procedural package', note: 'Section 10 tabled H.Res. 598. Section 8 adopted H.Res. 668. Passed 212-208.', src: 5 },
+];
+
+const QUESTIONS = [
+  'Why did Hageman support the 672 package containing Section 10?',
+  'Did Hageman know that Section 10 would table H.Res. 598?',
+  'What action has Hageman taken to enforce the transparency law?',
+  'Does Hageman support the enforcement provisions in the second transparency act?',
+  'How does Hageman reconcile fiscal-responsibility statements with the $4.7 trillion CBO projection?',
+];
+
+type Kind = 'Primary source' | 'Independent reporting' | 'Independent legal reporting' | 'Sponsor statement';
+
+const SOURCES: { n: number; title: string; publisher: string; date: string; kind: Kind; url: string }[] = [
+  { n: 1, title: 'H.Res. 581, introduced text', publisher: 'U.S. Government Publishing Office', date: 'July 15, 2025', kind: 'Primary source', url: 'https://www.govinfo.gov/content/pkg/BILLS-119hres581ih/xhtml/BILLS-119hres581ih.html' },
+  { n: 2, title: 'H.R. 4405, Epstein Files Transparency Act', publisher: 'U.S. Government Publishing Office', date: 'July 15, 2025', kind: 'Primary source', url: 'https://www.govinfo.gov/content/pkg/BILLS-119hr4405ih/html/BILLS-119hr4405ih.htm' },
+  { n: 3, title: 'H.Res. 589, introduced text', publisher: 'U.S. Government Publishing Office', date: 'July 17, 2025', kind: 'Primary source', url: 'https://www.govinfo.gov/content/pkg/BILLS-119hres589ih/html/BILLS-119hres589ih.htm' },
+  { n: 4, title: 'House Report 119-209', publisher: 'U.S. Government Publishing Office', date: 'July 21, 2025', kind: 'Primary source', url: 'https://www.govinfo.gov/content/pkg/CRPT-119hrpt209/html/CRPT-119hrpt209.htm' },
+  { n: 5, title: 'H.Res. 672 text', publisher: 'House Committee on Rules', date: 'September 2, 2025', kind: 'Primary source', url: 'https://rules.house.gov/sites/evo-subsites/rules.house.gov/files/evo-media-document/rule-hr-4553-hjres-104-105-106.pdf' },
+  { n: 6, title: 'Roll Call 222, H.Res. 672', publisher: 'Office of the Clerk, U.S. House', date: 'September 3, 2025', kind: 'Primary source', url: 'https://clerk.house.gov/Votes/2025222' },
+  { n: 7, title: 'Motion to discharge H.Res. 581', publisher: 'Congressional Record', date: 'November 12, 2025', kind: 'Primary source', url: 'https://www.govinfo.gov/content/pkg/CREC-2025-11-12/pdf/CREC-2025-11-12-house.pdf' },
+  { n: 8, title: 'Roll Call 289, H.R. 4405', publisher: 'Office of the Clerk, U.S. House', date: 'November 18, 2025', kind: 'Primary source', url: 'https://clerk.house.gov/Votes/2025289' },
+  { n: 9, title: 'Congressional Bill H.R. 4405 signed into law', publisher: 'The White House', date: 'November 19, 2025', kind: 'Primary source', url: 'https://www.whitehouse.gov/briefings-statements/2025/11/congressional-bill-h-r-4405-signed-into-law/' },
+  { n: 10, title: 'Public Law 119-38', publisher: 'U.S. Government Publishing Office', date: 'November 19, 2025', kind: 'Primary source', url: 'https://www.govinfo.gov/link/plaw/119/public/38' },
+  { n: 11, title: 'Department of Justice publishes 3.5 million responsive pages', publisher: 'U.S. Department of Justice', date: 'January 30, 2026', kind: 'Primary source', url: 'https://www.justice.gov/opa/pr/department-justice-publishes-35-million-responsive-pages-compliance-epstein-files' },
+  { n: 12, title: 'Judge presses DOJ to explain Epstein files redactions', publisher: 'ABC News', date: 'August 13, 2026', kind: 'Independent reporting', url: 'https://abcnews.com/Politics/judge-press-doj-explain-epstein-files-redactions-withheld/story?id=135613140' },
+  { n: 13, title: 'Feds struggle to explain redactions in Epstein files compliance case', publisher: 'Courthouse News Service', date: 'August 13, 2026', kind: 'Independent legal reporting', url: 'https://www.courthousenews.com/feds-struggle-to-explain-redactions-in-epstein-files-compliance-case/' },
+  { n: 14, title: 'H.R. 9694, Epstein Files Transparency Act II', publisher: 'U.S. Government Publishing Office', date: 'July 15, 2026', kind: 'Primary source', url: 'https://www.govinfo.gov/app/details/BILLS-119hr9694ih' },
+  { n: 15, title: 'Massie, Khanna and colleagues introduce Epstein Files Transparency Act II', publisher: 'Office of Rep. Thomas Massie', date: 'July 15, 2026', kind: 'Sponsor statement', url: 'https://massie.house.gov/news/documentsingle.aspx?DocumentID=395849' },
+  { n: 16, title: 'Roll Call 190, H.R. 1', publisher: 'Office of the Clerk, U.S. House', date: 'July 3, 2025', kind: 'Primary source', url: 'https://clerk.house.gov/Votes/2025190' },
+  { n: 17, title: 'The Budget and Economic Outlook: 2026 to 2036', publisher: 'Congressional Budget Office', date: 'February 11, 2026', kind: 'Primary source', url: 'https://www.cbo.gov/publication/61882' },
+  { n: 18, title: 'US debt crosses $40 trillion threshold', publisher: 'Reuters', date: 'August 19, 2026', kind: 'Independent reporting', url: 'https://www.reuters.com/world/us-debt-crosses-40-trillion-threshold-after-doubling-under-trump-biden-2026-08-19/' },
+];
+
+const KIND_STYLE: Record<Kind, string> = {
+  'Primary source': 'bg-wy-dust/30 text-wy-charcoal border-wy-dust',
+  'Independent reporting': 'bg-wy-sage/20 text-wy-charcoal border-wy-sage/50',
+  'Independent legal reporting': 'bg-wy-sage/20 text-wy-charcoal border-wy-sage/50',
+  'Sponsor statement': 'bg-wy-sandstone/20 text-wy-charcoal border-wy-sandstone/60',
+};
+---
+<Base
+  title="Harriet Hageman: The Record | The Wyoming Opposition"
+  description="Harriet Hageman voted yes on the Epstein Files Transparency Act. The complete record also includes the September procedural package and the 76-day interval that preceded it."
+>
+  <Nav />
+
+  <main class="bg-wy-bone pt-28 pb-20 px-4">
+    <article class="max-w-3xl mx-auto">
+
+      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">Harriet Hageman: The Record</p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-extrabold text-wy-charcoal mb-6 leading-tight">
+        Transparency Delayed. Debt Accelerated.
+      </h1>
+
+      <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-6">
+        A final yes vote does not tell the whole story. The complete record includes the procedural
+        votes that determine whether legislation advances, disappears, or waits while public pressure
+        builds.
+      </p>
+
+      <aside class="bg-white border-l-4 border-wy-ember/60 rounded-sm p-5 mb-8" role="note">
+        <p class="text-wy-charcoal/80 text-sm leading-relaxed">
+          <strong class="text-wy-charcoal">Stated up front.</strong> Hageman voted Aye on final
+          passage of H.R. 4405, the Epstein Files Transparency Act, on November 18,
+          2025.<a href="#source-8" class="source-marker" aria-label="Source 8">8</a> She also voted
+          Aye on H.Res. 672 on September 3, 2025, a package whose Section 10 tabled the pending
+          H.Res. 598.<a href="#source-6" class="source-marker" aria-label="Source 6">6</a> Both votes
+          are part of the record.
+        </p>
+      </aside>
+
+      <a
+        href={RESEARCH_PDF}
+        class="doc-button inline-flex items-center gap-3 bg-wy-charcoal text-wy-bone font-bold px-6 py-4 rounded-sm tracking-wide hover:bg-wy-charcoal/85 transition-colors mb-12"
+      >
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+        </svg>
+        Download the Research and Sources
+      </a>
+
+      <!-- MEASURE KEY -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-serif font-extrabold text-wy-charcoal mb-2">Five measures, easily confused</h2>
+        <p class="text-wy-charcoal/70 mb-5 leading-relaxed">
+          Most of this record turns on telling these apart.
+        </p>
+        <dl class="space-y-2">
+          {MEASURES.map((m) => (
+            <div class="bg-white border border-wy-dust rounded-sm p-4 sm:flex sm:gap-4">
+              <dt class="font-mono font-bold text-wy-ember shrink-0 sm:w-28 mb-1 sm:mb-0">{m.id}</dt>
+              <dd class="text-wy-charcoal/80 text-sm leading-relaxed">
+                <span class="font-semibold text-wy-charcoal">{m.role}.</span> {m.note}
+                <a href={`#source-${m.src}`} class="source-marker" aria-label={`Source ${m.src}`}>{m.src}</a>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <!-- SECTION 1 -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-5">The Original Massie-Khanna Transparency Act</h2>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          On July 15, 2025, Thomas Massie and Ro Khanna launched the original legislative effort to
+          force release of the Epstein records.
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          Massie introduced H.Res. 581 with Khanna as an original cosponsor. It was the procedural
+          vehicle designed to force transparency legislation before the
+          House.<a href="#source-1" class="source-marker" aria-label="Source 1">1</a>
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          Khanna introduced H.R. 4405 for himself and Massie on the same day. H.R. 4405 was the
+          binding Epstein Files Transparency Act that ultimately became
+          law.<a href="#source-2" class="source-marker" aria-label="Source 2">2</a><a href="#source-10" class="source-marker" aria-label="Source 10">10</a>
+        </p>
+        <aside class="bg-white border-l-4 border-wy-sandstone rounded-sm p-5" role="note">
+          <p class="text-wy-charcoal/80 text-sm leading-relaxed">
+            <strong class="text-wy-charcoal">H.Res. 581 was the floor-forcing vehicle. H.R. 4405 was
+            the binding bill.</strong>
+          </p>
+        </aside>
+      </section>
+
+      <!-- SECTION 2: TIMELINE -->
+      <section class="mb-12">
+        <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">A Tale of Three Resolutions</p>
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-8">How the Transparency Vote Was Delayed</h2>
+
+        <ol class="relative border-l-2 border-wy-dust pl-6 space-y-8 ml-2">
+
+          <li class="relative">
+            <span class="timeline-dot" aria-hidden="true"></span>
+            <p class="text-wy-charcoal/60 text-sm font-semibold mb-1">July 17, 2025</p>
+            <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-2">H.Res. 589</h3>
+            <p class="text-wy-charcoal/80 leading-relaxed mb-2">
+              H.Res. 589 called for release of credible Epstein and Maxwell records within 30 days. It
+              prohibited withholding because of embarrassment, reputational harm, or political
+              sensitivity.<a href="#source-3" class="source-marker" aria-label="Source 3">3</a>
+            </p>
+            <p class="text-wy-charcoal/70 text-sm leading-relaxed">
+              It was a House resolution, not the binding Massie-Khanna act.
+            </p>
+          </li>
+
+          <li class="relative">
+            <span class="timeline-dot" aria-hidden="true"></span>
+            <p class="text-wy-charcoal/60 text-sm font-semibold mb-1">July 21, 2025</p>
+            <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-2">H.Res. 598</h3>
+            <p class="text-wy-charcoal/80 leading-relaxed mb-2">
+              H.Res. 598 was a one-sentence procedural measure that would have deemed H.Res. 589
+              adopted.<a href="#source-4" class="source-marker" aria-label="Source 4">4</a>
+            </p>
+            <p class="text-wy-charcoal/80 leading-relaxed mb-2">
+              During committee consideration, an amendment was offered to bring binding H.R. 4405
+              before the House immediately. That amendment failed
+              4-9.<a href="#source-4" class="source-marker" aria-label="Source 4">4</a>
+            </p>
+            <p class="text-wy-charcoal/70 text-sm leading-relaxed">
+              Hageman was not on the Rules Committee and did not cast this vote.
+            </p>
+          </li>
+
+          <li class="relative">
+            <span class="timeline-dot" aria-hidden="true"></span>
+            <p class="text-wy-charcoal/60 text-sm font-semibold mb-1">September 2, 2025</p>
+            <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-2">The Discharge Petition</h3>
+            <p class="text-wy-charcoal/80 leading-relaxed">
+              Massie filed a discharge petition connected to H.Res. 581. The petition provided a way to
+              bypass House leadership once 218 signatures were
+              obtained.<a href="#source-7" class="source-marker" aria-label="Source 7">7</a>
+            </p>
+          </li>
+
+          <li class="relative">
+            <span class="timeline-dot timeline-dot--flag" aria-hidden="true"></span>
+            <p class="text-wy-charcoal/60 text-sm font-semibold mb-1">September 3, 2025</p>
+            <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-2">H.Res. 672, Section 10</h3>
+            <p class="text-wy-charcoal/80 leading-relaxed mb-3">
+              H.Res. 672 was a large procedural package that passed 212-208. Section 10 stated:
+            </p>
+            <blockquote class="border-l-4 border-wy-ember bg-white rounded-sm px-4 py-3 mb-3 font-mono text-sm text-wy-charcoal">
+              "House Resolution 598 is laid on the table."
+            </blockquote>
+            <p class="text-wy-charcoal/80 leading-relaxed mb-3">
+              Harriet Hageman voted Aye on the complete
+              package.<a href="#source-6" class="source-marker" aria-label="Source 6">6</a> The same
+              package also adopted H.Res. 668, directing continued House Oversight
+              investigation.<a href="#source-5" class="source-marker" aria-label="Source 5">5</a>
+            </p>
+            <aside class="bg-white border-l-4 border-wy-dust rounded-sm p-4" role="note">
+              <p class="text-wy-charcoal/75 text-sm leading-relaxed">
+                <strong class="text-wy-charcoal">What this vote was and was not.</strong> This was one
+                vote on a bundled package, not a separate vote on Section 10. Section 10 tabled
+                H.Res. 598. It did not table H.R. 4405 or H.Res. 581, and the discharge route filed
+                the previous day remained open.
+              </p>
+            </aside>
+          </li>
+
+          <li class="relative">
+            <span class="timeline-dot" aria-hidden="true"></span>
+            <p class="text-wy-charcoal/60 text-sm font-semibold mb-1">November 18, 2025</p>
+            <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-2">The Binding Act Finally Reached the Floor</h3>
+            <p class="text-wy-charcoal/80 leading-relaxed">
+              After the discharge effort reached the required support on November 12, H.R. 4405
+              received a House vote. It passed 427-1. Hageman voted
+              yes.<a href="#source-7" class="source-marker" aria-label="Source 7">7</a><a href="#source-8" class="source-marker" aria-label="Source 8">8</a>
+            </p>
+          </li>
+
+        </ol>
+
+        <div class="bg-white border border-wy-dust rounded-sm p-7 mt-8 text-center">
+          <p class="font-serif font-extrabold text-5xl sm:text-6xl text-wy-ember leading-none mb-3">76 DAYS</p>
+          <p class="text-wy-charcoal/80 leading-relaxed max-w-xl mx-auto">
+            After Hageman voted for the package containing Section 10 on September 3, seventy-six days
+            elapsed before the binding H.R. 4405 reached a House vote on November 18.
+          </p>
+          <p class="text-wy-charcoal/60 text-sm leading-relaxed max-w-xl mx-auto mt-3">
+            This is an interval, not an attribution of sole cause. Many members and several procedural
+            routes were involved.
+          </p>
+        </div>
+      </section>
+
+      <!-- SECTION 3 -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-5">The Transparency Fight Continues</h2>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          The Justice Department announced in January 2026 that it had published nearly 3.5 million
+          responsive pages and complied with the
+          law.<a href="#source-11" class="source-marker" aria-label="Source 11">11</a>
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          That compliance claim remains contested. A federal judge subsequently concluded that withheld
+          material and certain redactions violated the Act, and that the attorney general had conceded
+          noncompliance. The judge ordered the department to release material or explain the legal
+          basis for continued
+          withholding.<a href="#source-12" class="source-marker" aria-label="Source 12">12</a><a href="#source-13" class="source-marker" aria-label="Source 13">13</a>
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          Congressional sponsors introduced the Epstein Files Transparency Act II in July 2026 to
+          provide additional enforcement
+          authority.<a href="#source-14" class="source-marker" aria-label="Source 14">14</a><a href="#source-15" class="source-marker" aria-label="Source 15">15</a>
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed">
+          Hageman's final vote for transparency deserves acknowledgment. It does not erase the
+          procedural record, the 76-day interval, or the continuing fight over withheld and redacted
+          material.
+        </p>
+      </section>
+
+      <!-- SECTION 4 -->
+      <section class="mb-12">
+        <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">The Fiscal Record</p>
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-6">Forty Trillion Dollars and Counting</h2>
+
+        <div class="grid sm:grid-cols-2 gap-4 mb-6">
+          <div class="bg-white border border-wy-dust rounded-sm p-6">
+            <p class="font-serif font-extrabold text-3xl text-wy-charcoal leading-none mb-2">$40.047 trillion</p>
+            <p class="text-wy-charcoal/75 text-sm">
+              Federal gross debt reported for August 18, 2026, per Treasury-based
+              reporting.<a href="#source-18" class="source-marker" aria-label="Source 18">18</a>
+            </p>
+          </div>
+          <div class="bg-white border border-wy-dust rounded-sm p-6">
+            <p class="font-serif font-extrabold text-3xl text-wy-ember leading-none mb-2">$4.7 trillion</p>
+            <p class="text-wy-charcoal/75 text-sm">
+              Projected deficit increase attributed by CBO to the 2025 reconciliation act over 2026
+              through 2035.<a href="#source-17" class="source-marker" aria-label="Source 17">17</a>
+            </p>
+          </div>
+        </div>
+
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          The national debt accumulated across many years and many elected officials. No single
+          representative created the entire burden.
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          Hageman nevertheless has a recorded vote that must be examined. On July 3, 2025, she voted
+          for final passage of H.R. 1.<a href="#source-16" class="source-marker" aria-label="Source 16">16</a>
+          The Congressional Budget Office later reported that the resulting reconciliation law
+          increased projected deficits by approximately $4.7 trillion over 2026 through
+          2035.<a href="#source-17" class="source-marker" aria-label="Source 17">17</a>
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed">
+          Fiscal responsibility must be measured against recorded votes, not speeches delivered after
+          borrowing has been authorized.
+        </p>
+      </section>
+
+      <!-- CONCLUSION -->
+      <section class="bg-white border border-wy-dust rounded-sm p-7 mb-12">
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-5">Wyoming Deserves the Complete Record</h2>
+        <ul class="space-y-3 mb-7">
+          {QUESTIONS.map((q) => (
+            <li class="flex gap-3 text-wy-charcoal/80 leading-relaxed">
+              <span class="text-wy-ember font-bold shrink-0" aria-hidden="true">?</span>
+              <span>{q}</span>
+            </li>
+          ))}
+        </ul>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a href="#sources" class="doc-button bg-wy-ember text-wy-bone font-bold px-6 py-4 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors text-center">
+            Review Every Vote
+          </a>
+          <a href={RESEARCH_PDF} class="doc-button border-2 border-wy-charcoal text-wy-charcoal font-bold px-6 py-4 rounded-sm tracking-wide hover:bg-wy-charcoal hover:text-wy-bone transition-colors text-center">
+            Download the Research and Sources
+          </a>
+        </div>
+      </section>
+
+      <!-- SOURCES -->
+      <section id="sources" class="scroll-mt-24">
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-3">Sources</h2>
+        <p class="text-wy-charcoal/70 mb-6 leading-relaxed">
+          Recorded votes link directly to the Office of the Clerk. Each source is labeled by type.
+        </p>
+        <ol class="space-y-4">
+          {SOURCES.map((s) => (
+            <li id={`source-${s.n}`} class="bg-white border border-wy-dust rounded-sm p-5 scroll-mt-24">
+              <div class="flex items-baseline gap-3">
+                <span class="font-serif font-extrabold text-wy-ember text-lg shrink-0">{s.n}</span>
+                <div>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer" class="font-semibold text-wy-charcoal hover:text-wy-ember underline decoration-wy-dust underline-offset-2">
+                    {s.title}
+                  </a>
+                  <p class="text-wy-charcoal/60 text-sm mt-1">{s.publisher}, {s.date}</p>
+                  <span class={`inline-block text-xs font-semibold uppercase tracking-wider border rounded-sm px-2 py-0.5 mt-2 ${KIND_STYLE[s.kind]}`}>
+                    {s.kind}
+                  </span>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+    </article>
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  .source-marker {
+    display: inline-block;
+    vertical-align: super;
+    font-size: 0.68em;
+    font-weight: 700;
+    line-height: 1;
+    margin-left: 0.15em;
+    padding: 0.1em 0.32em;
+    border-radius: 2px;
+    color: var(--bone, #f1ece1);
+    background: var(--ember, #b22234);
+    text-decoration: none;
+  }
+  .source-marker + .source-marker {
+    margin-left: 0.2em;
+  }
+  .source-marker:hover {
+    background: var(--ember-dark, #8b1a26);
+  }
+  .source-marker:focus-visible,
+  .doc-button:focus-visible {
+    outline: 3px solid var(--charcoal, #2b2b2b);
+    outline-offset: 2px;
+  }
+  #sources li:target {
+    border-color: var(--ember, #b22234);
+    box-shadow: 0 0 0 2px rgba(178, 34, 52, 0.18);
+  }
+  .timeline-dot {
+    position: absolute;
+    left: -1.9rem;
+    top: 0.25rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+    background: var(--dust, #b7a88a);
+    border: 2px solid var(--bone, #f1ece1);
+  }
+  .timeline-dot--flag {
+    background: var(--ember, #b22234);
+    width: 0.95rem;
+    height: 0.95rem;
+    left: -2rem;
+  }
+</style>
