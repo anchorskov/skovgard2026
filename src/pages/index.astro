@@ -3,7 +3,7 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import { MEDIA_BASE_URL, CANDIDATES_BASE_URL } from '../constants';
+import { MEDIA_BASE_URL } from '../constants';
 ---
 <Base
   title="Jimmy Skovgard — U.S. Senate 2026"
@@ -40,9 +40,9 @@ import { MEDIA_BASE_URL, CANDIDATES_BASE_URL } from '../constants';
         <a href="/updates" class="border-2 border-wy-bone bg-wy-bone/10 text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-bone/20 transition-colors">
           Get Updates
         </a>
-        <a href={CANDIDATES_BASE_URL} data-candidates-link target="_blank" rel="noopener" class="border-2 border-wy-rust bg-transparent text-wy-rust font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-rust/10 transition-colors">
-          My Ballot
-        </a>
+        {/* "My Ballot" CTA pulled 2026-08-19 with the nav link. The Candidates
+            guide is parked pending the integrity project; it still resolves but
+            is no longer promoted. See docs/current_status_candidates_page.md. */}
       </div>
     </div>
 

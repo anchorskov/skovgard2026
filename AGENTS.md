@@ -54,7 +54,8 @@ is deleted.
 | `docs/deploy.md` | Cloudflare Pages Git-integration build configuration reference |
 | `docs/email_guide.md` | `voter_emails`/`v_best_email` pipeline — schema, tiering, match/import process |
 | `docs/media/AddCampaignVideo.md` | Adding a campaign video to the site (R2 + D1 mechanics) |
-| `docs/media/AddMessage.md` | Canonical process for adding a new video/essay/survey/tool to /messages — includes the required-inputs checklist for asking the user for missing content |
+| `docs/current_status_candidates_page.md` | Handoff for the parked Candidates voter guide — every known defect, the measured results-to-candidate linkage failure, the recommended redesign, and the environment hazards that nearly caused data loss. Read before touching anything under `Candidates/` |
+| `docs/media/AddMessage.md` | Canonical process for adding a new video/essay/survey/tool to /messages — includes the required-inputs checklist for asking the user for missing content, and the test for when a message needs a sources page |
 | `docs/polling/AddPollingLocations.md` | Adding polling locations for a new Wyoming county |
 | `docs/pulse_flow.md` | `/pulse` opt-in + Citizen Poll flow architecture, data model, and the open unmatched-voter design gap |
 | `docs/worker_map.md` | Inventory of Cloudflare Workers/Pages deploy targets, Wrangler version ownership, and the safe Wrangler upgrade runbook |
@@ -83,6 +84,47 @@ This project **migrated from Hugo to Astro** in early April 2026. All code chang
 - The local dev server is `npm run dev` (Astro on port 4321), not `hugo server`.
 - Do not suggest Hugo commands (`hugo`, `hugo server`, `hugo --minify`), Hugo template syntax (`{{ .Params }}`, `{{ partial }}`), Hugo pipes (`resources.Get | fingerprint`), or Hugo config files (`config.toml`, `config/_default/`). None of these exist in the project.
 - If you encounter references to Hugo patterns in older files or memory, treat them as outdated and do not apply them.
+
+## Current Focus — integrity project (as of 2026-08-19)
+
+The 2026 primary is over. The campaign has shifted from promoting Jimmy
+Skovgard's candidacy to maintaining a sourced public record of how Wyoming's
+federal offices are used. **The sender is still Skovgard for Senate**, so
+existing opt-ins remain in scope — the `/pulse` consent language covers
+political and informational messages that may support or oppose federal
+candidates. Do not introduce a new sender, committee, or org name.
+
+**Standing published commitments.** These appear in `/pulse` and message-page
+copy, so they bind the work rather than describing a preference:
+
+- Claims about a public official's record link to an original source.
+- Statements of judgment are labeled as judgment, not presented as record.
+- When new evidence changes the record, the record is updated.
+- When something is wrong, it is corrected rather than quietly removed.
+- Contact information is never transferred to another campaign.
+
+**The Candidates voter guide is parked.** It is not deleted and still
+resolves publicly, but it is no longer promoted: the nav link and homepage
+CTA were pulled 2026-08-19. Its data is from the 2026 primary, so it must
+carry an under-construction treatment rather than present stale results as
+current.
+
+Before touching anything under `Candidates/`, read
+`docs/current_status_candidates_page.md`. Two items there are load-bearing
+and expensive to rediscover:
+
+1. **Office ids are not portable** between the local Miniflare database and
+   the production `wy` database. Local ids 571-578 are Natrona county offices
+   and the judicial DA; the same ids in production are Laramie precinct
+   committee rows. Match by predicate or natural key, never by id.
+2. **The 2024 election corpus exists only locally**, is structurally
+   defective in roughly 201 of 360 contests, and is flagged
+   `election_events.data_status = 'needs_review'`. It must not be promoted to
+   production without the remediation checklist in
+   `Candidates/docs/election_results_2024_local_status.md`.
+
+**The Citizen Poll is hidden, not removed** — `/pulse` and `/pulse/signup`
+pass `variant="updates"` to `PulseOptInForm`. See `docs/pulse_flow.md`.
 
 ## Project Scope Guard
 
