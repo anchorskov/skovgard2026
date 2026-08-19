@@ -1,185 +1,64 @@
 ---
 // src/pages/my-ballot.astro
+//
+// The former My Ballot landing page promoted the Candidates voter guide with
+// two CTAs and a full explainer. That guide was parked on 2026-08-19: it
+// serves 2026 primary results with roughly 201 of 360 contests structurally
+// defective and carries no under-construction treatment. See
+// docs/current_status_candidates_page.md.
+//
+// The route is kept rather than deleted so existing bookmarks, printed QR
+// codes, and search results do not 404. The previous page content is in git
+// history at b492fcb if it is ever restored.
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import { CANDIDATES_BASE_URL } from '../constants';
 ---
 <Base
-  title="My Ballot — Skovgard 2026"
-  description="Every candidate running in Wyoming's 2026 primary, in one place. A free, independent directory built so voters can compare the field before they vote."
+  title="My Ballot | The Wyoming Opposition"
+  description="The Wyoming candidate directory is being rebuilt. Join the Wyoming Opposition for the record, with links to original sources."
 >
   <Nav />
 
-  <!-- HERO -->
-  <section class="relative pt-40 pb-20 px-4 bg-wy-charcoal overflow-hidden">
-    <div class="relative z-10 max-w-3xl mx-auto text-center">
-      <p class="text-wy-sandstone font-semibold tracking-[0.22em] uppercase text-xs sm:text-sm mb-5">
-        · A Skovgard 2026 Voter Tool ·
-      </p>
-      <h1 class="text-4xl sm:text-6xl font-serif font-extrabold text-wy-bone leading-tight mb-6">
-        Every candidate. One place.<br/>
-        <span class="text-wy-ember">Wyoming voters decide.</span>
+  <main class="bg-wy-bone min-h-[70vh] pt-28 pb-20 px-4">
+    <div class="max-w-2xl mx-auto">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">Under Construction</p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-extrabold text-wy-charcoal mb-6 leading-tight">
+        My Ballot is being rebuilt.
       </h1>
-      <p class="text-wy-bone/80 text-xl mb-10 max-w-2xl mx-auto">
-        My Ballot is a free, independent directory of everyone running in Wyoming's 2026 primary — built so you can compare the field before you vote, not just before you donate.
-      </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-        <a href={CANDIDATES_BASE_URL} data-candidates-link target="_blank" rel="noopener" class="bg-wy-ember text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
-          Launch My Ballot →
-        </a>
-        <a href="#how-it-works" class="text-wy-bone/70 font-semibold border-b border-transparent hover:text-wy-bone hover:border-wy-sandstone transition-colors pb-0.5">
-          See how it works
-        </a>
-      </div>
-    </div>
-  </section>
 
-  <!-- STAT STRIP -->
-  <div class="bg-wy-charcoal border-t border-wy-bone/10">
-    <div class="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-wy-bone/10">
-      <div class="text-center py-8 px-4">
-        <p class="text-4xl font-serif font-extrabold text-wy-bone">200+</p>
-        <p class="text-xs uppercase tracking-widest text-wy-bone/50 font-semibold mt-1">Candidates listed</p>
-      </div>
-      <div class="text-center py-8 px-4">
-        <p class="text-4xl font-serif font-extrabold text-wy-bone">86</p>
-        <p class="text-xs uppercase tracking-widest text-wy-bone/50 font-semibold mt-1">Offices on the ballot</p>
-      </div>
-      <div class="text-center py-8 px-4">
-        <p class="text-4xl font-serif font-extrabold text-wy-bone">23</p>
-        <p class="text-xs uppercase tracking-widest text-wy-bone/50 font-semibold mt-1">Counties covered</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- HOW IT WORKS -->
-  <section id="how-it-works" class="bg-wy-bone py-20 px-4">
-    <div class="max-w-5xl mx-auto">
-      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">How it works</p>
-      <h2 class="text-3xl sm:text-4xl font-serif font-extrabold text-wy-charcoal mb-4 max-w-xl">No login. No spin. Just the field.</h2>
-      <p class="text-wy-charcoal/70 text-lg mb-12 max-w-2xl">
-        My Ballot exists so party insiders don't get to decide who Wyoming voters hear from first.
-      </p>
-      <div class="grid sm:grid-cols-3 gap-10">
-        <div>
-          <div class="w-9 h-9 rounded-full border-2 border-wy-ember text-wy-ember font-serif font-extrabold flex items-center justify-center mb-4">1</div>
-          <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-2">Find your ballot</h3>
-          <p class="text-wy-charcoal/70">Search by office or browse by county — from U.S. Senate down to precinct committee races.</p>
-        </div>
-        <div>
-          <div class="w-9 h-9 rounded-full border-2 border-wy-ember text-wy-ember font-serif font-extrabold flex items-center justify-center mb-4">2</div>
-          <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-2">Compare the field</h3>
-          <p class="text-wy-charcoal/70">See every filed candidate for a race side by side, including ones the party hasn't promoted.</p>
-        </div>
-        <div>
-          <div class="w-9 h-9 rounded-full border-2 border-wy-ember text-wy-ember font-serif font-extrabold flex items-center justify-center mb-4">3</div>
-          <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-2">Decide for yourself</h3>
-          <p class="text-wy-charcoal/70">Read each candidate's own words, priorities, and finance filings — then make the call.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SAMPLE CARD DEMO -->
-  <section class="bg-wy-stone py-20 px-4">
-    <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-      <div>
-        <p class="text-wy-gold font-semibold uppercase tracking-[0.18em] text-sm mb-3">What's on a card</p>
-        <h2 class="text-3xl font-serif font-extrabold text-wy-navy mb-5">Built to be scanned in ten seconds</h2>
-        <p class="text-wy-charcoal/70 text-lg leading-relaxed mb-4">
-          Every candidate gets the same format — no campaign gets a bigger card because it paid for one.
+      <div class="bg-white border-l-4 border-wy-sandstone rounded-sm p-6 mb-8">
+        <p class="text-wy-charcoal/80 leading-relaxed">
+          The candidate directory carried results from the 2026 primary. We found enough problems in
+          how those results were matched to candidates that we would rather show you nothing than
+          show you something wrong. It is offline until it can be rebuilt and checked.
         </p>
-        <ul class="list-disc list-inside text-wy-charcoal/70 space-y-1.5 mb-8">
-          <li>Office, district, and party</li>
-          <li>Self-reported top priorities</li>
-          <li>Occupation, hometown, years in Wyoming</li>
-          <li>Links to campaign finance (FEC / WYCFIS) and official socials</li>
-        </ul>
-        <div class="bg-white rounded-sm border border-wy-dust p-5 flex gap-3">
-          <svg class="w-5 h-5 text-wy-sage flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          <p class="text-sm text-wy-charcoal/70">
-            <strong class="text-wy-charcoal">Sourced, not spun.</strong> Filing and finance data comes from official Wyoming Secretary of State, FEC, and WYCFIS records — not campaign press releases.
-          </p>
-        </div>
       </div>
-      <div class="bg-white rounded-sm border border-wy-dust shadow-2xl shadow-wy-charcoal/10 overflow-hidden">
-        <div class="flex items-center gap-4 p-6 pb-4">
-          <div class="w-16 h-16 rounded-full bg-wy-dust/60 flex items-center justify-center font-serif font-extrabold text-wy-charcoal text-xl flex-shrink-0">JS</div>
-          <div>
-            <p class="font-serif font-extrabold text-wy-charcoal text-lg">Jimmy Skovgard</p>
-            <p class="text-sm text-wy-charcoal/50">U.S. Senate</p>
-            <span class="inline-block mt-1 text-xs font-bold uppercase tracking-wide text-wy-ember border border-wy-ember rounded-full px-2.5 py-0.5">Republican</span>
-          </div>
-        </div>
-        <div class="px-6 pb-6">
-          <p class="text-xs font-bold uppercase tracking-widest text-wy-sandstone mb-2">Top priorities</p>
-          <div class="flex flex-wrap gap-2 mb-5">
-            <span class="text-sm bg-wy-bone border border-wy-dust rounded-full px-3 py-1 text-wy-charcoal/80">Constitutional accountability</span>
-            <span class="text-sm bg-wy-bone border border-wy-dust rounded-full px-3 py-1 text-wy-charcoal/80">Public lands</span>
-            <span class="text-sm bg-wy-bone border border-wy-dust rounded-full px-3 py-1 text-wy-charcoal/80">Local control</span>
-          </div>
-          <div class="flex gap-5 pt-4 border-t border-gray-100 text-sm font-semibold">
-            <a href="#" class="text-wy-sage hover:text-wy-ember">Campaign finance ↗</a>
-            <a href="#" class="text-wy-sage hover:text-wy-ember">Official site ↗</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- FOR CANDIDATES -->
-  <section class="bg-white py-20 px-4 border-t border-gray-100">
-    <div class="max-w-5xl mx-auto">
-      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">For candidates</p>
-      <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-4">Update your own card</h2>
-      <p class="text-wy-charcoal/70 text-lg mb-8 max-w-2xl">
-        The directory is public information, kept current by request — not by whoever has the biggest comms team.
+      <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+        That standard is the point. If we ask Harriet Hageman and Chuck Gray to answer for their
+        record, we have to be willing to correct our own.
       </p>
-      <div class="grid sm:grid-cols-2 gap-4 mb-8 max-w-2xl">
-        <div class="bg-wy-bone rounded-sm border border-wy-dust p-5">
-          <p class="text-xs font-bold uppercase tracking-widest text-wy-sandstone mb-2">What can be updated</p>
-          <ul class="text-sm text-wy-charcoal/70 leading-relaxed space-y-1.5">
-            <li>Name spelling, office, district, county</li>
-            <li>Campaign website, email, phone, social links</li>
-            <li>Candidate photo or campaign logo</li>
-            <li>Short bio, priorities, questionnaire answers</li>
-          </ul>
-        </div>
-        <div class="bg-wy-bone rounded-sm border border-wy-dust p-5">
-          <p class="text-xs font-bold uppercase tracking-widest text-wy-sandstone mb-2">What to include</p>
-          <ul class="text-sm text-wy-charcoal/70 leading-relaxed space-y-1.5">
-            <li>Candidate name as it should appear</li>
-            <li>Office sought and district or county</li>
-            <li>Your name, role, and contact information</li>
-            <li>Card URL and a clean list of changes</li>
-          </ul>
-        </div>
-      </div>
-      <a
-        href="/documents/candidate-card-update-instructions.pdf"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="inline-flex items-center gap-2 px-6 py-3 bg-wy-bone border-2 border-wy-charcoal text-wy-charcoal font-bold rounded-sm hover:bg-wy-charcoal hover:text-wy-bone transition-colors text-sm"
-      >
-        Download update instructions (PDF)
-      </a>
-    </div>
-  </section>
+      <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-8">
+        When it returns it will be sourced, checked, and honest about what it does not know.
+      </p>
 
-  <!-- CLOSING CTA -->
-  <section class="bg-wy-charcoal py-20 px-4 text-center">
-    <div class="max-w-xl mx-auto">
-      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">Ready when you are</p>
-      <h2 class="text-3xl sm:text-4xl font-serif font-extrabold text-wy-bone mb-4">Your ballot. Your call.</h2>
-      <p class="text-wy-bone/70 text-lg mb-8">No login, no tracking, no fee — just the field, laid out plainly.</p>
-      <a href={CANDIDATES_BASE_URL} data-candidates-link target="_blank" rel="noopener" class="inline-block bg-wy-ember text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
-        Launch My Ballot →
-      </a>
+      <div class="flex flex-col sm:flex-row gap-4">
+        <a
+          href="/pulse"
+          class="bg-wy-ember text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm text-center"
+        >
+          Join the Wyoming Opposition
+        </a>
+        <a
+          href="/"
+          class="border-2 border-wy-charcoal text-wy-charcoal font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-charcoal hover:text-wy-bone transition-colors text-center"
+        >
+          Back to the front page
+        </a>
+      </div>
     </div>
-  </section>
+  </main>
 
   <Footer />
 </Base>

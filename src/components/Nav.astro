@@ -24,7 +24,10 @@ const current = Astro.url.pathname;
       <span class="text-wy-bone font-serif font-extrabold text-lg leading-tight">
         Jimmy<br/><span class="text-wy-ember">Skovgard</span>
       </span>
-      <span class="text-wy-bone/40 text-xs ml-2 hidden sm:block tracking-widest uppercase">U.S. Senate · 2026</span>
+      {/* Movement identity replaces the stale "U.S. Senate · 2026" cycle tag.
+          The wordmark keeps Jimmy's name; the legal committee identity stays
+          in Footer.astro. See AGENTS.md, "Current Focus". */}
+      <span class="text-wy-bone/40 text-xs ml-2 hidden sm:block tracking-widest uppercase">The Wyoming Opposition</span>
     </a>
 
     <!-- Desktop links -->
@@ -54,7 +57,7 @@ const current = Astro.url.pathname;
       >
         Donate
       </a>
-      <!-- Hamburger — mobile only -->
+      <!-- Hamburger, mobile only -->
       <button
         id="nav-toggle"
         aria-label="Toggle navigation menu"

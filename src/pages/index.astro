@@ -4,98 +4,204 @@ import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import { MEDIA_BASE_URL } from '../constants';
+
+// "The Wyoming Opposition" is the public movement identity for this page only.
+// The legal committee identity is unchanged and still carried by Footer.astro
+// ("Paid for by Skovgard for Senate"). Do not extend this identity site-wide
+// without approval. See AGENTS.md, "Current Focus".
+const STAND_FOR = [
+  {
+    title: 'Accountability',
+    body: 'Public office is a public trust. We ask for the record, we link to the source, and we say plainly when something is judgment rather than fact.',
+  },
+  {
+    title: 'Local Control',
+    body: 'Decisions about Wyoming land, water, and work belong to the people who live with the results. Distance from a problem is not expertise about it.',
+  },
+  {
+    title: 'Open Debate',
+    body: 'Hard questions asked in public are how a republic corrects itself. An officeholder who will not take questions is telling you something.',
+  },
+  {
+    title: 'Citizen Participation',
+    body: 'This is neighbors doing the work, not a consultant operation. Show up, ask, read the record, and bring someone with you.',
+  },
+  {
+    title: 'Service',
+    body: 'The job is service, not position. It is measured by what gets done for Wyoming, not by how loudly it gets announced.',
+  },
+];
+
+// Ordered deliberately. Hageman first, since the U.S. House seat is the wider
+// office. Add new records here as they are verified and sourced.
+const RECORDS = [
+  {
+    href: '/the-record/harriet-hageman',
+    name: 'Harriet Hageman',
+    heading: 'Transparency Delayed. Debt Accelerated.',
+    summary:
+      'A yes vote on the Epstein Files Transparency Act, and a September procedural package that tabled the pending route 76 days before the binding bill reached the floor. Eighteen sources, with every recorded vote linked to the House Clerk.',
+  },
+  {
+    href: '/the-record/chuck-gray',
+    name: 'Chuck Gray',
+    heading: 'Power Should Serve Wyoming, Not Control It',
+    summary:
+      'A founding role in the Wyoming Freedom Caucus, 38 priority measures across two sessions, and a voter-registration law now facing a federal challenge. Eleven sources, with the research packet available to download.',
+  },
+];
 ---
 <Base
-  title="Jimmy Skovgard — U.S. Senate 2026"
-  description="Citizens defend the Constitution. Wyoming deserves a Senator who defends it too. Jimmy Skovgard for U.S. Senate 2026."
+  title="The Wyoming Opposition | Wyoming Can Do Better"
+  description="Harriet Hageman and Chuck Gray should not advance to the Wyoming general election unchallenged. Join Wyoming citizens organizing to ask hard questions and choose a better direction."
 >
   <Nav />
 
-  <!-- HERO -->
+  <!-- HERO: movement first -->
   <section
-    class="relative min-h-screen flex items-center justify-center overflow-hidden"
+    class="relative flex items-center justify-center overflow-hidden min-h-[100svh] py-16 sm:py-28"
     style="background-image: url('/images/winter-journey-to-skovgard-2026.png'); background-size: cover; background-position: center top;"
   >
-    <!-- Overlay — charcoal wash lets the landscape breathe -->
-    <div class="absolute inset-0 bg-wy-charcoal/60"></div>
-    <!-- Bottom gradient so the horizon line reads cleanly into the page -->
+    <div class="absolute inset-0 bg-wy-charcoal/70"></div>
     <div class="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-wy-bone/80"></div>
 
-    <!-- Hero content -->
     <div class="relative z-10 text-center px-4 max-w-4xl mx-auto">
-      <p class="text-wy-sandstone font-semibold tracking-[0.22em] uppercase text-xs sm:text-sm mb-5">
-        · Citizens Defend the Constitution ·
+      <p class="text-wy-sandstone font-semibold tracking-[0.28em] uppercase text-xs sm:text-sm mb-5">
+        The Wyoming Opposition
       </p>
       <h1 class="text-5xl sm:text-7xl font-serif font-extrabold text-wy-bone leading-[1.05] mb-6">
-        Wyoming Deserves a Senator<br/>
-        <span class="text-wy-ember">Who Defends the Constitution.</span>
+        Wyoming Can <span class="text-wy-ember">Do Better.</span>
       </h1>
-      <p class="text-wy-bone/85 text-xl mb-10 max-w-2xl mx-auto">
-        The oath still matters. Wyoming deserves accountability, local control, and action.
+      <p class="text-wy-bone/85 text-base sm:text-xl mb-7 sm:mb-9 max-w-2xl mx-auto leading-relaxed">
+        Harriet Hageman and Chuck Gray should not advance to the Wyoming general election unchallenged.
+        This is the Wyoming Opposition. This is where Wyoming citizens organize, ask hard questions, and choose
+        a better direction.
       </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="/donate" class="border-2 border-wy-ember bg-wy-ember/10 text-wy-ember font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember/20 transition-colors">
-          Support Jimmy
-        </a>
-        <a href="/updates" class="border-2 border-wy-bone bg-wy-bone/10 text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-bone/20 transition-colors">
-          Get Updates
-        </a>
-        {/* "My Ballot" CTA pulled 2026-08-19 with the nav link. The Candidates
-            guide is parked pending the integrity project; it still resolves but
-            is no longer promoted. See docs/current_status_candidates_page.md. */}
-      </div>
-    </div>
 
-    <!-- Scroll indicator -->
-    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-      <svg class="w-6 h-6 text-wy-bone/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-      </svg>
+      <!-- One clear first action. Donate and volunteer move to the closing section. -->
+      <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-8 sm:mb-10">
+        <a
+          href="/pulse"
+          class="w-full sm:w-auto bg-wy-ember text-wy-bone font-bold px-10 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember-dark transition-colors shadow-lg shadow-wy-charcoal/30"
+        >
+          Join the Wyoming Opposition
+        </a>
+        <a
+          href="#what-we-stand-for"
+          class="w-full sm:w-auto border-2 border-wy-bone/70 text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-bone/10 transition-colors"
+        >
+          What We Stand For
+        </a>
+      </div>
+
+      <!-- Identity line. Jimmy is visible inside the first screen. -->
+      <div class="flex items-center justify-center gap-3">
+        <img
+          src="/images/jimmy.png"
+          alt="Jimmy Skovgard"
+          class="w-12 h-12 rounded-full object-cover object-top border-2 border-wy-sandstone/70"
+        />
+        <p class="text-wy-bone/75 text-sm sm:text-base font-semibold tracking-wide text-left">
+          Jimmy Skovgard, Republican, Wyomingite, American.
+        </p>
+      </div>
     </div>
   </section>
 
-  <!-- Topographic divider — frontier accent between hero and about strip -->
   <div class="bg-wy-bone py-6 px-4">
     <div class="max-w-5xl mx-auto">
       <hr class="topo-rule" />
     </div>
   </div>
 
-  <!-- ABOUT STRIP -->
-  <section class="bg-wy-bone py-20 px-4">
-    <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-      <div>
-        <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">About Jimmy</p>
-        <h2 class="text-4xl font-serif font-extrabold text-wy-charcoal mb-6">In Service to Wyoming</h2>
-        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
-          I'm Jimmy Skovgard, a small businessman, citizen soldier, and neighbor. I know Wyoming because this is home.
-        </p>
-        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
-          I took an oath to support and defend the Constitution, and I am ready to elevate your voice and help guide Wyoming back to its true conservative center.
-        </p>
-        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
-          I carry forward a family legacy of service to Wyoming, a legacy that now calls all of us to stand together for our Constitution and our way of life.
-        </p>
-        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-6">
-          I'm running to bring integrity, accountability, and a clear Wyoming voice to the United States Senate.
-        </p>
-        <a href="/about" class="text-wy-ember font-semibold hover:text-wy-ember-dark hover:underline">Read Jimmy's Story →</a>
-      </div>
-      <div class="rounded-sm overflow-hidden shadow-2xl shadow-wy-charcoal/20 border-4 border-wy-dust">
-        <img src="/images/jimmy.png" alt="Jimmy Skovgard" class="w-full h-80 object-cover object-top" />
+  <!-- WHY ORGANIZED OPPOSITION MATTERS -->
+  <section class="bg-wy-bone pt-8 pb-20 px-4">
+    <div class="max-w-3xl mx-auto">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">Why This Exists</p>
+      <h2 class="text-4xl font-serif font-extrabold text-wy-charcoal mb-6">
+        An unopposed office is an unwatched office.
+      </h2>
+      <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+        A primary settles a nomination. It does not settle whether anyone is paying attention.
+        Offices that go unwatched drift, and the people who hold them stop expecting to explain
+        themselves.
+      </p>
+      <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+        Organized opposition is not hostility. It is the ordinary maintenance work of a republic.
+        Someone reads the record. Someone asks the question in public. Someone writes down the
+        answer and what happened next.
+      </p>
+      <p class="text-wy-charcoal/80 text-lg leading-relaxed">
+        That work is easier together than alone. This is where Wyoming citizens do it together.
+      </p>
+    </div>
+  </section>
+
+  <!-- WHAT WE STAND FOR -->
+  <section id="what-we-stand-for" class="bg-white border-y border-wy-dust py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">What We Stand For</p>
+      <h2 class="text-4xl font-serif font-extrabold text-wy-charcoal mb-4">
+        The standard we hold, and hold ourselves to.
+      </h2>
+      <p class="text-wy-charcoal/70 text-lg mb-10 max-w-2xl">
+        These are commitments, not slogans. They apply to how this effort behaves, not only to what
+        it asks of others.
+      </p>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {STAND_FOR.map((item) => (
+          <div class="bg-wy-bone/60 border border-wy-dust rounded-sm p-6">
+            <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-2">{item.title}</h3>
+            <p class="text-wy-charcoal/75 leading-relaxed">{item.body}</p>
+          </div>
+        ))}
       </div>
     </div>
   </section>
 
-  <!-- LATEST FROM JIMMY — featured video + more to hear, one consolidated section -->
+  <!-- THE RECORD -->
+  <section class="bg-wy-bone py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">The Record</p>
+      <h2 class="text-4xl font-serif font-extrabold text-wy-charcoal mb-4">
+        Read it, then decide for yourself.
+      </h2>
+      <p class="text-wy-charcoal/70 text-lg mb-10 max-w-2xl">
+        Every claim links to an original source. Independent reporting, advocacy research, and an
+        organization's own materials are labeled separately, because they are not the same kind of
+        evidence.
+      </p>
+      <div class="space-y-4">
+        {RECORDS.map((r) => (
+          <a
+            href={r.href}
+            class="block bg-white border border-wy-dust rounded-sm p-7 hover:border-wy-ember transition-colors group"
+          >
+            <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-xs mb-2">{r.name}</p>
+            <h3 class="font-serif font-extrabold text-2xl text-wy-charcoal mb-3 group-hover:text-wy-ember transition-colors">
+              {r.heading}
+            </h3>
+            <p class="text-wy-charcoal/75 leading-relaxed mb-4">{r.summary}</p>
+            <span class="text-wy-ember font-semibold">Read the record</span>
+          </a>
+        ))}
+      </div>
+      <p class="text-wy-charcoal/60 text-sm mt-6">
+        More records are added as they are verified and sourced.
+      </p>
+    </div>
+  </section>
+
+  <!-- DISPATCHES FROM THE OPPOSITION -->
   <section class="bg-wy-navy py-20 px-4">
     <div class="max-w-5xl mx-auto">
-      <p class="text-wy-sandstone font-semibold uppercase tracking-wider text-sm mb-3">Latest From Jimmy</p>
+      <p class="text-wy-sandstone font-semibold uppercase tracking-wider text-sm mb-3">Dispatches from the Wyoming Opposition</p>
       <h2 class="text-4xl font-serif font-bold text-white mb-4">Cowboy Care</h2>
       <p class="text-white/70 text-lg mb-10 max-w-2xl">
-        Jim Allington drove seventy-three miles to the mine at three in the morning for thirty years. Peabody ended his retiree medical program with roughly $240,000 of it still unused. Wyoming had no contract, and no channel — I'm building the channel.
+        Jim Allington drove seventy-three miles to the mine at three in the morning for thirty years.
+        Peabody ended his retiree medical program with roughly $240,000 of it still unused. Wyoming
+        had no contract and no channel. I am building the channel.
       </p>
-      <!-- Video player -->
       <div class="w-full rounded-sm overflow-hidden shadow-2xl shadow-black/40 mb-10">
         <video
           controls
@@ -106,21 +212,19 @@ import { MEDIA_BASE_URL } from '../constants';
           <source src={`${MEDIA_BASE_URL}/videos/cowboy-care.mp4`} type="video/mp4" />
         </video>
       </div>
-      <!-- CTA — content-first: one primary action into the full message, one small secondary link -->
       <div class="flex flex-col sm:flex-row items-center gap-5 mb-12">
         <a href="/messages/cowboy-care/" class="inline-block bg-wy-ember text-wy-bone font-bold px-6 py-3 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
-          Watch and read more →
+          Watch and read more
         </a>
-        <a href="/updates" class="text-wy-bone/60 text-sm font-semibold hover:text-wy-bone transition-colors">
-          Get updates
+        <a href="/pulse" class="text-wy-bone/60 text-sm font-semibold hover:text-wy-bone transition-colors">
+          Join the Wyoming Opposition
         </a>
       </div>
 
-      <!-- More to hear — populated client-side from /api/podcast-feed + /api/podcasts -->
+      <!-- More to hear: populated client-side from /api/podcast-feed + /api/podcasts -->
       <div class="pt-8 border-t border-wy-bone/10">
         <p class="text-xs text-wy-bone/40 uppercase tracking-widest mb-4 font-semibold">More to hear</p>
         <div id="otr-grid" class="flex flex-wrap gap-3">
-          <!-- skeleton chips while feed loads -->
           <div class="h-14 w-48 bg-wy-bone/10 rounded-sm animate-pulse"></div>
           <div class="h-14 w-48 bg-wy-bone/10 rounded-sm animate-pulse"></div>
         </div>
@@ -128,29 +232,41 @@ import { MEDIA_BASE_URL } from '../constants';
 
       <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2">
         <a href="/messages/" class="text-wy-bone font-semibold border-b-2 border-wy-ember pb-1 hover:text-wy-sandstone transition-colors">
-          Latest From Jimmy →
+          All Dispatches
         </a>
         <a href="/podcast" class="text-wy-bone/60 font-semibold hover:text-wy-bone transition-colors">
-          All Episodes →
+          All Episodes
         </a>
       </div>
     </div>
   </section>
 
-  <!-- CLOSING CTA -->
-  <section class="bg-wy-bone border-t border-wy-dust py-20 px-4 text-center">
-    <div class="max-w-xl mx-auto">
-      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">Ready to help?</p>
-      <h2 class="text-3xl sm:text-4xl font-serif font-extrabold text-wy-charcoal mb-4">One campaign, one Wyoming.</h2>
-      <p class="text-wy-charcoal/70 text-lg mb-8">
-        Every dollar and every hour goes straight to reaching voters — no machine, no mega-donors, just neighbors talking to neighbors.
+  <!-- TAKE PART -->
+  <section class="bg-wy-bone border-t border-wy-dust py-20 px-4">
+    <div class="max-w-5xl mx-auto text-center">
+      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">Take Part</p>
+      <h2 class="text-3xl sm:text-4xl font-serif font-extrabold text-wy-charcoal mb-4">
+        Four ways to make this real.
+      </h2>
+      <p class="text-wy-charcoal/70 text-lg mb-10 max-w-2xl mx-auto">
+        No machine and no mega-donors. Neighbors talking to neighbors, and a record anyone can check.
       </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="/donate" class="bg-wy-ember text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm">
-          Support Jimmy
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+        <a href="/pulse" class="bg-wy-ember text-wy-bone rounded-sm p-6 hover:bg-wy-ember-dark transition-colors shadow-sm">
+          <h3 class="font-serif font-bold text-xl mb-1">Join</h3>
+          <p class="text-wy-bone/85 text-sm leading-relaxed">Get the record by text and email, with links to original sources.</p>
         </a>
-        <a href="/volunteer" class="border-2 border-wy-charcoal text-wy-charcoal font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-charcoal hover:text-wy-bone transition-colors">
-          Volunteer Instead
+        <a href="/volunteer" class="bg-white border border-wy-dust rounded-sm p-6 hover:border-wy-charcoal transition-colors">
+          <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-1">Volunteer</h3>
+          <p class="text-wy-charcoal/70 text-sm leading-relaxed">Give an hour. Knock a door, make a call, or help at an event.</p>
+        </a>
+        <a href="/share" class="bg-white border border-wy-dust rounded-sm p-6 hover:border-wy-charcoal transition-colors">
+          <h3 class="font-serif font-bold text-xl text-wy-charcoal mb-1">Share</h3>
+          <p class="text-wy-charcoal/70 text-sm leading-relaxed">Send a message to someone who has not heard it yet.</p>
+        </a>
+        <a href="/donate" class="bg-white border-2 border-wy-ember rounded-sm p-6 hover:bg-wy-ember/5 transition-colors">
+          <h3 class="font-serif font-bold text-xl text-wy-ember mb-1">Donate</h3>
+          <p class="text-wy-charcoal/70 text-sm leading-relaxed">Every dollar goes to reaching Wyoming voters directly.</p>
         </a>
       </div>
     </div>
@@ -187,9 +303,9 @@ import { MEDIA_BASE_URL } from '../constants';
     const title = meta.title || ep.guest_slug;
     const d = new Date(ep.episode_date + 'T12:00:00Z');
     const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    // Links to /podcast rather than /share/<slug> — this row is pulled live from
-    // the API, so we can't assume a hand-built /share page exists for every video
-    // (only the featured one above is curated to guarantee a matching share page).
+    // Links to /podcast rather than /share/<slug> because this row is pulled live
+    // from the API, so we cannot assume a hand-built /share page exists for every
+    // video (only the featured one above is curated to guarantee a matching page).
     return `
       <a href="/podcast" class="${chipClasses}">
         <span class="text-xs text-wy-sandstone font-semibold">${dateLabel}${meta.duration ? ' · ' + meta.duration : ''} · Campaign</span>
@@ -203,7 +319,7 @@ import { MEDIA_BASE_URL } from '../constants';
   ]).then(([feedData, podcastData]) => {
     const substackEp = (feedData.episodes || [])[0];
     const campaignVids = (podcastData.episodes || []).filter(e => e.guest_slug === 'campaign');
-    // campaignVids[0] is already shown in the featured video above — skip it
+    // campaignVids[0] is already shown in the featured video above, so skip it
     const rest = campaignVids.slice(1);
 
     const chips = [];
@@ -216,7 +332,7 @@ import { MEDIA_BASE_URL } from '../constants';
   }).catch(() => {
     grid.innerHTML = `
       <a href="https://jimskovgard.substack.com/" target="_blank" rel="noopener" class="${chipClasses}">
-        <span class="text-sm font-semibold text-wy-charcoal">Visit Substack for the latest episodes →</span>
+        <span class="text-sm font-semibold text-wy-charcoal">Visit Substack for the latest episodes</span>
       </a>`;
   });
 })();

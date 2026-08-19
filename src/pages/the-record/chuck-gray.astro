@@ -1,0 +1,363 @@
+---
+// src/pages/the-record/chuck-gray.astro
+//
+// Factual authority: static/documents/chuck-gray-research-and-sources.pdf.
+// That packet's rules govern this page. In particular: attribute Bear's
+// founding-member characterization to Bear and WyoFile rather than stating it
+// as an official record, never convert the HB 156 lawsuit allegations into a
+// judicial finding, never say the 38 priority measures passed, and never
+// present projected primary results as certified.
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+
+const RESEARCH_PDF = '/documents/chuck-gray-research-and-sources.pdf';
+
+type SourceKind = 'Independent reporting' | 'Advocacy research' | 'Primary source' | 'Advocacy primary source' | 'Breaking-news reporting';
+
+const SOURCES: { n: number; title: string; publisher: string; date: string; kind: SourceKind; url: string; supports: string }[] = [
+  {
+    n: 1,
+    title: "The takeover: How Wyoming's 'tireless minority' took control",
+    publisher: 'WyoFile',
+    date: 'September 23, 2024',
+    kind: 'Independent reporting',
+    url: 'https://wyofile.com/the-takeover-how-wyomings-tireless-minority-took-control/',
+    supports: "Bear's founding-member statement, the national training, the partnership, and the Rubino relationships.",
+  },
+  {
+    n: 2,
+    title: 'HB 0156, Proof of voter residency and registration qualifications',
+    publisher: 'Wyoming Legislature, 2025 General Session',
+    date: '2025',
+    kind: 'Primary source',
+    url: 'https://www.wyoleg.gov/Legislation/2025/HB0156',
+    supports: 'Official bill history and statutory requirements, including the 30-day residency rule.',
+  },
+  {
+    n: 3,
+    title: 'Stricter voter registration rules speed through Freedom Caucus-packed panels',
+    publisher: 'WyoFile',
+    date: 'January 15, 2025',
+    kind: 'Independent reporting',
+    url: 'https://wyofile.com/stricter-voter-registration-rules-speed-through-freedom-caucus-packed-panels/',
+    supports: "Gray's support for stricter registration proposals and the legislative process.",
+  },
+  {
+    n: 4,
+    title: "Gray asks court to toss case challenging Wyoming's new voter registration law",
+    publisher: 'WyoFile',
+    date: 'July 1, 2026',
+    kind: 'Independent reporting',
+    url: 'https://wyofile.com/gray-asks-court-to-toss-case-challenging-wyomings-new-voter-registration-law/',
+    supports: "The plaintiff's burden allegations and Gray's legal response.",
+  },
+  {
+    n: 5,
+    title: "Trump's DOJ sides with Gray in voter registration lawsuit",
+    publisher: 'WyoFile',
+    date: 'July 2, 2026',
+    kind: 'Independent reporting',
+    url: 'https://wyofile.com/trumps-doj-sides-with-gray-in-voter-registration-lawsuit/',
+    supports: "The ongoing dispute, asserted voter impacts, and Gray's position.",
+  },
+  {
+    n: 6,
+    title: 'Our Plan',
+    publisher: 'Wyoming Freedom Caucus',
+    date: '2026',
+    kind: 'Advocacy primary source',
+    url: 'https://wyfreedomcaucus.com/our-plan/',
+    supports: "The caucus's own description of its 2026 agenda and outcomes.",
+  },
+  {
+    n: 7,
+    title: 'Governor talks election bill flood, eroding civility and tyranny',
+    publisher: 'WyoFile',
+    date: 'October 24, 2025',
+    kind: 'Independent reporting',
+    url: 'https://wyofile.com/governor-talks-election-bill-flood-eroding-civility-and-tyranny-at-lander-town-hall/',
+    supports: 'Context concerning election legislation and few documented Wyoming fraud cases.',
+  },
+  {
+    n: 8,
+    title: "County clerks have 'significant concerns' with proposed voter registration rule change",
+    publisher: 'WyoFile',
+    date: 'January 9, 2024',
+    kind: 'Independent reporting',
+    url: 'https://wyofile.com/county-clerks-have-significant-concerns-with-proposed-voter-registration-rule-change/',
+    supports: 'Administrative concerns about proof-of-residency rules and Election Day delays.',
+  },
+  {
+    n: 9,
+    title: 'In stunning upset, Wyoming Freedom Caucus loses most of its House seats, backslides in Senate',
+    publisher: 'WyoFile',
+    date: 'August 19, 2026',
+    kind: 'Independent reporting',
+    url: 'https://wyofile.com/in-stunning-upset-wyoming-freedom-caucus-loses-most-of-its-house-seats-backslides-in-senate/',
+    supports: 'Loss of House control, 13 defeated House incumbents, six Senate losses, no new House seats, and the projected reduction to about 10 reliable House votes.',
+  },
+  {
+    n: 10,
+    title: 'Wyoming Freedom Caucus loses at least 14 incumbent lawmakers',
+    publisher: 'WyoFile',
+    date: 'August 19, 2026',
+    kind: 'Breaking-news reporting',
+    url: 'https://wyofile.com/wyoming-freedom-caucus-faces-loss-of-at-least-9-incumbent-lawmakers/',
+    supports: 'Early Associated Press and county-level results identifying defeated caucus members.',
+  },
+  {
+    n: 11,
+    title: 'Freedom Caucus priority bill tracking, 2025 and 2026 sessions',
+    publisher: 'Better Wyoming',
+    date: '2025 to 2026',
+    kind: 'Advocacy research',
+    url: RESEARCH_PDF,
+    supports: 'The counts of 28 priority bills in 2025 and 10 in 2026. See the research packet for the tracking entries.',
+  },
+];
+
+const QUESTIONS = [
+  'What documented Wyoming problem required additional registration barriers?',
+  'How many eligible citizens have experienced registration difficulties?',
+  'What role should a nationally supported political network have in directing Wyoming legislation?',
+  'Does Gray stand behind all 38 Freedom Caucus priorities identified across the two sessions?',
+  'Will Gray disclose communications involving the national State Freedom Caucus Network and his office?',
+];
+
+const KIND_STYLE: Record<SourceKind, string> = {
+  'Independent reporting': 'bg-wy-sage/20 text-wy-charcoal border-wy-sage/50',
+  'Advocacy research': 'bg-wy-sandstone/20 text-wy-charcoal border-wy-sandstone/60',
+  'Advocacy primary source': 'bg-wy-sandstone/20 text-wy-charcoal border-wy-sandstone/60',
+  'Primary source': 'bg-wy-dust/30 text-wy-charcoal border-wy-dust',
+  'Breaking-news reporting': 'bg-wy-sage/20 text-wy-charcoal border-wy-sage/50',
+};
+---
+<Base
+  title="Chuck Gray: The Record | The Wyoming Opposition"
+  description="Chuck Gray helped build the Wyoming Freedom Caucus. In the 2026 primary, Wyoming voters sharply reduced its legislative power. The record, with sources."
+>
+  <Nav />
+
+  <main class="bg-wy-bone pt-28 pb-20 px-4">
+    <article class="max-w-3xl mx-auto">
+
+      <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3">Chuck Gray: The Record</p>
+      <h1 class="text-4xl sm:text-5xl font-serif font-extrabold text-wy-charcoal mb-6 leading-tight">
+        Power Should Serve Wyoming, Not Control It
+      </h1>
+
+      <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+        WyoFile quoted former Wyoming Freedom Caucus chairman John Bear describing Chuck Gray as
+        "one of the very founding members."<a href="#source-1" class="source-marker" aria-label="Source 1">1</a>
+        That connection matters because the organization Gray helped build exercised substantial
+        influence over legislation, elections, and public participation in Wyoming.
+      </p>
+      <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+        On August 19, 2026, WyoFile reported that 13 Freedom Caucus House incumbents were defeated in
+        Wyoming's primary. Six caucus-aligned candidates also lost Senate races, the organization
+        failed to win a single new House seat, and its expected strength fell from a consistent House
+        majority to about 10 reliable votes, with two possible
+        allies.<a href="#source-9" class="source-marker" aria-label="Source 9">9</a><a href="#source-10" class="source-marker" aria-label="Source 10">10</a>
+      </p>
+      <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-6">
+        The result matters. Gray helped build a political organization that sought greater control over
+        Wyoming government, and Wyoming voters declined to extend it. The primary demonstrated that
+        power still belongs to us when citizens examine the record, organize, and vote.
+      </p>
+
+      <aside class="bg-white border-l-4 border-wy-sandstone rounded-sm p-5 mb-8" role="note">
+        <p class="text-wy-charcoal/80 text-sm leading-relaxed">
+          <strong class="text-wy-charcoal">On these results.</strong> The seat counts above come from
+          WyoFile's reporting on the August 18, 2026 primary and remain subject to final
+          certification. The reduction to about 10 reliable House votes is WyoFile's projection, not a
+          certified total.
+        </p>
+      </aside>
+
+      <a
+        href={RESEARCH_PDF}
+        class="doc-button inline-flex items-center gap-3 bg-wy-charcoal text-wy-bone font-bold px-6 py-4 rounded-sm tracking-wide hover:bg-wy-charcoal/85 transition-colors mb-12"
+      >
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+        </svg>
+        Download the Research and Sources
+      </a>
+
+      <!-- SECTION 1 -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-5">A Founding Role</h2>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          Chuck Gray's relationship with the Wyoming Freedom Caucus is more than a recent endorsement.
+          WyoFile reported that Gray was one of its earliest founding
+          members.<a href="#source-1" class="source-marker" aria-label="Source 1">1</a>
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          The organization later entered a formal partnership with the national State Freedom Caucus
+          Network. WyoFile reported that Wyoming lawmakers received training in branding, legislative
+          procedure, political strategy, and media
+          communications.<a href="#source-1" class="source-marker" aria-label="Source 1">1</a>
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          According to the same investigation, the national network pays Wyoming State Director Jessie
+          Rubino to research legislation and provide vote recommendations. Jessie Rubino is married to
+          Joe Rubino, Gray's chief policy officer and Harriet Hageman's
+          nephew.<a href="#source-1" class="source-marker" aria-label="Source 1">1</a>
+        </p>
+        <aside class="bg-white border-l-4 border-wy-dust rounded-sm p-5" role="note">
+          <p class="text-wy-charcoal/75 text-sm leading-relaxed">
+            <strong class="text-wy-charcoal">Context.</strong> These relationships establish a
+            documented political network. They do not, by themselves, establish illegal conduct. Gray
+            was not the caucus chairman during the 2025 or 2026 sessions.
+          </p>
+        </aside>
+      </section>
+
+      <!-- SECTION 2 -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-5">Thirty-Eight Priorities in Two Sessions</h2>
+        <div class="grid sm:grid-cols-2 gap-4 mb-6">
+          <div class="bg-white border border-wy-dust rounded-sm p-6 text-center">
+            <p class="font-serif font-extrabold text-5xl text-wy-ember leading-none mb-2">28</p>
+            <p class="text-wy-charcoal/75 text-sm">Freedom Caucus priority bills in 2025</p>
+          </div>
+          <div class="bg-white border border-wy-dust rounded-sm p-6 text-center">
+            <p class="font-serif font-extrabold text-5xl text-wy-ember leading-none mb-2">10</p>
+            <p class="text-wy-charcoal/75 text-sm">Freedom Caucus priority bills in 2026</p>
+          </div>
+        </div>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          Better Wyoming's tracking identifies 28 Freedom Caucus priority bills during the 2025 general
+          session and 10 during the 2026 budget session. That is 38 identified priority measures across
+          two sessions.<a href="#source-11" class="source-marker" aria-label="Source 11">11</a>
+        </p>
+        <aside class="bg-white border-l-4 border-wy-dust rounded-sm p-5" role="note">
+          <p class="text-wy-charcoal/75 text-sm leading-relaxed">
+            <strong class="text-wy-charcoal">Context.</strong> This is a count of identified priority
+            measures. It is not a count of bills that passed or became law.
+          </p>
+        </aside>
+      </section>
+
+      <!-- SECTION 3 -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-5">Election Security Should Not Silence Eligible Voters</h2>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          As secretary of state, Gray championed stricter voter-registration
+          requirements.<a href="#source-3" class="source-marker" aria-label="Source 3">3</a>
+          Wyoming House Bill 156 added documentary proof requirements and a 30-day residency
+          requirement.<a href="#source-2" class="source-marker" aria-label="Source 2">2</a>
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          A Wyoming voting-rights organization challenged the law in federal court. The complaint
+          alleges that the requirements impose an undue burden on eligible voters, particularly
+          citizens who may have difficulty obtaining qualifying
+          documents.<a href="#source-4" class="source-marker" aria-label="Source 4">4</a>
+        </p>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed mb-4">
+          Gray disputes those allegations and argues that the requirements protect election
+          integrity.<a href="#source-4" class="source-marker" aria-label="Source 4">4</a><a href="#source-5" class="source-marker" aria-label="Source 5">5</a>
+        </p>
+        <aside class="bg-white border-l-4 border-wy-ember/60 rounded-sm p-5 mb-4" role="note">
+          <p class="text-wy-charcoal/75 text-sm leading-relaxed">
+            <strong class="text-wy-charcoal">Allegation, not a finding.</strong> These are claims in a
+            pending federal case. No court has ruled on them. Gray's response is stated above.
+          </p>
+        </aside>
+        <p class="text-wy-charcoal/80 text-lg leading-relaxed">
+          Wyoming can maintain secure elections without making lawful participation unnecessarily
+          difficult. The question is whether these restrictions solve a documented Wyoming problem or
+          place another obstacle between an eligible citizen and the ballot
+          box.<a href="#source-7" class="source-marker" aria-label="Source 7">7</a><a href="#source-8" class="source-marker" aria-label="Source 8">8</a>
+        </p>
+      </section>
+
+      <!-- CONCLUSION -->
+      <section class="bg-white border border-wy-dust rounded-sm p-7 mb-12">
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-5">Accountability Begins With Questions</h2>
+        <ul class="space-y-3 mb-7">
+          {QUESTIONS.map((q) => (
+            <li class="flex gap-3 text-wy-charcoal/80 leading-relaxed">
+              <span class="text-wy-ember font-bold shrink-0" aria-hidden="true">?</span>
+              <span>{q}</span>
+            </li>
+          ))}
+        </ul>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a href="#sources" class="doc-button bg-wy-ember text-wy-bone font-bold px-6 py-4 rounded-sm tracking-wide hover:bg-wy-ember-dark transition-colors text-center">
+            Review Every Source
+          </a>
+          <a href={RESEARCH_PDF} class="doc-button border-2 border-wy-charcoal text-wy-charcoal font-bold px-6 py-4 rounded-sm tracking-wide hover:bg-wy-charcoal hover:text-wy-bone transition-colors text-center">
+            Download the Research and Sources
+          </a>
+        </div>
+      </section>
+
+      <!-- SOURCES -->
+      <section id="sources" class="scroll-mt-24">
+        <h2 class="text-3xl font-serif font-extrabold text-wy-charcoal mb-3">Sources</h2>
+        <p class="text-wy-charcoal/70 mb-6 leading-relaxed">
+          Each source is labeled by type. Independent reporting, advocacy research, and an
+          organization's own materials are different kinds of evidence and are marked as such.
+        </p>
+        <ol class="space-y-4">
+          {SOURCES.map((s) => (
+            <li id={`source-${s.n}`} class="bg-white border border-wy-dust rounded-sm p-5 scroll-mt-24">
+              <div class="flex items-baseline gap-3 mb-2">
+                <span class="font-serif font-extrabold text-wy-ember text-lg shrink-0">{s.n}</span>
+                <div>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer" class="font-semibold text-wy-charcoal hover:text-wy-ember underline decoration-wy-dust underline-offset-2">
+                    {s.title}
+                  </a>
+                  <p class="text-wy-charcoal/60 text-sm mt-1">{s.publisher}, {s.date}</p>
+                </div>
+              </div>
+              <div class="pl-8">
+                <span class={`inline-block text-xs font-semibold uppercase tracking-wider border rounded-sm px-2 py-0.5 mb-2 ${KIND_STYLE[s.kind]}`}>
+                  {s.kind}
+                </span>
+                <p class="text-wy-charcoal/70 text-sm leading-relaxed">Supports: {s.supports}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+    </article>
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  /* Numbered source marker. Superscript, keyboard reachable, visible focus. */
+  .source-marker {
+    display: inline-block;
+    vertical-align: super;
+    font-size: 0.68em;
+    font-weight: 700;
+    line-height: 1;
+    margin-left: 0.15em;
+    padding: 0.1em 0.32em;
+    border-radius: 2px;
+    color: var(--bone, #f1ece1);
+    background: var(--ember, #b22234);
+    text-decoration: none;
+  }
+  .source-marker + .source-marker {
+    margin-left: 0.2em;
+  }
+  .source-marker:hover {
+    background: var(--ember-dark, #8b1a26);
+  }
+  .source-marker:focus-visible,
+  .doc-button:focus-visible {
+    outline: 3px solid var(--charcoal, #2b2b2b);
+    outline-offset: 2px;
+  }
+  #sources li:target {
+    border-color: var(--ember, #b22234);
+    box-shadow: 0 0 0 2px rgba(178, 34, 52, 0.18);
+  }
+</style>
