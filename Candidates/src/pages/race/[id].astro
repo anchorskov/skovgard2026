@@ -130,13 +130,17 @@ if (seatsAvailable > 1) {
 }
 
 const { results: candidates } = await env.WY_DB.prepare(`
-  SELECT id, slug, full_name, party, summary,
-         website_url, photo_url, email, phone,
-         facebook_url, instagram_url, twitter_url, campaign_finance_url, ballotpedia_url,
-         incumbency_status, data_confidence
-    FROM candidates
-   WHERE office_id = ?1 AND withdrawn_at IS NULL
-   ORDER BY CASE WHEN incumbency_status = 'Incumbent' THEN 0 ELSE 1 END, full_name
+  SELECT c.id, c.slug, c.full_name, c.party, c.summary,
+         c.website_url, c.photo_url, c.email, c.phone,
+         c.facebook_url, c.instagram_url, c.twitter_url, c.campaign_finance_url, c.ballotpedia_url,
+         c.incumbency_status, c.data_confidence,
+         p.code AS party_code, p.label AS party_label, p.short_label AS party_short_label,
+         p.badge_token AS party_badge_token
+    FROM candidates c
+    LEFT JOIN party_aliases pa ON pa.raw_value = c.party
+    LEFT JOIN parties p ON p.code = pa.party_code
+   WHERE c.office_id = ?1 AND c.withdrawn_at IS NULL
+   ORDER BY CASE WHEN c.incumbency_status = 'Incumbent' THEN 0 ELSE 1 END, c.full_name
 `).bind(id).all();
 
 const officeName = office.district
@@ -151,27 +155,6 @@ const LEVEL_LABELS: Record<string, string> = {
   county: 'County & Local',
   city: 'Municipal',
 };
-
-function partyBadgeClass(party: string | null): string {
-  if (!party) return 'badge--party-other';
-  const p = party.toUpperCase();
-  if (p.startsWith('R')) return 'badge--party-r';
-  if (p.startsWith('D')) return 'badge--party-d';
-  if (p.startsWith('L')) return 'badge--party-l';
-  return 'badge--party-other';
-}
-
-function partyLabel(party: string | null): string {
-  if (!party) return 'No party';
-  const map: Record<string, string> = {
-    REP: 'Republican', R: 'Republican',
-    DEM: 'Democrat', D: 'Democrat',
-    LIB: 'Libertarian', L: 'Libertarian',
-    IND: 'Independent', I: 'Independent',
-    NP: 'No party',
-  };
-  return map[party.toUpperCase()] ?? party;
-}
 
 function isAbsoluteUrl(url: string | null): boolean {
   return typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'));
@@ -214,7 +197,7 @@ function isAbsoluteUrl(url: string | null): boolean {
           <div class="candidate-card__header">
             <div class="candidate-card__badges">
               {String(c.incumbency_status).toLowerCase() === 'incumbent' ? <span class="badge badge--incumbent">Incumbent</span> : null}
-              {c.party ? <span class={`badge ${partyBadgeClass(String(c.party))}`}>{partyLabel(String(c.party))}</span> : null}
+              {c.party ? <span class={`badge badge--party-${String(c.party_badge_token || 'other')}`}>{c.party_label || c.party}</span> : null}
               {result?.isLeading ? <span class="badge badge--leading">Leading</span> : null}
             </div>
             <h3 class="candidate-card__name">{c.full_name}</h3>
@@ -240,7 +223,7 @@ function isAbsoluteUrl(url: string | null): boolean {
             data-choice-button
             data-candidate-id={String(c.id)}
             data-candidate-name={String(c.full_name)}
-            data-candidate-party={partyLabel(c.party ? String(c.party) : null)}
+            data-candidate-party={String(c.party_label || c.party || '')}
             data-office-id={String(office.id)}
             data-office-name={String(officeName)}
             aria-pressed="false"

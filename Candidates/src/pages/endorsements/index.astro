@@ -10,6 +10,8 @@ type EndorsedCandidate = {
   slug: string;
   full_name: string;
   party: string;
+  party_label: string | null;
+  party_badge_token: string | null;
   office_title: string;
   level: string;
   district: number | null;
@@ -31,6 +33,7 @@ if (db) {
     const { results } = await db.prepare(`
       SELECT
         c.slug, c.full_name, c.party,
+        p.label AS party_label, p.badge_token AS party_badge_token,
         o.title AS office_title, o.level, o.district, o.county,
         ge.final_score, ge.max_possible, ge.evidence_confidence,
         ge.endorsement_reasoning, ge.endorsed_at, ge.not_endorsed_reasoning,
@@ -38,6 +41,8 @@ if (db) {
       FROM guide_endorsements ge
       JOIN candidates c ON c.id = ge.candidate_id
       JOIN offices o    ON o.id = c.office_id
+      LEFT JOIN party_aliases pa ON pa.raw_value = c.party
+      LEFT JOIN parties p ON p.code = pa.party_code
       WHERE ge.status IN ('endorsed','not_endorsed')
         AND ge.published_at IS NOT NULL
         AND c.withdrawn_at IS NULL
@@ -117,7 +122,7 @@ const released = today >= endorsementDate;
                   <a href={`/candidate/${c.slug}`}>{c.full_name}</a>
                 </h3>
                 <div class="candidate-card__badges">
-                  <span class={`badge badge--party-${(c.party || '').toLowerCase().slice(0,1) || 'other'}`}>{c.party}</span>
+                  <span class={`badge badge--party-${c.party_badge_token || 'other'}`}>{c.party_label || c.party}</span>
                   {c.final_score != null && (
                     <span class="score-pill">{c.final_score} / {c.max_possible ?? 500}</span>
                   )}

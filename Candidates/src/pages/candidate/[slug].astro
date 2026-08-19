@@ -15,9 +15,13 @@ const rubric = await loadActiveRubric(db);
 
 // Load candidate + office
 const candRow = await db.prepare(`
-  SELECT c.*, o.title AS office_title, o.level, o.district, o.county
+  SELECT c.*, o.title AS office_title, o.level, o.district, o.county,
+         p.code AS party_code, p.label AS party_label, p.short_label AS party_short_label,
+         p.badge_token AS party_badge_token
   FROM candidates c
   JOIN offices o ON o.id = c.office_id
+  LEFT JOIN party_aliases pa ON pa.raw_value = c.party
+  LEFT JOIN parties p ON p.code = pa.party_code
   WHERE c.slug = ? AND c.withdrawn_at IS NULL
   LIMIT 1
 `).bind(slug).first() as any;
@@ -104,7 +108,7 @@ const hasResponses = (qResponses as any[]).length > 0;
         <p class="eyebrow">{candRow.office_title}{candRow.district ? ` — District ${candRow.district}` : ''}</p>
         <h1>{candRow.full_name}</h1>
         <div class="profile-badges">
-          <span class={`badge badge--party-${(candRow.party || '').toLowerCase().slice(0,1) || 'other'}`}>{candRow.party}</span>
+          <span class={`badge badge--party-${candRow.party_badge_token || 'other'}`}>{candRow.party_label || candRow.party}</span>
           {candRow.incumbency_status === 'incumbent' && <span class="badge badge--incumbent">Incumbent</span>}
           {isEndorsed && <span class="badge badge--endorsed">Endorsed by Jimmy Skovgard</span>}
         </div>

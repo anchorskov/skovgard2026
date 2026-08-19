@@ -23,10 +23,22 @@ office_precinct_scopes
   notes         TEXT NULLABLE
   PRIMARY KEY (office_id, precinct_code)
 
+parties
+  code         TEXT PK                -- REP | DEM | NP
+  label        TEXT NOT NULL          -- official display name
+  short_label  TEXT NULLABLE          -- compact result prefix
+  badge_token  TEXT NULLABLE          -- CSS class suffix, never a color value
+  sort_order   INTEGER NOT NULL
+  is_active    INTEGER NOT NULL DEFAULT 1
+
+party_aliases
+  raw_value    TEXT PK                -- exact source value
+  party_code   TEXT NOT NULL → parties.code
+
 candidates (row count grows as county and precinct rosters are added)
   id                          INTEGER PK AUTOINCREMENT
   office_id                   INTEGER → offices.id
-  party                       TEXT      -- Republican | Democratic | Libertarian
+  party                       TEXT      -- preserved raw source value; resolve through party_aliases
   full_name                   TEXT
   slug                        TEXT UNIQUE  -- URL key, e.g. "harriet-hageman"
   city                        TEXT NULLABLE
@@ -148,6 +160,28 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `district` | NULL for any statewide or at-large office; numeric district for legislative seats (HD1–HD60, SD1–SD30) |
 | `sort_order` | Used for consistent UI display ordering within a level |
 | `precinct_code` | Structured precinct code for precinct committee offices, e.g. `8-1`, `01-01`; preferred over parsing `title` |
+| `ballot_party` | `NP` is reserved for genuinely nonpartisan races. Use a blank value when one office row represents partisan candidates without separate party-specific office rows. |
+
+### Party normalization
+
+Party source values are preserved in `candidates.party`, `offices.ballot_party`,
+and `election_contests.ballot_party_raw`. Display names, compact labels, and
+badge class suffixes come from `parties` through the exact, global
+`party_aliases.raw_value` mapping. Blank and NULL values are intentionally not
+aliased because they mean party is not applicable, not nonpartisan.
+
+Verified local vocabulary as of 2026-08-19:
+
+| Raw value | Canonical code | Display label | Short label | Badge token |
+|---|---|---|---|---|
+| `REP` | `REP` | Republican | R | `r` |
+| `Republican` | `REP` | Republican | R | `r` |
+| `DEM` | `DEM` | Democratic | D | `d` |
+| `Democratic` | `DEM` | Democratic | D | `d` |
+| `NP` | `NP` | Nonpartisan | NP | `other` |
+
+No minor-party row is seeded without an observed source value. Adding another
+party or alias is a database change rather than a frontend deploy.
 
 ### candidates — base fields
 
@@ -202,6 +236,8 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/migrations/0031_election_results_integrity.sql` | Additive fix migration: (1) redefines `v_election_latest_snapshots` to require `verification_status='verified'`, so a newer failed or unreviewed snapshot can never displace a good one; (2) adds `v_election_selected_snapshot_contests`, the correct one-row-per-(contest,county) grain for precinct-count aggregation, fixing a real bug where summing over the result-row grain multiplied precinct counts by however many candidate/writein/overvote/undervote rows a county contributed; (3) adds `source_contest_name_raw` and four sibling columns to `election_snapshot_contests` so a second source reporting a canonical contest under different wording has somewhere to record its own raw text; (4) adds integrity triggers (SQLite has no `ALTER TABLE ADD CONSTRAINT`, so these substitute for CHECK constraints on the existing tables) and a `UNIQUE(source_id, snapshot_seq)` index. Applied to production D1 2026-08-18. See `docs/election_results_schema.md` |
 | `db/migrations/0032_election_source_discoveries.sql` | Creates the append-only discovery queue written by the standalone `Results/` Worker. Candidate links, other-year links, and rejected test/sample material remain review evidence and are never promoted automatically. Applied locally and to production D1 2026-08-18. |
 | `db/migrations/0033_election_source_discoveries_unique_index.sql` | Adds a database-enforced `UNIQUE(source_id, discovered_url)` index on `election_source_discoveries`, so a discovered link can never be recorded twice for the same source across different checks. Application code (`Results/src/repository.js`) now looks up a source's known URLs once per run instead of once per link, caps new inserts at `MAX_DISCOVERIES_PER_SOURCE_PER_RUN` (default 20), and uses `INSERT OR IGNORE` against this index as the concurrency-safe backstop. Zero duplicate pairs existed in local or production data before this was applied. Applied locally and to production D1 2026-08-18. See `docs/election_results_schema.md` and `../Results/docs/architecture.md` |
+| `db/migrations/0034_normalize_countywide_ballot_party.sql` | Sets `ballot_party` to blank for 23 explicit Natrona, Sweetwater, and Teton countywide office IDs that contain partisan candidates but are not split into party-specific office rows. Leaves Albany, Sublette, municipal, and all title values unchanged. Applied locally 2026-08-19; not applied to production. |
+| `db/migrations/0035_parties_and_aliases.sql` | Creates table-backed party display metadata and global exact-value aliases for the verified REP, DEM, and NP vocabulary. It also sets office 578, Seventh Judicial District Attorney, to blank `ballot_party` because its candidate is REP and the office is not party-split. Raw candidate, office, and election source values remain unchanged. Applied locally 2026-08-19; not applied to production. |
 
 **Applying migrations:** the `wy` database is shared with other projects (Guide, and other unrelated features) and their `d1_migrations` bookkeeping rows live in the same table. Candidates' own 0001–0019 migrations have never been recorded in that ledger — they've always been applied by hand. Apply a new migration with `npx wrangler d1 execute wy --remote --file=db/migrations/NNNN_name.sql` from `Candidates/`. Do **not** run `wrangler d1 migrations apply` for this project — it will try to replay the entire untracked history from 0001 and fail (migration 0001's `uq_offices_statewide`/`uq_offices_district` indexes no longer match live data, which now has legitimate duplicate titles across different counties).
 

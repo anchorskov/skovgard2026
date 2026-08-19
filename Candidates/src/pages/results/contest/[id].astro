@@ -12,6 +12,7 @@ interface ContestMeta {
   level: string;
   district: number | null;
   ballot_party: string | null;
+  party_label: string | null;
   reporting_scope: string;
   election_name: string;
   election_date: string;
@@ -19,9 +20,11 @@ interface ContestMeta {
 
 const contest = await env.WY_DB.prepare(
   `SELECT c.id AS contest_id, c.contest_name_normalized, c.contest_name_raw, c.level, c.district,
-          c.ballot_party, c.reporting_scope, ee.election_name, ee.election_date
+          c.ballot_party, p.label AS party_label, c.reporting_scope, ee.election_name, ee.election_date
      FROM election_contests c
      JOIN election_events ee ON ee.id = c.election_id
+     LEFT JOIN party_aliases pa ON pa.raw_value = c.ballot_party
+     LEFT JOIN parties p ON p.code = pa.party_code
     WHERE c.id = ?1`
 ).bind(id).first<ContestMeta>();
 
@@ -120,7 +123,6 @@ function countyPrecincts(county: string) {
   return [...byPrecinct.entries()].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
 }
 
-const PARTY_LABELS: Record<string, string> = { REP: 'Republican', DEM: 'Democrat', LIB: 'Libertarian', NP: 'No party' };
 ---
 
 <Base title={contest.contest_name_normalized} currentPath="/races">
@@ -130,7 +132,7 @@ const PARTY_LABELS: Record<string, string> = { REP: 'Republican', DEM: 'Democrat
     <h1>
       {contest.contest_name_normalized}{contest.district ? `, District ${contest.district}` : ''}
     </h1>
-    {contest.ballot_party && <p class="party-line">{PARTY_LABELS[contest.ballot_party] ?? contest.ballot_party} Primary</p>}
+    {contest.ballot_party && <p class="party-line">{contest.party_label || contest.ballot_party} Primary</p>}
     <p class="unofficial-label">{anyUnofficial ? 'Unofficial results' : 'Certified results'}</p>
 
     {aggregateSorted.length === 0 ? (
