@@ -5,10 +5,10 @@ import Nav from '../../components/Nav.astro';
 import Footer from '../../components/Footer.astro';
 ---
 <Base
-  title="Join the Pulse & Vote in the Wyoming Citizen Poll — Skovgard 2026"
-  description="Join campaign updates, verify your Wyoming voter registration, and receive the Citizen Poll ballot for your district."
+  title="Join the Pulse — Skovgard 2026"
+  description="Get Wyoming campaign updates by text and email."
   ogImage="/images/pulse/pulse-poll-social.png"
-  ogImageAlt="Pulse: opt in, get campaign updates, build your ballot, receive a Citizen Poll invitation, and check your voter registration."
+  ogImageAlt="Pulse: opt in to get Wyoming campaign updates by text and email."
   ogImageWidth={1200}
   ogImageHeight={630}
 >
@@ -25,7 +25,11 @@ import Footer from '../../components/Footer.astro';
         <p class="text-wy-bone/70 text-lg text-center mb-8 max-w-md mx-auto">
           Get Wyoming campaign updates by text and email.
         </p>
-        <PulseOptInForm showPrivacyNote={false} />
+        {/* Citizen Poll hidden 2026-08-19 while the Pulse flow is repurposed.
+            variant="updates" trims step 2 (voter verification) and the
+            post-join poll upsell; the poll code stays in place. Restore by
+            removing this prop — see docs/pulse_flow.md §"Poll hidden". */}
+        <PulseOptInForm variant="updates" showPrivacyNote={false} />
         <p class="text-wy-bone/40 text-xs text-center mt-5">
           We never sell your information. Reply STOP to opt out at any time.
         </p>

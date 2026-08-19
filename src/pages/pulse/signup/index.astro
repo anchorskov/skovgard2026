@@ -17,7 +17,8 @@ import Footer from '../../../components/Footer.astro';
         This route remains available as a fallback. The primary quick opt-in page is
         <a href="/pulse" class="text-wy-gold underline"> /pulse</a>.
       </p>
-      <PulseOptInForm />
+      {/* Citizen Poll hidden 2026-08-19 — see /pulse and docs/pulse_flow.md. */}
+      <PulseOptInForm variant="updates" />
     </div>
   </main>
   <Footer />

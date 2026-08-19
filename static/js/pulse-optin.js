@@ -73,8 +73,8 @@ if (form) {
   };
 
   const resetActionLabels = () => {
-    if (joinBtn) joinBtn.textContent = 'Click to Join';
-    if (updatesOnlyBtn) updatesOnlyBtn.textContent = 'Get Updates';
+    if (joinBtn) joinBtn.textContent = 'Join the Effort';
+    if (updatesOnlyBtn) updatesOnlyBtn.textContent = 'Join the Effort';
     if (requestCallbackBtn) requestCallbackBtn.textContent = 'Please have Jimmy call me back';
     if (submitBtn) submitBtn.textContent = 'Verify me and get my ballot';
   };
@@ -141,7 +141,7 @@ if (form) {
     host.innerHTML = `
       <div class="optin-dialog" role="dialog" aria-modal="true" aria-labelledby="optin-modal-title">
         <h2 id="optin-modal-title">Success!</h2>
-        <p id="optin-modal-body">Thank you for confirming your opt-in. You'll receive updates soon.</p>
+        <p id="optin-modal-body">You're in. Watch for updates from Jimmy.</p>
         <div class="actions"><button id="optin-ok">OK</button></div>
       </div>`;
     document.body.appendChild(host);
@@ -456,7 +456,7 @@ function resetTurnstile() {
   });
 
   imDoneBtn?.addEventListener('click', () => {
-    modal.show("Thank you for confirming your opt-in. You'll receive updates soon.");
+    modal.show("You're in. Watch for updates from Jimmy.");
   });
 
   backBtn?.addEventListener('click', () => {
@@ -599,8 +599,8 @@ function resetTurnstile() {
         : submissionMode === 'callback'
           ? "Your callback request is confirmed. Someone from our team will call you back to finish your Citizen Poll verification."
           : consent_email
-            ? "Thank you for confirming your opt-in. Check your inbox and spam or junk folder for our welcome message."
-            : "Thank you for confirming your opt-in. You'll receive updates soon.";
+            ? "You're in. Watch for updates from Jimmy. Check your inbox and spam or junk folder for our welcome message."
+            : "You're in. Watch for updates from Jimmy.";
       modal.show(modalText);
     } catch (e3) {
       console.error('opt-in error', e3);

@@ -28,10 +28,10 @@ const isUpdatesOnly = variant === 'updates';
     <section id="pulse-step-1" class="pulse-form-step space-y-5" aria-labelledby="pulse-step-1-title">
       <div>
         <h2 id="pulse-step-1-title" class="text-2xl font-serif font-bold text-wy-charcoal">
-          {isUpdatesOnly ? 'Get Updates' : 'Join the Pulse'}
+          Choose a Better Direction
         </h2>
         <p class="text-sm text-gray-600 mt-1">
-          Enter your contact information to receive campaign updates by text and email.
+          Join Jimmy Skovgard in holding Harriet Hageman and Chuck Gray accountable for their actions and inactions.
         </p>
       </div>
 
@@ -80,7 +80,7 @@ const isUpdatesOnly = variant === 'updates';
       <!-- Email (required for poll, optional for updates) -->
       <div>
         <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-          Email address {!isUpdatesOnly && <span class="text-gray-400 font-normal text-xs">(required for the Citizen Poll)</span>}
+          Email address <span class="text-gray-400 font-normal text-xs">(required for citizen surveys)</span>
         </label>
         <input
           id="email"
@@ -92,9 +92,7 @@ const isUpdatesOnly = variant === 'updates';
           class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-wy-ember focus:outline-none"
         />
         <p class="text-xs text-gray-400 mt-1">
-          {isUpdatesOnly
-            ? 'Optional — add it if you\'d also like updates by email.'
-            : "We use your email to deliver your district's poll ballot. It is optional if you only want text updates."}
+          We use email to send source links, issue summaries, and survey invitations. It is optional if you only want text updates.
         </p>
       </div>
 
@@ -111,7 +109,7 @@ const isUpdatesOnly = variant === 'updates';
             style="accent-color:#b22234"
           />
           <span class="text-sm text-gray-700 font-medium">
-            I agree to receive campaign text messages from Jimmy Skovgard. <span class="text-red-500">*</span>
+            I agree to receive political and informational text messages from Jimmy Skovgard. <span class="text-red-500">*</span>
           </span>
         </label>
 
@@ -126,15 +124,17 @@ const isUpdatesOnly = variant === 'updates';
               style="accent-color:#b22234"
             />
             <span class="text-sm text-gray-700">
-              I also agree to receive campaign emails from Jimmy Skovgard.
+              I also agree to receive informational emails from Jimmy Skovgard.
             </span>
           </label>
         </div>
 
         <p id="consent-copy" class="text-xs leading-5 text-gray-500 pl-7">
-          By checking this box and submitting your mobile number, you agree to receive campaign text messages from Skovgard for Senate.
+          By checking this box and submitting your mobile number, you agree to receive recurring political and informational
+          text messages from Skovgard for Senate. Messages may discuss Wyoming issues, support or oppose federal candidates,
+          share Jimmy Skovgard's personal commentary, and invite participation in citizen surveys or civic action.
           Message frequency may vary. Message and data rates may apply. Reply STOP to opt out. Reply HELP for help.
-          Consent is not a condition of donation. View
+          Consent is not a condition of donation. Your information will not be transferred to another campaign. View
           <a href="/privacy" class="text-wy-ember underline">Privacy Policy</a>
           and
           <a href="/terms" class="text-wy-ember underline">Terms</a>.
@@ -143,7 +143,7 @@ const isUpdatesOnly = variant === 'updates';
       </div>
 
       <button type="button" id={isUpdatesOnly ? "pulse-updates-only" : "pulse-join-btn"} class="pulse-primary-action">
-        {isUpdatesOnly ? 'Get Updates' : 'Click to Join'}
+        Join the Effort
       </button>
     </section>
 
@@ -254,7 +254,7 @@ const isUpdatesOnly = variant === 'updates';
   )}
 </div>
 
-<script type="module" src="/js/pulse-optin.js?v=13"></script>
+<script type="module" src="/js/pulse-optin.js?v=14"></script>
 
 <style is:global>
   #optin-form .pulse-poll-card {

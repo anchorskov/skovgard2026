@@ -333,9 +333,14 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
     color: var(--bone);
   }
 
+  /* brand/palette.json has no blue. #2e5fa3 was an off-palette import and
+     violated the "never introduce a color not in palette.json" rule, so the
+     party badges were re-fitted to locked tokens: ember for R (already the
+     primary accent), charcoal for D, sandstone for L, dust for none/other.
+     Charcoal moved off "other" so D and no-party would not read alike. */
   .badge--party-d {
-    background: #2e5fa3;
-    color: #fff;
+    background: var(--charcoal);
+    color: var(--bone);
   }
 
   .badge--party-l {
@@ -344,8 +349,8 @@ const guideEnabled = isGuideEnabled(Astro.url.hostname);
   }
 
   .badge--party-other {
-    background: var(--charcoal);
-    color: var(--bone);
+    background: var(--dust);
+    color: var(--charcoal);
   }
 
   .badge--leading {
