@@ -217,6 +217,7 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/seed/guide_rubric_2026_v1.sql` | Generated immutable seed for rubric version `wy-primary-2026-v1`; do not edit directly |
 | `db/seed/sweetwater_precinct_committee_candidates_2026-08-02.sql` | Idempotent Sweetwater precinct roster: 50 party/gender offices and 93 verified candidates from the county CSV/source PDF; one party-unknown filing is held |
 | `db/seed/election_events_wy_2026_primary.sql` | `INSERT OR IGNORE` for the single `election_events` row for `wy-2026-primary` (`polls_close_at='2026-08-18T19:00:00-06:00'`). Deliberately does not seed a `wy-2024-primary` row. The 2024 data is used only as offline test fixtures (`tests/fixtures/elections/`), never loaded into this environment's `election_events`. Applied to production D1 2026-08-18 |
+| `db/seed/election_results_wy_2026_primary_partial_2026-08-18.sql` | Generated append-only import of the Wyoming SOS election-night summary PDFs available at 22:10 MDT on 2026-08-18. Covers Platte and Washakie only: 5 logical county-scoped sources, 20 contests, and 183 result rows. It also records reviewed aliases for `Kenneth R. Casner` and the source typo `Scott Smitth`. Totals are unofficial and partial. |
 
 `scripts/seed_election_source_registry.py --scope 2026-primary` generates the
 23-county pending landing-page registry plus the statewide Secretary of State
@@ -224,6 +225,12 @@ archive, without requiring a 2024 election row.
 That registry was applied to production D1 on 2026-08-18 for the Results Worker.
 
 `scripts/import_sweetwater_precinct_committee_2026.py` regenerates the Sweetwater precinct seed from the normalized source CSV. It validates the election identity and expected 94-row source, imports 93 fully classified rows, and deliberately rejects the Richard F. Kaumo row until an authoritative party and seat count are available.
+
+`scripts/extract_election_results_statewide_pdf.py` is the Stage 1 parser for
+the 2026 SOS statewide unofficial candidate, Senate, and House summary PDFs.
+It emits one logical source per reporting county, preserves raw candidate
+spellings, and uses each printed `Total` row only as a reconciliation checksum.
+Stage 2 remains `scripts/generate_election_results_sql.py`.
 
 ## Enrichment batch workflow
 
@@ -315,14 +322,16 @@ given voter (e.g. a Mills precinct race shown to a Sundance address) and was
 redundant with the address-filtered flow above.
 
 Migrations 0028-0033, the `wy-2026-primary` event seed, and the county plus
-statewide pending source registry are
-applied to production D1 and deployed as of 2026-08-18 (see the Migrations
-and Seed files tables above). The standalone `skovgard-results` Worker is also
-deployed with source-check and discovery-only write access. No real 2026 result
-data has been ingested yet. Production has no vote counts.
+statewide pending source registry are applied to production D1 and deployed as
+of 2026-08-18 (see the Migrations and Seed files tables above). The standalone
+`skovgard-results` Worker is also deployed with source-check and discovery-only
+write access. The first SOS election-night summaries contained data for Platte
+and Washakie only. Their reconciled, unofficial partial totals are loaded by
+`db/seed/election_results_wy_2026_primary_partial_2026-08-18.sql`; the UI labels
+them as partial reporting rather than implying statewide completion.
 `docs/election_results_2026_path_forward.md` covers the
 ingestion pipeline and what remains unbuilt for actually loading 2026 results
-when they become available.
+from the other 21 counties as they become available.
 
 ## Database bindings
 

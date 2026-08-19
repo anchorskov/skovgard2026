@@ -57,25 +57,38 @@ const { results: matchedContests } = await env.WY_DB.prepare(
       )`
 ).bind(office.level, office.district ?? null, office.county ?? null, office.title).all();
 
-type CandidateResult = { votes: number; pct: number; isLeading: boolean; isUnofficial: boolean; contestId: number };
+type CandidateResult = { votes: number; pct: number; isLeading: boolean; isUnofficial: boolean; isPartial: boolean; contestId: number };
 const resultsByName = new Map<string, CandidateResult>();
+const resultsByCandidateId = new Map<number, CandidateResult>();
 
 if (matchedContests.length > 0) {
   const contestIds = matchedContests.map((c) => c.contest_id);
   const placeholders = contestIds.map((_, i) => `?${i + 1}`).join(', ');
   const { results: rows } = await env.WY_DB.prepare(
-    `SELECT contest_id, candidate_name_raw, SUM(votes) AS votes, MAX(is_unofficial) AS is_unofficial
-       FROM v_election_current_results
-      WHERE contest_id IN (${placeholders})
-        AND row_type = 'candidate'
-        AND precinct_code IS NULL
-      GROUP BY contest_id, candidate_name_raw`
+    `SELECT vcr.contest_id, vcr.candidate_name_raw,
+            COALESCE(vcr.candidate_id, eca.candidate_id) AS resolved_candidate_id,
+            SUM(vcr.votes) AS votes, MAX(vcr.is_unofficial) AS is_unofficial,
+            MAX(CASE WHEN vcr.reporting_status = 'partial' THEN 1 ELSE 0 END) AS is_partial
+       FROM v_election_current_results vcr
+       LEFT JOIN election_candidate_aliases eca
+         ON eca.source_id = vcr.source_id
+        AND eca.raw_name_normalized = UPPER(TRIM(vcr.candidate_name_raw))
+      WHERE vcr.contest_id IN (${placeholders})
+        AND vcr.row_type = 'candidate'
+        AND vcr.precinct_code IS NULL
+      GROUP BY vcr.contest_id, vcr.candidate_name_raw, resolved_candidate_id`
   ).bind(...contestIds).all();
 
-  const byContest = new Map<number, { name: string; votes: number; isUnofficial: boolean }[]>();
+  const byContest = new Map<number, { name: string; candidateId: number | null; votes: number; isUnofficial: boolean; isPartial: boolean }[]>();
   for (const r of rows as any[]) {
     const list = byContest.get(r.contest_id) || [];
-    list.push({ name: String(r.candidate_name_raw), votes: Number(r.votes), isUnofficial: Boolean(r.is_unofficial) });
+    list.push({
+      name: String(r.candidate_name_raw),
+      candidateId: r.resolved_candidate_id == null ? null : Number(r.resolved_candidate_id),
+      votes: Number(r.votes),
+      isUnofficial: Boolean(r.is_unofficial),
+      isPartial: Boolean(r.is_partial),
+    });
     byContest.set(r.contest_id, list);
   }
 
@@ -83,13 +96,16 @@ if (matchedContests.length > 0) {
     const total = candidatesInContest.reduce((sum, c) => sum + c.votes, 0);
     const maxVotes = Math.max(...candidatesInContest.map((c) => c.votes));
     for (const c of candidatesInContest) {
-      resultsByName.set(c.name.trim().toUpperCase(), {
+      const result = {
         votes: c.votes,
         pct: total > 0 ? (c.votes / total) * 100 : 0,
         isLeading: c.votes === maxVotes && candidatesInContest.length > 1,
         isUnofficial: c.isUnofficial,
+        isPartial: c.isPartial,
         contestId,
-      });
+      };
+      resultsByName.set(c.name.trim().toUpperCase(), result);
+      if (c.candidateId != null) resultsByCandidateId.set(c.candidateId, result);
     }
   }
 }
@@ -192,7 +208,7 @@ function isAbsoluteUrl(url: string | null): boolean {
   ) : (
     <ul class="candidate-grid" role="list">
       {candidates.map((c) => {
-        const result = resultsByName.get(String(c.full_name).trim().toUpperCase());
+        const result = resultsByCandidateId.get(Number(c.id)) || resultsByName.get(String(c.full_name).trim().toUpperCase());
         return (
         <li class={`candidate-card${result?.isLeading ? ' candidate-card--leading' : ''}`} data-candidate-card={String(c.id)} data-voice-item>
           <div class="candidate-card__header">
@@ -207,7 +223,9 @@ function isAbsoluteUrl(url: string | null): boolean {
           {result ? (
             <p class="candidate-card__results">
               {result.votes.toLocaleString()} votes, {result.pct.toFixed(1)}%
-              <span class="candidate-card__results-label">{result.isUnofficial ? 'Unofficial' : 'Certified'}</span>
+              <span class="candidate-card__results-label">
+                {result.isUnofficial ? (result.isPartial ? 'Unofficial, partial reporting' : 'Unofficial') : 'Certified'}
+              </span>
               <a href={`/results/contest/${result.contestId}`} class="candidate-card__results-link">Full county breakdown &rarr;</a>
             </p>
           ) : null}
