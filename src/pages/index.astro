@@ -31,6 +31,25 @@ const STAND_FOR = [
     body: 'The job is service, not position. It is measured by what gets done for Wyoming, not by how loudly it gets announced.',
   },
 ];
+
+// Ordered deliberately. Hageman first, since the U.S. House seat is the wider
+// office. Add new records here as they are verified and sourced.
+const RECORDS = [
+  {
+    href: '/the-record/harriet-hageman',
+    name: 'Harriet Hageman',
+    heading: 'Transparency Delayed. Debt Accelerated.',
+    summary:
+      'A yes vote on the Epstein Files Transparency Act, and a September procedural package that tabled the pending route 76 days before the binding bill reached the floor. Eighteen sources, with every recorded vote linked to the House Clerk.',
+  },
+  {
+    href: '/the-record/chuck-gray',
+    name: 'Chuck Gray',
+    heading: 'Power Should Serve Wyoming, Not Control It',
+    summary:
+      'A founding role in the Wyoming Freedom Caucus, 38 priority measures across two sessions, and a voter-registration law now facing a federal challenge. Eleven sources, with the research packet available to download.',
+  },
+];
 ---
 <Base
   title="The Wyoming Opposition | Wyoming Can Do Better"
@@ -152,21 +171,21 @@ const STAND_FOR = [
         organization's own materials are labeled separately, because they are not the same kind of
         evidence.
       </p>
-      <a
-        href="/the-record/chuck-gray"
-        class="block bg-white border border-wy-dust rounded-sm p-7 hover:border-wy-ember transition-colors group"
-      >
-        <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-xs mb-2">Chuck Gray</p>
-        <h3 class="font-serif font-extrabold text-2xl text-wy-charcoal mb-3 group-hover:text-wy-ember transition-colors">
-          Power Should Serve Wyoming, Not Control It
-        </h3>
-        <p class="text-wy-charcoal/75 leading-relaxed mb-4">
-          A founding role in the Wyoming Freedom Caucus, 38 priority measures across two sessions, and
-          a voter-registration law now facing a federal challenge. Eleven sources, with the research
-          packet available to download.
-        </p>
-        <span class="text-wy-ember font-semibold">Read the record</span>
-      </a>
+      <div class="space-y-4">
+        {RECORDS.map((r) => (
+          <a
+            href={r.href}
+            class="block bg-white border border-wy-dust rounded-sm p-7 hover:border-wy-ember transition-colors group"
+          >
+            <p class="text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-xs mb-2">{r.name}</p>
+            <h3 class="font-serif font-extrabold text-2xl text-wy-charcoal mb-3 group-hover:text-wy-ember transition-colors">
+              {r.heading}
+            </h3>
+            <p class="text-wy-charcoal/75 leading-relaxed mb-4">{r.summary}</p>
+            <span class="text-wy-ember font-semibold">Read the record</span>
+          </a>
+        ))}
+      </div>
       <p class="text-wy-charcoal/60 text-sm mt-6">
         More records are added as they are verified and sourced.
       </p>
