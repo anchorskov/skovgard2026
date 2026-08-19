@@ -28,7 +28,11 @@ export async function loadPollingSources(db, electionKey) {
       (
         SELECT c.sha256 FROM election_source_checks c
         WHERE c.source_id = s.id AND c.sha256 IS NOT NULL ORDER BY c.id DESC LIMIT 1
-      ) AS sha256
+      ) AS sha256,
+      (
+        SELECT c.http_status FROM election_source_checks c
+        WHERE c.source_id = s.id ORDER BY c.id DESC LIMIT 1
+      ) AS last_http_status
     FROM election_sources s
     JOIN election_events e ON e.id = s.election_id
     WHERE e.election_key = ?1

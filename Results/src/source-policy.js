@@ -135,9 +135,17 @@ export function collectionPhase(now, pollsCloseAt, config) {
   return "baseline";
 }
 
-export function sourceIsDue({ now, lastCheckedAt, phase, cron }) {
+// A source whose most recent check returned HTTP 403 is backed off to
+// http403BackoffMinutes regardless of phase, generically, by status alone.
+// This is deliberately not keyed to any county name or source id: any
+// source that starts returning 403 gets the same treatment, and one that
+// stops returning it resumes the normal cadence on its next check.
+export function sourceIsDue({ now, lastCheckedAt, lastHttpStatus, phase, cron, http403BackoffMinutes = 360 }) {
   if (cron === FAST_CRON && phase !== "fast") return false;
-  const minimumMinutes = phase === "fast" ? 2 : 360;
+  let minimumMinutes = phase === "fast" ? 2 : 360;
+  if (lastHttpStatus === 403) {
+    minimumMinutes = Math.max(minimumMinutes, http403BackoffMinutes);
+  }
   if (!lastCheckedAt) return true;
   const checked = new Date(lastCheckedAt);
   if (Number.isNaN(checked.getTime())) return true;

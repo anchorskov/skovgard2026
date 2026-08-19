@@ -65,3 +65,94 @@ test("fast cron runs only inside the configured election window", () => {
   assert.equal(sourceIsDue({ now: before, lastCheckedAt: null, phase: "fast", cron: FAST_CRON }), true);
   assert.equal(sourceIsDue({ now: tooEarly, lastCheckedAt: null, phase: "baseline", cron: FAST_CRON }), false);
 });
+
+test("a source whose latest status is 403 is not due again within the backoff window", () => {
+  const now = new Date("2026-08-18T18:10:00-06:00");
+  const checkedFiveMinutesAgo = new Date("2026-08-18T18:05:00-06:00").toISOString();
+  const due = sourceIsDue({
+    now,
+    lastCheckedAt: checkedFiveMinutesAgo,
+    lastHttpStatus: 403,
+    phase: "fast",
+    cron: FAST_CRON,
+    http403BackoffMinutes: 360,
+  });
+  assert.equal(due, false);
+});
+
+test("a source whose latest status is 403 becomes due once the backoff expires", () => {
+  const now = new Date("2026-08-19T00:10:00-06:00");
+  const checkedSixHoursAgo = new Date("2026-08-18T18:05:00-06:00").toISOString();
+  const due = sourceIsDue({
+    now,
+    lastCheckedAt: checkedSixHoursAgo,
+    lastHttpStatus: 403,
+    phase: "fast",
+    cron: FAST_CRON,
+    http403BackoffMinutes: 360,
+  });
+  assert.equal(due, true);
+});
+
+test("a source whose latest status is a different failure keeps the normal fast-window cadence", () => {
+  const now = new Date("2026-08-18T18:10:00-06:00");
+  const checkedThreeMinutesAgo = new Date("2026-08-18T18:07:00-06:00").toISOString();
+  const due = sourceIsDue({
+    now,
+    lastCheckedAt: checkedThreeMinutesAgo,
+    lastHttpStatus: 500,
+    phase: "fast",
+    cron: FAST_CRON,
+    http403BackoffMinutes: 360,
+  });
+  assert.equal(due, true);
+});
+
+test("a source whose latest status is 200 keeps the normal two-minute fast-window cadence", () => {
+  const now = new Date("2026-08-18T18:10:00-06:00");
+  const checkedThreeMinutesAgo = new Date("2026-08-18T18:07:00-06:00").toISOString();
+  const due = sourceIsDue({
+    now,
+    lastCheckedAt: checkedThreeMinutesAgo,
+    lastHttpStatus: 200,
+    phase: "fast",
+    cron: FAST_CRON,
+    http403BackoffMinutes: 360,
+  });
+  assert.equal(due, true);
+});
+
+test("a never-checked source is immediately eligible regardless of backoff config", () => {
+  const now = new Date("2026-08-18T18:10:00-06:00");
+  const due = sourceIsDue({
+    now,
+    lastCheckedAt: null,
+    lastHttpStatus: null,
+    phase: "fast",
+    cron: FAST_CRON,
+    http403BackoffMinutes: 360,
+  });
+  assert.equal(due, true);
+});
+
+test("the 403 backoff default of 360 minutes applies when no override is given", () => {
+  const now = new Date("2026-08-18T18:10:00-06:00");
+  const checkedFiveMinutesAgo = new Date("2026-08-18T18:05:00-06:00").toISOString();
+  const due = sourceIsDue({
+    now,
+    lastCheckedAt: checkedFiveMinutesAgo,
+    lastHttpStatus: 403,
+    phase: "fast",
+    cron: FAST_CRON,
+  });
+  assert.equal(due, false);
+});
+
+test("no county or source is named in the scheduling policy source", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { fileURLToPath } = await import("node:url");
+  const path = await import("node:path");
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const source = await readFile(path.join(__dirname, "..", "src", "source-policy.js"), "utf8");
+  assert.doesNotMatch(source, /Laramie/i);
+});

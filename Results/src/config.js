@@ -20,6 +20,7 @@ export function loadConfig(env = {}) {
     maxConcurrency: numberFromEnv(env, "MAX_CONCURRENCY", 4),
     fastWindowBeforeMinutes: numberFromEnv(env, "FAST_WINDOW_BEFORE_MINUTES", 60),
     fastWindowAfterMinutes: numberFromEnv(env, "FAST_WINDOW_AFTER_MINUTES", 18 * 60),
+    http403BackoffMinutes: numberFromEnv(env, "HTTP_403_BACKOFF_MINUTES", 360),
     additionalAllowedHosts: new Set(
       String(env.ADDITIONAL_ALLOWED_HOSTS || "")
         .split(",")

@@ -45,8 +45,10 @@ export async function runScheduledPoll({ env, cron, scheduledTime = Date.now(), 
     .filter((source) => sourceIsDue({
       now,
       lastCheckedAt: source.last_checked_at,
+      lastHttpStatus: source.last_http_status,
       phase: collectionPhase(now, source.polls_close_at, config),
       cron,
+      http403BackoffMinutes: config.http403BackoffMinutes,
     }))
     .sort(byStaleness)
     .slice(0, config.maxSourcesPerRun);
