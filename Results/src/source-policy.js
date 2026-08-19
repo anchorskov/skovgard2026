@@ -89,6 +89,16 @@ export function classifyDiscoveredLink({ url, linkText, electionYear }) {
 export function extractLinks(html, baseUrl, electionYear) {
   const links = [];
   const seen = new Set();
+  const baseMatch = html.match(/<base\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/i);
+  const declaredBase = baseMatch ? (baseMatch[1] ?? baseMatch[2] ?? baseMatch[3] ?? "") : "";
+  let documentBase = baseUrl;
+  if (declaredBase) {
+    try {
+      documentBase = new URL(declaredBase, baseUrl).href;
+    } catch {
+      documentBase = baseUrl;
+    }
+  }
   const pattern = /<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/a>/gi;
   let match;
   while ((match = pattern.exec(html)) !== null) {
@@ -96,7 +106,7 @@ export function extractLinks(html, baseUrl, electionYear) {
     const linkText = match[4].replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
     let resolved;
     try {
-      resolved = new URL(href, baseUrl);
+      resolved = new URL(href, documentBase);
     } catch {
       continue;
     }

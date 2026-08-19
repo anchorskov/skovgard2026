@@ -42,8 +42,17 @@ FAST_WINDOW_BEFORE_MINUTES = "60"
 FAST_WINDOW_AFTER_MINUTES = "1080"
 HTTP_403_BACKOFF_MINUTES = "360"
 
+# Cron Triggers deliberately disabled 2026-08-18. Discovery has done its
+# job (all 24 sources characterized, Laramie's access block understood
+# and documented) and county-office title conventions turned out too
+# inconsistent statewide for automated contest matching, so continued
+# unattended discovery polling stopped adding value. See
+# Results/docs/architecture.md for the decision record. The Worker
+# itself stays deployed; only the schedule is empty, so /health and
+# /api/status remain reachable and this can be re-enabled by restoring
+# the crons list and redeploying.
 [env.production.triggers]
-crons = ["*/2 * * * *", "17 */6 * * *"]
+crons = []
 
 [[env.production.d1_databases]]
 binding = "WY_DB"

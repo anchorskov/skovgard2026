@@ -42,7 +42,7 @@ export async function loadPollingSources(db, electionKey) {
         SELECT 1 FROM election_sources successor
         WHERE successor.supersedes_source_id = s.id
       )
-    ORDER BY CASE s.source_role WHEN 'landing_page' THEN 0 ELSE 1 END, s.county, s.id
+    ORDER BY CASE WHEN s.source_role LIKE 'landing_page%' THEN 0 ELSE 1 END, s.county, s.id
   `).bind(electionKey).all();
   return results;
 }

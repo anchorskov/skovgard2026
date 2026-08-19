@@ -46,6 +46,24 @@ test("extracts result candidates and preserves rejected test links", () => {
   assert.deepEqual(links.map((link) => link.classification), ["candidate_result", "rejected_sample_ballot"]);
 });
 
+test("honors the document base element used by county clerk sites", () => {
+  const links = extractLinks(`
+    <base href="https://county.example.gov/">
+    <a href="departments/elections/2026/results.pdf">2026 Primary Results</a>
+  `, "https://county.example.gov/departments/elections/index.php", "2026");
+  assert.equal(links.length, 1);
+  assert.equal(links[0].url, "https://county.example.gov/departments/elections/2026/results.pdf");
+});
+
+test("falls back to the response URL when a base element is invalid", () => {
+  const links = extractLinks(`
+    <base href="http://[invalid">
+    <a href="results-2026.pdf">2026 Primary Results</a>
+  `, "https://county.example.gov/elections/index.php", "2026");
+  assert.equal(links.length, 1);
+  assert.equal(links[0].url, "https://county.example.gov/elections/results-2026.pdf");
+});
+
 test("redirects stay on the source host unless explicitly allowed", () => {
   assert.equal(allowedRedirectHost("https://county.gov/results", "https://county.gov/file.pdf"), true);
   assert.equal(allowedRedirectHost("https://county.gov/results", "https://vendor.example/results"), false);

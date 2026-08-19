@@ -219,11 +219,20 @@ CREATE INDEX idx_candidates_slug   ON candidates(slug);
 | `db/seed/election_events_wy_2026_primary.sql` | `INSERT OR IGNORE` for the single `election_events` row for `wy-2026-primary` (`polls_close_at='2026-08-18T19:00:00-06:00'`). Deliberately does not seed a `wy-2024-primary` row. The 2024 data is used only as offline test fixtures (`tests/fixtures/elections/`), never loaded into this environment's `election_events`. Applied to production D1 2026-08-18 |
 | `db/seed/election_results_wy_2026_primary_partial_2026-08-18.sql` | Generated append-only import of the Wyoming SOS election-night summary PDFs available at 22:10 MDT on 2026-08-18. Covers Platte and Washakie only: 5 logical county-scoped sources, 20 contests, and 183 result rows. It also records reviewed aliases for `Kenneth R. Casner` and the source typo `Scott Smitth`. Totals are unofficial and partial. |
 | `db/seed/election_results_wy_2026_primary_partial_update_2026-08-18_2228.sql` | Second append-only SOS snapshot after a cache-bypassed 22:28 MDT refresh. Covers Fremont, Hot Springs, Park, Platte, Uinta, Washakie, and Weston: 19 logical sources, 58 contests, and 754 current result rows. Replaces the earlier snapshots only through the verified-latest views; it does not delete them. Applied locally and to production D1 2026-08-18. |
+| `db/seed/election_source_registry_wy_2026_primary_v2.sql` | Generated WORM-safe election-night correction to the 23-county clerk registry. It retains one scheduled monitoring page per county, adds 23 audited v2 successors because source notes are append-only, corrects 11 stale URLs, and records verified direct 2026 artifacts for 16 counties in source notes. Generated only; apply status must be verified separately. |
 
 `scripts/seed_election_source_registry.py --scope 2026-primary` generates the
 23-county pending landing-page registry plus the statewide Secretary of State
-archive, without requiring a 2024 election row.
-That registry was applied to production D1 on 2026-08-18 for the Results Worker.
+archive, without requiring a 2024 election row. The generator validates all 23
+unique county names and FIPS codes. Its 2026-08-18 election-night revision emits
+23 audited v2 successors instead of rewriting source rows, corrects 11 stale
+monitoring URLs, and records the 16 verified county result artifacts as audit
+metadata without increasing the scheduled fetch set. The original registry was
+applied to production D1 on 2026-08-18 for the Results Worker. The v2 correction
+is generated but not yet applied to local or production D1. A second official-site
+search at 23:13 MDT found no additional legitimate artifacts; seven county gaps
+remain explicit in the generator rather than being filled with test material or
+guessed URLs.
 
 `scripts/import_sweetwater_precinct_committee_2026.py` regenerates the Sweetwater precinct seed from the normalized source CSV. It validates the election identity and expected 94-row source, imports 93 fully classified rows, and deliberately rejects the Richard F. Kaumo row until an authoritative party and seat count are available.
 
@@ -292,8 +301,9 @@ special/community-college districts, which have no seeded offices at all).
 Full schema reference (table relationships, append-only vs. mutable-control-data
 boundaries, source-precedence rule): `docs/election_results_schema.md`.
 Election-night ingestion operational reference: `docs/election_results_2026_path_forward.md`.
-Both are gitignored (`Candidates/docs/**`), so they carry no git safety net.
-treat them as accurate as of their own "updated" markers, not as version-controlled history.
+Repeatable county-source audit runbook: `docs/recheck_county_election_result_sources.md`.
+All three are gitignored (`Candidates/docs/**`), so they carry no git safety net.
+Treat them as accurate as of their own "updated" markers, not as version-controlled history.
 
 There is no standalone results page. Results ride the existing candidate-guide
 flow rather than duplicating its filtering logic:
@@ -334,6 +344,30 @@ labels them as partial reporting rather than implying statewide completion.
 `docs/election_results_2026_path_forward.md` covers the
 ingestion pipeline and what remains unbuilt for actually loading 2026 results
 from the other 16 counties as they become available.
+
+Laramie County's own unofficial results PDF was supplied directly and applied
+to production 2026-08-18: 46 contests and 213 result rows for federal,
+statewide, and legislative district races (US Senate, US House, Governor,
+Secretary of State, State Auditor, State Treasurer, Superintendent of Public
+Instruction, all 4 Senate and 12 House districts touching Laramie), source
+role `county_local_summary`, verified live on the US Senate card. County
+offices, precinct committee seats, and municipal races from that same file
+were deliberately held back: `offices.title` conventions for those levels are
+inconsistent statewide (party embedded in the title for some counties'
+Commissioner/Sheriff rows, a duplicated "County County" prefix for others, no
+county prefix at all for others), not safe for automated `contest_name_normalized`
+matching without a dedicated review of the `offices` table itself.
+`extract_election_results_county_pdf.py` picked up two real fixes from this
+file (a page-footer/masthead noise pattern, and a second valid reconciliation
+line, "Total Votes Cast", for report variants that omit "Contest Totals"),
+both re-verified against the existing Albany and Campbell fixtures with zero
+regression before being trusted on real data.
+
+The `skovgard-results` Cron Triggers were disabled 2026-08-18 (empty `crons`
+in `Results/wrangler.toml`, redeployed). Discovery had already characterized
+all 24 sources, and the county-title inconsistency above means further
+automated discovery would not translate into automated card updates anyway.
+The Worker stays deployed; only its schedule is empty.
 
 ## Database bindings
 

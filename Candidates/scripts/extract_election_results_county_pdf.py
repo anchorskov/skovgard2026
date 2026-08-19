@@ -50,6 +50,21 @@
 #     column; Campbell: 4, TOTAL/Election Day/Absentee/Early-ABS). Only
 #     the first (TOTAL) value is used; extra columns are ignored, not
 #     validated.
+#   - A repeating page footer ("Election Summary - MM/DD/YYYY HH:MMPM
+#     Page N of M") and a repeating 3-line masthead (county/report title,
+#     election name, report title again) sit between whichever contest
+#     happens to be open at a page break and the next contest's real
+#     header (seen on Laramie, confirmed by reading the real file: the
+#     page-N footer for one contest is immediately followed by the
+#     masthead for page N+1 before the next contest header appears). Both
+#     contain digits ("Page 24 of 49", "August 18, 2026") and neither
+#     matches any real trailer label, so without an explicit skip they
+#     get swept in as spurious extra "candidate" rows on whatever contest
+#     is still open, confirmed empirically: roughly one inflated contest
+#     per page, every one of them off by exactly the digits in that
+#     page's own footer and masthead. Recognized structurally, not by
+#     hardcoding Laramie's county name, so this generalizes to any county
+#     using the same report generator with its own masthead text.
 
 import argparse
 import hashlib
@@ -97,6 +112,22 @@ TRAILER_PATTERNS = {
 # label prefix, tolerate whatever garbage follows.
 CONTEST_TOTAL_RE = re.compile(r"^contest\s*-?\s*totals?\b", re.I)
 TOTAL_VOTES_CAST_RE = re.compile(r"^total\s*votes\s*cast\b", re.I)
+
+# Page footer/masthead noise, matched structurally, not by county name, see
+# the module docstring's anomaly list for why this exists.
+PAGE_FOOTER_RE = re.compile(r"^election summary\s*-\s*\d", re.I)
+REPORT_TITLE_RE = re.compile(r"election summary results report$", re.I)
+RESULTS_LABEL_RE = re.compile(r"(unofficial|official)\s+results$", re.I)
+ELECTION_NAME_RE = re.compile(r"^(primary|general|special)\s+election$", re.I)
+
+
+def is_page_boilerplate(line):
+    return bool(
+        PAGE_FOOTER_RE.match(line)
+        or REPORT_TITLE_RE.search(line)
+        or RESULTS_LABEL_RE.search(line)
+        or ELECTION_NAME_RE.match(line)
+    )
 
 
 def text_only(line):
@@ -172,15 +203,31 @@ def normalize_contest(raw):
             text = text[len(prefix):].strip()
             break
 
-    if text == "UNITED STATES SENATOR":
+    # Laramie's own report uses "U.S. SENATOR" / "U.S. REPRESENTATIVE" and
+    # "STATE SENATOR SENATE DISTRICT N" / "STATE REPRESENTATIVE HD N"
+    # rather than Albany/Campbell's "UNITED STATES SENATOR" / "STATE
+    # SENATOR DISTRICT N" wording, confirmed by reading the real file, not
+    # assumed. Both spellings are recognized so contest_key still collides
+    # with the SOS xlsx track's canonical form.
+    if text in ("UNITED STATES SENATOR", "U.S. SENATOR"):
         return "United States Senator", "federal", None, "statewide", party_raw
-    if text == "UNITED STATES REPRESENTATIVE":
+    if text in ("UNITED STATES REPRESENTATIVE", "U.S. REPRESENTATIVE"):
         return "United States Representative", "federal", None, "statewide", party_raw
-    m = re.match(r"^STATE SENATOR DISTRICT (\d+)$", text)
+    if text == "GOVERNOR":
+        return "Governor", "statewide", None, "statewide", party_raw
+    if text == "SECRETARY OF STATE":
+        return "Secretary Of State", "statewide", None, "statewide", party_raw
+    if text == "STATE AUDITOR":
+        return "State Auditor", "statewide", None, "statewide", party_raw
+    if text == "STATE TREASURER":
+        return "State Treasurer", "statewide", None, "statewide", party_raw
+    if text in ("SUPERINTENDENT OF PUBLIC INSTRUCTION", "STATE SUPERINTENDENT OF PUBLIC INSTRUCTION"):
+        return "Superintendent Of Public Instruction", "statewide", None, "statewide", party_raw
+    m = re.match(r"^STATE SENATOR (?:SENATE )?DISTRICT (\d+)$", text)
     if m:
         d = int(m.group(1))
         return f"Senate District {d}", "wy_senate", d, "legislative_district", party_raw
-    m = re.match(r"^STATE REPRESENTATIVE DISTRICT (\d+)$", text)
+    m = re.match(r"^STATE REPRESENTATIVE (?:DISTRICT |HD )(\d+)$", text)
     if m:
         d = int(m.group(1))
         return f"House District {d}", "wy_house", d, "legislative_district", party_raw
@@ -229,6 +276,23 @@ def extract(text):
                     multi_column = True
                 i += 1
             rows = []
+            # Two different reconciliation lines exist across the county
+            # variants of this report, not one. Albany has neither line at
+            # all (its own "Contest Totals" line is the only checksum, see
+            # module docstring). Campbell has both "Total Votes Cast" AND
+            # "Contest Totals" per contest, "Contest Totals" is the real
+            # checksum there (sum of candidates + write-ins + overvotes +
+            # undervotes) and "Total Votes Cast" (candidates + write-ins
+            # only) is correctly ignored. Laramie's variant has ONLY
+            # "Total Votes Cast", no "Contest Totals" line exists anywhere
+            # in the document, confirmed by reading the real file, not
+            # assumed. "Contest Totals" is preferred whenever present, on
+            # any variant; "Total Votes Cast" is kept as a fallback
+            # reconciliation target, checked against candidate and
+            # write-in rows only, never against overvotes/undervotes,
+            # since that is what it actually sums to on every contest
+            # checked by hand against Laramie's real data.
+            total_votes_cast = None
             while i < len(lines):
                 cur = lines[i]
                 cur_text = text_only(cur)
@@ -237,12 +301,18 @@ def extract(text):
                     i += 1
                     break
                 if looks_like_contest_header(cur) and i + 1 < len(lines) and VOTE_FOR_RE.match(lines[i + 1]):
-                    # next contest started without a "Contest Totals" line, malformed, bail
+                    # next contest started without a "Contest Totals" line;
+                    # fall back to "Total Votes Cast" if one was captured,
+                    # otherwise this contest is genuinely unreconciled.
                     contest_total = None
                     break
                 if TOTAL_VOTES_CAST_RE.match(cur_text):
+                    total_votes_cast = parse_row_value(cur, multi_column)
                     i += 1
                     continue  # derived subtotal, not a stored row
+                if is_page_boilerplate(cur):
+                    i += 1
+                    continue  # page footer/masthead, never real contest data
                 row_type = "candidate"
                 for rt, pat in TRAILER_PATTERNS.items():
                     if pat.match(cur_text):
@@ -263,6 +333,7 @@ def extract(text):
                 "contest_raw": contest_raw, "contest_name": contest_name, "level": level,
                 "district": district, "scope": scope, "party_raw": party_raw,
                 "rows": rows, "contest_total": contest_total,
+                "total_votes_cast": total_votes_cast,
             })
         else:
             i += 1
@@ -300,12 +371,20 @@ def main():
     reporting_status = "certified" if args.certified else "county_complete"
 
     for c in contests:
-        summed = sum(r["votes"] for r in c["rows"])
-        if c["contest_total"] is None:
-            mismatches.append((c["contest_raw"], "no Contest Totals line found", summed, None))
+        if c["contest_total"] is not None:
+            target = c["contest_total"]
+            summed = sum(r["votes"] for r in c["rows"])
+            target_label = "Contest Totals"
+        elif c["total_votes_cast"] is not None:
+            target = c["total_votes_cast"]
+            summed = sum(r["votes"] for r in c["rows"] if r["row_type"] in ("candidate", "write_in_aggregate"))
+            target_label = "Total Votes Cast"
+        else:
+            summed = sum(r["votes"] for r in c["rows"])
+            mismatches.append((c["contest_raw"], "no Contest Totals or Total Votes Cast line found", summed, None))
             continue
-        if summed != c["contest_total"]:
-            mismatches.append((c["contest_raw"], "sum != Contest Totals", summed, c["contest_total"]))
+        if summed != target:
+            mismatches.append((c["contest_raw"], f"sum != {target_label}", summed, target))
             continue
 
         contest_key = "|".join([

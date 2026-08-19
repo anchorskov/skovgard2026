@@ -30,6 +30,7 @@ Before changing election tables or views, read:
 - `../Candidates/candidate_data.md`
 - `../Candidates/docs/election_results_schema.md`
 - `../Candidates/docs/election_results_2026_path_forward.md`
+- `../Candidates/docs/recheck_county_election_result_sources.md`
 
 Never run the D1 migration tracker. Never replay migrations 0001 through 0010.
 

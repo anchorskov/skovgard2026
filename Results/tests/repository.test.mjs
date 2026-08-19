@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { wrapD1 } from './helpers/d1-shim.mjs';
-import { insertDiscoveries, insertSourceCheck } from '../src/repository.js';
+import { insertDiscoveries, insertSourceCheck, loadPollingSources } from '../src/repository.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.join(__dirname, '..', '..', 'Candidates', 'db', 'migrations');
@@ -57,6 +57,21 @@ async function seedCheck(db, sourceId) {
     errorMessage: null,
   });
 }
+
+test('a versioned landing page replaces its stale source without increasing the poll set', async () => {
+  const db = freshDb();
+  const oldSourceId = await seedSource(db, 'wy|test|wy-2026-primary|landing_page');
+  const event = await db.prepare(`SELECT id FROM election_events WHERE election_key = 'wy-2026-primary'`).bind().first();
+  await db.prepare(`
+    INSERT INTO election_sources (
+      source_key, election_id, county, source_role, endpoint_url, status, supersedes_source_id
+    ) VALUES (?1, ?2, 'Test', 'landing_page_v2', 'https://county.gov/2026-results', 'pending', ?3)
+  `).bind('wy|test|wy-2026-primary|landing_page_v2', event.id, oldSourceId).run();
+
+  const sources = await loadPollingSources(db, 'wy-2026-primary');
+  assert.equal(sources.length, 1);
+  assert.equal(sources[0].source_key, 'wy|test|wy-2026-primary|landing_page_v2');
+});
 
 function link(n) {
   return { url: `https://county.gov/results-${n}.pdf`, linkText: `Results ${n}`, classification: 'candidate_result', reason: 'test' };
