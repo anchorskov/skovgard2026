@@ -5,6 +5,9 @@ type: essay
 summary: "A campaign can end on a Tuesday in August. Accountability does not. Jimmy Skovgard on what comes next, and the standard the Wyoming Opposition holds itself to."
 draft: false
 tags: ["accountability", "wyoming", "the record"]
+thumbnail: "/images/share/meme-the-primary-is-over.png"
+thumbnailWidth: 1200
+thumbnailHeight: 675
 ctaLabel: "Read the message"
 share:
   tweetText: "The primary is over. The work is not. Anyone seeking to hold one of Wyoming's federal offices must answer to Wyoming. Gather the record, verify it, link the sources, and let people judge for themselves."
