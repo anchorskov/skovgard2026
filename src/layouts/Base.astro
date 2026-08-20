@@ -12,10 +12,20 @@ interface Props {
   ogImageHeight?: number;
 }
 
+// Default share card. Changed 2026-08-19 from the candidate portrait
+// (og-default.jpg) to the movement card, so no page previews as a campaign by
+// accident. 40 of 84 pages rely on this default, including the record pages,
+// where a candidate headshot actively undercut the sourced-record framing.
+// The portrait still exists and is now set explicitly on /about, where it is
+// the correct image. A new filename was used rather than overwriting the old
+// one because social platforms cache share images by URL, and reusing the URL
+// would have served the portrait for days.
+const DEFAULT_OG_IMAGE = '/images/og-opposition-default.png';
+
 const {
-  title = 'Jimmy Skovgard — U.S. Senate 2026',
-  description = 'Wyoming deserves a Senator who actually shows up. Jimmy Skovgard for U.S. Senate 2026.',
-  ogImage = '/images/og-default.jpg',
+  title = 'The Wyoming Opposition | Wyoming Can Do Better',
+  description = 'Wyoming citizens organizing to ask hard questions and choose a better direction.',
+  ogImage = DEFAULT_OG_IMAGE,
   ogImageAlt,
   ogImageWidth,
   ogImageHeight,
@@ -29,6 +39,12 @@ const ogImageURL = ogImage.startsWith('http')
 const ogImagePath = new URL(ogImageURL).pathname.toLowerCase();
 const ogImageType = ogImagePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
 const resolvedOgImageAlt = ogImageAlt || title;
+// Dimensions are known for the default card, so emit them. They are NOT
+// assumed for a caller-supplied image: a page that passes its own ogImage
+// without dimensions gets no dimension tags rather than wrong ones.
+const isDefaultOgImage = ogImage === DEFAULT_OG_IMAGE;
+const resolvedOgImageWidth = ogImageWidth ?? (isDefaultOgImage ? 1200 : undefined);
+const resolvedOgImageHeight = ogImageHeight ?? (isDefaultOgImage ? 630 : undefined);
 ---
 <!doctype html>
 <html lang="en">
@@ -48,8 +64,8 @@ const resolvedOgImageAlt = ogImageAlt || title;
   <meta property="og:image" content={ogImageURL} />
   <meta property="og:image:secure_url" content={ogImageURL} />
   <meta property="og:image:type" content={ogImageType} />
-  {ogImageWidth && <meta property="og:image:width" content={String(ogImageWidth)} />}
-  {ogImageHeight && <meta property="og:image:height" content={String(ogImageHeight)} />}
+  {resolvedOgImageWidth && <meta property="og:image:width" content={String(resolvedOgImageWidth)} />}
+  {resolvedOgImageHeight && <meta property="og:image:height" content={String(resolvedOgImageHeight)} />}
   <meta property="og:image:alt" content={resolvedOgImageAlt} />
   <meta property="og:site_name" content="Skovgard 2026" />
   <!-- Twitter Card -->
@@ -62,7 +78,7 @@ const resolvedOgImageAlt = ogImageAlt || title;
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <!-- Per-page head injection (CSS, scripts, meta) -->
   <slot name="head" />
-  <!-- Fonts — Western / Frontier theme: Bitter headlines + Source Sans 3 body -->
+  <!-- Fonts. Western / Frontier theme: Bitter headlines + Source Sans 3 body -->
   <link rel="preconnect" href={MEDIA_BASE_URL} crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
