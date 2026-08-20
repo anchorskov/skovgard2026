@@ -5,6 +5,9 @@ type: essay
 summary: "A deep dive into the Simpson-Bowles fiscal commission: what it proposed, why it failed, and what that tells us about the political will needed for real reform."
 draft: false
 tags: ["fiscal policy", "federal budget", "leadership"]
+thumbnail: "/images/share/meme-simpson-bowles.png"
+thumbnailWidth: 1200
+thumbnailHeight: 675
 ctaLabel: "Read the analysis"
 ---
 
