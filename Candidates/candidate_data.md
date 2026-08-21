@@ -536,15 +536,37 @@ sits in D1 exactly as intended: present, auditable, and invisible on
 `'verified'` by hand.
 
 Laramie and Lincoln's user-supplied unofficial Summary PDFs were normalized
-on 2026-08-21. `laramie_results.csv` contains 796 rows from 195 of 195
-reconciled local contests; its 46 federal, statewide, and legislative contests
-were intentionally excluded because `--local-only` was used. Laramie's plural
-`COMMITTEEMEN` and `COMMITTEEWOMEN` headings are now normalized to the existing
-singular precinct-committee vocabulary. `lincoln_results.csv` contains 409
-rows from 96 of 96 reconciled local contests, with 14 nonlocal contests
-excluded. No precinct reports were supplied for these counties, so no separate
-precinct cross-check was performed. Both CSVs are staging data only. No SQL was
-generated and no database was changed.
+on 2026-08-21. Laramie's plural `COMMITTEEMEN`/`COMMITTEEWOMEN` headings are
+now normalized to the existing singular precinct-committee vocabulary. No
+precinct reports were supplied for these counties, so no separate precinct
+cross-check was performed.
+
+Independently re-verified 2026-08-21: re-running the parser against both raw
+PDFs reproduced byte-identical data (only `parser_version` and one guessed
+`source_url` differed, both expected). Found a real bug while reviewing
+Laramie's output: 14 contests titled `"PROPOSITION 1"`–`"PROPOSITION 14"` had
+`candidate_name_raw` set to `"FOR THE TAX"`/`"AGAINST THE TAX"` — ballot
+measures being stored as fake candidate races, already live in production for
+Sublette (`pro-1-percent-sales-and-use-tax`, `"FOR"`/`"AGAINST"`, from the
+2026-08-20 13-county seed) though harmless there since no matching office
+roster exists. Fixed in the shared parser (`level="ballot_measure"`,
+excluded from `--local-only` output rather than hard-failing or silently
+becoming a fake county contest) — see
+`docs/election_results_2026_path_forward.md` finding #14 for the full
+writeup and the still-open question of what to do about Sublette's
+already-live rows. `laramie_results.csv` regenerated: 181 of 181 reconciled
+local contests (was 195; the 14 propositions are now correctly excluded),
+740 rows, zero fake candidate rows. `lincoln_results.csv` unaffected (no
+ballot measures in its report): 409 rows from 96 of 96 reconciled local
+contests.
+
+Roster overlap spot-checked directly against `offices`/`candidates` for both
+counties (e.g. Laramie's "Gunnar Malm," "Jess E. Ketcham," "M. Lee
+Hasenauer" under "Laramie County Commissioner (Republican)"; several Lincoln
+County Commissioner candidates) — unlike Fremont, this data is expected to
+actually surface via card-scoped resolution once integrated, not stay inert.
+Both CSVs are staging data only as of this writing. No SQL generated, no
+database changed.
 
 Sheridan's user-supplied unofficial Summary PDF was reviewed on 2026-08-21.
 The text-layer parser identified 162 contests, including 138 county,

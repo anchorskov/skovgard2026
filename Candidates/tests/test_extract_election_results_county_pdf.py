@@ -89,6 +89,37 @@ class CountyResultsParserTests(unittest.TestCase):
 
         self.assertEqual("unknown", parser.normalize_contest("SUPERIOR", "Carbon")[1])
 
+    def test_ballot_measures_classify_as_ballot_measure_not_county(self):
+        # Confirmed real bug on Laramie's 14 "PROPOSITION N" contests and
+        # already-live Sublette data: these are not candidate races and
+        # must not be stored with "FOR THE TAX"/"AGAINST THE TAX" as a
+        # candidate_name_raw. level="ballot_measure" is its own value
+        # (not "unknown") so --local-only excludes it silently instead of
+        # hard-failing the way it correctly does for a genuinely
+        # unrecognized title.
+        for raw in ("PROPOSITION 1", "PRO 1 PERCENT SALES AND USE TAX", "SENIOR CITIZEN TAX QUESTION"):
+            self.assertEqual("ballot_measure", parser.normalize_contest(raw)[1])
+
+    def test_local_only_excludes_ballot_measures_without_failing(self):
+        text = "\n".join((
+            "PROPOSITION 1",
+            "Vote For 1",
+            "FOR 100",
+            "AGAINST 50",
+            "Contest Totals 150",
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+            "Write-In Totals 5",
+            "Overvotes 0",
+            "Undervotes 2",
+            "Contest Totals 107",
+        ))
+        contests = parser.extract(text)
+        levels = {c["contest_raw"]: c["level"] for c in contests}
+        self.assertEqual("ballot_measure", levels["PROPOSITION 1"])
+        self.assertEqual("county", levels["REP COUNTY SHERIFF"])
+
     def test_local_key_includes_county(self):
         contest = {
             "level": "county",
@@ -231,6 +262,145 @@ class MissingUndervoteOvervoteExceptionTests(unittest.TestCase):
         self.assertEqual(set(), {r["candidate_name_raw"] for r in rows} & {"JANE EXAMPLE"})
         self.assertIn("JOHN EXAMPLE", {r["candidate_name_raw"] for r in rows})
         self.assertTrue(all(r["verification_status"] == "verified" for r in rows))
+
+
+class MissingContestTotalStagingTests(unittest.TestCase):
+    """The Sheridan exception stages source-printed rows without claiming
+    reconciliation. It is valid only for a uniformly checksum-free report."""
+
+    def _args(self, out_path, *extra_flags):
+        p = argparse.ArgumentParser()
+        parser.add_common_args(p)
+        args = p.parse_args([
+            "--pdf", "unused.pdf",
+            "--county", "Sheridan",
+            "--election-key", "wy-2026-primary",
+            "--source-key", "wy|sheridan|wy-2026-primary|county_local_summary",
+            "--source-url", "https://example.test/sheridan.pdf",
+            "--local-only",
+            "--out", str(out_path),
+            *extra_flags,
+        ])
+        args.sha256 = "deadbeef"
+        args.retrieved_at = "2026-08-21T00:00:00Z"
+        return args
+
+    def _run(self, text, out_path, *extra_flags):
+        parser.run_from_text(text, self._args(out_path, *extra_flags))
+        with open(out_path, newline="", encoding="utf-8") as f:
+            return list(csv.DictReader(f))
+
+    def test_stages_only_printed_rows_as_needs_review(self):
+        text = "\n".join((
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+            "Write-In Totals 5",
+        ))
+        with tempfile_out() as out_path:
+            rows = self._run(text, out_path, "--allow-missing-contest-total")
+        self.assertEqual(2, len(rows))
+        self.assertEqual({"candidate", "write_in_aggregate"}, {r["row_type"] for r in rows})
+        self.assertTrue(all(r["verification_status"] == "needs_review" for r in rows))
+        self.assertTrue(all(r["reporting_status"] == "manual_required" for r in rows))
+        self.assertTrue(all(r["percentage_reported"] == "" for r in rows))
+
+    def test_rejects_missing_total_without_flag(self):
+        text = "\n".join((
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+        ))
+        with tempfile_out() as out_path:
+            with self.assertRaises(SystemExit):
+                self._run(text, out_path)
+
+    def test_rejects_mixed_document_with_a_checksum(self):
+        text = "\n".join((
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+            "REP COUNTY CLERK",
+            "Vote For 1",
+            "JOHN EXAMPLE 50",
+            "Contest Totals 50",
+        ))
+        with tempfile_out() as out_path:
+            with self.assertRaises(SystemExit):
+                self._run(text, out_path, "--allow-missing-contest-total")
+
+    def test_rejects_document_with_undervote_or_overvote_rows(self):
+        text = "\n".join((
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+            "Undervotes 5",
+        ))
+        with tempfile_out() as out_path:
+            with self.assertRaises(SystemExit):
+                self._run(text, out_path, "--allow-missing-contest-total")
+
+    def test_rejects_certified_label(self):
+        text = "\n".join((
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+        ))
+        with tempfile_out() as out_path:
+            with self.assertRaises(SystemExit):
+                self._run(
+                    text,
+                    out_path,
+                    "--allow-missing-contest-total",
+                    "--certified",
+                )
+
+    def test_exception_flags_are_mutually_exclusive(self):
+        with tempfile_out() as out_path:
+            with self.assertRaises(SystemExit):
+                self._args(
+                    out_path,
+                    "--allow-missing-contest-total",
+                    "--allow-missing-undervote-overvote",
+                )
+
+
+class LocalOnlyBallotMeasureEndToEndTest(unittest.TestCase):
+    def test_ballot_measure_excluded_silently_candidate_contest_still_emitted(self):
+        text = "\n".join((
+            "PROPOSITION 1",
+            "Vote For 1",
+            "FOR 100",
+            "AGAINST 50",
+            "Contest Totals 150",
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+            "Write-In Totals 5",
+            "Overvotes 0",
+            "Undervotes 2",
+            "Contest Totals 107",
+        ))
+        p = argparse.ArgumentParser()
+        parser.add_common_args(p)
+        with tempfile_out() as out_path:
+            args = p.parse_args([
+                "--pdf", "unused.pdf",
+                "--county", "Laramie",
+                "--election-key", "wy-2026-primary",
+                "--source-key", "wy|laramie|wy-2026-primary|county_local_summary",
+                "--source-url", "https://example.test/laramie.pdf",
+                "--local-only",
+                "--out", str(out_path),
+            ])
+            args.sha256 = "deadbeef"
+            args.retrieved_at = "2026-08-21T00:00:00Z"
+            parser.run_from_text(text, args)  # must not sys.exit
+            with open(out_path, newline="", encoding="utf-8") as f:
+                rows = list(csv.DictReader(f))
+        self.assertNotIn("FOR", {r["candidate_name_raw"] for r in rows})
+        self.assertNotIn("AGAINST", {r["candidate_name_raw"] for r in rows})
+        self.assertIn("JANE EXAMPLE", {r["candidate_name_raw"] for r in rows})
 
 
 @contextlib.contextmanager

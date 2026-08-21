@@ -99,7 +99,7 @@ NORMALIZED_FIELDNAMES = [
 ]
 
 PARSER_NAME = "county_summary_pdf_v1"
-PARSER_VERSION = "1.1.4"
+PARSER_VERSION = "1.1.6"
 
 # Must start with an actual digit (not just "-?[\d,]+", which can match a
 # lone stray comma with zero real digits and then crash float('').
@@ -447,13 +447,23 @@ def normalize_contest(raw, county=None):
         return text.title(), "county", None, "county", party_raw
 
     # Local ballot measures (sales/use tax renewals, mill levies, bond
-    # questions) are in scope for --local-only but carry no fixed title
-    # vocabulary across counties, unlike the offices above. Recognized by
-    # keyword rather than exact phrase since every county titles its own
+    # questions) are recognized by keyword -- every county titles its own
     # measure differently ("SENIOR CITIZEN TAX QUESTION", "PRO 1 PERCENT
-    # SALES AND USE TAX", "BALLOT PROP. 1").
+    # SALES AND USE TAX", "BALLOT PROP. 1") -- but are NOT a candidate
+    # contest: a FOR/AGAINST measure has no candidates schema-wise, and
+    # storing "FOR THE TAX"/"AGAINST THE TAX" as candidate_name_raw is a
+    # real bug, caught 2026-08-21 on Laramie's 14 propositions (already
+    # live in production for Sublette's "PRO 1 PERCENT SALES AND USE TAX"
+    # from the 2026-08-20 13-county seed, confirmed inert there only
+    # because no matching office/candidate roster exists for card-scoped
+    # resolution to find -- not because the data itself is correct).
+    # level="ballot_measure" is deliberately its own value, not "unknown":
+    # this format IS recognized, just genuinely out of the current
+    # schema's scope, so --local-only must exclude it silently rather than
+    # hard-failing the way it correctly does for a truly unrecognized
+    # title. See docs/election_results_2026_path_forward.md finding #14.
     if re.search(r"\b(QUESTION|PROPOSITION|PROP\.?|BALLOT|LEVY|BOND|TAX)\b", text):
-        return text.title(), "county", None, "county", party_raw
+        return text.title(), "ballot_measure", None, "county", party_raw
 
     # Unknown contest type, keep raw as normalized, flag level as unknown
     # rather than guess. Never silently misclassify.
@@ -592,7 +602,8 @@ def add_common_args(p):
         "--local-only", action="store_true",
         help="Emit only county, municipal, special-district, and precinct committee contests.",
     )
-    p.add_argument(
+    exceptions = p.add_mutually_exclusive_group()
+    exceptions.add_argument(
         "--allow-missing-undervote-overvote", action="store_true",
         help=(
             "Accept a contest whose candidate+write-in sum falls short of its "
@@ -608,6 +619,21 @@ def add_common_args(p):
             "Accepted rows are stamped verification_status='needs_review', "
             "never 'verified', since the true ballots-cast total for the "
             "contest is unknown."
+        ),
+    )
+    exceptions.add_argument(
+        "--allow-missing-contest-total", action="store_true",
+        help=(
+            "Stage candidate and write-in totals from a report that never "
+            "prints Contest Totals, Total Votes Cast, Overvotes, or "
+            "Undervotes anywhere in the document. Refuses mixed documents "
+            "that contain any such checksum or trailer line. Emits only "
+            "source-printed candidate and write-in rows, stamps every row "
+            "verification_status='needs_review' and "
+            "reporting_status='manual_required', and never represents the "
+            "contests as reconciled. Intended for the Sheridan 2026 report "
+            "class documented in "
+            "docs/election_results_unreconciled_sources.md."
         ),
     )
     p.add_argument("--out", required=True)
@@ -636,6 +662,33 @@ def run_from_text(full_text, args):
     document_has_undervote_or_overvote_row = any(
         r["row_type"] in ("overvote", "undervote") for c in contests for r in c["rows"]
     )
+    document_has_reconciliation_total = any(
+        c["contest_total"] is not None or c["total_votes_cast"] is not None
+        for c in contests
+    )
+
+    if args.allow_missing_contest_total:
+        if args.certified:
+            print(
+                "--allow-missing-contest-total cannot be combined with --certified; "
+                "the staged rows require human review.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if document_has_reconciliation_total:
+            print(
+                "This document contains at least one Contest Totals or Total Votes Cast "
+                "line. Refusing the missing-total exception for a mixed report.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if document_has_undervote_or_overvote_row:
+            print(
+                "This document contains at least one Overvotes or Undervotes line. "
+                "Refusing the missing-total exception for a mixed report.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     if args.local_only:
         unknown = [c["contest_raw"] for c in contests if c["level"] == "unknown"]
@@ -644,6 +697,11 @@ def run_from_text(full_text, args):
             for contest_raw in unknown:
                 print(f"  {contest_raw}", file=sys.stderr)
             sys.exit(1)
+        ballot_measures = [c["contest_raw"] for c in contests if c["level"] == "ballot_measure"]
+        if ballot_measures:
+            print(f"Excluding {len(ballot_measures)} recognized ballot measure(s) (out of schema scope):", file=sys.stderr)
+            for contest_raw in ballot_measures:
+                print(f"  {contest_raw}", file=sys.stderr)
         contests = [c for c in contests if c["level"] in ("county", "city")]
         if not contests:
             print("No local contests found, refusing to emit an empty local result set.", file=sys.stderr)
@@ -651,6 +709,7 @@ def run_from_text(full_text, args):
 
     mismatches = []
     rows_out = []
+    staged_unreconciled_contests = 0
     is_unofficial = 0 if args.certified else 1
     reporting_status = "certified" if args.certified else "county_complete"
 
@@ -658,6 +717,8 @@ def run_from_text(full_text, args):
     key_occurrences = defaultdict(int)
 
     for c in contests:
+        contest_verification_status = "verified"
+        contest_reporting_status = reporting_status
         if c["contest_total"] is not None:
             target = c["contest_total"]
             summed = sum(r["votes"] for r in c["rows"])
@@ -666,12 +727,33 @@ def run_from_text(full_text, args):
             target = c["total_votes_cast"]
             summed = sum(r["votes"] for r in c["rows"] if r["row_type"] in ("candidate", "write_in_aggregate"))
             target_label = "Total Votes Cast"
+        elif args.allow_missing_contest_total:
+            unexpected_row_types = sorted({
+                r["row_type"] for r in c["rows"]
+                if r["row_type"] not in ("candidate", "write_in_aggregate")
+            })
+            if not c["rows"]:
+                mismatches.append((c["contest_raw"], "no source-printed result rows found", 0, None))
+                continue
+            if unexpected_row_types:
+                mismatches.append((
+                    c["contest_raw"],
+                    f"unexpected row types in missing-total mode: {', '.join(unexpected_row_types)}",
+                    sum(r["votes"] for r in c["rows"]),
+                    None,
+                ))
+                continue
+            target = None
+            summed = sum(r["votes"] for r in c["rows"])
+            target_label = None
+            contest_verification_status = "needs_review"
+            contest_reporting_status = "manual_required"
+            staged_unreconciled_contests += 1
         else:
             summed = sum(r["votes"] for r in c["rows"])
             mismatches.append((c["contest_raw"], "no Contest Totals or Total Votes Cast line found", summed, None))
             continue
-        contest_verification_status = "verified"
-        if summed != target:
+        if target is not None and summed != target:
             exception_applies = (
                 args.allow_missing_undervote_overvote
                 and target_label == "Contest Totals"
@@ -708,7 +790,7 @@ def run_from_text(full_text, args):
                 "parser_name": PARSER_NAME, "parser_version": PARSER_VERSION,
                 "is_unofficial": is_unofficial, "verification_status": contest_verification_status,
                 "source_url": args.source_url,
-                "precincts_reporting": "", "precincts_total": "", "reporting_status": reporting_status,
+                "precincts_reporting": "", "precincts_total": "", "reporting_status": contest_reporting_status,
                 "row_type": r["row_type"], "reporting_county": args.county, "precinct_code": "",
                 "precinct_name_raw": "",
                 "candidate_name_raw": r["candidate_name_raw"] or "",
@@ -724,7 +806,7 @@ def run_from_text(full_text, args):
             print(f"  {m}", file=sys.stderr)
         if not rows_out:
             sys.exit(1)
-        print(f"Proceeding with {len(contests) - len(mismatches)} contest(s) that DID reconcile.", file=sys.stderr)
+        print(f"Proceeding with {len(contests) - len(mismatches)} accepted contest(s).", file=sys.stderr)
 
     with open(args.out, "w", newline="", encoding="utf-8") as f:
         import csv
@@ -732,7 +814,18 @@ def run_from_text(full_text, args):
         w.writeheader()
         w.writerows(rows_out)
 
-    print(f"OK: {len(rows_out)} normalized rows from {len(contests) - len(mismatches)}/{len(contests)} reconciled contests -> {args.out}")
+    accepted_contests = len(contests) - len(mismatches)
+    if args.allow_missing_contest_total:
+        print(
+            f"OK: {len(rows_out)} normalized rows from "
+            f"{staged_unreconciled_contests}/{len(contests)} staged unreconciled "
+            f"contests (needs_review) -> {args.out}"
+        )
+    else:
+        print(
+            f"OK: {len(rows_out)} normalized rows from "
+            f"{accepted_contests}/{len(contests)} reconciled contests -> {args.out}"
+        )
 
 
 def main():
