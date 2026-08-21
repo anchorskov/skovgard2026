@@ -185,20 +185,33 @@ if (matchedContests.length > 0) {
       GROUP BY vcr.contest_id, vcr.candidate_name_raw, resolved_candidate_id`
   ).bind(...contestIds).all();
 
-  const byContest = new Map<number, { name: string; candidateId: number | null; votes: number; isUnofficial: boolean; isPartial: boolean }[]>();
+  // Merge by normalized name within each contest before totaling: different
+  // sources track case differently (the SOS track yields "John Barrasso",
+  // Laramie's county-hosted PDF yields "JOHN BARRASSO"), and grouping only
+  // by the raw string here (as the SQL above must, to preserve candidate_id
+  // resolution) would otherwise leave one real candidate split across two
+  // rows, then silently drop one of them when resultsByName below collapses
+  // them onto the same normalized key. See results/contest/[id].astro's
+  // aggregateByCandidate for the same fix applied to the deep-dive view.
+  const byContest = new Map<number, Map<string, { name: string; candidateId: number | null; votes: number; isUnofficial: boolean; isPartial: boolean }>>();
   for (const r of rows as any[]) {
-    const list = byContest.get(r.contest_id) || [];
-    list.push({
-      name: String(r.candidate_name_raw),
-      candidateId: r.resolved_candidate_id == null ? null : Number(r.resolved_candidate_id),
-      votes: Number(r.votes),
-      isUnofficial: Boolean(r.is_unofficial),
-      isPartial: Boolean(r.is_partial),
+    const byName = byContest.get(r.contest_id) || new Map();
+    const rawName = String(r.candidate_name_raw);
+    const key = normalizeName(rawName);
+    const existing = byName.get(key);
+    const preferNewDisplay = !existing || (existing.name === existing.name.toUpperCase() && rawName !== rawName.toUpperCase());
+    byName.set(key, {
+      name: preferNewDisplay ? rawName : existing!.name,
+      candidateId: existing?.candidateId ?? (r.resolved_candidate_id == null ? null : Number(r.resolved_candidate_id)),
+      votes: (existing?.votes || 0) + Number(r.votes),
+      isUnofficial: (existing?.isUnofficial ?? false) || Boolean(r.is_unofficial),
+      isPartial: (existing?.isPartial ?? false) || Boolean(r.is_partial),
     });
-    byContest.set(r.contest_id, list);
+    byContest.set(r.contest_id, byName);
   }
 
-  for (const [contestId, candidatesInContest] of byContest) {
+  for (const [contestId, byName] of byContest) {
+    const candidatesInContest = [...byName.values()];
     const total = candidatesInContest.reduce((sum, c) => sum + c.votes, 0);
     const maxVotes = Math.max(...candidatesInContest.map((c) => c.votes));
     for (const c of candidatesInContest) {
