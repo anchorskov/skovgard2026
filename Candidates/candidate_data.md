@@ -348,8 +348,10 @@ boundaries, source-precedence rule): `docs/election_results_schema.md`.
 Local-only 2024 corpus status, verified defects, and the mandatory remediation
 gate: `docs/election_results_2024_local_status.md`.
 Election-night ingestion operational reference: `docs/election_results_2026_path_forward.md`.
+Guarded policy for official sources with no contest checksum:
+`docs/election_results_unreconciled_sources.md`.
 Repeatable county-source audit runbook: `docs/recheck_county_election_result_sources.md`.
-All four are gitignored (`Candidates/docs/**`), so they carry no git safety net.
+All five are gitignored (`Candidates/docs/**`), so they carry no git safety net.
 Treat them as accurate as of their own "updated" markers, not as version-controlled history.
 
 There is no standalone results page. Results ride the existing candidate-guide
@@ -563,18 +565,35 @@ contests.
 Roster overlap spot-checked directly against `offices`/`candidates` for both
 counties (e.g. Laramie's "Gunnar Malm," "Jess E. Ketcham," "M. Lee
 Hasenauer" under "Laramie County Commissioner (Republican)"; several Lincoln
-County Commissioner candidates) — unlike Fremont, this data is expected to
+County Commissioner candidates) — unlike Fremont, this data was expected to
 actually surface via card-scoped resolution once integrated, not stay inert.
-Both CSVs are staging data only as of this writing. No SQL generated, no
-database changed.
 
-Sheridan's user-supplied unofficial Summary PDF was reviewed on 2026-08-21.
-The text-layer parser identified 162 contests, including 138 county,
-municipal, precinct committee, and local-question contests selected by
-`--local-only`. None of those 138 contests prints either a `Contest Totals`
-or `Total Votes Cast` line, so all were withheld by the unchanged
-reconciliation gate. The remaining 24 nonlocal contests were excluded by
-scope. No Sheridan CSV was emitted and no database was changed.
+Stage 2 seeds applied to local D1 then production D1 2026-08-21: Laramie (1
+source — correctly reused the existing `county_local_summary` snapshot from
+the 2026-08-18 federal/statewide import, same source_key + sha256, so the
+snapshot insert no-op'd and only the new county/city contests/rows were
+added — 181 contests, 740 result rows) and Lincoln (1 new source, 96
+contests, 409 result rows). Both fully visible in
+`v_election_current_results` (740/409, exactly matching result-row counts).
+Confirmed end-to-end on the live site: `/race/497` (Laramie County
+Commissioner) renders "Troy Thompson, 8,795 votes, 18.2%" with a "Leading"
+badge.
+
+Sheridan's user-supplied unofficial Summary PDF was reviewed again on
+2026-08-21 under the separate policy in
+`docs/election_results_unreconciled_sources.md`. The official county page's
+direct Summary PDF was downloaded and matched the supplied local file exactly
+by SHA-256. Parser 1.1.6 now has an explicit
+`--allow-missing-contest-total` staging mode that refuses mixed reports and
+emits only source-printed candidate and aggregate write-in values. It does
+not describe those values as reconciled.
+
+`sheridan_reported_rows_needs_review.csv` contains 301 rows from 137 of 137
+in-scope candidate contests, all stamped `verification_status='needs_review'`
+and `reporting_status='manual_required'`. The 24 nonlocal contests were
+excluded by scope, and `SENIOR CITIZEN TAX QUESTION` was excluded because
+ballot measures are outside the candidate-results schema. The file is staging
+data only. No SQL was generated and no database was changed.
 
 ## OCR extraction workflow
 
