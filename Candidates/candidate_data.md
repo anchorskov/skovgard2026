@@ -405,9 +405,16 @@ complete 63-source, 172-contest, 2,668-row append-only seed was applied to
 production after a full SQL backup. Production now stores 111 sources, 88
 snapshots, 172 contests, and 3,818 result rows; the precedence view selects
 2,667 current rows across all 23 counties. No Candidates deploy was needed for
-the data update. A live check immediately afterward confirmed the existing
-cross-source name-casing display defect: the US Senate card omits Laramie
-County subtotals even though the database aggregate is correct. See
+the data update. A live check immediately afterward confirmed a cross-source
+name-casing display defect: the US Senate card omitted Laramie County
+subtotals even though the database aggregate was correct. Fixed 2026-08-21 in
+`race/[id].astro` and `races/index.astro` — both grouped result rows by raw
+`candidate_name_raw` before merging into their display-facing map, so a
+candidate whose votes arrived from two differently-cased sources (e.g. `"John
+Barrasso"` from the SOS track vs. `"JOHN BARRASSO"` from Laramie's
+county-hosted PDF) had one source's votes silently dropped instead of summed.
+Same merge-by-normalized-name pattern `results/contest/[id].astro` already
+used for its deep-dive aggregation, applied to both files. See
 `docs/current_status_candidates_page.md`.
 `docs/election_results_2026_path_forward.md` covers the
 ingestion pipeline and the remaining county and municipal coverage gaps.
@@ -428,8 +435,9 @@ statewide, and legislative district races (US Senate, US House, Governor,
 Secretary of State, State Auditor, State Treasurer, Superintendent of Public
 Instruction, all 4 Senate and 12 House districts touching Laramie), source
 role `county_local_summary`. It reached the live US Senate card, but the later
-complete-state import exposed a casing bug that now causes its subtotals to be
-omitted from the displayed candidate totals. County
+complete-state import exposed a casing bug that caused its subtotals to be
+omitted from the displayed candidate totals; fixed 2026-08-21 (see above).
+County
 offices, precinct committee seats, and municipal races from that same file
 were deliberately held back: `offices.title` conventions for those levels are
 inconsistent statewide (party embedded in the title for some counties'
