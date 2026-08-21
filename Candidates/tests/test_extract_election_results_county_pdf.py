@@ -1,4 +1,8 @@
+import argparse
+import contextlib
+import csv
 import importlib.util
+import tempfile
 from pathlib import Path
 import unittest
 
@@ -55,12 +59,24 @@ class CountyResultsParserTests(unittest.TestCase):
             "DEM STATE REP HD15 DEM DISTRICT 15": ("House District 15", "wy_house"),
             "REP US REP": ("United States Representative", "federal"),
             "REP 1-1 COMMITTEEMAN": ("Precinct Committeeman 1-1", "county"),
+            "REP COMMITTEEMEN 1-01": ("Precinct Committeeman 1-1", "county"),
+            "DEM COMMITTEEWOMEN 4-09": ("Precinct Committeewoman 4-9", "county"),
             "WHEATLAND MAYOR": ("Wheatland Mayor", "city"),
             "REP SUPERINTENDENT OF PUB INSTRUCTION": (
                 "Superintendent Of Public Instruction",
                 "statewide",
             ),
+            "REP SUPER PUBLIC INSTRUCT": (
+                "Superintendent Of Public Instruction",
+                "statewide",
+            ),
             "REP DISTRICT 11 STATE SENATOR": ("Senate District 11", "wy_senate"),
+            "REP COMMISSIONER DIST 1": ("County Commissioner District 1", "county"),
+            "DEM COMMISSIONER DISTRICT 4 DISTRICT 4": (
+                "County Commissioner District 4",
+                "county",
+            ),
+            "REP CLERK DIST COURT": ("Clerk Of District Court", "county"),
         }
         for raw, expected in cases.items():
             normalized = parser.normalize_contest(raw)
@@ -111,6 +127,116 @@ class CountyResultsParserTests(unittest.TestCase):
         output = []
         generator.emit_contests([row], output)
         self.assertIn("'Natrona'", output[0])
+
+
+class MissingUndervoteOvervoteExceptionTests(unittest.TestCase):
+    """--allow-missing-undervote-overvote: Fremont 2026 prints candidate and
+    write-in rows plus a Contest Totals checksum, but never an Overvotes or
+    Undervotes trailer line anywhere in the document -- confirmed on the
+    real PDF, zero matches for either label. The exception must accept a
+    contest ONLY when that document-wide absence holds, and must never
+    accept an overage or paper over a single dropped line in a document
+    that has real undervote/overvote lines elsewhere (that's the Albany
+    silently-dropped-value case, which must stay rejected)."""
+
+    def _args(self, out_path, allow_exception):
+        p = argparse.ArgumentParser()
+        parser.add_common_args(p)
+        argv = [
+            "--pdf", "unused.pdf",
+            "--county", "Fremont",
+            "--election-key", "wy-2026-primary",
+            "--source-key", "wy|fremont|wy-2026-primary|county_local_summary",
+            "--source-url", "https://example.test/fremont.pdf",
+            "--out", str(out_path),
+        ]
+        if allow_exception:
+            argv.append("--allow-missing-undervote-overvote")
+        args = p.parse_args(argv)
+        args.sha256 = "deadbeef"
+        args.retrieved_at = "2026-08-21T00:00:00Z"
+        return args
+
+    def _run(self, text, out_path, allow_exception):
+        args = self._args(out_path, allow_exception)
+        parser.run_from_text(text, args)
+        with open(out_path, newline="", encoding="utf-8") as f:
+            return list(csv.DictReader(f))
+
+    def test_accepts_shortfall_when_document_never_prints_undervote_overvote(self):
+        text = "\n".join((
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+            "Write-In Totals 5",
+            "Contest Totals 120",  # shortfall of 15 -- no undervote/overvote line anywhere
+        ))
+        with tempfile_out() as out_path:
+            rows = self._run(text, out_path, allow_exception=True)
+        self.assertEqual(2, len(rows))
+        self.assertTrue(all(r["verification_status"] == "needs_review" for r in rows))
+        self.assertEqual({"100", "5"}, {r["votes"] for r in rows})
+
+    def test_rejects_shortfall_without_the_flag(self):
+        text = "\n".join((
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+            "Write-In Totals 5",
+            "Contest Totals 120",
+        ))
+        with tempfile_out() as out_path:
+            with self.assertRaises(SystemExit):
+                self._run(text, out_path, allow_exception=False)
+
+    def test_rejects_overage_even_with_the_flag(self):
+        # summed > target is a different bug class (e.g. a misread digit),
+        # never a missing-undervote-row situation -- must still hard-fail.
+        text = "\n".join((
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+            "Write-In Totals 5",
+            "Contest Totals 90",
+        ))
+        with tempfile_out() as out_path:
+            with self.assertRaises(SystemExit):
+                self._run(text, out_path, allow_exception=True)
+
+    def test_rejects_when_document_has_a_real_undervote_line_elsewhere(self):
+        # A second contest in the same document DOES print Undervotes, so a
+        # missing line on the first contest means extraction dropped it,
+        # not that this report format omits it -- the exception must not
+        # apply to the first contest even with the flag set. The second
+        # contest reconciles normally on its own merits, so the run as a
+        # whole still succeeds (same "withhold the bad ones, keep the
+        # good ones" behavior as every other partial-county import) --
+        # what matters here is that SHERIFF specifically is withheld.
+        text = "\n".join((
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "JANE EXAMPLE 100",
+            "Write-In Totals 5",
+            "Contest Totals 120",
+            "REP COUNTY CLERK",
+            "Vote For 1",
+            "JOHN EXAMPLE 50",
+            "Write-In Totals 1",
+            "Overvotes 0",
+            "Undervotes 3",
+            "Contest Totals 54",
+        ))
+        with tempfile_out() as out_path:
+            rows = self._run(text, out_path, allow_exception=True)
+        self.assertEqual(set(), {r["candidate_name_raw"] for r in rows} & {"JANE EXAMPLE"})
+        self.assertIn("JOHN EXAMPLE", {r["candidate_name_raw"] for r in rows})
+        self.assertTrue(all(r["verification_status"] == "verified" for r in rows))
+
+
+@contextlib.contextmanager
+def tempfile_out():
+    with tempfile.TemporaryDirectory() as d:
+        yield Path(d) / "out.csv"
 
 
 if __name__ == "__main__":

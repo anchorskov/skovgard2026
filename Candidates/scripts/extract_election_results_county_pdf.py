@@ -99,7 +99,7 @@ NORMALIZED_FIELDNAMES = [
 ]
 
 PARSER_NAME = "county_summary_pdf_v1"
-PARSER_VERSION = "1.1.1"
+PARSER_VERSION = "1.1.4"
 
 # Must start with an actual digit (not just "-?[\d,]+", which can match a
 # lone stray comma with zero real digits and then crash float('').
@@ -333,6 +333,7 @@ def normalize_contest(raw, county=None):
         return "State Treasurer", "statewide", None, "statewide", party_raw
     if text in (
         "SUPERINTENDENT", "SUPERINTENDENT PUBLIC INSTRUCTION",
+        "SUPER PUBLIC INSTRUCT",
         "SUPERINTENDENT OF PUB INSTRUCTION",
         "SUPERINTENDENT OF PUBLIC INST", "SUPERINTENDENT OF PUBLIC INSTRUCTION",
         "STATE SUPERINTENDENT OF PUBLIC INSTRUCTION",
@@ -389,16 +390,29 @@ def normalize_contest(raw, county=None):
         (r"^(?:COUNTY )?CLERK OF COURT$", "Clerk Of District Court"),
         (r"^DIST(?:RICT)?\.? COURT CLERK$", "Clerk Of District Court"),
         (r"^CLRK DIST(?:RICT)?\.? COURT$", "Clerk Of District Court"),
+        (r"^CLERK DIST(?:RICT)?\.? COURT$", "Clerk Of District Court"),
         (r"^DISTRICT ATTORNEY$", "District Attorney"),
     )
     for pattern, normalized in county_offices:
         if re.match(pattern, text):
             return normalized, "county", None, "county", party_raw
 
+    # Fremont 2026 elects commissioners by numbered county district and
+    # prints both "DIST" and "DISTRICT" forms. One Democratic title repeats
+    # its district suffix. Keep the district in the canonical title without
+    # treating it as a legislative district.
+    m = re.match(
+        r"^(?:COUNTY )?COMMISSIONERS? DIST(?:RICT)?\.? (\d+)"
+        r"(?: DISTRICT \1)?$",
+        text,
+    )
+    if m:
+        return f"County Commissioner District {int(m.group(1))}", "county", None, "county", party_raw
+
     committee_role = None
-    if re.search(r"COMMITTEEMAN\b", text) or re.match(r"^PCM\b", text) or "PRECINCT MAN" in text or "PCT COMM MAN" in text:
+    if re.search(r"COMMITTEE(?:MAN|MEN)\b", text) or re.match(r"^PCM\b", text) or "PRECINCT MAN" in text or "PCT COMM MAN" in text:
         committee_role = "Precinct Committeeman"
-    elif re.search(r"COMMITTEEWOMAN\b", text) or re.match(r"^PCW\b", text) or "PRECINCT WOMAN" in text or "PCT COMM WOMAN" in text:
+    elif re.search(r"COMMITTEE(?:WOMAN|WOMEN)\b", text) or re.match(r"^PCW\b", text) or "PRECINCT WOMAN" in text or "PCT COMM WOMAN" in text:
         committee_role = "Precinct Committeewoman"
     if committee_role:
         # Teton 2026 (OCR track) codes precincts as "DIST N PCT M" rather
@@ -578,6 +592,24 @@ def add_common_args(p):
         "--local-only", action="store_true",
         help="Emit only county, municipal, special-district, and precinct committee contests.",
     )
+    p.add_argument(
+        "--allow-missing-undervote-overvote", action="store_true",
+        help=(
+            "Accept a contest whose candidate+write-in sum falls short of its "
+            "printed Contest Totals, IF AND ONLY IF this entire document never "
+            "prints a single Overvotes/Undervotes trailer line anywhere (i.e. "
+            "the report format structurally omits them, confirmed Fremont "
+            "2026). Refuses if even one contest elsewhere in the same document "
+            "has a real overvote/undervote line -- that means this contest's "
+            "own line was dropped by extraction, not omitted by the format, "
+            "and must not be waved through (see Albany's missing-value finding "
+            "in docs/election_results_2026_path_forward.md). Never accepts an "
+            "overage (summed > target) -- that is a different bug class. "
+            "Accepted rows are stamped verification_status='needs_review', "
+            "never 'verified', since the true ballots-cast total for the "
+            "contest is unknown."
+        ),
+    )
     p.add_argument("--out", required=True)
     return p
 
@@ -594,6 +626,16 @@ def run_from_text(full_text, args):
     if not contests:
         print("No contests parsed, refusing to emit unverified data.", file=sys.stderr)
         sys.exit(1)
+
+    # Computed against every contest in the document (before --local-only
+    # filtering), not just the ones being emitted, so the check is a
+    # genuine document-wide signal. See --allow-missing-undervote-overvote's
+    # help text: a document that prints an overvote/undervote line for even
+    # one contest is a document where a missing line elsewhere means
+    # extraction dropped it, not that the format never has one.
+    document_has_undervote_or_overvote_row = any(
+        r["row_type"] in ("overvote", "undervote") for c in contests for r in c["rows"]
+    )
 
     if args.local_only:
         unknown = [c["contest_raw"] for c in contests if c["level"] == "unknown"]
@@ -628,9 +670,24 @@ def run_from_text(full_text, args):
             summed = sum(r["votes"] for r in c["rows"])
             mismatches.append((c["contest_raw"], "no Contest Totals or Total Votes Cast line found", summed, None))
             continue
+        contest_verification_status = "verified"
         if summed != target:
-            mismatches.append((c["contest_raw"], f"sum != {target_label}", summed, target))
-            continue
+            exception_applies = (
+                args.allow_missing_undervote_overvote
+                and target_label == "Contest Totals"
+                and summed < target  # never wave through an overage -- a different bug class
+                and not document_has_undervote_or_overvote_row
+            )
+            if not exception_applies:
+                mismatches.append((c["contest_raw"], f"sum != {target_label}", summed, target))
+                continue
+            # Candidate and write-in figures are exactly what was printed;
+            # only the overvote/undervote split (never captured, since this
+            # format has no such rows to capture) is unknown. Do not invent
+            # a row to cover the shortfall -- stamp needs_review instead of
+            # verified so this snapshot cannot surface as a confirmed result
+            # until a human decides it should (see docs/election_results_2026_path_forward.md).
+            contest_verification_status = "needs_review"
 
         contest_key = contest_key_base(args.election_key, args.county, c)
         if key_counts[contest_key] > 1:
@@ -649,7 +706,7 @@ def run_from_text(full_text, args):
                 "sha256": args.sha256, "retrieved_at": args.retrieved_at,
                 "source_published_at": args.source_published_at or "",
                 "parser_name": PARSER_NAME, "parser_version": PARSER_VERSION,
-                "is_unofficial": is_unofficial, "verification_status": "verified",
+                "is_unofficial": is_unofficial, "verification_status": contest_verification_status,
                 "source_url": args.source_url,
                 "precincts_reporting": "", "precincts_total": "", "reporting_status": reporting_status,
                 "row_type": r["row_type"], "reporting_county": args.county, "precinct_code": "",

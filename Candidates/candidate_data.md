@@ -500,6 +500,50 @@ spot-checked against `v_election_current_results` (County Commissioner REP
 matched the CSV exactly), then applied to production D1 2026-08-21. Sweetwater
 is no longer a gap county.
 
+Fremont's user-supplied 2026 unofficial Summary and Precinct Summary PDFs were
+reviewed on 2026-08-21. The parser identified 62 contests, including 36
+county and municipal contests selected by `--local-only`; all 36 initially
+withheld, since both PDFs print candidate votes, write-in votes, and a larger
+`Contest Totals` value while never printing a single Overvotes or Undervotes
+trailer line anywhere in either document (a document-wide absence, confirmed
+by scanning the full extracted text, not three sampled contests). Full
+anomaly writeup, the resulting `--allow-missing-undervote-overvote` exception
+(parser 1.1.4), its safety guards, and two adjacent unfixed gaps (Fremont's
+precinct-PDF cross-check pipeline only classifies 6 of dozens of expected
+contests; a snapshot-level `verification_status` risk for a future county
+with a *mix* of clean and exception contests) are in
+`docs/election_results_2026_path_forward.md` finding #13 — that is now the
+authoritative source for this county, not this paragraph.
+
+With the exception applied, `fremont_results.csv` reconciled 36/36 contests:
+93 rows (57 candidate, 36 write-in aggregate, zero fabricated undervote/
+overvote rows), reproduced byte-for-byte on an independent re-run, all
+stamped `verification_status='needs_review'` (not `'verified'` — the true
+ballots-cast total per contest is unknown, only the candidate/write-in split
+is). This is an existing schema enum value; no migration was needed, and
+`v_election_latest_snapshots` requiring `'verified'` means none of this data
+will appear anywhere on the live site until a human deliberately promotes it.
+Staging data only as of this writing — no SQL generated, no database changed.
+
+Laramie and Lincoln's user-supplied unofficial Summary PDFs were normalized
+on 2026-08-21. `laramie_results.csv` contains 796 rows from 195 of 195
+reconciled local contests; its 46 federal, statewide, and legislative contests
+were intentionally excluded because `--local-only` was used. Laramie's plural
+`COMMITTEEMEN` and `COMMITTEEWOMEN` headings are now normalized to the existing
+singular precinct-committee vocabulary. `lincoln_results.csv` contains 409
+rows from 96 of 96 reconciled local contests, with 14 nonlocal contests
+excluded. No precinct reports were supplied for these counties, so no separate
+precinct cross-check was performed. Both CSVs are staging data only. No SQL was
+generated and no database was changed.
+
+Sheridan's user-supplied unofficial Summary PDF was reviewed on 2026-08-21.
+The text-layer parser identified 162 contests, including 138 county,
+municipal, precinct committee, and local-question contests selected by
+`--local-only`. None of those 138 contests prints either a `Contest Totals`
+or `Total Votes Cast` line, so all were withheld by the unchanged
+reconciliation gate. The remaining 24 nonlocal contests were excluded by
+scope. No Sheridan CSV was emitted and no database was changed.
+
 ## OCR extraction workflow
 
 For county-hosted summary PDFs with no embedded text layer at all (confirmed
