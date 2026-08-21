@@ -523,7 +523,17 @@ ballots-cast total per contest is unknown, only the candidate/write-in split
 is). This is an existing schema enum value; no migration was needed, and
 `v_election_latest_snapshots` requiring `'verified'` means none of this data
 will appear anywhere on the live site until a human deliberately promotes it.
-Staging data only as of this writing — no SQL generated, no database changed.
+
+Stage 2 (`election_results_wy_2026_primary_fremont_unofficial_2026-08-21.sql`)
+was applied to local D1 and then production D1 2026-08-21: 1 source, 1
+snapshot, 36 contests, 93 result rows. The gating was directly verified in
+both: 93 rows exist for Fremont's county/city contests in
+`election_results_rows`, and 0 appear in `v_election_current_results` — only
+Fremont's pre-existing federal/statewide/legislative rows (1,290, all
+`verified`, from the earlier SOS-track import) are visible. Fremont's data
+sits in D1 exactly as intended: present, auditable, and invisible on
+`/races` and `/race/[id]` until someone flips `verification_status` to
+`'verified'` by hand.
 
 Laramie and Lincoln's user-supplied unofficial Summary PDFs were normalized
 on 2026-08-21. `laramie_results.csv` contains 796 rows from 195 of 195
