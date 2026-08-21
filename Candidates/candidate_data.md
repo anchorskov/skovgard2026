@@ -493,8 +493,12 @@ the primary import gate (Carbon and Natrona were both imported with no
 paired precinct PDF at all); left as a known gap for whoever next needs a
 clean precinct-level cross-check on this county.
 
-This CSV is staging data only as of the review. No SQL was generated and no
-database was changed.
+Stage 2 (`election_results_wy_2026_primary_sweetwater_unofficial_2026-08-21.sql`)
+was generated from the CSV with `--source-role county_local_summary`: 1
+source, 1 snapshot, 173 contests, 664 result rows. Applied to local D1 and
+spot-checked against `v_election_current_results` (County Commissioner REP
+matched the CSV exactly), then applied to production D1 2026-08-21. Sweetwater
+is no longer a gap county.
 
 ## OCR extraction workflow
 
