@@ -592,8 +592,27 @@ not describe those values as reconciled.
 in-scope candidate contests, all stamped `verification_status='needs_review'`
 and `reporting_status='manual_required'`. The 24 nonlocal contests were
 excluded by scope, and `SENIOR CITIZEN TAX QUESTION` was excluded because
-ballot measures are outside the candidate-results schema. The file is staging
-data only. No SQL was generated and no database was changed.
+ballot measures are outside the candidate-results schema.
+
+Independently re-verified 2026-08-21: source PDF sha256 matched exactly,
+parser re-run reproduced the CSV byte-for-byte (including `retrieved_at`),
+and a direct `pdfplumber` text scan confirmed zero `Contest Totals`/`Total
+Votes Cast`/`Overvotes`/`Undervotes` matches across all 955 extracted
+lines — the document-wide guard is a genuine structural absence, not
+assumed. Roster overlap spot-checked against `offices`/`candidates` for
+Sheridan County Commissioner (Jim Schellinger, Christi Haswell, Holly
+Jennings, etc. all match) — if this snapshot is ever promoted to
+`verified`, it will render correctly, not sit inert.
+
+Stage 2 seed generated and applied to local D1, then production D1,
+2026-08-21: 1 source, 1 snapshot, 137 contests, 301 result rows. Confirmed
+in both: 301 rows exist in `election_results_rows`, 0 appear in
+`v_election_current_results`. This is a database load, **not** a
+promotion to `verified` — per
+`docs/election_results_unreconciled_sources.md`, that remains a separate,
+later decision requiring documented human review (reviewer, date, source
+hash, evidence, and why no better source exists), not something a
+database load authorizes on its own.
 
 ## OCR extraction workflow
 
