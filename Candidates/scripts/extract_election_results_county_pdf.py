@@ -1,9 +1,10 @@
 # Candidates/scripts/extract_election_results_county_pdf.py
 #
-# Stage 1 parser for the county-hosted "Summary Results Report" PDF format
-# (confirmed on Albany and Campbell counties' verified 2024 results.
-# same underlying report generator, evidenced by identical "Summary
-# Results Report" / "Election Summary - MM/DD/YYYY HH:MMPM" markers).
+# Stage 1 parser for the county-hosted summary-results PDF family. It was first
+# confirmed on Albany and Campbell counties' verified 2024 results, then
+# extended and reverified against Carbon, Goshen, Natrona, Park, and Platte
+# 2026 primary reports. These reports share the same contest and trailer
+# structure even though their titles, page mastheads, and value columns vary.
 # Outputs the SAME normalized CSV contract as
 # extract_election_results_xlsx.py, see that file's header for the
 # contract this is additive to, not a replacement for.
@@ -50,6 +51,9 @@
 #     column; Campbell: 4, TOTAL/Election Day/Absentee/Early-ABS). Only
 #     the first (TOTAL) value is used; extra columns are ignored, not
 #     validated.
+#   - 2026 reports commonly add a VOTE % column. The printed vote total is
+#     still the first numeric value and the percentage is never stored as a
+#     vote. Every contest must reconcile after this selection.
 #   - A repeating page footer ("Election Summary - MM/DD/YYYY HH:MMPM
 #     Page N of M") and a repeating 3-line masthead (county/report title,
 #     election name, report title again) sit between whichever contest
@@ -65,8 +69,14 @@
 #     page's own footer and masthead. Recognized structurally, not by
 #     hardcoding Laramie's county name, so this generalizes to any county
 #     using the same report generator with its own masthead text.
+#   - A source can print two distinct contests with the exact same title.
+#     Carbon and Park 2026 do this for separate municipal ballot positions.
+#     The source does not always print a term or seat qualifier, so duplicate
+#     canonical keys receive a stable source-occurrence suffix in report order
+#     instead of being merged or assigned an invented semantic label.
 
 import argparse
+from collections import Counter, defaultdict
 import hashlib
 import re
 import sys
@@ -89,7 +99,7 @@ NORMALIZED_FIELDNAMES = [
 ]
 
 PARSER_NAME = "county_summary_pdf_v1"
-PARSER_VERSION = "1.0.0"
+PARSER_VERSION = "1.1.0"
 
 # Must start with an actual digit (not just "-?[\d,]+", which can match a
 # lone stray comma with zero real digits and then crash float('').
@@ -115,18 +125,63 @@ TOTAL_VOTES_CAST_RE = re.compile(r"^total\s*votes\s*cast\b", re.I)
 
 # Page footer/masthead noise, matched structurally, not by county name, see
 # the module docstring's anomaly list for why this exists.
-PAGE_FOOTER_RE = re.compile(r"^election summary\s*-\s*\d", re.I)
-REPORT_TITLE_RE = re.compile(r"election summary results report$", re.I)
+PAGE_FOOTER_RE = re.compile(r"\bpage\s+\d+\s+of\s+\d+\s*$", re.I)
+REPORT_TITLE_RE = re.compile(
+    r"(?:summary results report|election summary results report|"
+    r"county contest summary|municipal contest summary|"
+    r"precinct committee contest summary|election summary)$",
+    re.I,
+)
 RESULTS_LABEL_RE = re.compile(r"(unofficial|official)\s+results$", re.I)
 ELECTION_NAME_RE = re.compile(r"^(primary|general|special)\s+election$", re.I)
+ELECTION_MASTHEAD_RE = re.compile(
+    r"^(?:20\d{2}\s+)?(?:primary|general|special)(?:\s+election)?"
+    r"(?:\s+recount)?(?:\s+20\d{2})?$",
+    re.I,
+)
+COUNTY_ELECTION_MASTHEAD_RE = re.compile(
+    r"^[A-Za-z .'-]+\s+(?:primary|general|special)(?:\s+election)?\s+20\d{2}$",
+    re.I,
+)
+# \s* (not \s+) around "of": confirmed on OCR'd 2026 Washakie data that
+# tesseract can read "5 of 5" as one glued token "5of5" with no space at
+# all, which a stricter \s+ silently let fall through as an unrecognized
+# candidate row worth "5" votes -- inflating every contest's sum by
+# exactly the reporting count, a systematic error, not noise.
+PRECINCTS_REPORTING_RE = re.compile(r"^precincts\s+reporting\s+\d+\s*of\s*\d+", re.I)
+DATE_MASTHEAD_RE = re.compile(
+    r"^(?:january|february|march|april|may|june|july|august|september|"
+    r"october|november|december)\s+\d{1,2},\s+\d{4}\b",
+    re.I,
+)
+# Tolerant fallback for OCR'd masthead lines the anchored patterns above
+# miss because OCR garbled surrounding text: confirmed on Weston 2026,
+# where "WY Weston County Primary Election" OCR'd as "WY Weston 260818
+# Primary Election_6060" (a misread date and trailing noise glued onto an
+# otherwise-recognizable masthead line). None of the anchored patterns
+# above match because of the extra characters, and the stray "260818" was
+# read as a real vote count on the next contest, corrupting it. A contest
+# header or data row in this report family never contains the words
+# "Primary/General/Special Election" together, so matching that phrase
+# anywhere in the line, not just when the whole line is otherwise clean,
+# is safe. No trailing \b: also confirmed on the same data that OCR can
+# glue trailing noise directly onto "Election" with an underscore
+# ("Election_6060"), and \w includes "_", so a trailing \b would silently
+# fail to match right where it's needed most.
+MASTHEAD_ELECTION_PHRASE_RE = re.compile(r"\b(?:primary|general|special)\s+election", re.I)
 
 
 def is_page_boilerplate(line):
     return bool(
-        PAGE_FOOTER_RE.match(line)
+        PAGE_FOOTER_RE.search(line)
         or REPORT_TITLE_RE.search(line)
         or RESULTS_LABEL_RE.search(line)
         or ELECTION_NAME_RE.match(line)
+        or ELECTION_MASTHEAD_RE.match(line)
+        or COUNTY_ELECTION_MASTHEAD_RE.match(line)
+        or PRECINCTS_REPORTING_RE.match(line)
+        or DATE_MASTHEAD_RE.match(line)
+        or MASTHEAD_ELECTION_PHRASE_RE.search(line)
     )
 
 
@@ -136,7 +191,9 @@ def text_only(line):
     stripped = re.sub(r"[\d,.\-]+", " ", line).strip()
     return re.sub(r"\s+", " ", stripped)
 VOTE_FOR_RE = re.compile(r"^vote\s*for\s*\d+$", re.I)
-COLUMN_HEADER_WORDS = {"total", "election", "day", "absentee", "early-abs", "early", "abs"}
+COLUMN_HEADER_WORDS = {
+    "total", "vote", "election", "day", "absentee", "early-abs", "early", "abs"
+}
 
 PARTY_PREFIXES = {"REP": "REP", "DEM": "DEM", "LIB": "LIB", "NP": "NP"}
 
@@ -155,7 +212,7 @@ def parse_last_number(text):
     return int(round(float(matches[-1].replace(",", ""))))
 
 
-EXTRA_COLUMN_WORDS = {"election", "day", "absentee", "early-abs", "early", "abs"}
+EXTRA_COLUMN_WORDS = {"vote", "election", "day", "absentee", "early-abs", "early", "abs"}
 
 
 def parse_row_value(text, multi_column):
@@ -180,7 +237,7 @@ def looks_like_contest_header(line):
     if any(ch.isdigit() for ch in line.replace("13-2", "").replace("V1", "")):
         # allow precinct-code-style contest names like "PRECINCT COMMITTEEMAN 13-2 V1"
         pass
-    if not re.match(r"^[A-Z0-9 .'\-]+$", line):
+    if not re.match(r'''^[A-Z0-9 .,'"/&()\-]+$''', line):
         return False
     if VOTE_FOR_RE.match(line) or CONTEST_TOTAL_RE.match(line) or TOTAL_VOTES_CAST_RE.match(line):
         return False
@@ -190,12 +247,19 @@ def looks_like_contest_header(line):
     return line.strip() != "" and not is_column_header_noise(line)
 
 
-def normalize_contest(raw):
+def normalize_contest(raw, county=None):
     """Map this format's contest wording to the SAME canonical form the
     SOS xlsx adapter produces, so contest_key values collide correctly
     across both source tracks rather than creating duplicate canonical
     contests for the same real-world race."""
     text = raw.strip()
+    # OCR occasionally glues a stray quote or other punctuation onto the
+    # very start of a contest header (confirmed on Campbell 2026 OCR:
+    # '"REP CLERK OF DISTRICT COURT'), which would otherwise block the
+    # party-prefix check below from ever firing.
+    text = re.sub(r"^[^A-Za-z0-9]+", "", text)
+    # Same idea, trailing: confirmed on Teton 2026 OCR ("DEM COUNTY ATTORNEY ,").
+    text = re.sub(r"[^A-Za-z0-9]+$", "", text)
     party_raw = None
     for prefix in PARTY_PREFIXES:
         if text.startswith(prefix + " "):
@@ -203,41 +267,163 @@ def normalize_contest(raw):
             text = text[len(prefix):].strip()
             break
 
+    # Some county exports repeat the party token after the normal leading
+    # token, at the end of the contest label, or both. Remove only a token
+    # that exactly matches the party already established above. Do not
+    # remove embedded "REP" text because it can mean representative.
+    if party_raw:
+        while text.startswith(party_raw + " "):
+            text = text[len(party_raw):].strip()
+        if text.endswith(" " + party_raw) and text not in ("US REP", "U.S. REP"):
+            text = text[:-len(party_raw)].strip()
+
+    # Converse 2026 splits a word with a stray space at a consistent point
+    # ("ST ATE AUDITOR", "SECRET ARY OF ST ATE"), confirmed by reading the
+    # real file, a kerning artifact like the ones already documented in the
+    # module docstring, not a different word. Collapse only these two
+    # observed splits rather than guessing at word boundaries in general.
+    text = re.sub(r"\bST ATE\b", "STATE", text)
+    text = re.sub(r"\bSECRET ARY\b", "SECRETARY", text)
+
+    # Sublette 2026 prefixes every county office with the county's own name
+    # ("SUBLETTE COUNTY COMMISSIONER") instead of the generic "COUNTY" used
+    # elsewhere. Strip it so the office matching below stays county-agnostic.
+    if county:
+        county_prefix = county.strip().upper() + " COUNTY "
+        if text.startswith(county_prefix):
+            text = text[len(county_prefix):].strip()
+
+    # Johnson 2026 (OCR track) titles every contest "[PARTY] FOR [OFFICE]"
+    # ("REP FOR COUNTY COMMISSIONER"), confirmed on real data. "FOR" is
+    # never part of any office name recognized below, so it's always safe
+    # to drop once it appears as the leading word after the party prefix.
+    if text.startswith("FOR "):
+        text = text[4:].strip()
+
     # Laramie's own report uses "U.S. SENATOR" / "U.S. REPRESENTATIVE" and
     # "STATE SENATOR SENATE DISTRICT N" / "STATE REPRESENTATIVE HD N"
     # rather than Albany/Campbell's "UNITED STATES SENATOR" / "STATE
     # SENATOR DISTRICT N" wording, confirmed by reading the real file, not
     # assumed. Both spellings are recognized so contest_key still collides
     # with the SOS xlsx track's canonical form.
-    if text in ("UNITED STATES SENATOR", "U.S. SENATOR"):
+    if text in ("UNITED STATES SENATOR", "U.S. SENATOR", "US SENATOR", "SENATOR"):
         return "United States Senator", "federal", None, "statewide", party_raw
-    if text in ("UNITED STATES REPRESENTATIVE", "U.S. REPRESENTATIVE"):
+    if text in (
+        "UNITED STATES REPRESENTATIVE", "U.S. REPRESENTATIVE", "U.S. REP", "US REP",
+        "U.S. HOUSE OF REPRESENTATIVES", "US HOUSE OF REPRESENTATIVES", "US REPRESENTATIVE",
+    ):
         return "United States Representative", "federal", None, "statewide", party_raw
-    if text == "GOVERNOR":
+    if text in ("US SENATE", "UNITED STATES SENATE", "U.S. SENATE"):
+        return "United States Senator", "federal", None, "statewide", party_raw
+    if text in ("GOVERNOR", "STATE GOVERNOR"):
         return "Governor", "statewide", None, "statewide", party_raw
-    if text == "SECRETARY OF STATE":
+    if text in ("SECRETARY OF STATE", "SEC OF STATE", "SOS"):
         return "Secretary Of State", "statewide", None, "statewide", party_raw
-    if text == "STATE AUDITOR":
+    if text in ("STATE AUDITOR", "STATEAUDITOR"):
         return "State Auditor", "statewide", None, "statewide", party_raw
-    if text == "STATE TREASURER":
+    if text in ("STATE TREASURER", "STATETREASURER"):
         return "State Treasurer", "statewide", None, "statewide", party_raw
-    if text in ("SUPERINTENDENT OF PUBLIC INSTRUCTION", "STATE SUPERINTENDENT OF PUBLIC INSTRUCTION"):
+    if text in (
+        "SUPERINTENDENT", "SUPERINTENDENT PUBLIC INSTRUCTION",
+        "SUPERINTENDENT OF PUBLIC INST", "SUPERINTENDENT OF PUBLIC INSTRUCTION",
+        "STATE SUPERINTENDENT OF PUBLIC INSTRUCTION",
+        "SPI", "SUP OF PUB INST", "SUPT PUB INSTR", "SUPERINTENDENT OF PUBLIC INST.",
+    ):
         return "Superintendent Of Public Instruction", "statewide", None, "statewide", party_raw
-    m = re.match(r"^STATE SENATOR (?:SENATE )?DISTRICT (\d+)$", text)
+    # Senate/house wording varies more than the two spellings originally
+    # confirmed on Laramie: "ST"/"STATE", "SEN"/"SENATE"/"SENATOR"/"SD",
+    # "HSE", and a bare trailing number with no "DISTRICT" word at all have
+    # all been seen on real 2026 county reports.
+    m = re.match(
+        r"^(?:STATE |ST )?SEN(?:ATE|ATOR)?\.?(?: SEN(?:ATE)?)?(?: (?:DIST(?:RICT)?\.?|SD))? ?(\d+)$",
+        text,
+    )
     if m:
         d = int(m.group(1))
         return f"Senate District {d}", "wy_senate", d, "legislative_district", party_raw
-    m = re.match(r"^STATE REPRESENTATIVE (?:DISTRICT |HD )(\d+)$", text)
+    # Washakie 2026 (OCR track) spells this out word-for-word like the
+    # federal "US HOUSE OF REPRESENTATIVES" alias above, but for the state
+    # house: "STATE HOUSE OF REPRESENTATIVES HD27". Checked before the
+    # general pattern below since the word order ("HOUSE" before
+    # "REPRESENTATIVES") doesn't fit it.
+    m = re.match(r"^STATE HOUSE OF REPRESENTATIVES HD ?(\d+)$", text)
     if m:
         d = int(m.group(1))
         return f"House District {d}", "wy_house", d, "legislative_district", party_raw
-    if text.startswith("COUNTY COMMISSIONER"):
-        return "County Commissioner", "county", None, "county", party_raw
-    m = re.match(r"^PRECINCT COMMITTEE(MAN|WOMAN) (.+)$", text)
+    m = re.match(
+        r"^(?:STATE |ST )?(?:HSE )?(?:REPRESENTATIVE(?: HOUSE)?|REP)\.?(?: HOUSE)?"
+        r"(?: (?:DISTRICT|DIST\.?|HD))? ?(\d+)(?: (?:REP|DEM|LIB) DISTRICT \d+)?$",
+        text,
+    )
     if m:
-        code = m.group(2).strip()
-        role = "Precinct Committeeman" if m.group(1) == "MAN" else "Precinct Committeewoman"
-        return f"{role} {code}", "county", None, "precinct", party_raw
+        d = int(m.group(1))
+        return f"House District {d}", "wy_house", d, "legislative_district", party_raw
+
+    # Abbreviation families seen across 2026 counties for the same offices:
+    # "COUNTY"/"CO"/"CO."/"CNTY"/"CNTV" (Crook's OCR misreads Y as V), with
+    # or without a space or period before the office word (Crook concatenates
+    # some, e.g. "CNTYASSESSOR", with zero separator).
+    county_prefix = r"(?:COUNTY|CO\.?|CNTY|CNTV)\s*"
+    county_offices = (
+        (rf"^(?:{county_prefix})?COMMISSIONERS?$", "County Commissioner"),
+        (rf"^(?:{county_prefix})?CORONER$", "County Coroner"),
+        (rf"^(?:{county_prefix})?ATTORNEY$", "County Attorney"),
+        (rf"^(?:{county_prefix})?SHERIFF$", "County Sheriff"),
+        (rf"^(?:{county_prefix})?CLERK$", "County Clerk"),
+        (rf"^(?:{county_prefix})?TREASURER$", "County Treasurer"),
+        (rf"^(?:{county_prefix})?ASSESSOR$", "County Assessor"),
+        (r"^(?:COUNTY )?CLERK OF (?:THE )?DIST(?:RICT)?\.? COURT$", "Clerk Of District Court"),
+        (r"^(?:COUNTY )?CLERK OF COURT$", "Clerk Of District Court"),
+        (r"^DIST(?:RICT)?\.? COURT CLERK$", "Clerk Of District Court"),
+        (r"^CLRK DIST(?:RICT)?\.? COURT$", "Clerk Of District Court"),
+        (r"^DISTRICT ATTORNEY$", "District Attorney"),
+    )
+    for pattern, normalized in county_offices:
+        if re.match(pattern, text):
+            return normalized, "county", None, "county", party_raw
+
+    committee_role = None
+    if re.search(r"COMMITTEEMAN\b", text) or re.match(r"^PCM\b", text) or "PRECINCT MAN" in text or "PCT COMM MAN" in text:
+        committee_role = "Precinct Committeeman"
+    elif re.search(r"COMMITTEEWOMAN\b", text) or re.match(r"^PCW\b", text) or "PRECINCT WOMAN" in text or "PCT COMM WOMAN" in text:
+        committee_role = "Precinct Committeewoman"
+    if committee_role:
+        # Teton 2026 (OCR track) codes precincts as "DIST N PCT M" rather
+        # than a single "N-M" pair, e.g. "PCT COMM MAN DIST 1 PCT 12".
+        # Checked first since the generic digit-pair search below can't
+        # find two adjacent digit groups once letters ("DIST"/"PCT")
+        # separate them.
+        dist_pct_match = re.search(r"DIST\s*0*(\d+)\s*PCT\s*0*(\d+)", text, re.I)
+        if dist_pct_match:
+            code = f"{int(dist_pct_match.group(1))}-{int(dist_pct_match.group(2))}"
+            return f"{committee_role} {code}", "county", None, "precinct", party_raw
+        # Precinct codes ride along with kerning/OCR noise of their own:
+        # a "." separator instead of "-" (Crook), and stray internal spaces
+        # splitting a single digit sequence in two ("1 1 -1 1" for "11-11").
+        # Stripping whitespace before matching collapses both without
+        # affecting well-formed "N-N" codes already handled.
+        compact = re.sub(r"\s+", "", text)
+        code_match = re.search(r"0*(\d+)[.\-]0*(\d+)", compact)
+        if not code_match:
+            return text.title(), "unknown", None, "precinct", party_raw
+        code = f"{int(code_match.group(1))}-{int(code_match.group(2))}"
+        return f"{committee_role} {code}", "county", None, "precinct", party_raw
+
+    if re.search(r"\b(MAYOR|COUNCIL|COUNCILPERSON|WARD|AT-LARGE)\b", text):
+        return text.title(), "city", None, "city", party_raw
+
+    if re.search(r"\b(?:SERVICE|CONSERVATION) DISTRICT\b", text):
+        return text.title(), "county", None, "county", party_raw
+
+    # Local ballot measures (sales/use tax renewals, mill levies, bond
+    # questions) are in scope for --local-only but carry no fixed title
+    # vocabulary across counties, unlike the offices above. Recognized by
+    # keyword rather than exact phrase since every county titles its own
+    # measure differently ("SENIOR CITIZEN TAX QUESTION", "PRO 1 PERCENT
+    # SALES AND USE TAX", "BALLOT PROP. 1").
+    if re.search(r"\b(QUESTION|PROPOSITION|PROP\.?|BALLOT|LEVY|BOND|TAX)\b", text):
+        return text.title(), "county", None, "county", party_raw
+
     # Unknown contest type, keep raw as normalized, flag level as unknown
     # rather than guess. Never silently misclassify.
     return text.title(), "unknown", None, "county", party_raw
@@ -256,7 +442,18 @@ def slugify(value):
     return re.sub(r"[\s_]+", "-", value).strip("-")
 
 
-def extract(text):
+def contest_key_base(election_key, county, contest):
+    parts = [election_key, contest["level"]]
+    if contest["level"] in ("county", "city"):
+        parts.append(slugify(county))
+    parts.extend([
+        slugify(contest["contest_name"]),
+        (party_norm(contest["party_raw"]) or "na").lower(),
+    ])
+    return "|".join(parts)
+
+
+def extract(text, county=None):
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
     contests = []
     i = 0
@@ -322,13 +519,19 @@ def extract(text):
                 if val is None:
                     i += 1
                     continue  # unparseable noise line, skip defensively
-                name = None if row_type != "candidate" else NUM.sub("", cur).strip()
+                # A "VOTE %" column (Natrona 2026, confirmed on real data)
+                # leaves a stray "%" behind: NUM strips "3774" and "48.66"
+                # from "CHAD MCNUTT 3774 48.66%" but not the percent sign
+                # itself, corrupting the stored name to "CHAD MCNUTT  %".
+                name = None if row_type != "candidate" else re.sub(
+                    r"\s+", " ", NUM.sub("", cur).replace("%", "")
+                ).strip()
                 rows.append({"row_type": row_type, "candidate_name_raw": name, "votes": val})
                 i += 1
             else:
                 contest_total = None
 
-            contest_name, level, district, scope, party_raw = normalize_contest(contest_raw)
+            contest_name, level, district, scope, party_raw = normalize_contest(contest_raw, county)
             contests.append({
                 "contest_raw": contest_raw, "contest_name": contest_name, "level": level,
                 "district": district, "scope": scope, "party_raw": party_raw,
@@ -340,8 +543,12 @@ def extract(text):
     return contests
 
 
-def main():
-    p = argparse.ArgumentParser(description=__doc__)
+def add_common_args(p):
+    """Shared CLI contract between this text-layer parser and the OCR
+    variant (extract_election_results_county_pdf_ocr.py) -- everything
+    downstream of "how do we get text out of the PDF" is identical between
+    the two, so both build an args namespace with these exact attribute
+    names and hand it to run_from_text()."""
     p.add_argument("--pdf", required=True)
     p.add_argument("--county", required=True)
     p.add_argument("--election-key", required=True)
@@ -350,25 +557,46 @@ def main():
     p.add_argument("--source-published-at", default=None)
     p.add_argument("--retrieved-at", default=None)
     p.add_argument("--certified", action="store_true")
+    p.add_argument(
+        "--local-only", action="store_true",
+        help="Emit only county, municipal, special-district, and precinct committee contests.",
+    )
     p.add_argument("--out", required=True)
-    args = p.parse_args()
+    return p
 
-    with open(args.pdf, "rb") as f:
-        args.sha256 = hashlib.sha256(f.read()).hexdigest()
-    args.retrieved_at = args.retrieved_at or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    with pdfplumber.open(args.pdf) as pdf:
-        full_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-
-    contests = extract(full_text)
+def run_from_text(full_text, args):
+    """Everything after text acquisition: parsing, the hard reconciliation
+    gate, and CSV emission. Shared verbatim by the text-layer parser
+    (pdfplumber) and the OCR parser (tesseract) -- args must carry the
+    same attributes add_common_args() declares, plus sha256 and a resolved
+    retrieved_at, which the two callers compute differently (OCR has no
+    single pdfplumber-opened file handle to hash inline) but must both set
+    before calling this."""
+    contests = extract(full_text, args.county)
     if not contests:
         print("No contests parsed, refusing to emit unverified data.", file=sys.stderr)
         sys.exit(1)
+
+    if args.local_only:
+        unknown = [c["contest_raw"] for c in contests if c["level"] == "unknown"]
+        if unknown:
+            print("Unclassified contests remain in --local-only mode, refusing to omit or guess:", file=sys.stderr)
+            for contest_raw in unknown:
+                print(f"  {contest_raw}", file=sys.stderr)
+            sys.exit(1)
+        contests = [c for c in contests if c["level"] in ("county", "city")]
+        if not contests:
+            print("No local contests found, refusing to emit an empty local result set.", file=sys.stderr)
+            sys.exit(1)
 
     mismatches = []
     rows_out = []
     is_unofficial = 0 if args.certified else 1
     reporting_status = "certified" if args.certified else "county_complete"
+
+    key_counts = Counter(contest_key_base(args.election_key, args.county, c) for c in contests)
+    key_occurrences = defaultdict(int)
 
     for c in contests:
         if c["contest_total"] is not None:
@@ -387,10 +615,10 @@ def main():
             mismatches.append((c["contest_raw"], f"sum != {target_label}", summed, target))
             continue
 
-        contest_key = "|".join([
-            args.election_key, c["level"], slugify(c["contest_name"]),
-            (party_norm(c["party_raw"]) or "na").lower(),
-        ])
+        contest_key = contest_key_base(args.election_key, args.county, c)
+        if key_counts[contest_key] > 1:
+            key_occurrences[contest_key] += 1
+            contest_key = f"{contest_key}|source-occurrence-{key_occurrences[contest_key]}"
         for r in c["rows"]:
             key_parts = [args.source_key, args.sha256, contest_key, r["row_type"],
                          r["candidate_name_raw"] or r["row_type"], args.county, "COUNTY"]
@@ -431,6 +659,21 @@ def main():
         w.writerows(rows_out)
 
     print(f"OK: {len(rows_out)} normalized rows from {len(contests) - len(mismatches)}/{len(contests)} reconciled contests -> {args.out}")
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    add_common_args(p)
+    args = p.parse_args()
+
+    with open(args.pdf, "rb") as f:
+        args.sha256 = hashlib.sha256(f.read()).hexdigest()
+    args.retrieved_at = args.retrieved_at or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    with pdfplumber.open(args.pdf) as pdf:
+        full_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+
+    run_from_text(full_text, args)
 
 
 if __name__ == "__main__":

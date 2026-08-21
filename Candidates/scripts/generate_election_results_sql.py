@@ -1,10 +1,10 @@
 # Candidates/scripts/generate_election_results_sql.py
 #
 # Stage 2 of the election-results capture pipeline: reads one or more
-# normalized CSVs produced by ANY Stage-1 parser (today: only
-# extract_election_results_xlsx.py exists, but any future parser for a
-# different source format just needs to emit the same column contract.
-# see NORMALIZED_FIELDNAMES in that file) and generates one idempotent
+# normalized CSVs produced by any Stage-1 parser. The XLSX, statewide PDF,
+# and county summary PDF adapters all emit the same column contract. A future
+# source adapter only needs to emit that contract. See NORMALIZED_FIELDNAMES
+# in the Stage-1 parsers. This script generates one idempotent
 # .sql file against the 0028_election_results.sql schema.
 #
 # Idempotency: every table this script writes to has a real UNIQUE
@@ -23,10 +23,13 @@
 #   npx --no-install wrangler d1 execute wy --file=<output.sql>          # local
 #   npx --no-install wrangler d1 execute wy --remote --file=<output.sql> # production
 #
-# Usage:
+# Usage for the default SOS county-subtotal role:
 #   python3 generate_election_results_sql.py \
 #     --csv /tmp/natrona_2024_normalized.csv --csv /tmp/bighorn_2024_normalized.csv \
 #     --out /tmp/election_results_upsert.sql
+#
+# County-hosted summaries must add:
+#   --source-role county_local_summary
 
 import argparse
 import csv
@@ -107,14 +110,14 @@ def emit_election_events(rows, out):
         )
 
 
-def emit_sources(rows, out):
+def emit_sources(rows, out, source_role):
     for r in dedup(rows, ["source_key"]):
         out.append(
             "INSERT OR IGNORE INTO election_sources "
             "(source_key, election_id, county, source_role, endpoint_url, status) VALUES "
             f"({sql_str(r['source_key'])}, "
             f"(SELECT id FROM election_events WHERE election_key = {sql_str(r['election_key'])}), "
-            f"{sql_str(r['county'])}, 'county_pbp_summary', {sql_str(r['source_url'])}, 'active');"
+            f"{sql_str(r['county'])}, {sql_str(source_role)}, {sql_str(r['source_url'])}, 'active');"
         )
 
 
@@ -146,7 +149,7 @@ def emit_contests(rows, out):
             f"{sql_str(r['contest_name_raw'])}, {sql_str(r['contest_name_normalized'])}, {sql_str(r['level'])}, "
             f"{sql_int(r['district'])}, {sql_str(r['ballot_party'])}, {sql_str(r['ballot_party_raw'])}, "
             f"{sql_str(r['reporting_scope'])}, "
-            f"{sql_str(r['county']) if r['reporting_scope'] in ('county', 'city') else 'NULL'};"
+            f"{sql_str(r['county']) if r['level'] in ('county', 'city') else 'NULL'};"
         )
 
 
@@ -198,6 +201,12 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--csv", action="append", required=True, dest="csvs")
     p.add_argument("--out", required=True)
+    p.add_argument(
+        "--source-role",
+        default="county_pbp_summary",
+        choices=("county_pbp_summary", "county_local_summary"),
+        help="Source precedence role for every input CSV in this seed.",
+    )
     args = p.parse_args()
 
     rows = load_rows(args.csvs)
@@ -214,7 +223,7 @@ def main():
     ]
     emit_election_events(rows, out)
     out.append("")
-    emit_sources(rows, out)
+    emit_sources(rows, out, args.source_role)
     out.append("")
     emit_snapshots(rows, out)
     out.append("")

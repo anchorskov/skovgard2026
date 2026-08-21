@@ -9,9 +9,10 @@
 # audit each county without adding more URLs to the cron fetch set.
 #
 # Two source rows per county where verified:
-#   - wy-2026-primary, source_role='landing_page' or 'landing_page_v2': the
-#     official page to poll. A v2 row supersedes a stale original row while
-#     preserving the original under the WORM protocol.
+#   - wy-2026-primary, source_role='landing_page', 'landing_page_v2', or
+#     'landing_page_v3': the official page to poll. Each versioned row
+#     supersedes the prior audit row while preserving it under the WORM
+#     protocol.
 #   - wy-2024-primary, source_role='county_local_summary': the verified
 #     2024 county-hosted result page/PDF, when the research doc confirmed
 #     one exists. status='active' (it's a real, examined, working source)
@@ -24,9 +25,9 @@
 #     registered, and they get no county_local_summary row here.
 #
 # Source: Candidates/docs/wyoming_2026_election_results_sources.md.
-# Monitoring URLs and current-result links were reverified during the
-# 2026-08-18 election-night audit. Existing registry rows are append-only, so
-# changed monitoring URLs use a versioned source role and supersede the old row.
+# Monitoring URLs and current-result links were reverified on 2026-08-20.
+# Existing registry rows are append-only, so this audit emits v3 rows that
+# supersede the applied v2 rows.
 
 import argparse
 
@@ -45,7 +46,7 @@ COUNTIES = [
     ("Crook", "56011", "https://www.crookcounty.wy.gov/elected_officials/clerk/election/2026ElectionResults.php", None, None),
     ("Fremont", "56013", "https://fremontcountywy.gov/government/elections___voting.php",
      "https://fremontcountywy.gov/government/elections___voting.php", "static_html"),
-    ("Goshen", "56015", "https://www.goshencountywy.gov/Archive.aspx?AMID=37",
+    ("Goshen", "56015", "https://www.goshencountywy.gov/384/Unofficial-Election-Results",
      "https://www.goshencountywy.gov/Archive.aspx?AMID=37", "static_html"),
     ("Hot Springs", "56017", "https://hscounty.com/elections",
      "https://hscounty.com/component/edocman/election-results-archives/election-2024?Itemid=100", "vendor_page"),
@@ -54,13 +55,13 @@ COUNTIES = [
      "https://www.laramiecountywy.gov/County-Government/Elected-Officials/County-Clerk/Elections/Election-Results", "static_html"),
     ("Lincoln", "56023", "https://www.lincolncountywy.gov/government/clerk/elections_voting_information/2026_primary_election_results.php",
      "https://www.lincolncountywy.gov/government/clerk/elections_voting_information/election_results.php", "static_html"),
-    ("Natrona", "56025", "https://www.natronacounty-wy.gov/659/Results-Archive",
+    ("Natrona", "56025", "https://www.natronacounty-wy.gov/918/Election-Results",
      "https://www.natronacounty-wy.gov/659/Results-Archive", "static_html"),
     ("Niobrara", "56027", "https://www.niobraracounty.org/_departments/_county_clerk/ElectionResults.asp",
      "https://www.niobraracounty.org/_departments/_county_clerk/Pastelectionresults.asp", "static_html"),
-    ("Park", "56029", "https://parkcounty-wy.gov/county-elections/results/",
+    ("Park", "56029", "https://parkcounty-wy.gov/county-elections/",
      "https://parkcounty-wy.gov/county-elections/results/", "static_html"),
-    ("Platte", "56031", "https://www.plattecountywyoming.com/departments/Elections/ResultsofElection", None, None),
+    ("Platte", "56031", "https://www.plattecountywyoming.com/news/post/23090/", None, None),
     ("Sheridan", "56033", "https://www.sheridancountywy.gov/departments/elections/2026_election_results.php",
      "https://www.sheridancountywy.gov/news_detail_T10_R91.php", "static_html"),
     ("Sublette", "56035", "https://www.sublettecountywy.gov/110/Election-Information",
@@ -75,21 +76,14 @@ COUNTIES = [
      "https://www.westongov.com/county-clerk/elections/election-results/", "static_html"),
 ]
 
-# Counties whose original registry URL was stale or too broad. All 23 audited
-# rows use a v2 source role because WORM also prohibits updating the audit notes
-# on the original rows. Eleven of those v2 rows also correct the endpoint URL.
+# Counties whose v2 monitoring URL was replaced by a more current official
+# result page. All 23 audited rows use a v3 source role because WORM also
+# prohibits updating the audit notes on the applied v2 rows.
 MONITORING_URL_CORRECTIONS = {
-    "Albany",
-    "Campbell",
-    "Converse",
-    "Crook",
-    "Hot Springs",
-    "Lincoln",
-    "Niobrara",
+    "Goshen",
+    "Natrona",
+    "Park",
     "Platte",
-    "Sheridan",
-    "Sweetwater",
-    "Uinta",
 }
 
 # Direct 2026 result artifacts verified as links on the corresponding county
@@ -101,18 +95,39 @@ CURRENT_2026_RESULTS = {
         "https://www.bighorncountywy.gov/images/Unofficial_BHC_Primary_Election_Summary_Report_2026.pdf",
         "https://www.bighorncountywy.gov/images/Unofficial_BHC_Primary_Precinct_Summary_Report_2026.pdf",
     ),
+    "Campbell": ("https://www.campbellcountywy.gov/DocumentCenter/View/28009",),
+    "Carbon": ("https://carboncountywy.gov/DocumentCenter/View/8621/__2026-PRIMARY-ELECTION-SUMMARY_UNOFFICIAL-RESULTS",),
     "Converse": ("https://conversecountywy.gov/DocumentCenter/View/6486/2026-UNOFFICIAL-RESULTS-ELECTION-SUMMARY-REPORT",),
     "Crook": ("https://www.crookcounty.wy.gov/elected_officials/clerk/Election/2026/Unofficial%202026%20Primary%20Election%20Results%20.pdf",),
     "Fremont": ("https://fremontcountywy.gov/government/Government/Clerk/Elections/2026%20Election%20Results/Primary/Unofficial%20Summary%20by%20Precinct.pdf",),
+    "Goshen": (
+        "https://www.goshencountywy.gov/DocumentCenter/View/1515/2026-GOSHEN-COUNTY-PRIMARY-ELECTION-RECOUNT-SUMMARY-REPORT-Unofficial",
+        "https://www.goshencountywy.gov/DocumentCenter/View/1516/2026-PRIMARY-ELECTION-RECOUNT-REPORT-BY-PRECINCT-Unofficial",
+    ),
     "Hot Springs": (
         "https://hscounty.com/component/edocman/2026-hot-springs-co-primary-election-unofficial-results-2/viewdocument/1369?Itemid=",
         "https://hscounty.com/component/edocman/2026-hot-springs-co-primary-election-precinct-unofficial-results-2/viewdocument/1368?Itemid=",
     ),
     "Johnson": ("https://drive.google.com/file/d/14VhWna_5e7VOT6lNFHHVnKW5_1DNmPEW/view?usp=drive_link",),
+    "Laramie": ("https://www.laramiecountywy.gov/files/sharedassets/public/v/3/clerk/documents/election-results/2026-primary/unofficial-results.pdf",),
     "Lincoln": ("https://www.lincolncountywy.gov/government/clerk/elections_voting_information/Documents/Government/Clerk/Election%20And%20Voting%20Information/Election%20Results%20And%20Upcoming%20Elections/2026/summary%20report%20unofficial.pdf",),
+    "Natrona": (
+        "https://www.natronacounty-wy.gov/DocumentCenter/View/13855/2026-Primary---County-Contest-Summary---Unofficial-PDF",
+        "https://www.natronacounty-wy.gov/DocumentCenter/View/13852/2026-Primary---Municipal-Contest-Summary---Unofficial-PDF",
+        "https://www.natronacounty-wy.gov/DocumentCenter/View/13853/2026-Primary---Precinct-Committee-Contest-Summary---Unofficial-PDF",
+        "https://www.natronacounty-wy.gov/DocumentCenter/View/13861/2026-Primary---Election-Summary-and-Statistics---Unofficial-PDF",
+    ),
     "Niobrara": (
         "https://www.niobraracounty.org/_departments/_county_clerk/_pdfs/2026/2026%20Primary%20County%20Summary%20Report.pdf",
         "https://www.niobraracounty.org/_departments/_county_clerk/_pdfs/2026/2026%20Primary%20County%20Precinct%20Summary.pdf",
+    ),
+    "Park": (
+        "https://parkcounty-wy.gov/wp-content/uploads/2026/08/Unoffical-2026-Primary-Summary.pdf",
+        "https://parkcounty-wy.gov/wp-content/uploads/2026/08/Unofficial-2026-Primary-Precinct-Summary-.pdf",
+    ),
+    "Platte": (
+        "https://www.plattecountywyoming.com/media/Elections/Election%20Results/2026/2026%20Primary%20Election/Unofficial%20Results/Update%204_Summary.pdf",
+        "https://www.plattecountywyoming.com/media/Elections/Election%20Results/2026/2026%20Primary%20Election/Unofficial%20Results/Update%204_Precinct.pdf",
     ),
     "Sheridan": ("https://www.sheridancountywy.gov/Document%20Center/Departments/Elected%20Office/2026%20Election%20Documents/Primary/Election%20Summary.pdf",),
     "Sublette": ("https://www.sublettecountywy.gov/DocumentCenter/View/8005/2026-Unofficial-Primary-Election-Results",),
@@ -135,21 +150,11 @@ CURRENT_2026_RESULTS = {
     "Weston": ("https://www.westongov.com/wp-content/uploads/2026/08/2026-PRIMARY-UNOFFICIAL-RESULTS.pdf",),
 }
 
-# Counties for which the official clerk monitoring source did not expose a
-# retrievable public 2026 result artifact during the same audit. Keeping this
-# list explicit makes the 16 verified plus 7 unresolved partition testable.
-CURRENT_2026_GAPS = {
-    "Campbell": "No public 2026 result artifact was located on the official clerk page.",
-    "Carbon": "No public 2026 result artifact was located on the official clerk page.",
-    "Goshen": "No public 2026 result artifact was located in the official clerk archive.",
-    "Laramie": "The official clerk result page returned HTTP 403 to the Worker, so no direct artifact was verified.",
-    "Natrona": "No public 2026 result artifact was located in the official clerk archive.",
-    "Park": "No public 2026 result artifact was located on the official clerk result page.",
-    "Platte": "No public 2026 result artifact was located on the official clerk result page.",
-}
+# No county-source publication gaps remained after the 2026-08-20 audit.
+CURRENT_2026_GAPS = {}
 
 SOS_2026_RESULTS_ARCHIVE = "https://sos.wyo.gov/elections/electionresults.aspx"
-AUDIT_VERIFIED_AT = "2026-08-18 23:13 MDT"
+AUDIT_VERIFIED_AT = "2026-08-20 16:31 MDT"
 
 
 def sql_str(v):
@@ -201,6 +206,7 @@ def main():
     args = p.parse_args()
 
     out = [
+        "-- Candidates/db/seed/election_source_registry_wy_2026_primary_v3.sql",
         "-- Generated by Candidates/scripts/seed_election_source_registry.py",
         "-- Idempotent: INSERT OR IGNORE against election_sources.source_key UNIQUE.",
         "-- Registry only, no result data. See file header for status semantics.",
@@ -219,9 +225,9 @@ def main():
 
     for county, fips, landing_2026, hosted_2024, fmt in COUNTIES:
         slug = slugify(county)
-        source_role = "landing_page_v2"
+        source_role = "landing_page_v3"
         source_key = f"wy|{slug}|wy-2026-primary|{source_role}"
-        old_source_key = f"wy|{slug}|wy-2026-primary|landing_page"
+        old_source_key = f"wy|{slug}|wy-2026-primary|landing_page_v2"
         supersedes_sql = (
             "(SELECT id FROM election_sources WHERE source_key = "
             f"{sql_str(old_source_key)})"
@@ -267,8 +273,8 @@ def main():
     n_2024_hosted = sum(1 for c in COUNTIES if c[3]) if args.scope == "all" else 0
     print(f"OK: wrote {args.out}")
     print(f"    {n_2026} county landing_page rows plus 1 statewide landing_page row (2026)")
-    print(f"    {n_successors} county rows are WORM-safe v2 audit successors")
-    print(f"    {n_url_corrections} v2 rows also correct a stale monitoring URL")
+    print(f"    {n_successors} county rows are WORM-safe v3 audit successors")
+    print(f"    {n_url_corrections} v3 rows also correct a stale v2 monitoring URL")
     print(f"    {n_with_results} counties have verified direct 2026 result artifacts in audit notes")
     print(f"    {n_2024_hosted} county_local_summary rows (2024)")
     if args.scope == "all":

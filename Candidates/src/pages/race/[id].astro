@@ -19,6 +19,23 @@ if (!office) {
   return Astro.redirect('/races');
 }
 
+// Loaded before results resolution: county/city contest matching below
+// needs this card's own candidate roster to identify which contest
+// belongs to it (see the card-scoped resolution comment there).
+const { results: candidates } = await env.WY_DB.prepare(`
+  SELECT c.id, c.slug, c.full_name, c.party, c.summary,
+         c.website_url, c.photo_url, c.email, c.phone,
+         c.facebook_url, c.instagram_url, c.twitter_url, c.campaign_finance_url, c.ballotpedia_url,
+         c.incumbency_status, c.data_confidence,
+         p.code AS party_code, p.label AS party_label, p.short_label AS party_short_label,
+         p.badge_token AS party_badge_token
+    FROM candidates c
+    LEFT JOIN party_aliases pa ON pa.raw_value = c.party
+    LEFT JOIN parties p ON p.code = pa.party_code
+   WHERE c.office_id = ?1 AND c.withdrawn_at IS NULL
+   ORDER BY CASE WHEN c.incumbency_status = 'Incumbent' THEN 0 ELSE 1 END, c.full_name
+`).bind(id).all();
+
 // 2026 results, matched structurally against election_contests. office_id
 // there is unpopulated until a real candidate/office matching pass runs,
 // so this is a Phase 1 runtime match, not a stored FK join.
@@ -31,31 +48,120 @@ if (!office) {
 // from multiple different offices into one contest. The same collision
 // applies to county offices sharing one county (Commissioner, Assessor,
 // Clerk, ...) with no other office in that county to disambiguate against.
-// Fixed with a level-dependent third condition:
 //   - wy_senate/wy_house: district alone is already unique, no title
 //     check needed (two different districts always have different
 //     numbers).
 //   - federal/statewide: contest_name_normalized must equal office.title
 //     exactly (both literally say "United States Senator", "Governor",
 //     etc. in both this table and the ingestion pipelines).
-//   - county/city: office.title includes the county name as a prefix
-//     ("Natrona County Commissioner") while contest_name_normalized does
-//     not ("County Commissioner"), so this is a suffix match, not
-//     equality.
-const { results: matchedContests } = await env.WY_DB.prepare(
-  `SELECT ec.id AS contest_id
-     FROM election_contests ec
-     JOIN election_events ee ON ee.id = ec.election_id
-    WHERE ee.election_key = 'wy-2026-primary'
-      AND ec.level = ?1
-      AND (ec.district = ?2 OR (ec.district IS NULL AND ?2 IS NULL))
-      AND (ec.county = ?3 OR (ec.county IS NULL AND ?3 IS NULL))
-      AND (
-        ec.level IN ('wy_senate', 'wy_house')
-        OR ec.contest_name_normalized = ?4
-        OR (ec.level IN ('county', 'city') AND ?4 LIKE '%' || ec.contest_name_normalized)
-      )`
-).bind(office.level, office.district ?? null, office.county ?? null, office.title).all();
+//   - county/city: title matching doesn't work at all here (see below),
+//     so these two levels use card-scoped resolution instead.
+function normalizeName(s: string): string {
+  // Periods stripped because they're inconsistent between sources even for
+  // the same person: candidates.full_name has "Clayton M Melinkovich",
+  // the county PDF track has "CLAYTON M. MELINKOVICH", confirmed on real
+  // 2026 Sublette data during testing, not a hypothetical.
+  return s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ');
+}
+
+// Wyoming municipal races are nonpartisan: election_contests.ballot_party
+// is NULL for them, but candidates.party normalizes to the literal code
+// 'NP', not null. Without folding these together they never match, and no
+// city race ever resolves -- confirmed on real data (Big Horn's Greybull
+// Mayor loaded a result row but rendered no leading result until this was
+// added). REP/DEM stay distinct; only the "no party" bucket is unified.
+function partyKey(raw: string | null | undefined): string {
+  const v = String(raw || '').toUpperCase();
+  return v === 'NP' ? '' : v;
+}
+
+let matchedContests: { contest_id: number }[];
+
+if (office.level === 'county' || office.level === 'city') {
+  // Card-scoped resolution (docs/current_status_candidates_page.md §3,
+  // "The core problem: results are not linked to candidates"). A title
+  // match against election_contests was confirmed firing on roughly 1 of
+  // 1,358 county/city offices, because office.title carries the county
+  // name as a prefix or suffix in at least three different conventions
+  // across counties ("Natrona County Commissioner", "County Commissioner
+  // - Republican Primary", "Big Horn County County Commissioner
+  // (Republican)"), none of which the source's own contest_name_normalized
+  // shares. Rather than maintain a crosswalk of every title variant,
+  // this lets the matched CANDIDATES identify the contest instead: pull
+  // every county/city result row reported for this office's county, and
+  // find which contest's candidate names best overlap with this card's
+  // own roster. Confirmed safe by a real, documented invariant, not
+  // assumed: zero offices in this dataset have duplicate candidate names,
+  // so within one office a normalized name uniquely identifies a
+  // candidate. A single coincidental name collision with an unrelated
+  // county-level contest (two different real people, or one person
+  // running for two single-candidate county races, sharing an exact
+  // name) is a known, rare residual case; majority-overlap scoring below
+  // favors the real contest whenever a race has more than one candidate.
+  //
+  // Party stays a dimension throughout: a card can hold both a REP and a
+  // DEM primary as two separate contests for the same office, so
+  // resolution runs once per party present in this card's roster.
+  // Wyoming municipal races are nonpartisan, so city-level rows carry no
+  // ballot_party ('' here) and simply skip the split.
+  const { results: countyRows } = office.county
+    ? await env.WY_DB.prepare(
+        `SELECT vcr.contest_id, vcr.ballot_party, vcr.candidate_name_raw
+           FROM v_election_current_results vcr
+          WHERE vcr.level IN ('county', 'city')
+            AND vcr.county = ?1
+            AND vcr.row_type = 'candidate'
+            AND vcr.precinct_code IS NULL`
+      ).bind(office.county).all()
+    : { results: [] };
+
+  const rosterByParty = new Map<string, Set<string>>();
+  for (const c of candidates as any[]) {
+    const party = partyKey(c.party_code);
+    if (!rosterByParty.has(party)) rosterByParty.set(party, new Set());
+    rosterByParty.get(party)!.add(normalizeName(String(c.full_name)));
+  }
+
+  const contestParty = new Map<number, string>();
+  const scoreByContest = new Map<number, number>();
+  for (const r of countyRows as any[]) {
+    const party = partyKey(r.ballot_party);
+    contestParty.set(Number(r.contest_id), party);
+    const roster = rosterByParty.get(party);
+    if (roster && roster.has(normalizeName(String(r.candidate_name_raw)))) {
+      const cid = Number(r.contest_id);
+      scoreByContest.set(cid, (scoreByContest.get(cid) || 0) + 1);
+    }
+  }
+
+  // Best-scoring contest per party wins this card. Ties (extremely rare,
+  // see the residual case above) resolve to whichever contest was seen
+  // first, since a further tiebreaker would only be guessing.
+  const bestByParty = new Map<string, number>();
+  const bestScoreByParty = new Map<string, number>();
+  for (const [contestId, score] of scoreByContest) {
+    const party = contestParty.get(contestId) ?? '';
+    const current = bestScoreByParty.get(party) ?? 0;
+    if (score > current) {
+      bestScoreByParty.set(party, score);
+      bestByParty.set(party, contestId);
+    }
+  }
+
+  matchedContests = [...bestByParty.values()].map((contest_id) => ({ contest_id }));
+} else {
+  const { results } = await env.WY_DB.prepare(
+    `SELECT ec.id AS contest_id
+       FROM election_contests ec
+       JOIN election_events ee ON ee.id = ec.election_id
+      WHERE ee.election_key = 'wy-2026-primary'
+        AND ec.level = ?1
+        AND (ec.district = ?2 OR (ec.district IS NULL AND ?2 IS NULL))
+        AND (ec.county = ?3 OR (ec.county IS NULL AND ?3 IS NULL))
+        AND (ec.level IN ('wy_senate', 'wy_house') OR ec.contest_name_normalized = ?4)`
+  ).bind(office.level, office.district ?? null, office.county ?? null, office.title).all();
+  matchedContests = results as { contest_id: number }[];
+}
 
 type CandidateResult = { votes: number; pct: number; isLeading: boolean; isUnofficial: boolean; isPartial: boolean; contestId: number };
 const resultsByName = new Map<string, CandidateResult>();
@@ -104,7 +210,7 @@ if (matchedContests.length > 0) {
         isPartial: c.isPartial,
         contestId,
       };
-      resultsByName.set(c.name.trim().toUpperCase(), result);
+      resultsByName.set(normalizeName(c.name), result);
       if (c.candidateId != null) resultsByCandidateId.set(c.candidateId, result);
     }
   }
@@ -128,20 +234,6 @@ if (seatsAvailable > 1) {
   ).bind(id).first();
   instructionText = instructionRow?.ui_instruction ? String(instructionRow.ui_instruction).trim() : null;
 }
-
-const { results: candidates } = await env.WY_DB.prepare(`
-  SELECT c.id, c.slug, c.full_name, c.party, c.summary,
-         c.website_url, c.photo_url, c.email, c.phone,
-         c.facebook_url, c.instagram_url, c.twitter_url, c.campaign_finance_url, c.ballotpedia_url,
-         c.incumbency_status, c.data_confidence,
-         p.code AS party_code, p.label AS party_label, p.short_label AS party_short_label,
-         p.badge_token AS party_badge_token
-    FROM candidates c
-    LEFT JOIN party_aliases pa ON pa.raw_value = c.party
-    LEFT JOIN parties p ON p.code = pa.party_code
-   WHERE c.office_id = ?1 AND c.withdrawn_at IS NULL
-   ORDER BY CASE WHEN c.incumbency_status = 'Incumbent' THEN 0 ELSE 1 END, c.full_name
-`).bind(id).all();
 
 const officeName = office.district
   ? `${office.title} — District ${office.district}`
@@ -191,7 +283,7 @@ function isAbsoluteUrl(url: string | null): boolean {
   ) : (
     <ul class="candidate-grid" role="list">
       {candidates.map((c) => {
-        const result = resultsByCandidateId.get(Number(c.id)) || resultsByName.get(String(c.full_name).trim().toUpperCase());
+        const result = resultsByCandidateId.get(Number(c.id)) || resultsByName.get(normalizeName(String(c.full_name)));
         return (
         <li class={`candidate-card${result?.isLeading ? ' candidate-card--leading' : ''}`} data-candidate-card={String(c.id)} data-voice-item>
           <div class="candidate-card__header">

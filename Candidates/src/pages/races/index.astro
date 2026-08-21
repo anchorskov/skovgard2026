@@ -27,14 +27,15 @@ let dbError = false;
 let totalRaces = 0;
 
 type LeadingResult = { name: string; pct: number; party: string | null; partyShortLabel: string | null };
-// Structural match against election_contests, same three-tier rule as
-// race/[id].astro (see that file's comment for why level+district+county
-// alone isn't sufficient): wy_senate/wy_house disambiguated by district
-// alone; federal/statewide by exact title match; county/city by a
-// title-suffix match since office.title carries the county name prefix
-// ("Natrona County Commissioner") that contest_name_normalized doesn't
-// ("County Commissioner"). Computed once for all offices here rather than
-// per-office, to avoid one query per race on a page listing hundreds.
+// Structural match against election_contests, same rule as race/[id].astro
+// (see that file's card-scoped resolution comment for the full rationale):
+// wy_senate/wy_house disambiguated by district alone; federal/statewide by
+// exact title match; county/city by matching candidate names against each
+// contest's own roster instead of a title match, since office.title carries
+// the county name prefix in at least three different conventions across
+// counties that contest_name_normalized never shares. Computed once for all
+// offices here rather than per-office, to avoid one query per race on a page
+// listing hundreds.
 const leadingByOffice = new Map<number, LeadingResult[]>();
 
 // Same election_key this page's own results query already hardcodes below
@@ -92,6 +93,51 @@ if (env.WY_DB) {
        GROUP BY ec.id, vcr.candidate_name_raw
     `).all();
 
+    // Card-scoped resolution's roster half (docs/current_status_candidates_page.md
+    // §3; full rationale and the residual same-name-collision case are
+    // documented in race/[id].astro, which resolves this per-card instead of
+    // in bulk). Scoped to (county, party) rather than county alone so a
+    // Republican and a Democratic candidate who happen to share a name in
+    // the same county never collide.
+    const { results: rosterRows } = await env.WY_DB.prepare(`
+      SELECT c.office_id, c.full_name, o.county,
+             p.code AS party_code
+        FROM candidates c
+        JOIN offices o ON o.id = c.office_id
+        LEFT JOIN party_aliases pa ON pa.raw_value = c.party
+        LEFT JOIN parties p ON p.code = pa.party_code
+       WHERE c.withdrawn_at IS NULL AND o.level IN ('county', 'city')
+    `).all();
+
+    function normalizeName(s: string): string {
+      // See race/[id].astro's normalizeName comment: periods are
+      // inconsistent between sources for the same person and must be
+      // stripped, confirmed on real 2026 Sublette data during testing.
+      return s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ');
+    }
+
+    // See race/[id].astro's partyKey comment: candidates.party normalizes
+    // to the literal code 'NP' for nonpartisan municipal races, but
+    // election_contests.ballot_party is NULL for the same races. Folding
+    // both into '' is required for any city race to resolve at all.
+    function partyKey(raw: string | null | undefined): string {
+      const v = String(raw || '').toUpperCase();
+      return v === 'NP' ? '' : v;
+    }
+
+    type RosterRow = { office_id: number; full_name: string; county: string | null; party_code: string | null };
+    const officeByCountyPartyName = new Map<string, Map<string, number>>();
+    for (const r of rosterRows as RosterRow[]) {
+      const key = `${r.county || ''}|${partyKey(r.party_code)}`;
+      let names = officeByCountyPartyName.get(key);
+      if (!names) {
+        names = new Map();
+        officeByCountyPartyName.set(key, names);
+      }
+      const norm = normalizeName(r.full_name);
+      if (!names.has(norm)) names.set(norm, r.office_id);
+    }
+
     type ContestRow = { contest_id: number; level: string; district: number | null; county: string | null; contest_name_normalized: string; ballot_party: string | null; party_short_label: string | null; candidate_name_raw: string; votes: number };
     const byContest = new Map<number, { level: string; district: number | null; county: string | null; name: string; party: string | null; partyShortLabel: string | null; candidates: { name: string; votes: number }[] }>();
     for (const r of contestRows as ContestRow[]) {
@@ -111,9 +157,9 @@ if (env.WY_DB) {
     // leader silently overwrite the REP contest's leader for the same key.
     const leadingByDistrict = new Map<string, LeadingResult[]>(); // wy_senate/wy_house: "level|district"
     const leadingByTitle = new Map<string, LeadingResult[]>();    // federal/statewide: "level|title"
-    const leadingByCountySuffix: { level: string; county: string; suffix: string; result: LeadingResult }[] = [];
+    const leadingByOfficeId = new Map<number, LeadingResult[]>(); // county/city: office id
 
-    function pushTo(map: Map<string, LeadingResult[]>, key: string, value: LeadingResult) {
+    function pushTo<K>(map: Map<K, LeadingResult[]>, key: K, value: LeadingResult) {
       const list = map.get(key) || [];
       list.push(value);
       map.set(key, list);
@@ -128,7 +174,29 @@ if (env.WY_DB) {
       if (level === 'wy_senate' || level === 'wy_house') {
         pushTo(leadingByDistrict, `${level}|${district}`, leading);
       } else if (level === 'county' || level === 'city') {
-        if (county) leadingByCountySuffix.push({ level, county, suffix: name, result: leading });
+        if (!county) continue;
+        const roster = officeByCountyPartyName.get(`${county}|${partyKey(party)}`);
+        if (!roster) continue;
+        // Majority name-overlap identifies which office this contest
+        // belongs to. A coincidental single-name collision with an
+        // unrelated contest loses to the real one whenever the race has
+        // more than one candidate; see race/[id].astro for the full
+        // rationale and the same residual single-candidate edge case.
+        const officeHits = new Map<number, number>();
+        for (const c of candidates) {
+          if (!c.name) continue; // a handful of legacy result rows carry no name
+          const officeId = roster.get(normalizeName(c.name));
+          if (officeId != null) officeHits.set(officeId, (officeHits.get(officeId) || 0) + 1);
+        }
+        let bestOfficeId: number | null = null;
+        let bestScore = 0;
+        for (const [officeId, score] of officeHits) {
+          if (score > bestScore) {
+            bestScore = score;
+            bestOfficeId = officeId;
+          }
+        }
+        if (bestOfficeId != null) pushTo(leadingByOfficeId, bestOfficeId, leading);
       } else {
         pushTo(leadingByTitle, `${level}|${name}`, leading);
       }
@@ -140,10 +208,7 @@ if (env.WY_DB) {
         if (office.level === 'wy_senate' || office.level === 'wy_house') {
           leading = leadingByDistrict.get(`${office.level}|${office.district}`);
         } else if (office.level === 'county' || office.level === 'city') {
-          const matches = leadingByCountySuffix.filter(
-            (c) => c.level === office.level && c.county === office.county && office.title.endsWith(c.suffix)
-          );
-          leading = matches.length > 0 ? matches.map((m) => m.result) : undefined;
+          leading = leadingByOfficeId.get(office.id);
         } else {
           leading = leadingByTitle.get(`${office.level}|${office.title}`);
         }
