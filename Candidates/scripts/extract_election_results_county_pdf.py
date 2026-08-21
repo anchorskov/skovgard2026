@@ -2,8 +2,8 @@
 #
 # Stage 1 parser for the county-hosted summary-results PDF family. It was first
 # confirmed on Albany and Campbell counties' verified 2024 results, then
-# extended and reverified against Carbon, Goshen, Natrona, Park, and Platte
-# 2026 primary reports. These reports share the same contest and trailer
+# extended and reverified against Carbon, Goshen, Natrona, Park, Platte, and
+# Sweetwater 2026 primary reports. These reports share the same contest and trailer
 # structure even though their titles, page mastheads, and value columns vary.
 # Outputs the SAME normalized CSV contract as
 # extract_election_results_xlsx.py, see that file's header for the
@@ -99,7 +99,7 @@ NORMALIZED_FIELDNAMES = [
 ]
 
 PARSER_NAME = "county_summary_pdf_v1"
-PARSER_VERSION = "1.1.0"
+PARSER_VERSION = "1.1.1"
 
 # Must start with an actual digit (not just "-?[\d,]+", which can match a
 # lone stray comma with zero real digits and then crash float('').
@@ -196,6 +196,14 @@ COLUMN_HEADER_WORDS = {
 }
 
 PARTY_PREFIXES = {"REP": "REP", "DEM": "DEM", "LIB": "LIB", "NP": "NP"}
+
+# Sweetwater's report prints five small-town contests using only the town name
+# (or the town name twice), while the adjacent mayor contests include "MAYOR".
+# These exact names are also established as Sweetwater municipalities by the
+# existing county import. Preserve the source title and classify only its level.
+MUNICIPALITY_ONLY_TITLES_BY_COUNTY = {
+    "sweetwater": {"SUPERIOR", "SUPERIOR SUPERIOR", "WAMSUTTER", "WAMSUTTER WAMSUTTER", "GRANGER"},
+}
 
 
 def parse_first_number(text):
@@ -325,6 +333,7 @@ def normalize_contest(raw, county=None):
         return "State Treasurer", "statewide", None, "statewide", party_raw
     if text in (
         "SUPERINTENDENT", "SUPERINTENDENT PUBLIC INSTRUCTION",
+        "SUPERINTENDENT OF PUB INSTRUCTION",
         "SUPERINTENDENT OF PUBLIC INST", "SUPERINTENDENT OF PUBLIC INSTRUCTION",
         "STATE SUPERINTENDENT OF PUBLIC INSTRUCTION",
         "SPI", "SUP OF PUB INST", "SUPT PUB INSTR", "SUPERINTENDENT OF PUBLIC INST.",
@@ -338,6 +347,10 @@ def normalize_contest(raw, county=None):
         r"^(?:STATE |ST )?SEN(?:ATE|ATOR)?\.?(?: SEN(?:ATE)?)?(?: (?:DIST(?:RICT)?\.?|SD))? ?(\d+)$",
         text,
     )
+    if m:
+        d = int(m.group(1))
+        return f"Senate District {d}", "wy_senate", d, "legislative_district", party_raw
+    m = re.match(r"^DISTRICT (\d+) STATE SENATOR$", text)
     if m:
         d = int(m.group(1))
         return f"Senate District {d}", "wy_senate", d, "legislative_district", party_raw
@@ -410,6 +423,10 @@ def normalize_contest(raw, county=None):
         return f"{committee_role} {code}", "county", None, "precinct", party_raw
 
     if re.search(r"\b(MAYOR|COUNCIL|COUNCILPERSON|WARD|AT-LARGE)\b", text):
+        return text.title(), "city", None, "city", party_raw
+
+    county_key = county.strip().lower() if county else ""
+    if text in MUNICIPALITY_ONLY_TITLES_BY_COUNTY.get(county_key, set()):
         return text.title(), "city", None, "city", party_raw
 
     if re.search(r"\b(?:SERVICE|CONSERVATION) DISTRICT\b", text):

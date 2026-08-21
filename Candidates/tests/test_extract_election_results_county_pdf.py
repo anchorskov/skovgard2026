@@ -56,10 +56,22 @@ class CountyResultsParserTests(unittest.TestCase):
             "REP US REP": ("United States Representative", "federal"),
             "REP 1-1 COMMITTEEMAN": ("Precinct Committeeman 1-1", "county"),
             "WHEATLAND MAYOR": ("Wheatland Mayor", "city"),
+            "REP SUPERINTENDENT OF PUB INSTRUCTION": (
+                "Superintendent Of Public Instruction",
+                "statewide",
+            ),
+            "REP DISTRICT 11 STATE SENATOR": ("Senate District 11", "wy_senate"),
         }
         for raw, expected in cases.items():
             normalized = parser.normalize_contest(raw)
             self.assertEqual(expected, normalized[:2])
+
+    def test_sweetwater_municipality_only_titles_normalize(self):
+        for raw in ("SUPERIOR", "SUPERIOR SUPERIOR", "WAMSUTTER", "GRANGER"):
+            normalized = parser.normalize_contest(raw, "Sweetwater")
+            self.assertEqual((raw.title(), "city", None, "city", None), normalized)
+
+        self.assertEqual("unknown", parser.normalize_contest("SUPERIOR", "Carbon")[1])
 
     def test_local_key_includes_county(self):
         contest = {

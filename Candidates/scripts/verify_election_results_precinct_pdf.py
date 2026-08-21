@@ -132,7 +132,7 @@ def main():
     parser.add_argument("--local-only", action="store_true")
     args = parser.parse_args()
 
-    summary = extract(pdf_text(args.summary_pdf))
+    summary = extract(pdf_text(args.summary_pdf), args.county)
     if not summary:
         print("No summary contests parsed.", file=sys.stderr)
         return 1
@@ -141,7 +141,7 @@ def main():
         pages, contests = verify_matrix(summary, args.precinct_pdf)
         print(f"OK: {contests} summary contests matched exactly across {pages} precinct-total pages")
     else:
-        precinct = extract(pdf_text(args.precinct_pdf))
+        precinct = extract(pdf_text(args.precinct_pdf), args.county)
         rows, contests = verify_repeated(
             summary, precinct, args.election_key, args.county, args.local_only
         )

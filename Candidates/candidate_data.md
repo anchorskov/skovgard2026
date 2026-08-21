@@ -465,6 +465,37 @@ current-results view selects 8,775 rows. Applied with plain `INSERT OR
 IGNORE` seeds, consistent with the append-only pattern used for every prior
 production seed in this table.
 
+Sweetwater's user-supplied 2026 unofficial Summary PDF was normalized on
+2026-08-21 to `sweetwater_results.csv`. The text-layer parser reconciled all
+173 in-scope county, municipal, and precinct committee contests and emitted
+664 result rows, re-verified byte-for-byte reproducible from the source PDF.
+Sweetwater's reversed Senate titles ("DISTRICT N STATE SENATOR"), abbreviated
+Superintendent title, and municipality-only headings (Superior, Wamsutter,
+Granger — confirmed against the existing `offices` roster for those towns)
+are now recognized by the shared parser without changing its reconciliation
+gate; the county-scoped allowlist deliberately does not affect any other
+county (covered by a new test asserting Carbon still classifies "SUPERIOR" as
+`unknown`).
+
+`scripts/verify_election_results_precinct_pdf.py` also had a real bug caught
+during this review: it called `extract()` on both PDFs without forwarding
+`--county`, so the new municipality-only recognition above never reached it —
+every run against Sweetwater failed with "Unclassified contest(s): SUPERIOR;
+..." regardless of the fix already landed in the shared parser. Fixed by
+passing `args.county` through both calls. After the fix, the cross-check
+still cannot complete for Sweetwater: two uncontested precinct-committeeman
+contests (write-in only, no filed candidate) print without their trailing
+precinct-code suffix in the Precinct Summary PDF's header text, so the
+regex-based classifier can't resolve them there even though the equivalent
+County Summary PDF rows for those same seats have no such issue. Not
+investigated further since the Summary PDF's own 173/173 reconciliation is
+the primary import gate (Carbon and Natrona were both imported with no
+paired precinct PDF at all); left as a known gap for whoever next needs a
+clean precinct-level cross-check on this county.
+
+This CSV is staging data only as of the review. No SQL was generated and no
+database was changed.
+
 ## OCR extraction workflow
 
 For county-hosted summary PDFs with no embedded text layer at all (confirmed
