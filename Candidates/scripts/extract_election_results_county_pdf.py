@@ -99,7 +99,7 @@ NORMALIZED_FIELDNAMES = [
 ]
 
 PARSER_NAME = "county_summary_pdf_v1"
-PARSER_VERSION = "1.1.6"
+PARSER_VERSION = "1.1.9"
 
 # Must start with an actual digit (not just "-?[\d,]+", which can match a
 # lone stray comma with zero real digits and then crash float('').
@@ -149,6 +149,8 @@ COUNTY_ELECTION_MASTHEAD_RE = re.compile(
 # candidate row worth "5" votes -- inflating every contest's sum by
 # exactly the reporting count, a systematic error, not noise.
 PRECINCTS_REPORTING_RE = re.compile(r"^precincts\s+reporting\s+\d+\s*of\s*\d+", re.I)
+PRECINCT_CODE_ONLY_RE = re.compile(r"^\d+-\d+$")
+PRECINCT_HEADING_RE = re.compile(r"^\d+-\d+\s+\S.*$")
 DATE_MASTHEAD_RE = re.compile(
     r"^(?:january|february|march|april|may|june|july|august|september|"
     r"october|november|december)\s+\d{1,2},\s+\d{4}\b",
@@ -180,6 +182,8 @@ def is_page_boilerplate(line):
         or ELECTION_MASTHEAD_RE.match(line)
         or COUNTY_ELECTION_MASTHEAD_RE.match(line)
         or PRECINCTS_REPORTING_RE.match(line)
+        or PRECINCT_CODE_ONLY_RE.match(line)
+        or PRECINCT_HEADING_RE.match(line)
         or DATE_MASTHEAD_RE.match(line)
         or MASTHEAD_ELECTION_PHRASE_RE.search(line)
     )
@@ -245,7 +249,7 @@ def looks_like_contest_header(line):
     if any(ch.isdigit() for ch in line.replace("13-2", "").replace("V1", "")):
         # allow precinct-code-style contest names like "PRECINCT COMMITTEEMAN 13-2 V1"
         pass
-    if not re.match(r'''^[A-Z0-9 .,'"/&()\-]+$''', line):
+    if not re.match(r'''^[A-Z0-9 .,'"/#&()\-]+$''', line):
         return False
     if VOTE_FOR_RE.match(line) or CONTEST_TOTAL_RE.match(line) or TOTAL_VOTES_CAST_RE.match(line):
         return False
@@ -345,13 +349,17 @@ def normalize_contest(raw, county=None):
     # "HSE", and a bare trailing number with no "DISTRICT" word at all have
     # all been seen on real 2026 county reports.
     m = re.match(
-        r"^(?:STATE |ST )?SEN(?:ATE|ATOR)?\.?(?: SEN(?:ATE)?)?(?: (?:DIST(?:RICT)?\.?|SD))? ?(\d+)$",
+        r"^(?:STATE |ST )?SEN(?:ATE|ATOR)?\.?(?: SEN(?:ATE)?)?(?: (?:DIST(?:RICT)?\.?|SD))? ?#?(\d+)$",
         text,
     )
     if m:
         d = int(m.group(1))
         return f"Senate District {d}", "wy_senate", d, "legislative_district", party_raw
     m = re.match(r"^DISTRICT (\d+) STATE SENATOR$", text)
+    if m:
+        d = int(m.group(1))
+        return f"Senate District {d}", "wy_senate", d, "legislative_district", party_raw
+    m = re.match(r"^STATE SENATOR,? DIST #?(\d+)$", text)
     if m:
         d = int(m.group(1))
         return f"Senate District {d}", "wy_senate", d, "legislative_district", party_raw
@@ -364,11 +372,22 @@ def normalize_contest(raw, county=None):
     if m:
         d = int(m.group(1))
         return f"House District {d}", "wy_house", d, "legislative_district", party_raw
+    # Natrona's official 2026 summary uses the shorter heading
+    # "STATE HOUSE 38" for both party contests. Keep this explicit so a
+    # generic HOUSE match cannot absorb a county or federal office title.
+    m = re.match(r"^STATE HOUSE (\d+)$", text)
+    if m:
+        d = int(m.group(1))
+        return f"House District {d}", "wy_house", d, "legislative_district", party_raw
     m = re.match(
         r"^(?:STATE |ST )?(?:HSE )?(?:REPRESENTATIVE(?: HOUSE)?|REP)\.?(?: HOUSE)?"
-        r"(?: (?:DISTRICT|DIST\.?|HD))? ?(\d+)(?: (?:REP|DEM|LIB) DISTRICT \d+)?$",
+        r"(?: (?:DISTRICT|DIST\.?|HD))? ?#?(\d+)(?: (?:REP|DEM|LIB) DISTRICT \d+)?$",
         text,
     )
+    if m:
+        d = int(m.group(1))
+        return f"House District {d}", "wy_house", d, "legislative_district", party_raw
+    m = re.match(r"^STATE REP,? DIST #?(\d+)$", text)
     if m:
         d = int(m.group(1))
         return f"House District {d}", "wy_house", d, "legislative_district", party_raw
@@ -514,6 +533,7 @@ def extract(text, county=None):
                     multi_column = True
                 i += 1
             rows = []
+            in_write_in_detail = False
             # Two different reconciliation lines exist across the county
             # variants of this report, not one. Albany has neither line at
             # all (its own "Contest Totals" line is the only checksum, see
@@ -534,10 +554,33 @@ def extract(text, county=None):
             while i < len(lines):
                 cur = lines[i]
                 cur_text = text_only(cur)
+                # A precinct-detail report starts each precinct with a
+                # statistics block. When it follows the final contest from
+                # the preceding precinct, it is a hard boundary rather than
+                # additional result rows for that contest.
+                if cur.upper() == "STATISTICS":
+                    contest_total = None
+                    break
                 if CONTEST_TOTAL_RE.match(cur_text):
                     contest_total = parse_row_value(cur, multi_column)
                     i += 1
                     break
+                if (
+                    cur == contest_raw
+                    and i + 1 < len(lines)
+                    and VOTE_FOR_RE.match(lines[i + 1])
+                ):
+                    # Long write-in sections can continue onto the next page.
+                    # Electionware repeats the contest heading, Vote For line,
+                    # and column headings after the page masthead. This is a
+                    # continuation of the open contest, not a second contest.
+                    i += 2
+                    while i < len(lines) and is_column_header_noise(lines[i]):
+                        words = set(re.findall(r"[a-z-]+", lines[i].lower()))
+                        if words & EXTRA_COLUMN_WORDS:
+                            multi_column = True
+                        i += 1
+                    continue
                 if looks_like_contest_header(cur) and i + 1 < len(lines) and VOTE_FOR_RE.match(lines[i + 1]):
                     # next contest started without a "Contest Totals" line;
                     # fall back to "Total Votes Cast" if one was captured,
@@ -546,11 +589,23 @@ def extract(text, county=None):
                     break
                 if TOTAL_VOTES_CAST_RE.match(cur_text):
                     total_votes_cast = parse_row_value(cur, multi_column)
+                    in_write_in_detail = False
                     i += 1
                     continue  # derived subtotal, not a stored row
                 if is_page_boilerplate(cur):
                     i += 1
                     continue  # page footer/masthead, never real contest data
+                if in_write_in_detail and (
+                    re.match(r"^write\s*-?\s*in\s*:", cur, re.I)
+                    or cur_text.upper().startswith("NOT ASSIGNED")
+                ):
+                    # Electionware can print a breakdown beneath the already
+                    # authoritative Write-In Totals row. Storing or summing
+                    # both would double-count the same votes. Preserve the
+                    # aggregate and leave named-write-in interpretation to a
+                    # separate reviewed roster workflow.
+                    i += 1
+                    continue
                 row_type = "candidate"
                 for rt, pat in TRAILER_PATTERNS.items():
                     if pat.match(cur_text):
@@ -568,6 +623,8 @@ def extract(text, county=None):
                     r"\s+", " ", NUM.sub("", cur).replace("%", "")
                 ).strip()
                 rows.append({"row_type": row_type, "candidate_name_raw": name, "votes": val})
+                if row_type == "write_in_aggregate":
+                    in_write_in_detail = True
                 i += 1
             else:
                 contest_total = None
@@ -649,6 +706,8 @@ def run_from_text(full_text, args):
     single pdfplumber-opened file handle to hash inline) but must both set
     before calling this."""
     contests = extract(full_text, args.county)
+    parser_name = getattr(args, "parser_name", PARSER_NAME)
+    parser_version = getattr(args, "parser_version", PARSER_VERSION)
     if not contests:
         print("No contests parsed, refusing to emit unverified data.", file=sys.stderr)
         sys.exit(1)
@@ -690,6 +749,13 @@ def run_from_text(full_text, args):
             )
             sys.exit(1)
 
+    ballot_measures = [c["contest_raw"] for c in contests if c["level"] == "ballot_measure"]
+    if ballot_measures:
+        print(f"Excluding {len(ballot_measures)} recognized ballot measure(s) (out of schema scope):", file=sys.stderr)
+        for contest_raw in ballot_measures:
+            print(f"  {contest_raw}", file=sys.stderr)
+        contests = [c for c in contests if c["level"] != "ballot_measure"]
+
     if args.local_only:
         unknown = [c["contest_raw"] for c in contests if c["level"] == "unknown"]
         if unknown:
@@ -697,11 +763,6 @@ def run_from_text(full_text, args):
             for contest_raw in unknown:
                 print(f"  {contest_raw}", file=sys.stderr)
             sys.exit(1)
-        ballot_measures = [c["contest_raw"] for c in contests if c["level"] == "ballot_measure"]
-        if ballot_measures:
-            print(f"Excluding {len(ballot_measures)} recognized ballot measure(s) (out of schema scope):", file=sys.stderr)
-            for contest_raw in ballot_measures:
-                print(f"  {contest_raw}", file=sys.stderr)
         contests = [c for c in contests if c["level"] in ("county", "city")]
         if not contests:
             print("No local contests found, refusing to emit an empty local result set.", file=sys.stderr)
@@ -787,7 +848,7 @@ def run_from_text(full_text, args):
                 "reporting_scope": c["scope"],
                 "sha256": args.sha256, "retrieved_at": args.retrieved_at,
                 "source_published_at": args.source_published_at or "",
-                "parser_name": PARSER_NAME, "parser_version": PARSER_VERSION,
+                "parser_name": parser_name, "parser_version": parser_version,
                 "is_unofficial": is_unofficial, "verification_status": contest_verification_status,
                 "source_url": args.source_url,
                 "precincts_reporting": "", "precincts_total": "", "reporting_status": contest_reporting_status,

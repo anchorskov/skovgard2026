@@ -2,6 +2,7 @@ import argparse
 import contextlib
 import csv
 import importlib.util
+import sys
 import tempfile
 from pathlib import Path
 import unittest
@@ -23,6 +24,16 @@ parser = load_module(
 generator = load_module(
     "results_generator", ROOT / "scripts" / "generate_election_results_sql.py"
 )
+sys.path.insert(0, str(ROOT / "scripts"))
+verified_parser = load_module(
+    "verified_markdown_parser",
+    ROOT / "scripts" / "extract_election_results_verified_md.py",
+)
+precinct_verifier = load_module(
+    "precinct_verifier",
+    ROOT / "scripts" / "verify_election_results_precinct_pdf.py",
+)
+sys.path.pop(0)
 
 
 class CountyResultsParserTests(unittest.TestCase):
@@ -44,14 +55,100 @@ class CountyResultsParserTests(unittest.TestCase):
         self.assertEqual([123, 2, 0, 5], [row["votes"] for row in contests[0]["rows"]])
         self.assertEqual(125, contests[0]["total_votes_cast"])
 
+    def test_named_write_in_breakdown_is_not_double_counted(self):
+        contests = parser.extract(
+            "\n".join(
+                (
+                    "REP COUNTY SHERIFF",
+                    "Vote For 1",
+                    "TOTAL VOTE %",
+                    "JANE EXAMPLE 90 90.00%",
+                    "Write-In Totals 10 10.00%",
+                    "Write-In: JOHN EXAMPLE 6 6.00%",
+                    "Write-In: INVALID 3 3.00%",
+                    "Not Assigned 1 1.00%",
+                    "Total Votes Cast 100 100.00%",
+                    "Overvotes 0",
+                    "Undervotes 5",
+                    "Contest Totals 105",
+                )
+            )
+        )
+        self.assertEqual(1, len(contests))
+        self.assertEqual(
+            [("candidate", 90), ("write_in_aggregate", 10), ("overvote", 0), ("undervote", 5)],
+            [(row["row_type"], row["votes"]) for row in contests[0]["rows"]],
+        )
+
+    def test_repeated_heading_continues_open_contest_after_page_break(self):
+        contests = parser.extract(
+            "\n".join(
+                (
+                    "MAYOR CITY OF EXAMPLE",
+                    "Vote For 1",
+                    "TOTAL VOTE %",
+                    "JANE EXAMPLE 90 90.00%",
+                    "Write-In Totals 10 10.00%",
+                    "Write-In: JOHN EXAMPLE 6 6.00%",
+                    "Election Summary - 08/26/2026 12:23PM Page 1 of 2",
+                    "Example County, Wyoming OFFICIAL RESULTS",
+                    "PRIMARY ELECTION",
+                    "August 18, 2026 Election Summary Report",
+                    "MAYOR CITY OF EXAMPLE",
+                    "Vote For 1",
+                    "TOTAL VOTE %",
+                    "Write-In: INVALID 3 3.00%",
+                    "Not Assigned 1 1.00%",
+                    "Total Votes Cast 100 100.00%",
+                    "Overvotes 0",
+                    "Undervotes 5",
+                    "Contest Totals 105",
+                )
+            )
+        )
+        self.assertEqual(1, len(contests))
+        self.assertEqual(105, contests[0]["contest_total"])
+        self.assertEqual([90, 10, 0, 5], [row["votes"] for row in contests[0]["rows"]])
+
     def test_2026_page_mastheads_are_boilerplate(self):
         examples = (
             "Election Summary - 08/18/2026 10:47PM Page 1 of 26",
             "2026 Primary Election",
             "Carbon Primary 2026",
             "Precincts Reporting 14 of 14",
+            "1-1",
+            "23-1 NORTHEAST DOUGLAS",
         )
         self.assertTrue(all(parser.is_page_boilerplate(value) for value in examples))
+
+    def test_precinct_statistics_block_ends_the_preceding_contest(self):
+        contests = parser.extract(
+            "\n".join(
+                (
+                    "REP COUNTY SHERIFF",
+                    "Vote For 1",
+                    "JANE EXAMPLE 100",
+                    "Write-In Totals 2",
+                    "Total Votes Cast 102",
+                    "Overvotes 0",
+                    "Undervotes 5",
+                    "STATISTICS",
+                    "TOTAL",
+                    "Registered Voters - Total 500",
+                    "Ballots Cast - Total 200",
+                    "REP COUNTY CLERK",
+                    "Vote For 1",
+                    "JOHN EXAMPLE 90",
+                    "Write-In Totals 1",
+                    "Total Votes Cast 91",
+                    "Overvotes 0",
+                    "Undervotes 4",
+                )
+            )
+        )
+        self.assertEqual(2, len(contests))
+        self.assertEqual(102, sum(row["votes"] for row in contests[0]["rows"] if row["row_type"] in ("candidate", "write_in_aggregate")))
+        self.assertEqual("JANE EXAMPLE", contests[0]["rows"][0]["candidate_name_raw"])
 
     def test_county_variants_normalize(self):
         cases = {
@@ -71,6 +168,12 @@ class CountyResultsParserTests(unittest.TestCase):
                 "statewide",
             ),
             "REP DISTRICT 11 STATE SENATOR": ("Senate District 11", "wy_senate"),
+            "REP STATE SENATOR, DIST #1": ("Senate District 1", "wy_senate"),
+            "REP STATE SEN SENATE DIST #23": ("Senate District 23", "wy_senate"),
+            "REP STATE HOUSE 38": ("House District 38", "wy_house"),
+            "DEM STATE HOUSE 62": ("House District 62", "wy_house"),
+            "REP STATE REP, DIST #1": ("House District 1", "wy_house"),
+            "REP STATE REP HOUSE DIST #52": ("House District 52", "wy_house"),
             "REP COMMISSIONER DIST 1": ("County Commissioner District 1", "county"),
             "DEM COMMISSIONER DISTRICT 4 DISTRICT 4": (
                 "County Commissioner District 4",
@@ -142,6 +245,31 @@ class CountyResultsParserTests(unittest.TestCase):
         generator.emit_sources([row], output, "county_local_summary")
         self.assertIn("'county_local_summary'", output[0])
 
+    def test_generator_records_source_succession_in_insert(self):
+        row = {
+            "source_key": "wy|natrona|official",
+            "election_key": "wy-2026-primary",
+            "county": "Natrona",
+            "source_url": "https://example.test/official.pdf",
+        }
+        output = []
+        generator.emit_sources(
+            [row],
+            output,
+            "county_local_summary",
+            {"wy|natrona|official": "wy|natrona|unofficial"},
+        )
+        self.assertIn("supersedes_source_id", output[0])
+        self.assertIn("FROM election_sources", output[0])
+        self.assertIn("'wy|natrona|unofficial'", output[0])
+
+    def test_generator_rejects_unknown_superseding_input_key(self):
+        with self.assertRaises(ValueError):
+            generator.parse_supersedes(
+                ["wy|natrona|official=wy|natrona|unofficial"],
+                {"wy|campbell|official"},
+            )
+
     def test_generator_sets_county_for_precinct_committee_contest(self):
         row = {
             "contest_key": "contest",
@@ -158,6 +286,98 @@ class CountyResultsParserTests(unittest.TestCase):
         output = []
         generator.emit_contests([row], output)
         self.assertIn("'Natrona'", output[0])
+
+
+class VerifiedMarkdownAdapterTests(unittest.TestCase):
+    def test_explicit_contest_override_replaces_only_named_block(self):
+        text = "\n".join((
+            "REP COUNTY SHERIFF",
+            "Vote For 1",
+            "SCRAMBLED OCR 999",
+            "Contest Totals 999",
+            "REP COUNTY CLERK",
+            "Vote For 1",
+            "JANE CLERK 40",
+            "Write-In Totals 1",
+            "Overvotes 0",
+            "Undervotes 9",
+            "Contest Totals 50",
+        ))
+        override = {
+            "contests": [{
+                "contest_header": "REP COUNTY SHERIFF",
+                "vote_for": 1,
+                "rows": [
+                    {"label": "JANE SHERIFF", "votes": 30},
+                    {"label": "Write-In Totals", "votes": 2},
+                    {"label": "Overvotes", "votes": 0},
+                    {"label": "Undervotes", "votes": 8},
+                ],
+                "contest_total": 40,
+            }]
+        }
+
+        corrected = verified_parser.apply_overrides(text, override)
+        contests = parser.extract(corrected, "Converse")
+
+        self.assertEqual(2, len(contests))
+        self.assertEqual("JANE SHERIFF", contests[0]["rows"][0]["candidate_name_raw"])
+        self.assertEqual(40, sum(row["votes"] for row in contests[0]["rows"]))
+        self.assertEqual("JANE CLERK", contests[1]["rows"][0]["candidate_name_raw"])
+
+
+class PrecinctVerifierTests(unittest.TestCase):
+    def test_matrix_multiset_comparison_allows_alphabetized_columns(self):
+        expected = [938, 869, 9, 1816, 0, 67]
+        actual = [869, 938, 9, 1816, 0, 67]
+        self.assertFalse(precinct_verifier.matrix_values_match(expected, actual))
+        self.assertTrue(
+            precinct_verifier.matrix_values_match(
+                expected,
+                actual,
+                ignore_column_order=True,
+            )
+        )
+
+    def test_matrix_sequence_uses_total_votes_cast_before_trailers(self):
+        contest = {
+            "rows": [
+                {"row_type": "candidate", "votes": 938},
+                {"row_type": "candidate", "votes": 869},
+                {"row_type": "write_in_aggregate", "votes": 9},
+                {"row_type": "overvote", "votes": 0},
+                {"row_type": "undervote", "votes": 67},
+            ],
+            "total_votes_cast": 1816,
+            "contest_total": 1883,
+        }
+        self.assertEqual(
+            [938, 869, 9, 1816, 0, 67],
+            precinct_verifier.contest_total_sequence(contest),
+        )
+        expected_options = precinct_verifier.matrix_expected_sequences(
+            [contest],
+            allow_omitted_undervotes=True,
+        )
+        self.assertIn([938, 869, 9, 1816, 0], expected_options)
+
+    def test_matrix_sequence_accepts_exact_contest_total_trailer_order(self):
+        contest = {
+            "rows": [
+                {"row_type": "candidate", "votes": 62},
+                {"row_type": "candidate", "votes": 2156},
+                {"row_type": "candidate", "votes": 70},
+                {"row_type": "candidate", "votes": 489},
+                {"row_type": "candidate", "votes": 69},
+                {"row_type": "write_in_aggregate", "votes": 2},
+                {"row_type": "overvote", "votes": 1},
+                {"row_type": "undervote", "votes": 70},
+            ],
+            "total_votes_cast": 2848,
+            "contest_total": 2919,
+        }
+        expected_options = precinct_verifier.matrix_expected_sequences([contest])
+        self.assertIn([62, 2156, 70, 489, 69, 2, 1, 70, 2919], expected_options)
 
 
 class MissingUndervoteOvervoteExceptionTests(unittest.TestCase):
@@ -365,8 +585,8 @@ class MissingContestTotalStagingTests(unittest.TestCase):
                 )
 
 
-class LocalOnlyBallotMeasureEndToEndTest(unittest.TestCase):
-    def test_ballot_measure_excluded_silently_candidate_contest_still_emitted(self):
+class BallotMeasureEndToEndTest(unittest.TestCase):
+    def test_ballot_measure_excluded_from_full_candidate_result_set(self):
         text = "\n".join((
             "PROPOSITION 1",
             "Vote For 1",
@@ -390,7 +610,6 @@ class LocalOnlyBallotMeasureEndToEndTest(unittest.TestCase):
                 "--election-key", "wy-2026-primary",
                 "--source-key", "wy|laramie|wy-2026-primary|county_local_summary",
                 "--source-url", "https://example.test/laramie.pdf",
-                "--local-only",
                 "--out", str(out_path),
             ])
             args.sha256 = "deadbeef"

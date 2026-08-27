@@ -1,0 +1,207 @@
+{
+  "source_pdf_sha256": "27ded25d080d5f15410d432ab4e00dea44d15900c0101e8d49ca1dab3cd4b0f9",
+  "verified_markdown_sha256": "e8b2171e07b1f990ed218439c92df75297e21dceeecabcc9328fb03a49b367d6",
+  "contests": [
+    {
+      "contest_header": "REP COUNTY COMMISSIONER",
+      "vote_for": 3,
+      "evidence_page": 4,
+      "rows": [
+        {"label": "JOE BENEDETTA", "votes": 1416},
+        {"label": "JAMES BOLINGER", "votes": 888},
+        {"label": "SMOKEY DEINES", "votes": 295},
+        {"label": "PERRY G HERSHBERGER", "votes": 923},
+        {"label": "MARK HORR", "votes": 1161},
+        {"label": "TRENT KAUFMAN", "votes": 1483},
+        {"label": "MACEY MOORE", "votes": 1587},
+        {"label": "CODY TORGERSON", "votes": 1553},
+        {"label": "Write-In Totals", "votes": 39},
+        {"label": "Overvotes", "votes": 30},
+        {"label": "Undervotes", "votes": 1668}
+      ],
+      "contest_total": 11043
+    },
+    {
+      "contest_header": "REP COUNTY CORONER",
+      "vote_for": 1,
+      "evidence_page": 4,
+      "rows": [
+        {"label": "ROSCOE J. (ROSS) GORMAN", "votes": 3222},
+        {"label": "Write-In Totals", "votes": 27},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 432}
+      ],
+      "contest_total": 3681
+    },
+    {
+      "contest_header": "REP COUNTY ATTORNEY",
+      "vote_for": 1,
+      "evidence_page": 4,
+      "rows": [
+        {"label": "QUENTIN RICHARDSON", "votes": 2959},
+        {"label": "Write-In Totals", "votes": 42},
+        {"label": "Overvotes", "votes": 1},
+        {"label": "Undervotes", "votes": 679}
+      ],
+      "contest_total": 3681
+    },
+    {
+      "contest_header": "REP COUNTY SHERIFF",
+      "vote_for": 1,
+      "evidence_page": 4,
+      "rows": [
+        {"label": "CLINTON BECKER", "votes": 3005},
+        {"label": "Write-In Totals", "votes": 99},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 577}
+      ],
+      "contest_total": 3681
+    },
+    {
+      "contest_header": "REP COUNTY ASSESSOR",
+      "vote_for": 1,
+      "evidence_page": 5,
+      "rows": [
+        {"label": "DIXIE J HUXTABLE", "votes": 3053},
+        {"label": "Write-In Totals", "votes": 46},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 582}
+      ],
+      "contest_total": 3681
+    },
+    {
+      "contest_header": "REP CLERK OF DISTRICT COURT",
+      "vote_for": 1,
+      "evidence_page": 5,
+      "rows": [
+        {"label": "BARBARA HARRIS", "votes": 2356},
+        {"label": "DORINA B. KEMPER", "votes": 928},
+        {"label": "Write-In Totals", "votes": 9},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 388}
+      ],
+      "contest_total": 3681
+    },
+    {
+      "contest_header": "REP COMMITTEEMAN RURAL DOUGLAS 4-4",
+      "vote_for": 2,
+      "evidence_page": 7,
+      "rows": [
+        {"label": "DON LUHRSEN", "votes": 152},
+        {"label": "COLT RODEMAN", "votes": 155},
+        {"label": "Write-In Totals", "votes": 4},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 211}
+      ],
+      "contest_total": 522
+    },
+    {
+      "contest_header": "REP COMMITTEEWOMAN RURAL DOUGLAS 4-4 RURAL DOUGLAS",
+      "vote_for": 2,
+      "evidence_page": 7,
+      "rows": [
+        {"label": "DIXIE J HUXTABLE", "votes": 174},
+        {"label": "CANDACE LUHRSEN", "votes": 142},
+        {"label": "Write-In Totals", "votes": 3},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 203}
+      ],
+      "contest_total": 522
+    },
+    {
+      "contest_header": "REP COMMITTEEMAN BOXELDER 6-6",
+      "vote_for": 1,
+      "evidence_page": 7,
+      "rows": [
+        {"label": "JOE BENEDETTA", "votes": 174},
+        {"label": "Write-In Totals", "votes": 4},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 28}
+      ],
+      "contest_total": 206
+    },
+    {
+      "contest_header": "REP COMMITTEEMAN NORTHWEST DOUGLAS 23-2",
+      "vote_for": 2,
+      "evidence_page": 12,
+      "rows": [
+        {"label": "JIM CREASER", "votes": 168},
+        {"label": "FRANK N MOORE", "votes": 211},
+        {"label": "Write-In Totals", "votes": 6},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 241}
+      ],
+      "contest_total": 626
+    },
+    {
+      "contest_header": "REP COMMITTEEWOMAN COURTHOUSE 23-4",
+      "vote_for": 2,
+      "evidence_page": 13,
+      "rows": [
+        {"label": "RHONDA OILTS", "votes": 300},
+        {"label": "CORRINA LANE", "votes": 132},
+        {"label": "KATHRYN SKUZA", "votes": 145},
+        {"label": "Write-In Totals", "votes": 2},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 239}
+      ],
+      "contest_total": 818
+    },
+    {
+      "contest_header": "REP COMMITTEEMAN SOUTH DOUGLAS 23-5",
+      "vote_for": 1,
+      "evidence_page": 14,
+      "rows": [
+        {"label": "Write-In Totals", "votes": 24},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 140}
+      ],
+      "contest_total": 164
+    },
+    {
+      "contest_header": "DEM COMMITTEEWOMAN RURAL DOUGLAS 4-4",
+      "vote_for": 1,
+      "evidence_page": 19,
+      "rows": [
+        {"label": "Write-In Totals", "votes": 0},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 9}
+      ],
+      "contest_total": 9
+    },
+    {
+      "contest_header": "DEM COMMITTEEWOMAN LAPRELE 7-7",
+      "vote_for": 1,
+      "evidence_page": 20,
+      "rows": [
+        {"label": "Write-In Totals", "votes": 0},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 5}
+      ],
+      "contest_total": 5
+    },
+    {
+      "contest_header": "DEM COMMITTEEWOMAN SOUTH DOUGLAS 23-5",
+      "vote_for": 1,
+      "evidence_page": 25,
+      "rows": [
+        {"label": "Write-In Totals", "votes": 0},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 5}
+      ],
+      "contest_total": 5
+    },
+    {
+      "contest_header": "MAYOR TOWN OF ROLLING HILLS",
+      "vote_for": 1,
+      "evidence_page": 26,
+      "rows": [
+        {"label": "JON O. MAINES", "votes": 92},
+        {"label": "Write-In Totals", "votes": 1},
+        {"label": "Overvotes", "votes": 0},
+        {"label": "Undervotes", "votes": 20}
+      ],
+      "contest_total": 113
+    }
+  ]
+}

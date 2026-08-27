@@ -2,6 +2,23 @@
 
 These notes are repo-local and apply inside `/home/anchor/projects/skovgard2026`.
 
+## Cross-Agent Coms (alpha) — check at session start
+
+Codex may be working this repo in a parallel session. `docs/coms/` is an
+async, file-based handoff channel between us — see `docs/coms/README.md`
+for the full protocol. **At the start of a session, check
+`docs/coms/inbox.md` for anything `open` or `stale` addressed to you.**
+Also check it again **before** writing to `Candidates/db/seed/` or
+`Candidates/db/migrations/`, before any local D1 write, and always before
+any `--remote`/production write — the other agent may have work in flight
+that yours would collide with. After filing a message or resolving one
+(flip its `status` to `done`), run `python3 docs/coms/refresh_inbox.py`.
+After posting a handoff, refresh once and continue without waiting. The next
+user-initiated task is the next routine inbox check.
+
+This is alpha and will need revision; note friction in
+`docs/coms/README.md` rather than silently working around it.
+
 ## Brand System (theme-frontier)
 
 The locked brand specification lives in `brand/BRAND.md`. Read it before
@@ -177,6 +194,13 @@ Do not reference `config/_default/config.toml`, `layouts/`, or Hugo-era paths �
 - If a rule mentions another project by name, stop treating it as authoritative for this repo unless the user explicitly says to reuse it here.
 - Prefer values already established in this repo over values remembered from other work.
 - Before changing public-facing campaign identity fields such as emails, domains, org names, donation links, form destinations, or legal/contact copy, verify them against this repo first.
+
+## Intellectual Property and Compliance
+
+- The intellectual property of this project resides solely with Jimmy Skovgard.
+- Jimmy Skovgard may lend, sell, license, transfer, or otherwise dispose of the code at his sole discretion.
+- If a requested sharing, sale, transfer, or distribution could violate applicable law, agents must provide a clear warning before proceeding.
+- Agents must not provide legal conclusions or legal advice. Agents should flag potential legal risk and recommend that the user confirm with qualified counsel.
 
 ## WORM Data Protocol
 

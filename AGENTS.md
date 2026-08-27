@@ -9,6 +9,23 @@ This file is repo-local. It applies only inside:
 
 If instructions, names, domains, emails, or policies from another project appear here or in generated work, treat that as drift and do not apply them without explicit user approval.
 
+## Cross-Agent Coms (alpha) — check at session start
+
+Claude Code may be working this repo in a parallel session. `docs/coms/` is
+an async, file-based handoff channel between us — see `docs/coms/README.md`
+for the full protocol. **At the start of a session, check
+`docs/coms/inbox.md` for anything `open` or `stale` addressed to `codex`.**
+Also check it again **before** writing to `Candidates/db/seed/` or
+`Candidates/db/migrations/`, before any local D1 write, and always before
+any `--remote`/production write — the other agent may have work in flight
+that yours would collide with. After filing a message or resolving one
+(flip its `status` to `done`), run `python3 docs/coms/refresh_inbox.py`.
+After posting a handoff, refresh once and continue without waiting. The next
+user-initiated task is the next routine inbox check.
+
+This is alpha and will need revision; note friction in
+`docs/coms/README.md` rather than silently working around it.
+
 ## Writing Style — hard rule
 
 **Never use an em dash** (`—`, `&#8212;`, or `--` used as a dash) in any
@@ -40,6 +57,7 @@ is deleted.
 | File | What it's for |
 |---|---|
 | `docs/management_of_change.md` | The method for keeping this repo's instruction/workflow docs in sync with reality — read first |
+| `docs/coms/README.md` | Alpha async file-based handoff protocol between Claude Code and Codex — inbox status convention, staleness/archive rules |
 | `docs/OptinPlan.md` | Opt-in growth plan (email + SMS) — current state, the CSV-import dual-write gap, phased roadmap |
 | `docs/PODCAST_WORKFLOW.md` | Operational how-to: adding a hosted episode, multi-part episodes, campaign videos |
 | `docs/podcast_notes.md` | Podcast flow architecture + known issues (live-vs-dead file trap, caching incident) |
@@ -132,6 +150,13 @@ pass `variant="updates"` to `PulseOptInForm`. See `docs/pulse_flow.md`.
 - If a rule mentions another project by name, stop treating it as authoritative for this repo unless the user explicitly says to reuse it here.
 - Prefer values already established in this repo over values remembered from other work.
 - Before changing public-facing campaign identity fields such as emails, domains, org names, donation links, form destinations, or legal/contact copy, verify them against this repo first.
+
+## Intellectual Property and Compliance
+
+- The intellectual property of this project resides solely with Jimmy Skovgard.
+- Jimmy Skovgard may lend, sell, license, transfer, or otherwise dispose of the code at his sole discretion.
+- If a requested sharing, sale, transfer, or distribution could violate applicable law, agents must provide a clear warning before proceeding.
+- Agents must not provide legal conclusions or legal advice. Agents should flag potential legal risk and recommend that the user confirm with qualified counsel.
 
 ## Brand System (theme-frontier)
 

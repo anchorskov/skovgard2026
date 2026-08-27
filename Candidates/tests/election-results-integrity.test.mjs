@@ -1,7 +1,7 @@
 // Candidates/tests/election-results-integrity.test.mjs
 //
-// Schema-level tests for the election-results migrations (0028-0031).
-// Each test builds a fresh in-memory SQLite database, applies the four
+// Schema-level tests for the election-results migrations (0028-0031 and 0037-0038).
+// Each test builds a fresh in-memory SQLite database, applies the six
 // migrations in order, seeds minimal fixture rows, and asserts on the
 // resulting view behavior. No live county requests are made; no
 // temporary file outside /tmp is used; nothing here touches the real
@@ -29,6 +29,8 @@ function freshDb() {
     '0029_election_results_views.sql',
     '0030_election_source_precedence.sql',
     '0031_election_results_integrity.sql',
+    '0037_official_source_precedence.sql',
+    '0038_verified_source_succession.sql',
   ]) {
     db.exec(readFileSync(path.join(migrationsDir, file), 'utf8'));
   }
@@ -43,19 +45,46 @@ function seedElection(db, key = 'wy-2024-primary', phase = 'primary') {
   return db.prepare('SELECT id FROM election_events WHERE election_key = ?').get(key).id;
 }
 
-function seedSource(db, electionId, sourceKey, county = 'Natrona', role = 'county_pbp_summary') {
+function seedSource(
+  db,
+  electionId,
+  sourceKey,
+  county = 'Natrona',
+  role = 'county_pbp_summary',
+  supersedesSourceId = null,
+) {
   db.prepare(
-    `INSERT INTO election_sources (source_key, election_id, county, source_role, status)
-     VALUES (?, ?, ?, ?, 'active')`
-  ).run(sourceKey, electionId, county, role);
+    `INSERT INTO election_sources
+       (source_key, election_id, county, source_role, supersedes_source_id, status)
+     VALUES (?, ?, ?, ?, ?, 'active')`
+  ).run(sourceKey, electionId, county, role, supersedesSourceId);
   return db.prepare('SELECT id FROM election_sources WHERE source_key = ?').get(sourceKey).id;
 }
 
-function seedSnapshot(db, sourceId, seq, sha256, verificationStatus = 'verified') {
+function seedSnapshot(
+  db,
+  sourceId,
+  seq,
+  sha256,
+  verificationStatus = 'verified',
+  isUnofficial = 1,
+  sourcePublishedAt = null,
+  retrievedAt = '2026-08-20T00:00:00Z',
+) {
   db.prepare(
-    `INSERT INTO election_source_snapshots (source_id, snapshot_seq, sha256, parser_name, verification_status)
-     VALUES (?, ?, ?, 'test', ?)`
-  ).run(sourceId, seq, sha256, verificationStatus);
+    `INSERT INTO election_source_snapshots
+       (source_id, snapshot_seq, sha256, parser_name, verification_status,
+        is_unofficial, source_published_at, retrieved_at)
+     VALUES (?, ?, ?, 'test', ?, ?, ?, ?)`
+  ).run(
+    sourceId,
+    seq,
+    sha256,
+    verificationStatus,
+    isUnofficial,
+    sourcePublishedAt,
+    retrievedAt,
+  );
   return db.prepare('SELECT id FROM election_source_snapshots WHERE source_id = ? AND snapshot_seq = ?').get(sourceId, seq).id;
 }
 
@@ -82,7 +111,7 @@ function seedResultRow(db, snapshotContestId, candidateName, votes, rowKeySuffix
   ).run(`k-${rowKeySuffix}`, snapshotContestId, rowType, candidateName, votes);
 }
 
-test('clean schema creation succeeds (all four migrations, empty DB)', () => {
+test('clean schema creation succeeds (all five migrations, empty DB)', () => {
   const db = freshDb();
   const tables = db.prepare(
     `SELECT name FROM sqlite_master WHERE type IN ('table','view') AND name LIKE 'election_%' OR name LIKE 'v_election_%' ORDER BY name`
@@ -195,6 +224,109 @@ test('overlapping sources for the same contest+county do not double-count', () =
   ).all(cid);
   assert.equal(rows.length, 1, 'exactly one source should win for this (contest, county) pair, not both');
   assert.equal(rows[0].source_role, 'county_local_summary', 'county_local_summary must win over county_pbp_summary');
+  db.close();
+});
+
+test('official county source wins over unofficial source at the same priority', () => {
+  const db = freshDb();
+  const eid = seedElection(db);
+  const cid = seedContest(db, eid, 'us-senate', 'US Senate', 'statewide');
+
+  const unofficialSource = seedSource(db, eid, 's-unofficial', 'Natrona', 'county_local_summary');
+  const unofficialSnapshot = seedSnapshot(
+    db,
+    unofficialSource,
+    1,
+    'sha-unofficial',
+    'verified',
+    1,
+    '2026-08-19T00:00:00Z',
+  );
+  seedResultRow(db, seedSnapshotContest(db, unofficialSnapshot, cid), 'Alice', 621, 'unofficial');
+
+  const officialSource = seedSource(db, eid, 's-official', 'Natrona', 'county_local_summary');
+  const officialSnapshot = seedSnapshot(
+    db,
+    officialSource,
+    1,
+    'sha-official',
+    'verified',
+    0,
+    '2026-08-21T22:27:00Z',
+  );
+  seedResultRow(db, seedSnapshotContest(db, officialSnapshot, cid), 'Alice', 622, 'official');
+
+  const selected = db.prepare(
+    `SELECT source_id, is_unofficial, votes
+     FROM v_election_current_results
+     WHERE contest_id = ? AND county = 'Natrona'`
+  ).get(cid);
+  assert.equal(selected.source_id, officialSource);
+  assert.equal(selected.is_unofficial, 0);
+  assert.equal(selected.votes, 622);
+  db.close();
+});
+
+test('verified successor excludes its superseded source as a whole', () => {
+  const db = freshDb();
+  const eid = seedElection(db);
+  const oldContest = seedContest(db, eid, 'old-malformed-key');
+  const newContest = seedContest(db, eid, 'new-correct-key');
+
+  const oldSource = seedSource(
+    db,
+    eid,
+    's-unofficial',
+    'Campbell',
+    'county_local_summary',
+  );
+  const oldSnapshot = seedSnapshot(
+    db,
+    oldSource,
+    1,
+    'sha-unofficial',
+    'verified',
+    1,
+  );
+  seedResultRow(
+    db,
+    seedSnapshotContest(db, oldSnapshot, oldContest),
+    'Old Key Row',
+    12,
+    'old-key',
+  );
+
+  const successor = seedSource(
+    db,
+    eid,
+    's-official',
+    'Campbell',
+    'county_local_summary',
+    oldSource,
+  );
+  const successorSnapshot = seedSnapshot(
+    db,
+    successor,
+    1,
+    'sha-official',
+    'verified',
+    0,
+  );
+  seedResultRow(
+    db,
+    seedSnapshotContest(db, successorSnapshot, newContest),
+    'Correct Key Row',
+    12,
+    'new-key',
+  );
+
+  const rows = db.prepare(
+    `SELECT contest_key, source_id FROM v_election_current_results
+     WHERE county = 'Campbell' ORDER BY contest_key`
+  ).all();
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].contest_key, 'new-correct-key');
+  assert.equal(rows[0].source_id, successor);
   db.close();
 });
 
