@@ -3030,7 +3030,9 @@ async function sendOneAdminEmail(env, {
         const shareMessage = {
           from: emailConfig.from,
           to: [recipientEmail],
-          reply_to: emailConfig.from,
+          // See the reply_to comment in the custom-mode branch below --
+          // emailConfig.from has no inbound MX, support@ does.
+          reply_to: "support@grassrootsmvt.org",
           subject: personalizedSubject,
           text: personalizedShareIntroText ? `${personalizedShareIntroText}\n\n---\n\n${textBody}` : textBody,
           html: finalHtmlBody,
@@ -3059,7 +3061,12 @@ async function sendOneAdminEmail(env, {
           {
             batchId,
             idempotencyKey,
-            replyTo: emailConfig.from,
+            // emailConfig.from (news@updates.grassrootsmvt.org) is a
+            // send-only subdomain with no MX record -- replies to it are
+            // unroutable and bounce. support@grassrootsmvt.org has working
+            // MX (Google Workspace) and is already the monitored inbox for
+            // other admin notifications (see INBOUND_SMS_NOTIFY_TO).
+            replyTo: "support@grassrootsmvt.org",
             headers: listUnsubscribeHeaders,
           }
         );
