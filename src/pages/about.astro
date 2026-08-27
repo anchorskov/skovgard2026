@@ -1,14 +1,30 @@
 ---
+// src/pages/about.astro
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+
+const SKILLS = [
+  'Writing and editing',
+  'Research',
+  'Fact-checking',
+  'Event organizing',
+  'Fundraising',
+  'Volunteer coordination',
+  'Social media',
+  'Website and technology',
+  'Data support',
+  'Local outreach',
+];
 ---
 {/* The candidate portrait is set explicitly here. It used to be the site-wide
     default, which meant every page previewed as a campaign. This is the one
-    page where the portrait is the correct share image. */}
+    page where the portrait is the correct share image. Jimmy is still the
+    person behind this work, even though the page below it no longer reads
+    as a campaign platform. */}
 <Base
-  title='About Jimmy Skovgard'
-  description='Fifth-generation Wyomingite, veteran, and candidate for U.S. Senate. Jimmy Skovgard for Wyoming.'
+  title='About Jimmy Skovgard | The Wyoming Opposition'
+  description='Jimmy Skovgard accepts the 2026 primary result. Here is why Skovgard2026.org continues as the Wyoming Opposition, and how to help hold Chuck Gray and Harriet Hageman accountable before November.'
   ogImage='/images/og-default.jpg'
   ogImageAlt='Jimmy Skovgard'
   ogImageWidth={1200}
@@ -18,111 +34,255 @@ import Footer from '../components/Footer.astro';
   <main class='pt-20'>
 
     <!-- Hero banner -->
-    <div class='bg-wy-navy py-20 px-4'>
+    <div class='bg-wy-charcoal py-20 px-4'>
       <div class='max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center'>
         <div>
-          <p class='text-wy-gold font-semibold uppercase tracking-widest text-sm mb-3'>For Wyoming. For Us.</p>
-          <h1 class='text-5xl font-serif font-bold text-white mb-6 leading-tight'>About Jimmy Skovgard</h1>
-          <p class='text-white/75 text-lg leading-relaxed'>
-            Fifth-generation immigrant. Fourth-generation Wyomingite. Husband, father, veteran, and now a candidate for the U.S. Senate.
+          <p class='text-wy-sandstone font-semibold uppercase tracking-widest text-sm mb-3'>The Wyoming Opposition</p>
+          <h1 class='text-5xl font-serif font-bold text-wy-bone mb-6 leading-tight'>About Jimmy Skovgard</h1>
+          <p class='text-wy-bone/75 text-lg leading-relaxed'>
+            Fifth-generation immigrant. Fourth-generation Wyomingite. Husband, father, veteran, and the neighbor
+            behind the Wyoming Opposition, the citizen effort that continues the work this campaign started.
           </p>
         </div>
-        <div class='rounded-2xl overflow-hidden shadow-2xl'>
+        <div class='rounded-sm overflow-hidden shadow-2xl'>
           <img src='/images/jimmy.png' alt='Jimmy Skovgard' class='w-full object-cover' />
         </div>
       </div>
     </div>
 
-    <!-- Bio -->
-    <section class='bg-white py-20 px-4'>
-      <div class='max-w-3xl mx-auto prose prose-lg prose-headings:font-serif prose-headings:text-wy-navy prose-a:text-wy-gold'>
-        <p>
-          I grew up in the Big Horn Basin: grade school in Greybull, high school in Basin, and college at the University of Wyoming. My great-grandfather, Simon Skovgard, homesteaded near Basin in 1909. Like many of us, I was raised to work hard, speak the truth, and take responsibility for my actions.
+    <!-- The primary is over -->
+    <section class='bg-white py-16 px-4'>
+      <div class='max-w-3xl mx-auto'>
+        <p class='text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3'>Where Things Stand</p>
+        <h2 class='text-4xl font-serif font-bold text-wy-charcoal mb-6'>The Primary Is Over. The Work Is Not.</h2>
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed mb-4'>
+          On August 18, 2026, Wyoming Republicans chose Harriet Hageman and Chuck Gray as their nominees. I accept
+          that result. It was decided fair and square, and I am not going to pretend otherwise. This is not a
+          campaign that is quietly still running.
         </p>
-        <p>
-          I served 12 years in the Wyoming Army National Guard and was honorably discharged as a captain. I have worked in the private sector, run my own business, and spent my life grounded in Wyoming values.
-        </p>
-        <p class='font-semibold text-wy-navy'>I never planned to run for office.</p>
-        <p>
-          I got off the couch in 2024 because the path of division, distraction, and fearmongering is wrong. Fear can sharpen the mind in a crisis, but right now it is being used to keep us angry and apart. Nothing is being built.
-        </p>
-        <p>
-          I have seen this in my own family. A brother who forwards link after link filled with half-truths. A sister who lives in the Big Horn Basin and worries that &ldquo;illegals&rdquo; will invade her home. These are not natural divisions. This is deliberate manipulation for control, and it cuts deep.
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed'>
+          But winning a nomination is not the finish line for accountability. Every one of us still has a say in
+          whether the people we send to Washington answer for what they do there, and that responsibility did not
+          start with my campaign and does not end with it either.
         </p>
       </div>
     </section>
 
-    <!-- Why Running -->
-    <section class='bg-wy-stone py-20 px-4'>
+    <!-- Who I am -->
+    <section class='bg-wy-bone py-16 px-4'>
       <div class='max-w-3xl mx-auto'>
-        <h2 class='text-4xl font-serif font-bold text-wy-navy mb-6'>Why I Am Running</h2>
-        <p class='text-gray-700 text-lg leading-relaxed mb-6'>
-          If manipulation can divide a family, it can divide a nation. That is why I am running. This is not about party politics or career ambition. It is about principle: about us, the people of Wyoming, being seen, heard, and respected again.
-        </p>
-        <p class='text-gray-700 text-lg leading-relaxed mb-8'>
-          Our budget is a moral document. Every line tells a story about who is protected, who is forgotten, and who pays the bill. Right now that bill is drifting toward our children.
-        </p>
-        <div class='grid sm:grid-cols-3 gap-6'>
-          {[
-            { label: 'Service', text: 'Not career politics. A season of work for the people of Wyoming.' },
-            { label: 'Accountability', text: 'Receipts, not rhetoric. Transparent books. No secret slush funds.' },
-            { label: 'Tools', text: 'Technology that brings Wyoming voices to Washington, not backroom deals.' },
-          ].map(item => (
-            <div class='bg-white rounded-xl p-6 shadow-sm border-t-4 border-wy-gold'>
-              <h3 class='font-serif font-bold text-wy-navy text-xl mb-2'>{item.label}</h3>
-              <p class='text-gray-600 text-sm'>{item.text}</p>
-            </div>
-          ))}
+        <p class='text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3'>Who I Am</p>
+        <h2 class='text-4xl font-serif font-bold text-wy-charcoal mb-6'>A Neighbor, Not a Career Politician</h2>
+        <div class='prose prose-lg prose-headings:font-serif prose-headings:text-wy-charcoal prose-a:text-wy-ember max-w-none'>
+          <p>
+            I grew up in the Big Horn Basin: grade school in Greybull, high school in Basin, and college at the
+            University of Wyoming. My great-grandfather, Simon Skovgard, homesteaded near Basin in 1909. Like many
+            of us, I was raised to work hard, speak the truth, and take responsibility for my actions.
+          </p>
+          <p>
+            I served 12 years in the Wyoming Army National Guard and was honorably discharged as a captain. I have
+            worked in the private sector, run my own business, and spent my life grounded in Wyoming values.
+          </p>
+          <p class='font-semibold text-wy-charcoal'>I never planned to run for office.</p>
+          <p>
+            I got off the couch in 2024 because the path of division, distraction, and fearmongering is wrong. Fear
+            can sharpen the mind in a crisis, but right now it is being used to keep us angry and apart. Nothing is
+            being built.
+          </p>
+          <p>
+            I have seen this in my own family. A brother who forwards link after link filled with half-truths. A
+            sister who lives in the Big Horn Basin and worries that &ldquo;illegals&rdquo; will invade her home.
+            These are not natural divisions. This is deliberate manipulation for control, and it cuts deep.
+          </p>
         </div>
       </div>
     </section>
 
-    <!-- Term Limits pledge -->
-    <section class='bg-wy-navy py-20 px-4'>
-      <div class='max-w-3xl mx-auto text-center'>
-        <h2 class='text-4xl font-serif font-bold text-white mb-4'>A Season of Service</h2>
-        <p class='text-white/70 text-lg mb-10'>Office should be a season of service, not a lifetime entitlement.</p>
+    <!-- Why this continues -->
+    <section class='bg-white py-16 px-4'>
+      <div class='max-w-3xl mx-auto'>
+        <p class='text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3'>Why This Continues</p>
+        <h2 class='text-4xl font-serif font-bold text-wy-charcoal mb-6'>Going Quiet Was the Easy Way Out</h2>
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed mb-4'>
+          Shutting this website down and going quiet would have been the easy thing to do. It would also have
+          thrown away every question we started asking, every piece of the record we started gathering, and every
+          Wyoming neighbor who signed up because they wanted to be part of holding power accountable.
+        </p>
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed'>
+          I am not willing to walk away from that. So the site keeps going, and the work keeps going with it.
+        </p>
+      </div>
+    </section>
+
+    <!-- What the Wyoming Opposition is -->
+    <section class='bg-white border-y border-wy-dust py-20 px-4'>
+      <div class='max-w-3xl mx-auto'>
+        <p class='text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3'>What The Wyoming Opposition Is</p>
+        <h2 class='text-4xl font-serif font-bold text-wy-charcoal mb-6'>An Unwatched Office Drifts</h2>
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed mb-4'>
+          Skovgard2026.org is now home to the Wyoming Opposition, a citizen effort that examines the public
+          records of the people asking to represent us, publishes what it finds with sources attached, and asks
+          the questions insiders would rather skip.
+        </p>
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed mb-4'>
+          The Wyoming Opposition opposes both Harriet Hageman, running for U.S. Senate, and Chuck Gray, running
+          for U.S. House and currently serving as Wyoming secretary of state. Our immediate objective this
+          November is straightforward: inform and organize Wyoming voters, and keep Chuck Gray from winning that
+          seat. Hageman's record stays under the same scrutiny.
+        </p>
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed mb-8'>
+          This is not opposition for its own sake. Someone reading the record, asking the hard question in public,
+          and writing down the answer is ordinary maintenance work in a republic. That work is easier together
+          than alone, and it deserves more than one campaign's worth of attention.
+        </p>
+        <div class='flex flex-col sm:flex-row gap-4'>
+          <a href='/the-record/chuck-gray' class='border-2 border-wy-charcoal text-wy-charcoal font-bold px-6 py-3 rounded-sm tracking-wide hover:bg-wy-charcoal hover:text-wy-bone transition-colors text-center'>
+            Read the record on Chuck Gray
+          </a>
+          <a href='/the-record/harriet-hageman' class='border-2 border-wy-charcoal text-wy-charcoal font-bold px-6 py-3 rounded-sm tracking-wide hover:bg-wy-charcoal hover:text-wy-bone transition-colors text-center'>
+            Read the record on Harriet Hageman
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Standards -->
+    <section class='bg-wy-bone py-16 px-4'>
+      <div class='max-w-3xl mx-auto'>
+        <p class='text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3'>Standards and Corrections</p>
+        <h2 class='text-4xl font-serif font-bold text-wy-charcoal mb-6'>We Are Not Asking You to Take Our Word for It</h2>
+        <div class='space-y-4 mb-6'>
+          {[
+            'Every factual claim about a public official’s record links to an original or authoritative source.',
+            'Opinion and judgment are clearly labeled as opinion or judgment, not presented as fact.',
+            'The record is corrected when new evidence emerges, or when something in it is wrong.',
+          ].map(item => (
+            <div class='flex gap-4 items-start bg-white border border-wy-dust rounded-sm p-5'>
+              <span class='text-wy-ember text-xl mt-0.5' aria-hidden='true'>&#10003;</span>
+              <p class='text-wy-charcoal/85'>{item}</p>
+            </div>
+          ))}
+        </div>
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed font-semibold'>
+          We are not asking anyone to take our word for it. We are asking Wyoming people to examine the record.
+        </p>
+      </div>
+    </section>
+
+    <!-- What guides this work -->
+    <section class='bg-wy-charcoal py-20 px-4'>
+      <div class='max-w-3xl mx-auto'>
+        <h2 class='text-4xl font-serif font-bold text-wy-bone mb-4 text-center'>What Guides This Work</h2>
+        <p class='text-wy-bone/70 text-lg mb-10 text-center'>A short list of principles, not a platform.</p>
         <div class='space-y-4 text-left'>
           {[
-            'I will treat this work as a shift, not a career. I support term limits.',
-            'I will support plain-language public reports showing what came in, what went out, and what it means for our future.',
-            'I will live under the standard I am asking us to adopt.',
-          ].map(pledge => (
-            <div class='flex gap-4 items-start bg-white/10 rounded-xl p-5'>
-              <span class='text-wy-gold text-xl mt-0.5'>&#10003;</span>
-              <p class='text-white/90'>{pledge}</p>
+            'Public office belongs to the people who are governed by it.',
+            'The Constitution and the rule of law apply to everyone, including the people who hold office.',
+            'Wyoming voices should guide Wyoming choices, not distant money or national factions.',
+            'Facts come before party loyalty.',
+            'Winning an election is not immunity from accountability.',
+          ].map(principle => (
+            <div class='flex gap-4 items-start bg-white/10 rounded-sm p-5'>
+              <span class='text-wy-sandstone text-xl mt-0.5' aria-hidden='true'>&#10003;</span>
+              <p class='text-wy-bone/90'>{principle}</p>
             </div>
           ))}
+        </div>
+
+        <div class='mt-10 bg-white/10 border-l-4 border-wy-sandstone rounded-sm p-6'>
+          <h3 class='font-serif font-bold text-wy-bone text-xl mb-2'>One Thing I Still Believe</h3>
+          <p class='text-wy-bone/80 leading-relaxed mb-3'>
+            On questions of life, family, and medical care, I still start with Wyoming&rsquo;s Constitution.
+            Government should not force personal medical decisions on families.
+          </p>
+          <blockquote class='border-l-2 border-wy-sandstone/60 pl-4 italic text-wy-bone/70 mb-2'>
+            &ldquo;Every competent adult has the right to make personal health care decisions for themselves and
+            their dependents, and the State of Wyoming must protect those rights from undue governmental
+            infringement.&rdquo;
+          </blockquote>
+          <p class='text-sm text-wy-bone/50'>Wyoming Constitution, Article 1, Section 38</p>
         </div>
       </div>
     </section>
 
-    <!-- Healthcare rights -->
-    <section class='bg-white py-20 px-4'>
+    <!-- Your ballot in November -->
+    <section class='bg-white py-16 px-4'>
       <div class='max-w-3xl mx-auto'>
-        <h2 class='text-4xl font-serif font-bold text-wy-navy mb-6'>Health Care Rights</h2>
-        <p class='text-gray-700 text-lg leading-relaxed mb-8'>
-          On questions of life, family, and medical care, we start with Wyoming&rsquo;s Constitution. Government must not force personal medical decisions on families.
+        <p class='text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3'>Your Ballot in November</p>
+        <h2 class='text-4xl font-serif font-bold text-wy-charcoal mb-6'>You Are Not Required to Give Away Your Vote</h2>
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed mb-4'>
+          If Chuck Gray has not earned your vote, you are not required to give it to him. Wyoming voters have two
+          lawful choices in the U.S. House contest:
         </p>
-        <blockquote class='border-l-4 border-wy-gold pl-6 italic text-gray-600 text-lg mb-3'>
-          &ldquo;Every competent adult has the right to make personal health care decisions for themselves and their dependents, and the State of Wyoming must protect those rights from undue governmental infringement.&rdquo;
-        </blockquote>
-        <p class='text-sm text-gray-500'>Wyoming Constitution, Article 1, Section 38</p>
+        <ol class='space-y-4 mb-6'>
+          <li class='bg-wy-bone border border-wy-dust rounded-sm p-5'>
+            <p class='font-semibold text-wy-charcoal mb-1'>1. Vote for another qualified candidate.</p>
+            <p class='text-wy-charcoal/75 text-sm leading-relaxed'>
+              This both withholds a vote from Chuck Gray and adds a vote for someone else on the ballot.
+            </p>
+          </li>
+          <li class='bg-wy-bone border border-wy-dust rounded-sm p-5'>
+            <p class='font-semibold text-wy-charcoal mb-1'>2. Complete the rest of your ballot and leave the U.S. House contest blank.</p>
+            <p class='text-wy-charcoal/75 text-sm leading-relaxed'>
+              An intentional undervote withholds support from Chuck Gray without adding a vote for anyone else.
+              It is a deliberate choice, not a reason to skip the rest of the ballot.
+            </p>
+          </li>
+        </ol>
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed'>
+          Investigate the choices in front of you and vote according to your own conscience. Check with your
+          county clerk or Wyoming&rsquo;s official election website to confirm exactly who and what will be on
+          your ballot before you vote.
+        </p>
+      </div>
+    </section>
+
+    <!-- Help build the opposition -->
+    <section class='bg-wy-bone py-20 px-4 text-center'>
+      <div class='max-w-3xl mx-auto'>
+        <p class='text-wy-sandstone font-semibold uppercase tracking-[0.18em] text-sm mb-3'>Help Build the Opposition</p>
+        <h2 class='text-4xl font-serif font-bold text-wy-charcoal mb-4'>The Wyoming Opposition Is Just Getting Started</h2>
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed mb-10 max-w-xl mx-auto'>
+          Join the Pulse to stay informed with no commitment beyond reading. If you are ready to help build this,
+          tell us what you can do.
+        </p>
+
+        <div class='flex flex-col sm:flex-row gap-4 justify-center mb-10'>
+          <a href='/pulse' class='bg-wy-ember text-wy-bone font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-ember-dark transition-colors shadow-sm text-center'>
+            Join the Pulse
+          </a>
+          <a href='/volunteer' class='border-2 border-wy-charcoal text-wy-charcoal font-bold px-8 py-4 rounded-sm text-lg tracking-wide hover:bg-wy-charcoal hover:text-wy-bone transition-colors text-center'>
+            Volunteer Your Skills
+          </a>
+        </div>
+
+        <p class='text-wy-charcoal/60 text-sm mb-4'>We can use help with:</p>
+        <div class='flex flex-wrap gap-2 justify-center mb-10'>
+          {SKILLS.map(skill => (
+            <span class='bg-white border border-wy-dust rounded-sm px-3 py-1 text-sm text-wy-charcoal/80'>{skill}</span>
+          ))}
+        </div>
+
+        <p class='text-wy-charcoal/80 text-lg leading-relaxed max-w-xl mx-auto mb-2'>
+          Together we can document the record, organize our voices, and keep Chuck Gray from winning in November.
+        </p>
+        <p class='text-wy-charcoal font-serif font-bold text-2xl'>Public office belongs to us. Let&rsquo;s act like it.</p>
       </div>
     </section>
 
     <!-- Substack CTA -->
-    <section class='bg-wy-stone py-16 px-4 text-center'>
-      <h2 class='text-3xl font-serif font-bold text-wy-navy mb-4'>Dig Deeper</h2>
-      <p class='text-gray-600 text-lg mb-8 max-w-xl mx-auto'>
-        Hundreds of essays on Jimmy&rsquo;s journey and the path forward. Read the Substack, then join the conversation on the podcast.
+    <section class='bg-white border-t border-wy-dust py-16 px-4 text-center'>
+      <h2 class='text-3xl font-serif font-bold text-wy-charcoal mb-4'>Dig Deeper</h2>
+      <p class='text-wy-charcoal/70 text-lg mb-8 max-w-xl mx-auto'>
+        Hundreds of essays on Jimmy&rsquo;s journey and the path forward. Read the Substack, then join the
+        conversation on the podcast.
       </p>
       <div class='flex flex-col sm:flex-row gap-4 justify-center'>
         <a href='https://jimskovgard.substack.com/' target='_blank' rel='noopener'
-           class='bg-wy-navy text-white font-bold px-8 py-3 rounded hover:bg-wy-sky transition-colors'>
+           class='bg-wy-charcoal text-wy-bone font-bold px-8 py-3 rounded-sm hover:bg-wy-charcoal/85 transition-colors'>
           Read on Substack
         </a>
-        <a href='/podcast' class='border-2 border-wy-navy text-wy-navy font-bold px-8 py-3 rounded hover:bg-wy-navy hover:text-white transition-colors'>
+        <a href='/podcast' class='border-2 border-wy-charcoal text-wy-charcoal font-bold px-8 py-3 rounded-sm hover:bg-wy-charcoal hover:text-wy-bone transition-colors'>
           Listen to Podcast
         </a>
       </div>

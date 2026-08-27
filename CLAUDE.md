@@ -50,6 +50,25 @@ generating any front-end code, copy, or visual assets.
 - Channel-specific rules: `brand/channel-rules.md`
 - Locked spec overview: `brand/BRAND.md`
 
+### Site identity: Wyoming Opposition (current) vs. Skovgard for Senate (archived template)
+
+After the 2026-08-18 primary loss, `main` pivoted from an active U.S. Senate
+campaign site to a post-primary "Wyoming Opposition" accountability site
+(candidate publicly accepts the result; the site continues as watchdog work,
+not a campaign). This is the live, forward direction of `main` — treat it as
+current, not experimental.
+
+The pre-pivot "Skovgard for Senate" campaign site is preserved at branch
+**`template/skovgard-for-senate`** (commit `b492fcb`, 2026-08-19, the last
+commit before any Opposition content touched `main`) for reuse as a future
+candidate-site template. It is intentionally frozen — do not merge it
+forward or treat it as drifted-from-current; it is a reference point, not
+an active branch. If asked to build a new campaign site from scratch, start
+there rather than reverse-engineering the Opposition content back out of
+`main`.
+- Channel-specific rules: `brand/channel-rules.md`
+- Locked spec overview: `brand/BRAND.md`
+
 ### Current theme status
 
 The frontier theme is already implemented on this branch in `src/styles/global.css`,
