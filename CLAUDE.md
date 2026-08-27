@@ -221,6 +221,41 @@ Do not reference `config/_default/config.toml`, `layouts/`, or Hugo-era paths �
 - If a requested sharing, sale, transfer, or distribution could violate applicable law, agents must provide a clear warning before proceeding.
 - Agents must not provide legal conclusions or legal advice. Agents should flag potential legal risk and recommend that the user confirm with qualified counsel.
 
+### "Skovgard for Senate" / FEC Committee ID C00903369 — do not rename
+
+_(confirmed 2026-08-27)_ The FEC committee "Skovgard for Senate" (C00903369)
+is still active and retains legal ownership of this site until the user
+explicitly transfers it to a different entity he owns/controls. This is
+separate from the site's public brand voice, which pivoted to "The Wyoming
+Opposition" after the 2026-08-18 primary (see the Brand System section
+above). **Do not rename "Skovgard for Senate" anywhere it functions as a
+legal/compliance reference**, even though it reads as inconsistent next to
+"The Opposition" branding elsewhere on the same page — that's intentional,
+not a bug:
+
+- FEC disclaimers ("Paid for by Skovgard for Senate") — `Footer.astro`,
+  `ShareListing.astro`, `donate*.astro`, email templates, and the
+  `Candidates/` sub-project's own disclaimer (tied to a specific reported
+  in-kind contribution).
+- `terms.astro`, `privacy.astro`, and `finance/index.astro` — describe the
+  actual registered committee and its FEC contribution rules.
+- SMS/Pulse opt-in consent copy and `PULSE_EMAIL_CAMPAIGN_NAME` — tied to
+  the 10DLC carrier campaign registration; changing the displayed name
+  without updating that registration risks message filtering, not just a
+  wording mismatch.
+- `static/resources/affidavit_instructions.md`'s mailing address — real
+  physical mail is addressed to this name.
+- Code comments describing which committee's contributions a table tracks.
+
+`skovgard2026.org` stays home for both: the live "Wyoming Opposition"
+public identity, running under the still-active "Skovgard for Senate"
+legal/FEC entity. The user's longer-term plan is to build separate sites
+under separate entities he owns (see `/home/anchor/projects/integrity`,
+already underway as "The Fourth Branch" / `thefourthbranch.net`, modeled on
+patterns from this repo), using this repo as platform and template — see
+`template/skovgard-for-senate` branch — not to rename this one's legal
+identity in place.
+
 ## WORM Data Protocol
 
 WORM protocol is in effect for this project. Treat operational records as write-once/read-many data unless the user explicitly authorizes a corrective migration or administrative update.
