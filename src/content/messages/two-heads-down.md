@@ -2,7 +2,7 @@
 title: "The Caucus Lost Its Chairman and Its Speaker"
 date: 2026-08-29
 type: essay
-summary: "The Wyoming Freedom Caucus built a national-backed network that reshaped the Legislature. On August 18, Wyoming voters cost it its chairman and its Speaker of the House — two of its most senior leaders, defeated in the same primary."
+summary: "The Wyoming Freedom Caucus built a national-backed network that reshaped the Legislature. On August 18, Wyoming voters defeated its chairman and its Speaker of the House, two of its most senior leaders, in the same primary."
 draft: false
 tags: ["wyoming freedom caucus", "primary results", "the record", "accountability"]
 thumbnail: "/images/share/meme-two-heads-down.png"
@@ -10,7 +10,7 @@ thumbnailWidth: 1200
 thumbnailHeight: 630
 ctaLabel: "Read the message"
 share:
-  tweetText: "The Wyoming Freedom Caucus just lost its chairman and its Speaker of the House in the same primary. It isn't gone. But it's down two heads. — Jimmy Skovgard"
+  tweetText: "The Wyoming Freedom Caucus just lost its chairman and its Speaker of the House in the same primary. It isn't gone. But it's down two heads. Jimmy Skovgard"
   emailSubject: "The caucus lost its chairman and its Speaker"
   emailBody: |
     Hi,
@@ -47,7 +47,7 @@ It doesn't mean the Wyoming Freedom Caucus is finished. Ten reliable votes is st
 
 ## What it does mean
 
-It means the caucus enters the next session without the two people who ran it. A chairman and a Speaker are not interchangeable seats — they're the people who set the agenda and count the votes. Wyoming voters removed both of them in the same primary, after looking at what two sessions under that leadership produced: a documented push for stricter voter-registration rules, a legal fight over the residency requirement it created, and dozens of priority bills carried through Freedom Caucus-aligned committees.
+It means the caucus enters the next session without the two people who ran it. A chairman and a Speaker are not interchangeable seats. They're the people who set the agenda and count the votes. Wyoming voters removed both of them in the same primary, after looking at what two sessions under that leadership produced: a documented push for stricter voter-registration rules, a legal fight over the residency requirement it created, and dozens of priority bills carried through Freedom Caucus-aligned committees.
 
 Power that isn't accountable to Wyoming doesn't stay in place because it's persistent. It stays in place because voters don't look closely enough, often enough. On August 18, Wyoming looked.
 
