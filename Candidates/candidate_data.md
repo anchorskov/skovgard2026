@@ -251,6 +251,7 @@ party or alias is a database change rather than a frontend deploy.
 | `db/seed/002_enrichment_updates.sql` | Auto-generated UPDATE statements from batch enrichment CSVs (batches 01–10, all 200 rows) |
 | `db/seed/wy_2026_primary_candidates.csv` | Source SOS CSV — do not modify |
 | `db/seed/wy_2026_primary_candidates_enhanced_batch*.csv` | Enrichment batch CSVs (85 columns, all 200 rows per file) |
+| `db/seed/candidate_corrections_2026-08-31.sql` | Idempotent candidate-supplied correction that adds Samuel Buckwalter's campaign phone number. Applied locally and to production D1 on 2026-08-31. |
 | `db/seed/candidate_email_suppressions_*.sql` | Candidate bulk-email unsubscribe/suppression records |
 | `db/seed/guide_rubric_2026_v1.sql` | Generated immutable seed for rubric version `wy-primary-2026-v1`; do not edit directly |
 | `db/seed/sweetwater_precinct_committee_candidates_2026-08-02.sql` | Idempotent Sweetwater precinct roster: 50 party/gender offices and 93 verified candidates from the county CSV/source PDF; one party-unknown filing is held |
